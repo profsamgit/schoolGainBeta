@@ -71,7 +71,7 @@ import {
   Gift,
   BookOpen,
   BrainCircuit,
-  Tags,
+  LayoutDashboard,
 } from 'lucide-react';
 import {
   Select,
@@ -83,6 +83,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { WasteChart } from '@/components/waste-chart';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const userSchema = z.object({
   id: z.string().optional(),
@@ -262,44 +264,73 @@ export default function AdminPage() {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total de Resíduos</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">5880 kg</div>
-                <p className="text-xs text-muted-foreground">+5% vs. mês passado</p>
-            </CardContent>
-        </Card>
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Alunos Ativos</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">{studentUsers.length}</div>
-                <p className="text-xs text-muted-foreground">+10 desde a última semana</p>
-            </CardContent>
-        </Card>
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Principal Contribuidor</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">{topStudent?.name ?? 'N/A'}</div>
-                <p className="text-xs text-muted-foreground">{topStudent?.points ?? 0} pontos</p>
-            </CardContent>
-        </Card>
-      </div>
-      
-      <Tabs defaultValue="users" className="space-y-4">
+      <Tabs defaultValue="dashboard" className="space-y-4">
         <TabsList>
-            <TabsTrigger value="users"><UserPlus className="mr-2"/>Usuários</TabsTrigger>
-            <TabsTrigger value="rewards"><Gift className="mr-2"/>Recompensas</TabsTrigger>
-            <TabsTrigger value="education"><BookOpen className="mr-2"/>Conteúdo</TabsTrigger>
-            <TabsTrigger value="quizzes"><BrainCircuit className="mr-2"/>Quizzes</TabsTrigger>
+            <TabsTrigger value="dashboard"><LayoutDashboard className="mr-2 h-4 w-4"/>Dashboard</TabsTrigger>
+            <TabsTrigger value="users"><UserPlus className="mr-2 h-4 w-4"/>Usuários</TabsTrigger>
+            <TabsTrigger value="rewards"><Gift className="mr-2 h-4 w-4"/>Recompensas</TabsTrigger>
+            <TabsTrigger value="education"><BookOpen className="mr-2 h-4 w-4"/>Conteúdo</TabsTrigger>
+            <TabsTrigger value="quizzes"><BrainCircuit className="mr-2 h-4 w-4"/>Quizzes</TabsTrigger>
         </TabsList>
         
+        <TabsContent value="dashboard" className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total de Resíduos</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">5880 kg</div>
+                    <p className="text-xs text-muted-foreground">+5% vs. mês passado</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Alunos Ativos</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{studentUsers.length}</div>
+                    <p className="text-xs text-muted-foreground">+10 desde a última semana</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Principal Contribuidor</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{topStudent?.name ?? 'N/A'}</div>
+                    <p className="text-xs text-muted-foreground">{topStudent?.points ?? 0} pontos</p>
+                </CardContent>
+            </Card>
+          </div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <WasteChart />
+            <Card>
+              <CardHeader>
+                <CardTitle>Atividade Recente</CardTitle>
+                <CardDescription>Últimos alunos com mais pontos.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {users.filter(u => u.role === 'student').sort((a,b) => b.points - a.points).slice(0, 5).map((user) => (
+                    <div key={user.id} className="flex items-center gap-4">
+                        <Avatar className="h-9 w-9 hidden sm:flex">
+                            <AvatarImage src={`https://picsum.photos/seed/${user.id}/100/100`} alt="Avatar" />
+                            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="grid gap-1">
+                            <p className="text-sm font-medium leading-none">{user.name}</p>
+                            <p className="text-sm text-muted-foreground">RA: {user.ra}</p>
+                        </div>
+                        <div className="ml-auto font-medium">{user.points} pts</div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
         <TabsContent value="users">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
