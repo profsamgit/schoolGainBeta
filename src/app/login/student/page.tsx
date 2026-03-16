@@ -65,12 +65,12 @@ export default function StudentLoginPage() {
           <Input
             ref={inputRef}
             value={ra}
-            onChange={(e) => setRa(e.target.value.toUpperCase())}
+            onChange={(e) => setRa(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
             placeholder="Seu RA"
             className="text-center text-xl h-14"
             autoFocus
-            inputMode={showKeyboard ? 'none' : 'text'}
+            inputMode={showKeyboard ? 'none' : 'numeric'}
           />
           {showKeyboard && (
             <VirtualKeyboard

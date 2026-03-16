@@ -181,6 +181,14 @@ export default function KioskPage() {
       setIdentificationResult(null);
   }
 
+  const handleExit = () => {
+    setStudentRa('');
+    setIdentifiedStudent(null);
+    setStep('identification');
+    setIdentificationResult(null);
+    setShowKeyboard(false);
+  };
+
   const WasteIcon = identificationResult ? wasteIcons[identificationResult.wasteType] : null;
   
   if (step === 'identification') {
@@ -204,11 +212,11 @@ export default function KioskPage() {
                             ref={raInputRef}
                             placeholder="Digite seu RA" 
                             value={studentRa}
-                            onChange={(e) => setStudentRa(e.target.value.toUpperCase())}
+                            onChange={(e) => setStudentRa(e.target.value)}
                             onKeyDown={(e) => { if (e.key === 'Enter') handleStudentIdentification()}}
                             className="text-lg p-4 h-14 text-center"
                             autoFocus
-                            inputMode={showKeyboard ? 'none' : 'text'}
+                            inputMode={showKeyboard ? 'none' : 'numeric'}
                         />
                     </div>
                     {showKeyboard && (
@@ -261,7 +269,7 @@ export default function KioskPage() {
                 Aluno: <span className="font-bold text-primary">{identifiedStudent?.name}</span>
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={() => { setStudentRa(''); setIdentifiedStudent(null); setStep('identification'); }}>
+            <Button variant="outline" size="sm" onClick={handleExit}>
               <User className="mr-2 h-4 w-4" />
               Trocar Aluno
             </Button>
