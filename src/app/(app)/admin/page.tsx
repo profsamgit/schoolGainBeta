@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -117,6 +117,11 @@ type RewardFormValues = z.infer<typeof rewardSchema>;
 type ArticleFormValues = z.infer<typeof articleSchema>;
 
 export default function AdminPage() {
+  const [hasMounted, setHasMounted] = useState(false);
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
   const { toast } = useToast();
   // State for all managed items
   const [users, setUsers] = useState<Omit<User, 'email' | 'avatar'>[]>([...leaderboardData, mockAdmin]);
@@ -240,6 +245,10 @@ export default function AdminPage() {
   }
   
   const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  
+  if (!hasMounted) {
+    return null;
+  }
 
   return (
     <div className="space-y-6">
