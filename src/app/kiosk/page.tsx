@@ -9,11 +9,13 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Leaf, Paperclip, Recycle, Trash2, Atom, Camera, Loader2, Sparkles, Check, ArrowLeft } from 'lucide-react';
+import { Leaf, Paperclip, Recycle, Trash2, Atom, Camera, Loader2, Sparkles, Check, ArrowLeft, User, ArrowRight } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { identifyWasteAction } from './actions';
+import { identifyWasteAction } from '@/app/(app)/waste/actions'; 
 import { type IdentifyWasteOutput } from '@/ai/flows/identify-waste';
+import { Input } from '@/components/ui/input';
+import Link from 'next/link';
 
 const wasteIcons: { [key: string]: React.ElementType } = {
   'Plástico': Recycle,
@@ -23,15 +25,26 @@ const wasteIcons: { [key: string]: React.ElementType } = {
   'Não identificado': Trash2,
 };
 
-export default function WastePage() {
+export default function KioskPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [identificationResult, setIdentificationResult] = useState<IdentifyWasteOutput | null>(null);
+  const [step, setStep] = useState<'identification' | 'scanning'>('identification');
+  const [studentRa, setStudentRa] = useState('');
   const { toast } = useToast();
 
   useEffect(() => {
+    if (step !== 'scanning') {
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+        videoRef.current.srcObject = null;
+      }
+      return;
+    }
+
     let isCancelled = false;
 
     async function getCameraPermission() {
@@ -75,7 +88,7 @@ export default function WastePage() {
         videoRef.current.srcObject = null;
       }
     };
-  }, [toast]);
+  }, [step, toast]);
 
   const handleScan = async () => {
     if (!videoRef.current || !canvasRef.current) return;
@@ -118,7 +131,7 @@ export default function WastePage() {
     if(!identificationResult || identificationResult.points === 0) return;
     toast({
         title: 'Registro bem-sucedido!',
-        description: `Você ganhou ${identificationResult.points} pontos por reciclar ${identificationResult.wasteType}.`,
+        description: `Aluno com RA ${studentRa} ganhou ${identificationResult.points} pontos por reciclar ${identificationResult.wasteType}.`,
     });
     setIdentificationResult(null);
   }
@@ -128,18 +141,71 @@ export default function WastePage() {
   }
 
   const WasteIcon = identificationResult ? wasteIcons[identificationResult.wasteType] : null;
+  
+  if (step === 'identification') {
+    return (
+        <div className="w-full min-h-screen flex flex-col items-center justify-center bg-background p-4">
+            <Card className="w-full max-w-md">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-2xl">
+                        <Recycle className="h-8 w-8 text-primary" />
+                        Terminal SchoolGain
+                    </CardTitle>
+                    <CardDescription>
+                        Identifique-se com seu RA para registrar um resíduo.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-2">
+                        <label htmlFor="ra-input" className="text-sm font-medium">RA (Registro Acadêmico)</label>
+                        <Input 
+                            id="ra-input"
+                            placeholder="Digite seu RA" 
+                            value={studentRa}
+                            onChange={(e) => setStudentRa(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter' && studentRa.trim()) setStep('scanning')}}
+                            className="text-lg p-4 h-12"
+                        />
+                    </div>
+                </CardContent>
+                <CardFooter>
+                    <Button 
+                        className="w-full"
+                        size="lg"
+                        onClick={() => setStep('scanning')}
+                        disabled={!studentRa.trim()}
+                    >
+                        Continuar
+                        <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                </CardFooter>
+            </Card>
+            <p className="text-xs text-muted-foreground mt-4">
+                Não é um terminal? <Link href="/dashboard" className="underline hover:text-primary">Voltar para o app</Link>
+            </p>
+        </div>
+    );
+  }
 
   return (
-    <div className="flex justify-center items-start pt-8">
+    <div className="w-full min-h-screen flex flex-col items-center justify-center bg-background p-4">
       <Card className="w-full max-w-2xl">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Camera className="h-6 w-6" />
-            Registro de Resíduo
-          </CardTitle>
-          <CardDescription>
-            Use a câmera para escanear um item e ganhar pontos de sustentabilidade.
-          </CardDescription>
+          <div className="flex justify-between items-center flex-wrap gap-2">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Camera className="h-6 w-6" />
+                Registro por Câmera
+              </CardTitle>
+              <CardDescription>
+                Aluno: <span className="font-bold text-primary">{studentRa}</span>
+              </CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => { setStudentRa(''); setStep('identification'); }}>
+              <User className="mr-2 h-4 w-4" />
+              Trocar Aluno
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-4">
           <div className="w-full aspect-video rounded-md overflow-hidden border bg-muted relative">
