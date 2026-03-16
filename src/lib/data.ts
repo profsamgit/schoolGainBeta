@@ -17,6 +17,8 @@ export const mockUser: User = {
   role: 'student',
   points: 1250,
   level: 'Prata',
+  ra: '123456',
+  turma: '8º A',
 };
 
 export const mockAdmin: User = {
@@ -30,13 +32,13 @@ export const mockAdmin: User = {
 };
 
 export const leaderboardData: Omit<User, 'email' | 'avatar' | 'role'>[] = [
-  { id: 'user-2', name: 'Sofia Recicla', points: 3400, level: 'Ouro' },
-  { id: 'user-3', name: 'Pedro Planta', points: 2850, level: 'Ouro' },
-  { id: 'user-1', name: 'Alex Verde', points: 1250, level: 'Prata' },
-  { id: 'user-4', name: 'Lia Sustentável', points: 980, level: 'Bronze' },
-  { id: 'user-5', name: 'Carlos Coleta', points: 720, level: 'Bronze' },
-  { id: 'user-6', name: 'Mariana Horta', points: 510, level: 'Bronze' },
-  { id: 'user-7', name: 'Beto Água', points: 300, level: 'Bronze' },
+  { id: 'user-2', name: 'Sofia Recicla', points: 3400, level: 'Ouro', ra: '234567', turma: '9º B' },
+  { id: 'user-3', name: 'Pedro Planta', points: 2850, level: 'Ouro', ra: '345678', turma: '9º A' },
+  { id: 'user-1', name: 'Alex Verde', points: 1250, level: 'Prata', ra: '123456', turma: '8º A' },
+  { id: 'user-4', name: 'Lia Sustentável', points: 980, level: 'Bronze', ra: '456789', turma: '7º C' },
+  { id: 'user-5', name: 'Carlos Coleta', points: 720, level: 'Bronze', ra: '567890', turma: '8º B' },
+  { id: 'user-6', name: 'Mariana Horta', points: 510, level: 'Bronze', ra: '678901', turma: '7º A' },
+  { id: 'user-7', name: 'Beto Água', points: 300, level: 'Bronze', ra: '789012', turma: '6º B' },
 ];
 
 export const rewards: Reward[] = [

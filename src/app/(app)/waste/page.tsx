@@ -31,7 +31,7 @@ export default function WastePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [identificationResult, setIdentificationResult] = useState<IdentifyWasteOutput | null>(null);
   const [step, setStep] = useState<'identification' | 'scanning'>('identification');
-  const [studentId, setStudentId] = useState('');
+  const [studentRa, setStudentRa] = useState('');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -130,7 +130,7 @@ export default function WastePage() {
     if(!identificationResult || identificationResult.points === 0) return;
     toast({
         title: 'Registro bem-sucedido!',
-        description: `Aluno ${studentId} ganhou ${identificationResult.points} pontos por reciclar ${identificationResult.wasteType}.`,
+        description: `Aluno com RA ${studentRa} ganhou ${identificationResult.points} pontos por reciclar ${identificationResult.wasteType}.`,
     });
     setIdentificationResult(null);
   }
@@ -151,22 +151,22 @@ export default function WastePage() {
                       Identificação do Aluno
                   </CardTitle>
                   <CardDescription>
-                      Digite seu código de identificação para continuar.
+                      Digite seu RA (Registro Acadêmico) para continuar.
                   </CardDescription>
               </CardHeader>
               <CardContent>
                 <Input 
-                    placeholder="Seu código de aluno" 
-                    value={studentId}
-                    onChange={(e) => setStudentId(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' && studentId.trim()) setStep('scanning')}}
+                    placeholder="Seu RA" 
+                    value={studentRa}
+                    onChange={(e) => setStudentRa(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && studentRa.trim()) setStep('scanning')}}
                 />
               </CardContent>
               <CardFooter>
                   <Button 
                       className="w-full"
                       onClick={() => setStep('scanning')}
-                      disabled={!studentId.trim()}
+                      disabled={!studentRa.trim()}
                   >
                       Escanear Resíduo
                       <ArrowRight className="ml-2 h-5 w-5" />
@@ -188,10 +188,10 @@ export default function WastePage() {
                 Registro por Câmera
               </CardTitle>
               <CardDescription>
-                Aluno: <span className="font-bold text-primary">{studentId}</span>
+                Aluno: <span className="font-bold text-primary">{studentRa}</span>
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={() => { setStudentId(''); setStep('identification'); }}>
+            <Button variant="outline" size="sm" onClick={() => { setStudentRa(''); setStep('identification'); }}>
               <User className="mr-2 h-4 w-4" />
               Trocar Aluno
             </Button>

@@ -6,6 +6,8 @@ export type User = {
   role: 'student' | 'admin' | 'teacher';
   points: number;
   level: 'Bronze' | 'Prata' | 'Ouro' | 'Diamante';
+  ra?: string;
+  turma?: string;
 };
 
 export type Reward = {

@@ -15,8 +15,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { leaderboardData } from '@/lib/data';
-import { Shield } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Shield, UserPlus } from 'lucide-react';
+import Link from 'next/link';
 
 export default function AdminPage() {
   const totalWaste = 5880; // Sum of mock data
@@ -34,7 +34,7 @@ export default function AdminPage() {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -72,6 +72,19 @@ export default function AdminPage() {
             </p>
           </CardContent>
         </Card>
+        <Link href="/admin/register-student">
+          <Card className="hover:bg-accent transition-colors h-full flex flex-col justify-center items-center">
+            <CardHeader className="items-center pb-2">
+              <UserPlus className="h-8 w-8 text-primary" />
+              <CardTitle className="text-lg">Cadastrar Aluno</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-muted-foreground text-center">
+                Adicionar um novo aluno ao sistema.
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-5">
