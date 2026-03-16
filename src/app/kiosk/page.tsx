@@ -17,7 +17,7 @@ import { type IdentifyWasteOutput } from '@/ai/flows/identify-waste';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { leaderboardData } from '@/lib/data';
-import type { User } from '@/lib/types';
+import type { User as UserData } from '@/lib/types';
 
 const wasteIcons: { [key: string]: React.ElementType } = {
   'Plástico': Recycle,
@@ -35,7 +35,7 @@ export default function KioskPage() {
   const [identificationResult, setIdentificationResult] = useState<IdentifyWasteOutput | null>(null);
   const [step, setStep] = useState<'identification' | 'scanning'>('identification');
   const [studentRa, setStudentRa] = useState('');
-  const [identifiedStudent, setIdentifiedStudent] = useState<Omit<User, 'email' | 'avatar'> | null>(null);
+  const [identifiedStudent, setIdentifiedStudent] = useState<Omit<UserData, 'email' | 'avatar'> | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
