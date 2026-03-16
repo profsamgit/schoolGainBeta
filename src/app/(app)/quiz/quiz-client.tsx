@@ -36,6 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { quizTopics } from '@/lib/data';
+import { Label } from '@/components/ui/label';
 
 const formSchema = z.object({
   topic: z.string().min(1, 'Por favor, selecione um tópico.'),
@@ -140,14 +141,15 @@ export function QuizClient() {
         <CardContent>
           <p className="text-lg font-semibold mb-4">{question.questionText}</p>
           <RadioGroup value={selectedAnswers[currentQuestionIndex]} onValueChange={handleAnswerSelect} className="space-y-2">
-            {question.options.map((option, index) => (
-              <FormItem key={index} className="flex items-center space-x-3 space-y-0">
-                <FormControl>
-                  <RadioGroupItem value={option} />
-                </FormControl>
-                <FormLabel className="font-normal text-base">{option}</FormLabel>
-              </FormItem>
-            ))}
+            {question.options.map((option, index) => {
+              const optionId = `option-${currentQuestionIndex}-${index}`;
+              return (
+                <div key={optionId} className="flex items-center space-x-3">
+                  <RadioGroupItem value={option} id={optionId} />
+                  <Label htmlFor={optionId} className="font-normal text-base">{option}</Label>
+                </div>
+              )
+            })}
           </RadioGroup>
         </CardContent>
         <CardFooter>
