@@ -10,13 +10,13 @@ export default function Home() {
         <p className="text-lg text-muted-foreground mt-2">Selecione seu perfil de acesso para continuar.</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-4xl">
-        <Link href="/dashboard" className="block h-full">
+        <Link href="/login/student" className="block h-full">
           <Card className="hover:border-primary hover:shadow-lg transition-all h-full flex flex-col">
             <CardHeader className="flex-row items-center gap-4">
               <User className="w-10 h-10 text-primary" />
               <div>
                 <CardTitle>Área do Aluno</CardTitle>
-                <CardDescription>Acesse seu painel, registre resíduos e ganhe pontos.</CardDescription>
+                <CardDescription>Faça login com seu RA para acessar seu painel.</CardDescription>
               </div>
             </CardHeader>
             <CardContent className="flex-grow flex items-end justify-end text-sm font-medium text-primary">
@@ -24,13 +24,13 @@ export default function Home() {
             </CardContent>
           </Card>
         </Link>
-        <Link href="/admin" className="block h-full">
+        <Link href="/login/admin" className="block h-full">
           <Card className="hover:border-primary hover:shadow-lg transition-all h-full flex flex-col">
             <CardHeader className="flex-row items-center gap-4">
               <Shield className="w-10 h-10 text-primary" />
               <div>
                 <CardTitle>Área do Gestor</CardTitle>
-                <CardDescription>Gerencie usuários, visualize relatórios e configure o sistema.</CardDescription>
+                <CardDescription>Acesse o painel de gerenciamento do sistema.</CardDescription>
               </div>
             </CardHeader>
             <CardContent className="flex-grow flex items-end justify-end text-sm font-medium text-primary">
