@@ -1,3 +1,52 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "reward-book",
+      "description": "A book about nature",
+      "imageUrl": "https://picsum.photos/seed/reward1/600/400",
+      "imageHint": "book nature"
+    },
+    {
+      "id": "reward-kit",
+      "description": "A school supply kit",
+      "imageUrl": "https://picsum.photos/seed/reward2/600/400",
+      "imageHint": "school supplies"
+    },
+    {
+      "id": "reward-plant",
+      "description": "A small plant in a pot",
+      "imageUrl": "https://picsum.photos/seed/reward3/600/400",
+      "imageHint": "plant pot"
+    },
+    {
+      "id": "reward-bottle",
+      "description": "A reusable water bottle",
+      "imageUrl": "https://picsum.photos/seed/reward4/600/400",
+      "imageHint": "water bottle"
+    },
+    {
+      "id": "edu-recycling",
+      "description": "Colorful recycling bins",
+      "imageUrl": "https://picsum.photos/seed/edu1/800/450",
+      "imageHint": "recycling bins"
+    },
+    {
+      "id": "edu-composting",
+      "description": "A compost bin with organic waste",
+      "imageUrl": "https://picsum.photos/seed/edu2/800/450",
+      "imageHint": "compost garden"
+    },
+    {
+      "id": "edu-water",
+      "description": "A clean river flowing through a forest",
+      "imageUrl": "https://picsum.photos/seed/edu3/800/450",
+      "imageHint": "clean river"
+    },
+    {
+      "id": "user-avatar-1",
+      "description": "User avatar",
+      "imageUrl": "https://picsum.photos/seed/avatar1/100/100",
+      "imageHint": "person portrait"
+    }
+  ]
 }
