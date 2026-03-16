@@ -8,105 +8,220 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import {
-  RadioGroup,
-  RadioGroupItem,
-} from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Leaf, Paperclip, Recycle, Trash2, Atom } from 'lucide-react';
-import { useState } from 'react';
+import { Leaf, Paperclip, Recycle, Trash2, Atom, Camera, Loader2, Sparkles, Check, ArrowLeft } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { identifyWasteAction } from './actions';
+import { type IdentifyWasteOutput } from '@/ai/flows/identify-waste';
 
-const wasteTypes = [
-  { id: 'plastic', label: 'Plástico', icon: Recycle, points: 10 },
-  { id: 'paper', label: 'Papel', icon: Paperclip, points: 8 },
-  { id: 'metal', label: 'Metal', icon: Atom, points: 15 },
-  { id: 'organic', label: 'Orgânico', icon: Leaf, points: 5 },
-];
+const wasteIcons: { [key: string]: React.ElementType } = {
+  'Plástico': Recycle,
+  'Papel': Paperclip,
+  'Metal': Atom,
+  'Orgânico': Leaf,
+  'Não identificado': Trash2,
+};
 
 export default function WastePage() {
-  const [selectedWaste, setSelectedWaste] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [identificationResult, setIdentificationResult] = useState<IdentifyWasteOutput | null>(null);
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedWaste) {
-      toast({
-        title: 'Seleção necessária',
-        description: 'Por favor, selecione um tipo de resíduo.',
-        variant: 'destructive',
-      });
-      return;
+  useEffect(() => {
+    async function getCameraPermission() {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
+          setHasCameraPermission(true);
+        } catch (error) {
+          console.error('Error accessing camera:', error);
+          setHasCameraPermission(false);
+          toast({
+            variant: 'destructive',
+            title: 'Acesso à câmera negado',
+            description: 'Por favor, habilite o acesso à câmera nas configurações do seu navegador.',
+          });
+        }
+      } else {
+        setHasCameraPermission(false);
+        toast({
+          variant: 'destructive',
+          title: 'Câmera não suportada',
+          description: 'Seu navegador não suporta acesso à câmera.',
+        });
+      }
     }
+    getCameraPermission();
 
+    return () => {
+        if (videoRef.current && videoRef.current.srcObject) {
+            const stream = videoRef.current.srcObject as MediaStream;
+            stream.getTracks().forEach(track => track.stop());
+        }
+    };
+  }, [toast]);
+
+  const handleScan = async () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    
     setIsLoading(true);
-    const waste = wasteTypes.find((w) => w.id === selectedWaste);
+    setIdentificationResult(null);
 
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: 'Registro bem-sucedido!',
-        description: `Você ganhou ${waste?.points} pontos por reciclar ${waste?.label}.`,
-      });
-      setSelectedWaste(null);
-    }, 1000);
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const context = canvas.getContext('2d');
+    if(context) {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const dataUri = canvas.toDataURL('image/jpeg');
+
+        try {
+            const result = await identifyWasteAction({ photoDataUri: dataUri });
+            setIdentificationResult(result);
+        } catch (error: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Falha na Identificação',
+                description: error.message || 'Não foi possível identificar o resíduo. Tente novamente.',
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    } else {
+         setIsLoading(false);
+         toast({
+            variant: 'destructive',
+            title: 'Erro de Captura',
+            description: 'Não foi possível capturar a imagem.',
+        });
+    }
   };
+  
+  const handleConfirm = () => {
+    if(!identificationResult || identificationResult.points === 0) return;
+    toast({
+        title: 'Registro bem-sucedido!',
+        description: `Você ganhou ${identificationResult.points} pontos por reciclar ${identificationResult.wasteType}.`,
+    });
+    setIdentificationResult(null);
+  }
+  
+  const handleReset = () => {
+      setIdentificationResult(null);
+  }
+
+  const WasteIcon = identificationResult ? wasteIcons[identificationResult.wasteType] : null;
 
   return (
     <div className="flex justify-center items-start pt-8">
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Trash2 className="h-6 w-6" />
-            Registro de Descarte de Resíduo
+            <Camera className="h-6 w-6" />
+            Registro de Resíduo por Câmera
           </CardTitle>
           <CardDescription>
-            Selecione o tipo de resíduo que você descartou corretamente para
-            ganhar pontos.
+            Aponte a câmera para um item e escaneie para ganhar pontos.
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent>
-            <RadioGroup
-              value={selectedWaste ?? undefined}
-              onValueChange={setSelectedWaste}
-              className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-            >
-              {wasteTypes.map((waste) => (
-                <Label
-                  key={waste.id}
-                  htmlFor={waste.id}
-                  className={`flex flex-col items-center justify-center rounded-lg border-2 p-4 cursor-pointer transition-all ${
-                    selectedWaste === waste.id
-                      ? 'border-primary bg-primary/10'
-                      : 'border-muted'
-                  } hover:border-primary/50`}
+        <CardContent className="flex flex-col items-center gap-4">
+          <div className="w-full aspect-video rounded-md overflow-hidden border bg-muted relative">
+              <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+              <canvas ref={canvasRef} className="hidden" />
+              {hasCameraPermission === false && (
+                 <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                    <p className="text-white text-center p-4">Permissão da câmera negada ou não suportada.</p>
+                 </div>
+              )}
+              {isLoading && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 gap-4">
+                      <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                      <p className="text-lg text-white">Identificando resíduo...</p>
+                  </div>
+              )}
+              {identificationResult && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 gap-4 p-4 text-center">
+                    <Sparkles className="h-12 w-12 text-yellow-400" />
+                    <h3 className="text-2xl font-bold text-white">Resíduo Identificado!</h3>
+                    <div className="flex items-center gap-4 bg-background/20 p-4 rounded-lg">
+                        {WasteIcon && <WasteIcon className="h-16 w-16 text-primary" />}
+                        <div>
+                            <p className="text-xl font-semibold text-white">{identificationResult.wasteType}</p>
+                            <p className="text-3xl font-bold text-primary">+{identificationResult.points} pontos</p>
+                        </div>
+                    </div>
+                    <p className="text-sm text-slate-300 italic">"{identificationResult.justification}"</p>
+                  </div>
+              )}
+          </div>
+          {hasCameraPermission === null && !identificationResult && (
+            <Alert>
+                <AlertTitle>Aguardando permissão da câmera...</AlertTitle>
+                <AlertDescription>
+                Você precisa permitir o acesso à câmera para usar esta funcionalidade.
+                </AlertDescription>
+            </Alert>
+          )}
+          {hasCameraPermission === false && !identificationResult && (
+            <Alert variant="destructive">
+                <AlertTitle>Acesso à Câmera Negado</AlertTitle>
+                <AlertDescription>
+                Por favor, habilite o acesso à câmera nas configurações do seu navegador para continuar.
+                </AlertDescription>
+            </Alert>
+          )}
+
+        </CardContent>
+        <CardFooter className="flex flex-col sm:flex-row justify-center gap-4">
+            {!identificationResult ? (
+                 <Button
+                    onClick={handleScan}
+                    className="w-full sm:w-auto"
+                    disabled={isLoading || !hasCameraPermission}
+                    size="lg"
                 >
-                  <waste.icon className="h-12 w-12 mb-2 text-primary" />
-                  <span className="font-bold text-lg">{waste.label}</span>
-                  <span className="text-sm text-muted-foreground">
-                    +{waste.points} pontos
-                  </span>
-                  <RadioGroupItem
-                    value={waste.id}
-                    id={waste.id}
-                    className="sr-only"
-                  />
-                </Label>
-              ))}
-            </RadioGroup>
-          </CardContent>
-          <CardFooter>
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading || !selectedWaste}
-            >
-              {isLoading ? 'Registrando...' : 'Registrar e Ganhar Pontos'}
-            </Button>
-          </CardFooter>
-        </form>
+                    {isLoading ? (
+                        <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Analisando...
+                        </>
+                    ) : (
+                        <>
+                        <Camera className="mr-2 h-5 w-5" />
+                        Escanear Resíduo
+                        </>
+                    )}
+                </Button>
+            ) : (
+                <>
+                <Button
+                    onClick={handleReset}
+                    className="w-full sm:w-auto"
+                    variant="outline"
+                >
+                    <ArrowLeft className="mr-2 h-5 w-5" />
+                    Escanear Outro
+                </Button>
+                <Button
+                    onClick={handleConfirm}
+                    className="w-full sm:w-auto"
+                    size="lg"
+                    disabled={identificationResult.wasteType === 'Não identificado'}
+                >
+                    <Check className="mr-2 h-5 w-5" />
+                    Confirmar e Ganhar Pontos
+                </Button>
+                </>
+            )}
+        </CardFooter>
       </Card>
     </div>
   );
