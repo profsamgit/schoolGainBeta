@@ -84,6 +84,7 @@ export default function AdminLoginPage() {
                     onFocus={() => setActiveInput('username')}
                     placeholder="gestor@schoolgain.com"
                     autoFocus
+                    inputMode={showKeyboard ? 'none' : 'email'}
                 />
             </div>
              <div className='space-y-1'>
@@ -97,6 +98,7 @@ export default function AdminLoginPage() {
                     onFocus={() => setActiveInput('password')}
                     onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                     placeholder="••••••••"
+                    inputMode={showKeyboard ? 'none' : 'text'}
                 />
              </div>
           {showKeyboard && (

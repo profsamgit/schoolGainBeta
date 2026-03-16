@@ -208,6 +208,7 @@ export default function KioskPage() {
                             onKeyDown={(e) => { if (e.key === 'Enter') handleStudentIdentification()}}
                             className="text-lg p-4 h-14 text-center"
                             autoFocus
+                            inputMode={showKeyboard ? 'none' : 'text'}
                         />
                     </div>
                     {showKeyboard && (

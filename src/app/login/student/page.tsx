@@ -70,6 +70,7 @@ export default function StudentLoginPage() {
             placeholder="Seu RA"
             className="text-center text-xl h-14"
             autoFocus
+            inputMode={showKeyboard ? 'none' : 'text'}
           />
           {showKeyboard && (
             <VirtualKeyboard
