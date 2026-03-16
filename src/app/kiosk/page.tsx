@@ -16,6 +16,8 @@ import { identifyWasteAction } from '@/app/(app)/waste/actions';
 import { type IdentifyWasteOutput } from '@/ai/flows/identify-waste';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
+import { leaderboardData } from '@/lib/data';
+import type { User } from '@/lib/types';
 
 const wasteIcons: { [key: string]: React.ElementType } = {
   'Plástico': Recycle,
@@ -33,6 +35,7 @@ export default function KioskPage() {
   const [identificationResult, setIdentificationResult] = useState<IdentifyWasteOutput | null>(null);
   const [step, setStep] = useState<'identification' | 'scanning'>('identification');
   const [studentRa, setStudentRa] = useState('');
+  const [identifiedStudent, setIdentifiedStudent] = useState<Omit<User, 'email' | 'avatar'> | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -90,6 +93,31 @@ export default function KioskPage() {
     };
   }, [step, toast]);
 
+  const handleStudentIdentification = () => {
+    if (!studentRa.trim()) {
+        toast({
+            variant: 'destructive',
+            title: 'RA Inválido',
+            description: 'Por favor, digite um RA para continuar.',
+        });
+        return;
+    }
+
+    const student = leaderboardData.find(user => user.ra === studentRa.trim());
+
+    if (student) {
+        setIdentifiedStudent(student);
+        setStep('scanning');
+    } else {
+        toast({
+            variant: 'destructive',
+            title: 'Aluno não encontrado',
+            description: 'O RA digitado não corresponde a nenhum aluno cadastrado.',
+        });
+        setIdentifiedStudent(null);
+    }
+  };
+
   const handleScan = async () => {
     if (!videoRef.current || !canvasRef.current) return;
     
@@ -131,7 +159,7 @@ export default function KioskPage() {
     if(!identificationResult || identificationResult.points === 0) return;
     toast({
         title: 'Registro bem-sucedido!',
-        description: `Aluno com RA ${studentRa} ganhou ${identificationResult.points} pontos por reciclar ${identificationResult.wasteType}.`,
+        description: `${identifiedStudent?.name || `Aluno com RA ${studentRa}`} ganhou ${identificationResult.points} pontos por reciclar ${identificationResult.wasteType}.`,
     });
     setIdentificationResult(null);
   }
@@ -163,7 +191,7 @@ export default function KioskPage() {
                             placeholder="Digite seu RA" 
                             value={studentRa}
                             onChange={(e) => setStudentRa(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === 'Enter' && studentRa.trim()) setStep('scanning')}}
+                            onKeyDown={(e) => { if (e.key === 'Enter') handleStudentIdentification()}}
                             className="text-lg p-4 h-12"
                         />
                     </div>
@@ -172,7 +200,7 @@ export default function KioskPage() {
                     <Button 
                         className="w-full"
                         size="lg"
-                        onClick={() => setStep('scanning')}
+                        onClick={handleStudentIdentification}
                         disabled={!studentRa.trim()}
                     >
                         Continuar
@@ -198,10 +226,10 @@ export default function KioskPage() {
                 Registro por Câmera
               </CardTitle>
               <CardDescription>
-                Aluno: <span className="font-bold text-primary">{studentRa}</span>
+                Aluno: <span className="font-bold text-primary">{identifiedStudent?.name}</span>
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={() => { setStudentRa(''); setStep('identification'); }}>
+            <Button variant="outline" size="sm" onClick={() => { setStudentRa(''); setIdentifiedStudent(null); setStep('identification'); }}>
               <User className="mr-2 h-4 w-4" />
               Trocar Aluno
             </Button>
