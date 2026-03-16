@@ -3,7 +3,7 @@ export type User = {
   name: string;
   email: string;
   avatar: string;
-  role: 'student' | 'admin' | 'teacher';
+  role: 'student' | 'admin';
   points: number;
   level: 'Bronze' | 'Prata' | 'Ouro' | 'Diamante';
   ra?: string;
