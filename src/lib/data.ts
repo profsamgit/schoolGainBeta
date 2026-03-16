@@ -24,7 +24,7 @@ export const mockUser: User = {
 export const mockAdmin: User = {
   id: 'admin-1',
   name: 'Gestor Escolar',
-  email: 'admin@schoolgain.com',
+  email: 'gestor@schoolgain.com',
   avatar: 'https://picsum.photos/seed/admin/100/100',
   role: 'admin',
   points: 0,

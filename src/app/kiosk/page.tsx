@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Leaf, Paperclip, Recycle, Trash2, Atom, Camera, Loader2, Sparkles, Check, ArrowLeft, User, ArrowRight } from 'lucide-react';
+import { Leaf, Paperclip, Recycle, Trash2, Atom, Camera, Loader2, Sparkles, Check, ArrowLeft, User, ArrowRight, Keyboard } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { identifyWasteAction } from '@/app/(app)/waste/actions'; 
@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { leaderboardData } from '@/lib/data';
 import type { User as UserData } from '@/lib/types';
+import { VirtualKeyboard } from '@/components/ui/virtual-keyboard';
 
 const wasteIcons: { [key: string]: React.ElementType } = {
   'Plástico': Recycle,
@@ -30,12 +31,14 @@ const wasteIcons: { [key: string]: React.ElementType } = {
 export default function KioskPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const raInputRef = useRef<HTMLInputElement>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [identificationResult, setIdentificationResult] = useState<IdentifyWasteOutput | null>(null);
   const [step, setStep] = useState<'identification' | 'scanning'>('identification');
   const [studentRa, setStudentRa] = useState('');
   const [identifiedStudent, setIdentifiedStudent] = useState<Omit<UserData, 'email' | 'avatar'> | null>(null);
+  const [showKeyboard, setShowKeyboard] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -118,6 +121,16 @@ export default function KioskPage() {
     }
   };
 
+  const handleKeyboardInput = (key: string) => {
+    setStudentRa((prev) => prev + key);
+    raInputRef.current?.focus();
+  };
+
+  const handleKeyboardBackspace = () => {
+    setStudentRa((prev) => prev.slice(0, -1));
+    raInputRef.current?.focus();
+  };
+
   const handleScan = async () => {
     if (!videoRef.current || !canvasRef.current) return;
     
@@ -175,7 +188,7 @@ export default function KioskPage() {
         <div className="w-full min-h-screen flex flex-col items-center justify-center bg-background p-4">
             <Card className="w-full max-w-md">
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-2xl">
+                    <CardTitle className="flex items-center justify-center gap-2 text-2xl">
                         <Recycle className="h-8 w-8 text-primary" />
                         Terminal SchoolGain
                     </CardTitle>
@@ -183,20 +196,30 @@ export default function KioskPage() {
                         Identifique-se com seu RA para registrar um resíduo.
                     </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                     <div className="space-y-2">
                         <label htmlFor="ra-input" className="text-sm font-medium">RA (Registro Acadêmico)</label>
                         <Input 
                             id="ra-input"
+                            ref={raInputRef}
                             placeholder="Digite seu RA" 
                             value={studentRa}
-                            onChange={(e) => setStudentRa(e.target.value)}
+                            onChange={(e) => setStudentRa(e.target.value.toUpperCase())}
                             onKeyDown={(e) => { if (e.key === 'Enter') handleStudentIdentification()}}
-                            className="text-lg p-4 h-12"
+                            className="text-lg p-4 h-14 text-center"
+                            autoFocus
                         />
                     </div>
+                    {showKeyboard && (
+                        <VirtualKeyboard
+                            layout="numeric"
+                            onInput={handleKeyboardInput}
+                            onBackspace={handleKeyboardBackspace}
+                            onEnter={handleStudentIdentification}
+                        />
+                    )}
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="flex flex-col gap-4">
                     <Button 
                         className="w-full"
                         size="lg"
@@ -205,6 +228,14 @@ export default function KioskPage() {
                     >
                         Continuar
                         <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        className="w-full text-muted-foreground"
+                        onClick={() => setShowKeyboard((prev) => !prev)}
+                    >
+                        <Keyboard className="mr-2" />
+                        {showKeyboard ? 'Esconder' : 'Mostrar'} Teclado Virtual
                     </Button>
                 </CardFooter>
             </Card>
