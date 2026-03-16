@@ -10,7 +10,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const IdentifyWasteOutputSchema = z.object({
+const IdentifyWasteOutputSchema = z.object({
   wasteType: z
     .enum(['Plástico', 'Papel', 'Metal', 'Orgânico', 'Não identificado'])
     .describe('The type of waste identified in the image.'),
@@ -21,7 +21,7 @@ export const IdentifyWasteOutputSchema = z.object({
 });
 export type IdentifyWasteOutput = z.infer<typeof IdentifyWasteOutputSchema>;
 
-export const IdentifyWasteInputSchema = z.object({
+const IdentifyWasteInputSchema = z.object({
     photoDataUri: z
       .string()
       .describe(
