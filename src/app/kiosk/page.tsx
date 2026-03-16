@@ -209,7 +209,7 @@ export default function KioskPage() {
                 </CardFooter>
             </Card>
             <p className="text-xs text-muted-foreground mt-4">
-                Não é um terminal? <Link href="/dashboard" className="underline hover:text-primary">Voltar para o app</Link>
+                Não é um terminal? <Link href="/" className="underline hover:text-primary">Voltar para o app</Link>
             </p>
         </div>
     );
