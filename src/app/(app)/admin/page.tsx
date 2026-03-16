@@ -11,7 +11,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from '@/components/ui/card';
 import {
   Table,
@@ -28,9 +27,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
-  DialogClose,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -57,111 +54,119 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { leaderboardData } from '@/lib/data';
+import { leaderboardData, mockAdmin } from '@/lib/data';
 import type { User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Shield, UserPlus, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 
-const studentSchema = z.object({
+const userSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres.'),
   ra: z.string().min(1, 'O RA é obrigatório.'),
   turma: z.string().min(1, 'A turma é obrigatória.'),
-  // Omit points and level from validation, they are not directly editable here
+  role: z.enum(['student', 'admin'], { required_error: 'O cargo é obrigatório.'}),
 });
 
-type StudentFormValues = z.infer<typeof studentSchema>;
-type Student = Omit<User, 'email' | 'avatar' | 'role'>;
+type UserFormValues = z.infer<typeof userSchema>;
+type EditableUser = Omit<User, 'email' | 'avatar'>;
 
 export default function AdminPage() {
   const { toast } = useToast();
-  const [students, setStudents] = useState<Student[]>(leaderboardData);
-  const [isEditStudentDialogOpen, setIsEditStudentDialogOpen] = useState(false);
-  const [isNewStudentDialogOpen, setIsNewStudentDialogOpen] = useState(false);
+  const [users, setUsers] = useState<EditableUser[]>([
+    ...leaderboardData,
+    { id: mockAdmin.id, name: mockAdmin.name, points: mockAdmin.points, level: mockAdmin.level, ra: mockAdmin.ra, turma: mockAdmin.turma, role: mockAdmin.role },
+  ].sort((a,b) => a.name.localeCompare(b.name)));
+  
+  const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
+  const [isNewUserDialogOpen, setIsNewUserDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [selectedUser, setSelectedUser] = useState<EditableUser | null>(null);
 
   const totalWaste = 5880;
-  const topStudent = students[0];
+  const studentUsers = users.filter((u) => u.role === 'student');
+  const topStudent = studentUsers.length > 0 ? studentUsers.sort((a, b) => b.points - a.points)[0] : null;
 
-  const form = useForm<StudentFormValues>({
-    resolver: zodResolver(studentSchema),
+  const form = useForm<UserFormValues>({
+    resolver: zodResolver(userSchema),
     defaultValues: {
       id: '',
       name: '',
       ra: '',
       turma: '',
+      role: 'student',
     },
   });
 
-  const handleNewStudent = () => {
+  const handleNewUser = () => {
     form.reset();
-    setSelectedStudent(null);
-    setIsNewStudentDialogOpen(true);
+    setSelectedUser(null);
+    setIsNewUserDialogOpen(true);
   };
 
-  const handleEditStudent = (student: Student) => {
-    setSelectedStudent(student);
+  const handleEditUser = (user: EditableUser) => {
+    setSelectedUser(user);
     form.reset({
-      id: student.id,
-      name: student.name,
-      ra: student.ra,
-      turma: student.turma,
+      id: user.id,
+      name: user.name,
+      ra: user.ra,
+      turma: user.turma,
+      role: user.role,
     });
-    setIsEditStudentDialogOpen(true);
+    setIsEditUserDialogOpen(true);
   };
 
-  const handleDeleteStudent = (student: Student) => {
-    setSelectedStudent(student);
+  const handleDeleteUser = (user: EditableUser) => {
+    setSelectedUser(user);
     setIsDeleteDialogOpen(true);
   };
 
   const onConfirmDelete = () => {
-    if (!selectedStudent) return;
-    setStudents(students.filter((s) => s.id !== selectedStudent.id));
+    if (!selectedUser) return;
+    setUsers(users.filter((s) => s.id !== selectedUser.id));
     toast({
-      title: 'Aluno Removido!',
-      description: `${selectedStudent.name} foi removido do sistema.`,
+      title: 'Usuário Removido!',
+      description: `${selectedUser.name} foi removido do sistema.`,
     });
     setIsDeleteDialogOpen(false);
-    setSelectedStudent(null);
+    setSelectedUser(null);
   };
 
-  function onSubmit(values: StudentFormValues) {
-    // If it's an edit
-    if (selectedStudent && values.id) {
-      setStudents(
-        students.map((s) =>
-          s.id === values.id ? { ...s, name: values.name, ra: values.ra!, turma: values.turma! } : s
+  function onSubmit(values: UserFormValues) {
+    if (selectedUser && values.id) {
+      setUsers(
+        users.map((s) =>
+          s.id === values.id ? { ...s, name: values.name, ra: values.ra!, turma: values.turma!, role: values.role } : s
         )
       );
       toast({
-        title: 'Aluno Atualizado!',
+        title: 'Usuário Atualizado!',
         description: `Os dados de ${values.name} foram atualizados.`,
       });
-      setIsEditStudentDialogOpen(false);
+      setIsEditUserDialogOpen(false);
     } else {
-      // If it's a new student
-      const newStudent: Student = {
-        id: `user-${Date.now()}`,
+      const newUser: EditableUser = {
+        id: `${values.role}-${Date.now()}`,
         name: values.name,
         ra: values.ra!,
         turma: values.turma!,
+        role: values.role,
         points: 0,
         level: 'Bronze',
       };
-      setStudents([newStudent, ...students]);
+      setUsers([...users, newUser].sort((a,b) => a.name.localeCompare(b.name)));
       toast({
-        title: 'Aluno Cadastrado!',
-        description: `${newStudent.name} foi adicionado com sucesso.`,
+        title: 'Usuário Cadastrado!',
+        description: `${newUser.name} foi adicionado com sucesso.`,
       });
-      setIsNewStudentDialogOpen(false);
+      setIsNewUserDialogOpen(false);
     }
     form.reset();
-    setSelectedStudent(null);
+    setSelectedUser(null);
   }
 
-  const StudentForm = (
+  const UserForm = (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
@@ -205,6 +210,27 @@ export default function AdminPage() {
             )}
           />
         </div>
+         <FormField
+            control={form.control}
+            name="role"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Cargo</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o cargo do usuário" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="student">Aluno</SelectItem>
+                    <SelectItem value="admin">Gestor</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         <DialogFooter>
           <Button type="submit">Salvar</Button>
         </DialogFooter>
@@ -240,7 +266,7 @@ export default function AdminPage() {
               <CardTitle className="text-sm font-medium">Alunos Ativos</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{students.length}</div>
+              <div className="text-2xl font-bold">{studentUsers.length}</div>
               <p className="text-xs text-muted-foreground">+10 desde a última semana</p>
             </CardContent>
           </Card>
@@ -249,8 +275,8 @@ export default function AdminPage() {
               <CardTitle className="text-sm font-medium">Principal Contribuidor</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{topStudent?.name}</div>
-              <p className="text-xs text-muted-foreground">{topStudent?.points} pontos</p>
+              <div className="text-2xl font-bold">{topStudent?.name ?? 'N/A'}</div>
+              <p className="text-xs text-muted-foreground">{topStudent?.points ?? 0} pontos</p>
             </CardContent>
           </Card>
         </div>
@@ -259,14 +285,14 @@ export default function AdminPage() {
           <Card className="lg:col-span-2">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Gerenciamento de Alunos</CardTitle>
+                <CardTitle>Gerenciamento de Usuários</CardTitle>
                 <CardDescription>
-                  Adicione, edite ou remova alunos do sistema.
+                  Adicione, edite ou remova usuários do sistema.
                 </CardDescription>
               </div>
-              <Button onClick={handleNewStudent}>
+              <Button onClick={handleNewUser}>
                 <UserPlus className="mr-2 h-4 w-4" />
-                Cadastrar Aluno
+                Cadastrar Usuário
               </Button>
             </CardHeader>
             <CardContent>
@@ -276,17 +302,23 @@ export default function AdminPage() {
                     <TableHead>Nome</TableHead>
                     <TableHead>RA</TableHead>
                     <TableHead>Turma</TableHead>
+                    <TableHead>Cargo</TableHead>
                     <TableHead className="text-right">Pontos</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {students.map((student) => (
-                    <TableRow key={student.id}>
-                      <TableCell className="font-medium">{student.name}</TableCell>
-                      <TableCell>{student.ra}</TableCell>
-                      <TableCell>{student.turma}</TableCell>
-                      <TableCell className="text-right">{student.points}</TableCell>
+                  {users.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">{user.name}</TableCell>
+                      <TableCell>{user.ra}</TableCell>
+                      <TableCell>{user.turma}</TableCell>
+                      <TableCell>
+                        <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                          {user.role === 'admin' ? 'Gestor' : 'Aluno'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">{user.points}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -296,11 +328,11 @@ export default function AdminPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEditStudent(student)}>
+                            <DropdownMenuItem onClick={() => handleEditUser(user)}>
                               <Edit className="mr-2 h-4 w-4" />
                               Editar
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDeleteStudent(student)} className="text-red-600">
+                            <DropdownMenuItem onClick={() => handleDeleteUser(user)} className="text-red-600">
                               <Trash2 className="mr-2 h-4 w-4" />
                               Excluir
                             </DropdownMenuItem>
@@ -318,40 +350,40 @@ export default function AdminPage() {
         <WasteChart />
       </div>
 
-      {/* New Student Dialog */}
-      <Dialog open={isNewStudentDialogOpen} onOpenChange={setIsNewStudentDialogOpen}>
+      {/* New User Dialog */}
+      <Dialog open={isNewUserDialogOpen} onOpenChange={setIsNewUserDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Cadastrar Novo Aluno</DialogTitle>
+            <DialogTitle>Cadastrar Novo Usuário</DialogTitle>
             <DialogDescription>
-              Preencha os dados para adicionar um novo aluno ao sistema.
+              Preencha os dados para adicionar um novo usuário ao sistema.
             </DialogDescription>
           </DialogHeader>
-          {StudentForm}
+          {UserForm}
         </DialogContent>
       </Dialog>
       
-      {/* Edit Student Dialog */}
-      <Dialog open={isEditStudentDialogOpen} onOpenChange={setIsEditStudentDialogOpen}>
+      {/* Edit User Dialog */}
+      <Dialog open={isEditUserDialogOpen} onOpenChange={setIsEditUserDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Editar Aluno</DialogTitle>
+            <DialogTitle>Editar Usuário</DialogTitle>
             <DialogDescription>
-              Atualize os dados do aluno selecionado.
+              Atualize os dados do usuário selecionado.
             </DialogDescription>
           </DialogHeader>
-          {StudentForm}
+          {UserForm}
         </DialogContent>
       </Dialog>
 
-      {/* Delete Student Alert */}
+      {/* Delete User Alert */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
             <AlertDialogDescription>
-              Essa ação não pode ser desfeita. Isso irá remover permanentemente o aluno
-              <span className="font-bold"> {selectedStudent?.name} </span>
+              Essa ação não pode ser desfeita. Isso irá remover permanentemente o usuário
+              <span className="font-bold"> {selectedUser?.name} </span>
               do sistema.
             </AlertDialogDescription>
           </AlertDialogHeader>

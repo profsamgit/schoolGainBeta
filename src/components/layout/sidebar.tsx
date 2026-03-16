@@ -13,7 +13,6 @@ import {
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import {
-  Badge,
   BookOpen,
   BrainCircuit,
   Gift,
@@ -26,6 +25,7 @@ import {
   Leaf,
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { mockAdmin, mockUser } from '@/lib/data';
 
 const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -42,13 +42,15 @@ const adminMenuItems = [
 
 export function AppSidebar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const isAdminView = pathname.startsWith('/admin');
+  const currentUser = isAdminView ? mockAdmin : mockUser;
 
   return (
     <SidebarProvider defaultOpen>
       <Sidebar collapsible="icon">
         <SidebarHeader>
           <Link
-            href="/dashboard"
+            href="/"
             className="flex items-center gap-2 font-semibold text-lg"
           >
             <Leaf className="h-7 w-7 text-primary" />
@@ -67,7 +69,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
               <SidebarMenuItem key={item.href}>
                 <Link href={item.href}>
                   <SidebarMenuButton
-                    isActive={pathname.startsWith(item.href)}
+                    isActive={pathname.startsWith(item.href) && !isAdminView}
                     tooltip={{ children: item.label }}
                   >
                     <item.icon />
@@ -77,22 +79,28 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
-          <Separator className="my-2" />
-          <SidebarMenu>
-            {adminMenuItems.map((item) => (
-              <SidebarMenuItem key={item.href}>
-                <Link href={item.href}>
-                  <SidebarMenuButton
-                    isActive={pathname.startsWith(item.href)}
-                    tooltip={{ children: item.label }}
-                  >
-                    <item.icon />
-                    <span>{item.label}</span>
-                  </SidebarMenuButton>
-                </Link>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
+          
+          {currentUser.role === 'admin' && (
+            <>
+            <Separator className="my-2" />
+            <SidebarMenu>
+              {adminMenuItems.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <Link href={item.href}>
+                    <SidebarMenuButton
+                      isActive={pathname.startsWith(item.href)}
+                      tooltip={{ children: item.label }}
+                    >
+                      <item.icon />
+                      <span>{item.label}</span>
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+            </>
+          )}
+
         </SidebarContent>
         <Separator />
         <SidebarFooter>
@@ -103,12 +111,14 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
                 <span>Configurações</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton tooltip={{ children: 'Sair' }}>
-                <LogOut />
-                <span>Sair</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            <Link href="/">
+                <SidebarMenuItem>
+                <SidebarMenuButton tooltip={{ children: 'Trocar Perfil' }}>
+                    <LogOut />
+                    <span>Trocar Perfil</span>
+                </SidebarMenuButton>
+                </SidebarMenuItem>
+            </Link>
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>

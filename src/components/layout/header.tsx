@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { mockUser } from '@/lib/data';
+import { mockUser, mockAdmin } from '@/lib/data';
 import {
   Home,
   LogOut,
@@ -87,6 +87,9 @@ export function Header() {
   const pathname = usePathname();
   const title =
     pathToTitle[pathname.split('/').pop() || ''] || 'SchoolGain Hub';
+  
+  const isAdminView = pathname.startsWith('/admin');
+  const currentUser = isAdminView ? mockAdmin : mockUser;
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
@@ -115,18 +118,18 @@ export function Header() {
             >
               <Avatar className="h-8 w-8">
                 <AvatarImage
-                  src={mockUser.avatar}
-                  alt={`Avatar de ${mockUser.name}`}
+                  src={currentUser.avatar}
+                  alt={`Avatar de ${currentUser.name}`}
                 />
-                <AvatarFallback>{mockUser.name.charAt(0)}</AvatarFallback>
+                <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>
-              <p className="font-semibold">{mockUser.name}</p>
+              <p className="font-semibold">{currentUser.name}</p>
               <p className="text-xs text-muted-foreground font-normal">
-                {mockUser.email}
+                {currentUser.email}
               </p>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -138,7 +141,7 @@ export function Header() {
               <Settings className="mr-2 h-4 w-4" />
               <span>Configurações</span>
             </DropdownMenuItem>
-            {mockUser.role === 'admin' && (
+            {currentUser.role === 'admin' && (
               <>
                 <DropdownMenuSeparator />
                 <Link href="/admin">
@@ -150,10 +153,12 @@ export function Header() {
               </>
             )}
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Sair</span>
-            </DropdownMenuItem>
+            <Link href="/">
+              <DropdownMenuItem>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Trocar Perfil</span>
+              </DropdownMenuItem>
+            </Link>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

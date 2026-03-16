@@ -29,16 +29,18 @@ export const mockAdmin: User = {
   role: 'admin',
   points: 0,
   level: 'Bronze',
+  ra: 'admin01',
+  turma: 'Administração',
 };
 
-export const leaderboardData: Omit<User, 'email' | 'avatar' | 'role'>[] = [
-  { id: 'user-2', name: 'Sofia Recicla', points: 3400, level: 'Ouro', ra: '234567', turma: '9º B' },
-  { id: 'user-3', name: 'Pedro Planta', points: 2850, level: 'Ouro', ra: '345678', turma: '9º A' },
-  { id: 'user-1', name: 'Alex Verde', points: 1250, level: 'Prata', ra: '123456', turma: '8º A' },
-  { id: 'user-4', name: 'Lia Sustentável', points: 980, level: 'Bronze', ra: '456789', turma: '7º C' },
-  { id: 'user-5', name: 'Carlos Coleta', points: 720, level: 'Bronze', ra: '567890', turma: '8º B' },
-  { id: 'user-6', name: 'Mariana Horta', points: 510, level: 'Bronze', ra: '678901', turma: '7º A' },
-  { id: 'user-7', name: 'Beto Água', points: 300, level: 'Bronze', ra: '789012', turma: '6º B' },
+export const leaderboardData: Omit<User, 'email' | 'avatar'>[] = [
+  { id: 'user-2', name: 'Sofia Recicla', points: 3400, level: 'Ouro', ra: '234567', turma: '9º B', role: 'student' },
+  { id: 'user-3', name: 'Pedro Planta', points: 2850, level: 'Ouro', ra: '345678', turma: '9º A', role: 'student' },
+  { id: 'user-1', name: 'Alex Verde', points: 1250, level: 'Prata', ra: '123456', turma: '8º A', role: 'student' },
+  { id: 'user-4', name: 'Lia Sustentável', points: 980, level: 'Bronze', ra: '456789', turma: '7º C', role: 'student' },
+  { id: 'user-5', name: 'Carlos Coleta', points: 720, level: 'Bronze', ra: '567890', turma: '8º B', role: 'student' },
+  { id: 'user-6', name: 'Mariana Horta', points: 510, level: 'Bronze', ra: '678901', turma: '7º A', role: 'student' },
+  { id: 'user-7', name: 'Beto Água', points: 300, level: 'Bronze', ra: '789012', turma: '6º B', role: 'student' },
 ];
 
 export const rewards: Reward[] = [
@@ -120,7 +122,7 @@ A compostagem é um processo natural que transforma matéria orgânica em húmus
     id: 'edu-3',
     slug: 'a-importancia-da-agua',
     title: 'Água: Nosso Tesouro Precioso',
-    summary: 'Descubra por que a conservação da água é vital para a vida na Terra e aprenda dicas simples para economizar no dia adia.',
+    summary: 'Descubra por que a conservação da água é vital para a vida na Terra e aprenda dicas simples para economizar no dia a dia.',
     content: `
 A água é essencial para todos os seres vivos. Embora o planeta seja coberto por água, menos de 1% está disponível para consumo humano. Por isso, cada gota conta!
 
