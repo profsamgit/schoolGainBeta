@@ -38,7 +38,13 @@ const prompt = ai.definePrompt({
   name: 'generateQuizPrompt',
   input: {schema: GenerateQuizInputSchema},
   output: {schema: GenerateQuizOutputSchema},
-  prompt: `You are an expert educator specializing in environmental science, tasked with creating engaging quizzes for students.\nGenerate a multiple-choice quiz on the topic of "{{topic}}".\n\nThe quiz should have {{numberOfQuestions}} questions and be of "{{difficulty}}" difficulty.\nEach question must have at least two and no more than five answer options.\nThe correct answer must be one of the provided options.\nAlso, include a brief explanation for the correct answer if possible.\n\nThe output must be a JSON object conforming to the following schema:\n\n{{#output.schema}}\n`,
+  prompt: `You are an expert educator specializing in environmental science, tasked with creating engaging quizzes for students.
+Generate a multiple-choice quiz on the topic of "{{topic}}".
+
+The quiz should have {{numberOfQuestions}} questions and be of "{{difficulty}}" difficulty.
+Each question must have at least two and no more than five answer options.
+The correct answer must be one of the provided options.
+Also, include a brief explanation for the correct answer if possible.`,
 });
 
 const generateQuizFlow = ai.defineFlow(
