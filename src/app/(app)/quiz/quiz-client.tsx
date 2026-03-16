@@ -35,6 +35,7 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { quizTopics } from '@/lib/data';
 
 const formSchema = z.object({
   topic: z.string().min(1, 'Por favor, selecione um tópico.'),
@@ -59,7 +60,7 @@ export function QuizClient() {
   const form = useForm<QuizFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      topic: 'Reciclagem',
+      topic: quizTopics[0] || 'Reciclagem',
       difficulty: 'medium',
       numberOfQuestions: 5,
     },
@@ -222,17 +223,11 @@ export function QuizClient() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="Reciclagem">Reciclagem</SelectItem>
-                      <SelectItem value="Consumo Consciente">
-                        Consumo Consciente
-                      </SelectItem>
-                      <SelectItem value="Biodiversidade">
-                        Biodiversidade
-                      </SelectItem>
-                      <SelectItem value="Energias Renováveis">
-                        Energias Renováveis
-                      </SelectItem>
-                      <SelectItem value="Desmatamento">Desmatamento</SelectItem>
+                      {quizTopics.map((topic) => (
+                        <SelectItem key={topic} value={topic}>
+                          {topic}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />

@@ -138,6 +138,14 @@ A água é essencial para todos os seres vivos. Embora o planeta seja coberto po
   },
 ];
 
+export const quizTopics: string[] = [
+  'Reciclagem',
+  'Consumo Consciente',
+  'Biodiversidade',
+  'Energias Renováveis',
+  'Desmatamento',
+];
+
 export const wasteData = [
   { type: 'Plástico', collected: 450, date: '2024-01' },
   { type: 'Papel', collected: 620, date: '2024-01' },
