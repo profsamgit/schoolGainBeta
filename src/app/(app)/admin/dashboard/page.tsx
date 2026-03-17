@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { leaderboardData, mockAdmin } from '@/lib/data';
 import { LayoutDashboard, Expand, Minimize, RefreshCw, Clock, MapPin, Sun, Cloudy, CloudRain } from 'lucide-react';
 import type { User } from '@/lib/types';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Select,
   SelectContent,
@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useSidebar } from '@/components/ui/sidebar';
 
 export default function AdminDashboardPage() {
     const [users] = useState<Omit<User, 'email' | 'avatar'>[]>([...leaderboardData, mockAdmin]);
@@ -34,6 +35,10 @@ export default function AdminDashboardPage() {
     const [currentTime, setCurrentTime] = useState<Date | null>(null);
     const [timeZone, setTimeZone] = useState<string>('');
     const [weather, setWeather] = useState<{ temp: string; description: string; icon: React.ElementType; color: string; } | null>(null);
+
+    // Sidebar and fullscreen logic
+    const { open: isSidebarOpen, setOpen: setSidebarOpen } = useSidebar();
+    const sidebarWasOpen = useRef(isSidebarOpen);
 
     // Effect for clock and timezone to avoid hydration issues
     useEffect(() => {
@@ -82,21 +87,34 @@ export default function AdminDashboardPage() {
     }, [refreshInterval]);
 
     // Fullscreen effect
-    const handleFullscreenChange = () => {
-        setIsFullscreen(!!document.fullscreenElement);
-    };
-
     useEffect(() => {
+        const handleFullscreenChange = () => {
+            const isCurrentlyFullscreen = !!document.fullscreenElement;
+            setIsFullscreen(isCurrentlyFullscreen);
+    
+            if (!isCurrentlyFullscreen) {
+                // Restore sidebar state when exiting fullscreen
+                setSidebarOpen(sidebarWasOpen.current);
+            }
+        };
+
         document.addEventListener('fullscreenchange', handleFullscreenChange);
         return () => {
             document.removeEventListener('fullscreenchange', handleFullscreenChange);
         };
-    }, []);
+    }, [setSidebarOpen]);
 
     const toggleFullscreen = () => {
         if (!document.fullscreenElement) {
+            // Store sidebar state and close it
+            sidebarWasOpen.current = isSidebarOpen;
+            if (isSidebarOpen) {
+                setSidebarOpen(false);
+            }
             document.documentElement.requestFullscreen().catch((err) => {
                 console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                // Restore sidebar on error
+                setSidebarOpen(sidebarWasOpen.current);
             });
         } else {
             if (document.exitFullscreen) {
