@@ -9,7 +9,7 @@ import {
 import { WasteChart } from '@/components/waste-chart';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { leaderboardData, mockAdmin } from '@/lib/data';
-import { LayoutDashboard, Expand, Minimize, RefreshCw } from 'lucide-react';
+import { LayoutDashboard, Expand, Minimize, RefreshCw, Clock, MapPin } from 'lucide-react';
 import type { User } from '@/lib/types';
 import { useState, useEffect } from 'react';
 import {
@@ -29,6 +29,21 @@ export default function AdminDashboardPage() {
     const [refreshInterval, setRefreshInterval] = useState<string>('0');
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    
+    const [currentTime, setCurrentTime] = useState<Date | null>(null);
+    const [timeZone, setTimeZone] = useState<string>('');
+
+    // Effect for clock and timezone to avoid hydration issues
+    useEffect(() => {
+        setCurrentTime(new Date());
+        setTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone.replace(/_/g, ' '));
+
+        const timerId = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 1000);
+
+        return () => clearInterval(timerId);
+    }, []);
 
     // Auto-refresh effect
     useEffect(() => {
@@ -103,9 +118,22 @@ export default function AdminDashboardPage() {
                     </Button>
                 </div>
             </div>
-             <p className="text-xs text-muted-foreground -mt-4">
-                Última atualização: {lastUpdated ? lastUpdated.toLocaleTimeString() : 'Carregando...'}
-             </p>
+            
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground border-t pt-4 -mt-2">
+                <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    <span>{currentTime ? currentTime.toLocaleString('pt-BR') : 'Carregando...'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    <span>Fuso Horário: {timeZone || 'Carregando...'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <RefreshCw className="h-4 w-4" />
+                    <span>Dados atualizados em: {lastUpdated ? lastUpdated.toLocaleTimeString('pt-BR') : 'Carregando...'}</span>
+                </div>
+            </div>
+
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 <Card>
