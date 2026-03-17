@@ -263,7 +263,7 @@ export default function KioskPage() {
             </main>
             <footer className="p-4 text-center text-xs text-muted-foreground space-y-2">
                 <p>Não é um terminal? <Link href="/" className="underline hover:text-primary">Voltar para o app</Link></p>
-                <p>TDS 2B 2026 - CETI Frei José Apicella</p>
+                <p><Link href="/about" className="hover:text-primary hover:underline">TDS 2B 2026 - CETI Frei José Apicella</Link></p>
             </footer>
         </div>
     );
@@ -393,7 +393,7 @@ export default function KioskPage() {
             </Card>
         </main>
         <footer className="p-4 text-center text-xs text-muted-foreground">
-            <p>TDS 2B 2026 - CETI Frei José Apicella</p>
+             <p><Link href="/about" className="hover:text-primary hover:underline">TDS 2B 2026 - CETI Frei José Apicella</Link></p>
         </footer>
     </div>
   );

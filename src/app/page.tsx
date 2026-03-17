@@ -56,7 +56,9 @@ export default function Home() {
         </div>
       </main>
       <footer className="p-4 text-center text-xs text-muted-foreground">
-        TDS 2B 2026 - CETI Frei José Apicella
+        <Link href="/about" className="hover:text-primary hover:underline">
+          TDS 2B 2026 - CETI Frei José Apicella
+        </Link>
       </footer>
     </div>
   );

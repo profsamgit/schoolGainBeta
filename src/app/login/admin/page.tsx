@@ -128,7 +128,7 @@ export default function AdminLoginPage() {
         </main>
         <footer className="p-4 text-center text-xs text-muted-foreground space-y-2">
             <Link href="/" className="hover:text-primary underline">Voltar para a seleção de perfil</Link>
-            <p>TDS 2B 2026 - CETI Frei José Apicella</p>
+            <p><Link href="/about" className="hover:text-primary hover:underline">TDS 2B 2026 - CETI Frei José Apicella</Link></p>
         </footer>
     </div>
   );
