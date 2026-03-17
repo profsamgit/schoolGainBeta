@@ -1,4 +1,4 @@
-import { mockUser, leaderboardData, rewards, educationArticles } from '@/lib/data';
+import { mockUser, leaderboardData } from '@/lib/data';
 import {
   Card,
   CardContent,
@@ -12,16 +12,12 @@ import { Progress } from '@/components/ui/progress';
 import {
   Activity,
   ArrowRight,
-  BookOpen,
   BrainCircuit,
-  Gift,
   Medal,
   Target,
   Trophy,
-  User as UserIcon,
 } from 'lucide-react';
 import Link from 'next/link';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Table,
   TableBody,

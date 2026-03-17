@@ -14,6 +14,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { identifyWasteAction } from './actions';
 import { type IdentifyWasteOutput } from '@/ai/flows/identify-waste';
+import { mockUser } from '@/lib/data';
 
 const wasteIcons: { [key: string]: React.ElementType } = {
   'Plástico': Recycle,
@@ -138,7 +139,7 @@ export default function WastePage() {
     if(!identificationResult || identificationResult.points === 0) return;
     toast({
         title: 'Registro bem-sucedido!',
-        description: `Você ganhou ${identificationResult.points} pontos por reciclar: ${identificationResult.material}.`,
+        description: `${mockUser.name}, você ganhou ${identificationResult.points} pontos por reciclar: ${identificationResult.material}.`,
     });
     setIdentificationResult(null);
   }
