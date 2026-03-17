@@ -38,7 +38,7 @@ const pathToTitle: { [key: string]: string } = {
   education: 'Educação',
   quiz: 'Quizzes',
   rewards: 'Recompensas',
-  admin: 'Painel do Gestor',
+  admin: 'Gerenciamento',
 };
 
 function BreadcrumbNav() {
@@ -150,7 +150,7 @@ export function Header() {
               {currentUser.role === 'admin' && (
                 <>
                   <DropdownMenuSeparator />
-                  <Link href="/admin">
+                  <Link href="/admin/dashboard">
                     <DropdownMenuItem>
                       <Shield className="mr-2 h-4 w-4" />
                       <span>Painel do Gestor</span>

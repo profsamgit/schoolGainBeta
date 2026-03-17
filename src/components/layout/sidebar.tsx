@@ -37,7 +37,8 @@ const menuItems = [
 ];
 
 const adminMenuItems = [
-  { href: '/admin', label: 'Painel do Gestor', icon: Shield },
+  { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/admin', label: 'Gerenciamento', icon: Shield, exact: true },
 ];
 
 export function AppSidebar({ children }: { children: React.ReactNode }) {
@@ -66,11 +67,11 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
         <SidebarContent>
           {isAdminView ? (
             <SidebarMenu>
-              {adminMenuItems.map((item) => (
+              {adminMenuItems.map((item: any) => (
                 <SidebarMenuItem key={item.href}>
                   <Link href={item.href}>
                     <SidebarMenuButton
-                      isActive={pathname.startsWith(item.href)}
+                      isActive={item.exact ? pathname === item.href : pathname.startsWith(item.href)}
                       tooltip={{ children: item.label }}
                     >
                       <item.icon />
