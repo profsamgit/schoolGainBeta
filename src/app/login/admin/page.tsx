@@ -62,69 +62,74 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl flex items-center justify-center gap-2">
-            <ShieldCheck className="h-7 w-7 text-primary" />
-            Área do Gestor
-          </CardTitle>
-          <CardDescription>
-            Entre com seu login e senha. (login: gestor@schoolgain.com, senha: admin123)
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-            <div className='space-y-1'>
-                <Label htmlFor="username">Login (E-mail)</Label>
-                <Input
-                    id="username"
-                    ref={usernameRef}
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    onFocus={() => setActiveInput('username')}
-                    placeholder="gestor@schoolgain.com"
-                    autoFocus
-                    inputMode={showKeyboard ? 'none' : 'email'}
-                />
-            </div>
-             <div className='space-y-1'>
-                <Label htmlFor="password">Senha</Label>
-                <Input
-                    id="password"
-                    ref={passwordRef}
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onFocus={() => setActiveInput('password')}
-                    onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                    placeholder="••••••••"
-                    inputMode={showKeyboard ? 'none' : 'text'}
-                />
-             </div>
-          {showKeyboard && (
-            <VirtualKeyboard
-              layout="alphanumeric"
-              onInput={handleKeyboardInput}
-              onBackspace={handleKeyboardBackspace}
-              onEnter={handleLogin}
-            />
-          )}
-        </CardContent>
-        <CardFooter className="flex flex-col gap-4">
-            <Button className="w-full" size="lg" onClick={handleLogin} disabled={!username.trim() || !password.trim()}>
-                Entrar <ArrowRight className="ml-2" />
-            </Button>
-            <Button
-                variant="ghost"
-                className="w-full text-muted-foreground"
-                onClick={() => setShowKeyboard((prev) => !prev)}
-            >
-                <Keyboard className="mr-2" />
-                {showKeyboard ? 'Esconder' : 'Mostrar'} Teclado Virtual
-            </Button>
-        </CardFooter>
-      </Card>
-      <Link href="/" className="absolute bottom-4 text-xs text-muted-foreground hover:text-primary">Voltar para a seleção de perfil</Link>
+    <div className="flex min-h-screen flex-col bg-muted/40">
+        <main className="flex-1 flex items-center justify-center p-4">
+            <Card className="w-full max-w-md">
+                <CardHeader className="text-center">
+                <CardTitle className="text-2xl flex items-center justify-center gap-2">
+                    <ShieldCheck className="h-7 w-7 text-primary" />
+                    Área do Gestor
+                </CardTitle>
+                <CardDescription>
+                    Entre com seu login e senha. (login: gestor@schoolgain.com, senha: admin123)
+                </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className='space-y-1'>
+                        <Label htmlFor="username">Login (E-mail)</Label>
+                        <Input
+                            id="username"
+                            ref={usernameRef}
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            onFocus={() => setActiveInput('username')}
+                            placeholder="gestor@schoolgain.com"
+                            autoFocus
+                            inputMode={showKeyboard ? 'none' : 'email'}
+                        />
+                    </div>
+                    <div className='space-y-1'>
+                        <Label htmlFor="password">Senha</Label>
+                        <Input
+                            id="password"
+                            ref={passwordRef}
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            onFocus={() => setActiveInput('password')}
+                            onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                            placeholder="••••••••"
+                            inputMode={showKeyboard ? 'none' : 'text'}
+                        />
+                    </div>
+                {showKeyboard && (
+                    <VirtualKeyboard
+                    layout="alphanumeric"
+                    onInput={handleKeyboardInput}
+                    onBackspace={handleKeyboardBackspace}
+                    onEnter={handleLogin}
+                    />
+                )}
+                </CardContent>
+                <CardFooter className="flex flex-col gap-4">
+                    <Button className="w-full" size="lg" onClick={handleLogin} disabled={!username.trim() || !password.trim()}>
+                        Entrar <ArrowRight className="ml-2" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        className="w-full text-muted-foreground"
+                        onClick={() => setShowKeyboard((prev) => !prev)}
+                    >
+                        <Keyboard className="mr-2" />
+                        {showKeyboard ? 'Esconder' : 'Mostrar'} Teclado Virtual
+                    </Button>
+                </CardFooter>
+            </Card>
+        </main>
+        <footer className="p-4 text-center text-xs text-muted-foreground space-y-2">
+            <Link href="/" className="hover:text-primary underline">Voltar para a seleção de perfil</Link>
+            <p>TDS - CETI Frei Jose Apicella 2026</p>
+        </footer>
     </div>
   );
 }

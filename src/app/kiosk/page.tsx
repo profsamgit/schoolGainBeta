@@ -203,190 +203,198 @@ export default function KioskPage() {
   
   if (step === 'identification') {
     return (
-        <div className="w-full min-h-screen flex flex-col items-center justify-center bg-background p-4">
-            <Card className="w-full max-w-md">
-                <CardHeader>
-                    <CardTitle className="flex items-center justify-center gap-2 text-2xl">
-                        <Recycle className="h-8 w-8 text-primary" />
-                        Terminal SchoolGain
-                    </CardTitle>
-                    <CardDescription>
-                        Identifique-se com seu RA para registrar um resíduo.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        <label htmlFor="ra-input" className="text-sm font-medium">RA (Registro Acadêmico)</label>
-                        <Input 
-                            id="ra-input"
-                            ref={raInputRef}
-                            placeholder="Digite seu RA" 
-                            value={studentRa}
-                            onChange={(e) => setStudentRa(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === 'Enter') handleStudentIdentification()}}
-                            className="text-lg p-4 h-14 text-center"
-                            autoFocus
-                            inputMode={showKeyboard ? 'none' : 'numeric'}
-                            pattern="\d*"
-                        />
-                    </div>
-                    {showKeyboard && (
-                        <VirtualKeyboard
-                            layout="numeric"
-                            onInput={handleKeyboardInput}
-                            onBackspace={handleKeyboardBackspace}
-                            onEnter={handleStudentIdentification}
-                        />
-                    )}
-                </CardContent>
-                <CardFooter className="flex flex-col gap-4">
-                    <Button 
-                        className="w-full"
-                        size="lg"
-                        onClick={handleStudentIdentification}
-                        disabled={!studentRa.trim()}
-                    >
-                        Continuar
-                        <ArrowRight className="ml-2 h-5 w-5" />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        className="w-full text-muted-foreground"
-                        onClick={() => setShowKeyboard((prev) => !prev)}
-                    >
-                        <Keyboard className="mr-2" />
-                        {showKeyboard ? 'Esconder' : 'Mostrar'} Teclado Virtual
-                    </Button>
-                </CardFooter>
-            </Card>
-            <p className="text-xs text-muted-foreground mt-4">
-                Não é um terminal? <Link href="/" className="underline hover:text-primary">Voltar para o app</Link>
-            </p>
+        <div className="flex min-h-screen flex-col bg-background">
+            <main className="flex-1 w-full flex flex-col items-center justify-center p-4">
+                <Card className="w-full max-w-md">
+                    <CardHeader>
+                        <CardTitle className="flex items-center justify-center gap-2 text-2xl">
+                            <Recycle className="h-8 w-8 text-primary" />
+                            Terminal SchoolGain
+                        </CardTitle>
+                        <CardDescription>
+                            Identifique-se com seu RA para registrar um resíduo.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <label htmlFor="ra-input" className="text-sm font-medium">RA (Registro Acadêmico)</label>
+                            <Input 
+                                id="ra-input"
+                                ref={raInputRef}
+                                placeholder="Digite seu RA" 
+                                value={studentRa}
+                                onChange={(e) => setStudentRa(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') handleStudentIdentification()}}
+                                className="text-lg p-4 h-14 text-center"
+                                autoFocus
+                                inputMode={showKeyboard ? 'none' : 'numeric'}
+                                pattern="\d*"
+                            />
+                        </div>
+                        {showKeyboard && (
+                            <VirtualKeyboard
+                                layout="numeric"
+                                onInput={handleKeyboardInput}
+                                onBackspace={handleKeyboardBackspace}
+                                onEnter={handleStudentIdentification}
+                            />
+                        )}
+                    </CardContent>
+                    <CardFooter className="flex flex-col gap-4">
+                        <Button 
+                            className="w-full"
+                            size="lg"
+                            onClick={handleStudentIdentification}
+                            disabled={!studentRa.trim()}
+                        >
+                            Continuar
+                            <ArrowRight className="ml-2 h-5 w-5" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            className="w-full text-muted-foreground"
+                            onClick={() => setShowKeyboard((prev) => !prev)}
+                        >
+                            <Keyboard className="mr-2" />
+                            {showKeyboard ? 'Esconder' : 'Mostrar'} Teclado Virtual
+                        </Button>
+                    </CardFooter>
+                </Card>
+            </main>
+            <footer className="p-4 text-center text-xs text-muted-foreground space-y-2">
+                <p>Não é um terminal? <Link href="/" className="underline hover:text-primary">Voltar para o app</Link></p>
+                <p>TDS - CETI Frei Jose Apicella 2026</p>
+            </footer>
         </div>
     );
   }
 
   return (
-    <div className="w-full min-h-screen flex flex-col items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-2xl">
-        <CardHeader>
-          <div className="flex justify-between items-center flex-wrap gap-2">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Camera className="h-6 w-6" />
-                Registro por Câmera
-              </CardTitle>
-              <CardDescription>
-                Aluno: <span className="font-bold text-primary">{identifiedStudent?.name}</span>
-              </CardDescription>
-            </div>
-            <Button variant="outline" size="sm" onClick={handleExit}>
-              <User className="mr-2 h-4 w-4" />
-              Trocar Aluno
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center gap-4">
-          <div className="w-full aspect-video rounded-md overflow-hidden border bg-muted relative">
-              <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
-              <canvas ref={canvasRef} className="hidden" />
-              {hasCameraPermission === false && !identificationResult && (
-                 <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                    <p className="text-white text-center p-4">Permissão da câmera negada ou não suportada.</p>
-                 </div>
-              )}
-              {isLoading && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 gap-4">
-                      <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                      <p className="text-lg text-white">Identificando resíduo...</p>
-                  </div>
-              )}
-              {identificationResult && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 gap-3 p-4 text-center">
-                    <Sparkles className="h-10 w-10 text-yellow-400" />
-                    <h3 className="text-2xl font-bold text-white">Resíduo Identificado!</h3>
-                    
-                    <div className="flex items-center gap-4 bg-background/20 p-3 rounded-lg">
-                        {WasteIcon && <WasteIcon className="h-12 w-12 text-primary" />}
-                        <div className='text-left'>
-                            <p className="text-lg font-semibold text-white">{identificationResult.material}</p>
-                            <p className="text-sm text-slate-200">{identificationResult.wasteType} ({identificationResult.recyclable ? 'Reciclável' : 'Não Reciclável'})</p>
-                            <p className="text-2xl font-bold text-primary">+{identificationResult.points} pontos</p>
-                        </div>
+    <div className="flex min-h-screen flex-col bg-background">
+        <main className="flex-1 w-full flex flex-col items-center justify-center p-4">
+            <Card className="w-full max-w-2xl">
+                <CardHeader>
+                <div className="flex justify-between items-center flex-wrap gap-2">
+                    <div>
+                    <CardTitle className="flex items-center gap-2">
+                        <Camera className="h-6 w-6" />
+                        Registro por Câmera
+                    </CardTitle>
+                    <CardDescription>
+                        Aluno: <span className="font-bold text-primary">{identifiedStudent?.name}</span>
+                    </CardDescription>
                     </div>
+                    <Button variant="outline" size="sm" onClick={handleExit}>
+                    <User className="mr-2 h-4 w-4" />
+                    Trocar Aluno
+                    </Button>
+                </div>
+                </CardHeader>
+                <CardContent className="flex flex-col items-center gap-4">
+                <div className="w-full aspect-video rounded-md overflow-hidden border bg-muted relative">
+                    <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+                    <canvas ref={canvasRef} className="hidden" />
+                    {hasCameraPermission === false && !identificationResult && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                            <p className="text-white text-center p-4">Permissão da câmera negada ou não suportada.</p>
+                        </div>
+                    )}
+                    {isLoading && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 gap-4">
+                            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                            <p className="text-lg text-white">Identificando resíduo...</p>
+                        </div>
+                    )}
+                    {identificationResult && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 gap-3 p-4 text-center">
+                            <Sparkles className="h-10 w-10 text-yellow-400" />
+                            <h3 className="text-2xl font-bold text-white">Resíduo Identificado!</h3>
+                            
+                            <div className="flex items-center gap-4 bg-background/20 p-3 rounded-lg">
+                                {WasteIcon && <WasteIcon className="h-12 w-12 text-primary" />}
+                                <div className='text-left'>
+                                    <p className="text-lg font-semibold text-white">{identificationResult.material}</p>
+                                    <p className="text-sm text-slate-200">{identificationResult.wasteType} ({identificationResult.recyclable ? 'Reciclável' : 'Não Reciclável'})</p>
+                                    <p className="text-2xl font-bold text-primary">+{identificationResult.points} pontos</p>
+                                </div>
+                            </div>
 
-                    <Alert variant={identificationResult.recyclable && identificationResult.isWaste ? 'default' : 'destructive'} className="text-left bg-background/90 max-w-sm">
-                      <AlertTitle className="font-semibold">{identificationResult.recyclable && identificationResult.isWaste ? 'Instruções de Descarte' : 'Informação'}</AlertTitle>
-                      <AlertDescription>
-                        {identificationResult.recyclingInstructions}
-                      </AlertDescription>
+                            <Alert variant={identificationResult.recyclable && identificationResult.isWaste ? 'default' : 'destructive'} className="text-left bg-background/90 max-w-sm">
+                            <AlertTitle className="font-semibold">{identificationResult.recyclable && identificationResult.isWaste ? 'Instruções de Descarte' : 'Informação'}</AlertTitle>
+                            <AlertDescription>
+                                {identificationResult.recyclingInstructions}
+                            </AlertDescription>
+                            </Alert>
+
+                            <p className="text-xs text-slate-400 italic max-w-sm">"{identificationResult.justification}"</p>
+                        </div>
+                    )}
+                </div>
+                {hasCameraPermission === null && !identificationResult && (
+                    <Alert>
+                        <AlertTitle>Aguardando permissão da câmera...</AlertTitle>
+                        <AlertDescription>
+                        Você precisa permitir o acesso à câmera para usar esta funcionalidade.
+                        </AlertDescription>
                     </Alert>
+                )}
+                {hasCameraPermission === false && !identificationResult && (
+                    <Alert variant="destructive">
+                        <AlertTitle>Acesso à Câmera Negado</AlertTitle>
+                        <AlertDescription>
+                        Por favor, habilite o acesso à câmera nas configurações do seu navegador para continuar.
+                        </AlertDescription>
+                    </Alert>
+                )}
 
-                    <p className="text-xs text-slate-400 italic max-w-sm">"{identificationResult.justification}"</p>
-                  </div>
-              )}
-          </div>
-          {hasCameraPermission === null && !identificationResult && (
-            <Alert>
-                <AlertTitle>Aguardando permissão da câmera...</AlertTitle>
-                <AlertDescription>
-                Você precisa permitir o acesso à câmera para usar esta funcionalidade.
-                </AlertDescription>
-            </Alert>
-          )}
-          {hasCameraPermission === false && !identificationResult && (
-            <Alert variant="destructive">
-                <AlertTitle>Acesso à Câmera Negado</AlertTitle>
-                <AlertDescription>
-                Por favor, habilite o acesso à câmera nas configurações do seu navegador para continuar.
-                </AlertDescription>
-            </Alert>
-          )}
-
-        </CardContent>
-        <CardFooter className="flex flex-col sm:flex-row justify-center gap-4">
-            {!identificationResult ? (
-                 <Button
-                    onClick={handleScan}
-                    className="w-full sm:w-auto"
-                    disabled={isLoading || !hasCameraPermission}
-                    size="lg"
-                >
-                    {isLoading ? (
-                        <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Analisando...
-                        </>
+                </CardContent>
+                <CardFooter className="flex flex-col sm:flex-row justify-center gap-4">
+                    {!identificationResult ? (
+                        <Button
+                            onClick={handleScan}
+                            className="w-full sm:w-auto"
+                            disabled={isLoading || !hasCameraPermission}
+                            size="lg"
+                        >
+                            {isLoading ? (
+                                <>
+                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                Analisando...
+                                </>
+                            ) : (
+                                <>
+                                <Camera className="mr-2 h-5 w-5" />
+                                Escanear Resíduo
+                                </>
+                            )}
+                        </Button>
                     ) : (
                         <>
-                        <Camera className="mr-2 h-5 w-5" />
-                        Escanear Resíduo
+                        <Button
+                            onClick={handleReset}
+                            className="w-full sm:w-auto"
+                            variant="outline"
+                        >
+                            <ArrowLeft className="mr-2 h-5 w-5" />
+                            Escanear Outro
+                        </Button>
+                        <Button
+                            onClick={handleConfirm}
+                            className="w-full sm:w-auto"
+                            size="lg"
+                            disabled={!identificationResult || identificationResult.points === 0}
+                        >
+                            <Check className="mr-2 h-5 w-5" />
+                            Confirmar e Ganhar Pontos
+                        </Button>
                         </>
                     )}
-                </Button>
-            ) : (
-                <>
-                <Button
-                    onClick={handleReset}
-                    className="w-full sm:w-auto"
-                    variant="outline"
-                >
-                    <ArrowLeft className="mr-2 h-5 w-5" />
-                    Escanear Outro
-                </Button>
-                <Button
-                    onClick={handleConfirm}
-                    className="w-full sm:w-auto"
-                    size="lg"
-                    disabled={!identificationResult || identificationResult.points === 0}
-                >
-                    <Check className="mr-2 h-5 w-5" />
-                    Confirmar e Ganhar Pontos
-                </Button>
-                </>
-            )}
-        </CardFooter>
-      </Card>
+                </CardFooter>
+            </Card>
+        </main>
+        <footer className="p-4 text-center text-xs text-muted-foreground">
+            <p>TDS - CETI Frei Jose Apicella 2026</p>
+        </footer>
     </div>
   );
 }
