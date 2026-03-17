@@ -9,7 +9,7 @@ import {
 import { WasteChart } from '@/components/waste-chart';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { leaderboardData, mockAdmin } from '@/lib/data';
-import { LayoutDashboard, Expand, Minimize, RefreshCw, Clock, MapPin } from 'lucide-react';
+import { LayoutDashboard, Expand, Minimize, RefreshCw, Clock, MapPin, Sun, Cloudy, CloudRain } from 'lucide-react';
 import type { User } from '@/lib/types';
 import { useState, useEffect } from 'react';
 import {
@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export default function AdminDashboardPage() {
     const [users] = useState<Omit<User, 'email' | 'avatar'>[]>([...leaderboardData, mockAdmin]);
@@ -32,6 +33,7 @@ export default function AdminDashboardPage() {
     
     const [currentTime, setCurrentTime] = useState<Date | null>(null);
     const [timeZone, setTimeZone] = useState<string>('');
+    const [weather, setWeather] = useState<{ temp: string; description: string; icon: React.ElementType; color: string; } | null>(null);
 
     // Effect for clock and timezone to avoid hydration issues
     useEffect(() => {
@@ -44,6 +46,27 @@ export default function AdminDashboardPage() {
 
         return () => clearInterval(timerId);
     }, []);
+
+    // Effect for mock weather
+    useEffect(() => {
+        // This is a mock. In a real app, you'd use a weather API.
+        const weatherOptions = [
+            { temp: '28°C', description: 'Ensolarado', icon: Sun, color: 'text-yellow-500' },
+            { temp: '22°C', description: 'Parcialmente Nublado', icon: Cloudy, color: 'text-slate-500' },
+            { temp: '18°C', description: 'Chuva Leve', icon: CloudRain, color: 'text-blue-500' },
+        ];
+        
+        // This runs only on the client, after hydration
+        const randomIndex = Math.floor(Math.random() * weatherOptions.length);
+        const randomWeather = weatherOptions[randomIndex];
+        
+        const timer = setTimeout(() => {
+            setWeather(randomWeather);
+        }, 1500);
+
+        return () => clearTimeout(timer);
+    }, []); // Empty dependency array ensures this runs once on mount.
+
 
     // Auto-refresh effect
     useEffect(() => {
@@ -120,6 +143,20 @@ export default function AdminDashboardPage() {
             </div>
             
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground border-t pt-4 -mt-2">
+                <div className="flex items-center gap-2">
+                    {weather ? (
+                        <>
+                            <weather.icon className={cn("h-5 w-5", weather.color)} />
+                            <span className="font-medium text-foreground">{weather.temp}</span>
+                            <span>{weather.description}</span>
+                        </>
+                    ) : (
+                        <>
+                            <Cloudy className="h-4 w-4 animate-pulse" />
+                            <span>Carregando clima...</span>
+                        </>
+                    )}
+                </div>
                 <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4" />
                     <span>{currentTime ? currentTime.toLocaleString('pt-BR') : 'Carregando...'}</span>
