@@ -99,7 +99,7 @@ export default function StudentLoginPage() {
         </main>
         <footer className="p-4 text-center text-xs text-muted-foreground space-y-2">
             <Link href="/" className="hover:text-primary underline">Voltar para a seleção de perfil</Link>
-            <p>TDS - CETI Frei Jose Apicella 2026</p>
+            <p>TDS 2B 2026 - CETI Frei José Apicella</p>
         </footer>
     </div>
   );

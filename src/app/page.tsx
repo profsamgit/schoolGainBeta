@@ -56,7 +56,7 @@ export default function Home() {
         </div>
       </main>
       <footer className="p-4 text-center text-xs text-muted-foreground">
-        TDS - CETI Frei Jose Apicella 2026
+        TDS 2B 2026 - CETI Frei José Apicella
       </footer>
     </div>
   );
