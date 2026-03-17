@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { mockUser, mockAdmin } from '@/lib/data';
 import {
   Home,
+  LayoutDashboard,
   LogOut,
   PanelLeft,
   Settings,
@@ -44,13 +45,15 @@ const pathToTitle: { [key: string]: string } = {
 function BreadcrumbNav() {
   const pathname = usePathname();
   const segments = pathname.split('/').filter(Boolean);
+  const isAdminView = pathname.startsWith('/admin');
+  const homeHref = isAdminView ? '/admin/dashboard' : '/dashboard';
 
   return (
     <Breadcrumb className="hidden md:flex">
       <BreadcrumbList>
         <BreadcrumbItem>
           <BreadcrumbLink asChild>
-            <Link href="/dashboard">
+            <Link href={homeHref}>
               <Home className="h-4 w-4" />
             </Link>
           </BreadcrumbLink>
@@ -152,7 +155,7 @@ export function Header() {
                   <DropdownMenuSeparator />
                   <Link href="/admin/dashboard">
                     <DropdownMenuItem>
-                      <Shield className="mr-2 h-4 w-4" />
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
                       <span>Painel do Gestor</span>
                     </DropdownMenuItem>
                   </Link>

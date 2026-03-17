@@ -30,7 +30,7 @@ export default function AdminLoginPage() {
         title: `Bem-vindo, ${mockAdmin.name}!`,
         description: 'Redirecionando para o painel do gestor.',
       });
-      router.push('/admin');
+      router.push('/admin/dashboard');
     } else {
       toast({
         variant: 'destructive',
