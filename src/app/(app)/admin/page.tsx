@@ -127,6 +127,15 @@ type RewardFormValues = z.infer<typeof rewardSchema>;
 type ArticleFormValues = z.infer<typeof articleSchema>;
 type ParticipantFormValues = z.infer<typeof participantSchema>;
 
+const initialDialogState = {
+  isUserOpen: false,
+  isRewardOpen: false,
+  isArticleOpen: false,
+  isParticipantOpen: false,
+  isDeleteOpen: false,
+  isNew: false,
+};
+
 
 export default function AdminPage() {
   const [hasMounted, setHasMounted] = useState(false);
@@ -144,14 +153,7 @@ export default function AdminPage() {
   const [newTopic, setNewTopic] = useState('');
 
   // Dialog and selection states
-  const [dialogState, setDialogState] = useState({
-    isUserOpen: false,
-    isRewardOpen: false,
-    isArticleOpen: false,
-    isParticipantOpen: false,
-    isDeleteOpen: false,
-    isNew: false,
-  });
+  const [dialogState, setDialogState] = useState(initialDialogState);
   const [selectedItem, setSelectedItem] = useState<User | Reward | EducationArticle | Participant | null>(null);
   const [itemType, setItemType] = useState<'user' | 'reward' | 'article' | 'participant' | null>(null);
 
@@ -162,10 +164,22 @@ export default function AdminPage() {
 
 
   // Generic handlers
+  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+  const closeAllDialogs = () => {
+    setDialogState(initialDialogState);
+    setSelectedItem(null);
+    setItemType(null);
+  }
+
   const handleNew = (type: 'user' | 'reward' | 'article' | 'participant') => {
     setSelectedItem(null);
     setItemType(type);
-    setDialogState({ ...dialogState, isNew: true, [`is${capitalize(type)}Open`]: true });
+    setDialogState({
+      ...initialDialogState,
+      isNew: true,
+      [`is${capitalize(type)}Open`]: true
+    });
     if (type === 'user') userForm.reset({ name: '', ra: '', turma: '', role: 'student' });
     if (type === 'reward') rewardForm.reset({ name: '', description: '', cost: 0, image: '', imageHint: '' });
     if (type === 'article') articleForm.reset({ title: '', summary: '', content: '', image: '', imageHint: '', videoUrl: '' });
@@ -175,7 +189,11 @@ export default function AdminPage() {
   const handleEdit = (item: any, type: 'user' | 'reward' | 'article' | 'participant') => {
     setSelectedItem(item);
     setItemType(type);
-    setDialogState({ ...dialogState, isNew: false, [`is${capitalize(type)}Open`]: true });
+    setDialogState({
+      ...initialDialogState,
+      isNew: false,
+      [`is${capitalize(type)}Open`]: true
+    });
     if (type === 'user') userForm.reset(item);
     if (type === 'reward') rewardForm.reset(item);
     if (type === 'article') articleForm.reset(item);
@@ -185,7 +203,10 @@ export default function AdminPage() {
   const handleDelete = (item: any, type: 'user' | 'reward' | 'article' | 'participant') => {
     setSelectedItem(item);
     setItemType(type);
-    setDialogState({ ...dialogState, isDeleteOpen: true });
+    setDialogState({
+      ...initialDialogState,
+      isDeleteOpen: true
+    });
   };
 
   const onConfirmDelete = () => {
@@ -261,14 +282,6 @@ export default function AdminPage() {
     setQuizTopics(quizTopics.filter(topic => topic !== topicToDelete));
     toast({ title: 'Tópico Removido!', description: `"${topicToDelete}" foi removido da lista.` });
   };
-  
-  const closeAllDialogs = () => {
-    setDialogState({ isUserOpen: false, isRewardOpen: false, isArticleOpen: false, isParticipantOpen: false, isDeleteOpen: false, isNew: false });
-    setSelectedItem(null);
-    setItemType(null);
-  }
-  
-  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
   
   if (!hasMounted) {
     return null;
