@@ -58,8 +58,9 @@ import {
   rewards as initialRewards,
   educationArticles as initialArticles,
   quizTopics as initialQuizTopics,
+  participantsData as initialParticipants,
 } from '@/lib/data';
-import type { User, Reward, EducationArticle } from '@/lib/types';
+import type { User, Reward, EducationArticle, Participant } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import {
   Shield,
@@ -70,6 +71,7 @@ import {
   Gift,
   BookOpen,
   BrainCircuit,
+  Info,
 } from 'lucide-react';
 import {
   Select,
@@ -110,9 +112,21 @@ const articleSchema = z.object({
   videoUrl: z.string().url('URL do vídeo inválida').optional().or(z.literal('')),
 });
 
+const participantSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1, 'O nome é obrigatório.'),
+  role: z.string().min(1, 'O cargo é obrigatório.'),
+  description: z.string().min(1, 'A descrição é obrigatória.'),
+  avatar: z.string().url('URL da foto inválida.'),
+  initials: z.string().min(1, 'As iniciais são obrigatórias.').max(3, 'Máximo de 3 iniciais.'),
+});
+
+
 type UserFormValues = z.infer<typeof userSchema>;
 type RewardFormValues = z.infer<typeof rewardSchema>;
 type ArticleFormValues = z.infer<typeof articleSchema>;
+type ParticipantFormValues = z.infer<typeof participantSchema>;
+
 
 export default function AdminPage() {
   const [hasMounted, setHasMounted] = useState(false);
@@ -126,6 +140,7 @@ export default function AdminPage() {
   const [rewards, setRewards] = useState<Reward[]>(initialRewards);
   const [articles, setArticles] = useState<EducationArticle[]>(initialArticles);
   const [quizTopics, setQuizTopics] = useState<string[]>(initialQuizTopics);
+  const [participants, setParticipants] = useState<Participant[]>(initialParticipants);
   const [newTopic, setNewTopic] = useState('');
 
   // Dialog and selection states
@@ -133,36 +148,41 @@ export default function AdminPage() {
     isUserOpen: false,
     isRewardOpen: false,
     isArticleOpen: false,
+    isParticipantOpen: false,
     isDeleteOpen: false,
     isNew: false,
   });
-  const [selectedItem, setSelectedItem] = useState<User | Reward | EducationArticle | null>(null);
-  const [itemType, setItemType] = useState<'user' | 'reward' | 'article' | null>(null);
+  const [selectedItem, setSelectedItem] = useState<User | Reward | EducationArticle | Participant | null>(null);
+  const [itemType, setItemType] = useState<'user' | 'reward' | 'article' | 'participant' | null>(null);
 
   const userForm = useForm<UserFormValues>({ resolver: zodResolver(userSchema) });
   const rewardForm = useForm<RewardFormValues>({ resolver: zodResolver(rewardSchema) });
   const articleForm = useForm<ArticleFormValues>({ resolver: zodResolver(articleSchema) });
+  const participantForm = useForm<ParticipantFormValues>({ resolver: zodResolver(participantSchema) });
+
 
   // Generic handlers
-  const handleNew = (type: 'user' | 'reward' | 'article') => {
+  const handleNew = (type: 'user' | 'reward' | 'article' | 'participant') => {
     setSelectedItem(null);
     setItemType(type);
     setDialogState({ ...dialogState, isNew: true, [`is${capitalize(type)}Open`]: true });
     if (type === 'user') userForm.reset({ name: '', ra: '', turma: '', role: 'student' });
     if (type === 'reward') rewardForm.reset({ name: '', description: '', cost: 0, image: '', imageHint: '' });
     if (type === 'article') articleForm.reset({ title: '', summary: '', content: '', image: '', imageHint: '', videoUrl: '' });
+    if (type === 'participant') participantForm.reset({ name: '', role: '', description: '', avatar: '', initials: '' });
   };
 
-  const handleEdit = (item: any, type: 'user' | 'reward' | 'article') => {
+  const handleEdit = (item: any, type: 'user' | 'reward' | 'article' | 'participant') => {
     setSelectedItem(item);
     setItemType(type);
     setDialogState({ ...dialogState, isNew: false, [`is${capitalize(type)}Open`]: true });
     if (type === 'user') userForm.reset(item);
     if (type === 'reward') rewardForm.reset(item);
     if (type === 'article') articleForm.reset(item);
+    if (type === 'participant') participantForm.reset(item);
   };
 
-  const handleDelete = (item: any, type: 'user' | 'reward' | 'article') => {
+  const handleDelete = (item: any, type: 'user' | 'reward' | 'article' | 'participant') => {
     setSelectedItem(item);
     setItemType(type);
     setDialogState({ ...dialogState, isDeleteOpen: true });
@@ -179,6 +199,9 @@ export default function AdminPage() {
         break;
       case 'article':
         setArticles(articles.filter((i) => i.id !== selectedItem.id));
+        break;
+      case 'participant':
+        setParticipants(participants.filter((i) => i.id !== selectedItem.id));
         break;
     }
     toast({ title: 'Item Removido!', description: `${(selectedItem as any).name || (selectedItem as any).title} foi removido.` });
@@ -200,6 +223,9 @@ export default function AdminPage() {
           const slug = values.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
           setArticles([...articles, { ...values, id, slug }]);
           break;
+        case 'participant':
+            setParticipants([...participants, { ...values, id }]);
+            break;
       }
       toast({ title: 'Item Adicionado!', description: `${values.name || values.title} foi adicionado.` });
     } else {
@@ -214,6 +240,9 @@ export default function AdminPage() {
         case 'article':
           setArticles(articles.map((i) => (i.id === values.id ? { ...i, ...values } : i)));
           break;
+        case 'participant':
+            setParticipants(participants.map((i) => (i.id === values.id ? { ...i, ...values } : i)));
+            break;
       }
       toast({ title: 'Item Atualizado!', description: `Os dados de ${values.name || values.title} foram atualizados.` });
     }
@@ -234,7 +263,7 @@ export default function AdminPage() {
   };
   
   const closeAllDialogs = () => {
-    setDialogState({ isUserOpen: false, isRewardOpen: false, isArticleOpen: false, isDeleteOpen: false, isNew: false });
+    setDialogState({ isUserOpen: false, isRewardOpen: false, isArticleOpen: false, isParticipantOpen: false, isDeleteOpen: false, isNew: false });
     setSelectedItem(null);
     setItemType(null);
   }
@@ -263,6 +292,7 @@ export default function AdminPage() {
             <TabsTrigger value="rewards"><Gift className="mr-2 h-4 w-4"/>Recompensas</TabsTrigger>
             <TabsTrigger value="education"><BookOpen className="mr-2 h-4 w-4"/>Conteúdo</TabsTrigger>
             <TabsTrigger value="quizzes"><BrainCircuit className="mr-2 h-4 w-4"/>Quizzes</TabsTrigger>
+            <TabsTrigger value="about"><Info className="mr-2 h-4 w-4"/>Sobre</TabsTrigger>
         </TabsList>
         
         <TabsContent value="users">
@@ -400,6 +430,42 @@ export default function AdminPage() {
                 </CardContent>
             </Card>
         </TabsContent>
+
+        <TabsContent value="about">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Gerenciamento da Página "Sobre"</CardTitle>
+                <CardDescription>Adicione ou remova membros da equipe do projeto.</CardDescription>
+              </div>
+              <Button onClick={() => handleNew('participant')}><UserPlus className="mr-2 h-4 w-4" />Adicionar Membro</Button>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Cargo</TableHead><TableHead>Descrição</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {participants.map((person) => (
+                    <TableRow key={person.id}>
+                      <TableCell className="font-medium">{person.name}</TableCell>
+                      <TableCell>{person.role}</TableCell>
+                      <TableCell className="max-w-sm truncate">{person.description}</TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild><Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Abrir menu</span><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEdit(person, 'participant')}><Edit className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDelete(person, 'participant')} className="text-red-600"><Trash2 className="mr-2 h-4 w-4" />Excluir</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
       </Tabs>
 
       {/* User Dialog */}
@@ -454,6 +520,24 @@ export default function AdminPage() {
           </form></Form>
         </DialogContent>
       </Dialog>
+      
+      {/* Participant Dialog */}
+      <Dialog open={dialogState.isParticipantOpen} onOpenChange={(isOpen) => !isOpen && closeAllDialogs()}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{dialogState.isNew ? 'Adicionar Novo Membro' : 'Editar Membro'}</DialogTitle>
+          </DialogHeader>
+          <Form {...participantForm}><form onSubmit={participantForm.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField control={participantForm.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Nome</FormLabel><FormControl><Input {...field}/></FormControl><FormMessage /></FormItem> )}/>
+            <FormField control={participantForm.control} name="role" render={({ field }) => ( <FormItem><FormLabel>Cargo</FormLabel><FormControl><Input {...field}/></FormControl><FormMessage /></FormItem> )}/>
+            <FormField control={participantForm.control} name="description" render={({ field }) => ( <FormItem><FormLabel>Descrição</FormLabel><FormControl><Textarea {...field}/></FormControl><FormMessage /></FormItem> )}/>
+            <FormField control={participantForm.control} name="avatar" render={({ field }) => ( <FormItem><FormLabel>URL da Foto</FormLabel><FormControl><Input placeholder="https://picsum.photos/seed/example/200/200" {...field}/></FormControl><FormMessage /></FormItem> )}/>
+            <FormField control={participantForm.control} name="initials" render={({ field }) => ( <FormItem><FormLabel>Iniciais</FormLabel><FormControl><Input placeholder="ex: SC" {...field}/></FormControl><FormMessage /></FormItem> )}/>
+            <DialogFooter><Button type="submit">Salvar</Button></DialogFooter>
+          </form></Form>
+        </DialogContent>
+      </Dialog>
+
 
       {/* Delete Confirmation Alert */}
       <AlertDialog open={dialogState.isDeleteOpen} onOpenChange={(isOpen) => !isOpen && closeAllDialogs()}>

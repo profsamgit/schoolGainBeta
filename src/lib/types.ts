@@ -29,3 +29,12 @@ export type EducationArticle = {
   imageHint: string;
   videoUrl?: string;
 };
+
+export type Participant = {
+    id: string;
+    name: string;
+    role: string;
+    description: string;
+    avatar: string;
+    initials: string;
+};

@@ -1,19 +1,9 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { participantsData } from '@/lib/data';
 import { ArrowLeft, Users } from 'lucide-react';
 import Link from 'next/link';
-
-const participants = [
-  {
-    name: 'Samuel Coelho de Sá',
-    role: 'Professor',
-    description: 'Analista de Sistemas - Especialista em Segurança, Redes e Engenharia da Computação',
-    avatar: 'https://picsum.photos/seed/prof-samuel/200/200',
-    initials: 'SC',
-  },
-  // Add more participants here in the future
-];
 
 export default function AboutPage() {
   return (
@@ -31,8 +21,8 @@ export default function AboutPage() {
                     <h2 className="text-2xl font-semibold text-center">Equipe de Desenvolvimento</h2>
                     <div className="flex justify-center pt-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {participants.map((person) => (
-                                <div key={person.name} className="flex flex-col items-center text-center p-2">
+                            {participantsData.map((person) => (
+                                <div key={person.id} className="flex flex-col items-center text-center p-2">
                                 <Avatar className="h-32 w-32 border-4 border-primary/50">
                                     <AvatarImage src={person.avatar} alt={`Foto de ${person.name}`} />
                                     <AvatarFallback className="text-4xl">{person.initials}</AvatarFallback>
@@ -57,7 +47,9 @@ export default function AboutPage() {
             </div>
         </main>
         <footer className="p-4 text-center text-xs text-muted-foreground">
-            <p>TDS 2B 2026 - CETI Frei José Apicella</p>
+            <Link href="/about" className="hover:text-primary hover:underline">
+                TDS 2B 2026 - CETI Frei José Apicella
+            </Link>
         </footer>
     </div>
   );

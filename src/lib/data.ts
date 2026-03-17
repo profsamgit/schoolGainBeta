@@ -1,4 +1,4 @@
-import type { User, Reward, EducationArticle } from './types';
+import type { User, Reward, EducationArticle, Participant } from './types';
 import { PlaceHolderImages } from './placeholder-images';
 
 const getImage = (id: string) => {
@@ -159,4 +159,15 @@ export const wasteData = [
   { type: 'Papel', collected: 680, date: '2024-03' },
   { type: 'Metal', collected: 180, date: '2024-03' },
   { type: 'Orgânico', collected: 880, date: '2024-03' },
+];
+
+export const participantsData: Participant[] = [
+  {
+    id: 'participant-1',
+    name: 'Samuel Coelho de Sá',
+    role: 'Professor',
+    description: 'Analista de Sistemas - Especialista em Segurança, Redes e Engenharia da Computação',
+    avatar: 'https://picsum.photos/seed/prof-samuel/200/200',
+    initials: 'SC',
+  },
 ];
