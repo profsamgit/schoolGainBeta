@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Leaf, Paperclip, Recycle, Trash2, Atom, Camera, Loader2, Sparkles, Check, ArrowLeft, User, ArrowRight, Keyboard } from 'lucide-react';
+import { Leaf, Paperclip, Recycle, Trash2, Atom, Camera, Loader2, Sparkles, Check, ArrowLeft, User, ArrowRight, Keyboard, Cpu, GlassWater } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { identifyWasteAction } from '@/app/(app)/waste/actions'; 
@@ -25,7 +25,9 @@ const wasteIcons: { [key: string]: React.ElementType } = {
   'Papel': Paperclip,
   'Metal': Atom,
   'Orgânico': Leaf,
-  'Não identificado': Trash2,
+  'Vidro': GlassWater,
+  'Eletrônico': Cpu,
+  'Não reciclável': Trash2,
 };
 
 export default function KioskPage() {
@@ -172,7 +174,7 @@ export default function KioskPage() {
     if(!identificationResult || identificationResult.points === 0) return;
     toast({
         title: 'Registro bem-sucedido!',
-        description: `${identifiedStudent?.name || `Aluno com RA ${studentRa}`} ganhou ${identificationResult.points} pontos por reciclar ${identificationResult.wasteType}.`,
+        description: `${identifiedStudent?.name || `Aluno com RA ${studentRa}`} ganhou ${identificationResult.points} pontos por reciclar: ${identificationResult.material}.`,
     });
     setIdentificationResult(null);
   }
@@ -217,6 +219,7 @@ export default function KioskPage() {
                             className="text-lg p-4 h-14 text-center"
                             autoFocus
                             inputMode={showKeyboard ? 'none' : 'numeric'}
+                            pattern="\d*"
                         />
                     </div>
                     {showKeyboard && (
@@ -291,17 +294,27 @@ export default function KioskPage() {
                   </div>
               )}
               {identificationResult && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 gap-4 p-4 text-center">
-                    <Sparkles className="h-12 w-12 text-yellow-400" />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 gap-3 p-4 text-center">
+                    <Sparkles className="h-10 w-10 text-yellow-400" />
                     <h3 className="text-2xl font-bold text-white">Resíduo Identificado!</h3>
-                    <div className="flex items-center gap-4 bg-background/20 p-4 rounded-lg">
-                        {WasteIcon && <WasteIcon className="h-16 w-16 text-primary" />}
-                        <div>
-                            <p className="text-xl font-semibold text-white">{identificationResult.wasteType}</p>
-                            <p className="text-3xl font-bold text-primary">+{identificationResult.points} pontos</p>
+                    
+                    <div className="flex items-center gap-4 bg-background/20 p-3 rounded-lg">
+                        {WasteIcon && <WasteIcon className="h-12 w-12 text-primary" />}
+                        <div className='text-left'>
+                            <p className="text-lg font-semibold text-white">{identificationResult.material}</p>
+                            <p className="text-sm text-slate-200">{identificationResult.wasteType} ({identificationResult.recyclable ? 'Reciclável' : 'Não Reciclável'})</p>
+                            <p className="text-2xl font-bold text-primary">+{identificationResult.points} pontos</p>
                         </div>
                     </div>
-                    <p className="text-sm text-slate-300 italic">"{identificationResult.justification}"</p>
+
+                    <Alert variant={identificationResult.recyclable && identificationResult.isWaste ? 'default' : 'destructive'} className="text-left bg-background/90 max-w-sm">
+                      <AlertTitle className="font-semibold">{identificationResult.recyclable && identificationResult.isWaste ? 'Instruções de Descarte' : 'Informação'}</AlertTitle>
+                      <AlertDescription>
+                        {identificationResult.recyclingInstructions}
+                      </AlertDescription>
+                    </Alert>
+
+                    <p className="text-xs text-slate-400 italic max-w-sm">"{identificationResult.justification}"</p>
                   </div>
               )}
           </div>
@@ -357,7 +370,7 @@ export default function KioskPage() {
                     onClick={handleConfirm}
                     className="w-full sm:w-auto"
                     size="lg"
-                    disabled={identificationResult.wasteType === 'Não identificado'}
+                    disabled={!identificationResult || identificationResult.points === 0}
                 >
                     <Check className="mr-2 h-5 w-5" />
                     Confirmar e Ganhar Pontos
