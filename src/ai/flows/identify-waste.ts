@@ -13,11 +13,11 @@ import {z} from 'genkit';
 const IdentifyWasteOutputSchema = z.object({
   wasteType: z
     .enum(['Plástico', 'Papel', 'Metal', 'Orgânico', 'Não identificado'])
-    .describe('The type of waste identified in the image.'),
-  points: z.number().describe('The points awarded for this type of waste.'),
+    .describe('O tipo de resíduo identificado na imagem.'),
+  points: z.number().describe('Os pontos concedidos para este tipo de resíduo.'),
   justification: z
     .string()
-    .describe('A brief justification for the classification.'),
+    .describe('Uma breve justificativa para a classificação.'),
 });
 export type IdentifyWasteOutput = z.infer<typeof IdentifyWasteOutputSchema>;
 
@@ -25,7 +25,7 @@ const IdentifyWasteInputSchema = z.object({
     photoDataUri: z
       .string()
       .describe(
-        "A photo of a waste item, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+        "Uma foto de um item de resíduo, como um URI de dados que deve incluir um tipo MIME e usar codificação Base64. Formato esperado: 'data:<mimetype>;base64,<dados_codificados>'."
       ),
   });
 export type IdentifyWasteInput = z.infer<typeof IdentifyWasteInputSchema>;
@@ -46,22 +46,22 @@ const prompt = ai.definePrompt({
   name: 'identifyWastePrompt',
   input: { schema: IdentifyWasteInputSchema },
   output: { schema: IdentifyWasteOutputSchema },
-  prompt: `You are an expert in waste classification for a recycling program. Your task is to identify the type of waste from the provided image.
+  prompt: `Você é um especialista em classificação de resíduos para um programa de reciclagem. Sua tarefa é identificar o tipo de resíduo a partir da imagem fornecida.
 
-  The possible waste types are: Plástico, Papel, Metal, Orgânico.
+  Os tipos de resíduos possíveis são: Plástico, Papel, Metal, Orgânico.
 
-  Based on the image, classify the waste material. If you cannot determine the material with high confidence, or if the image does not contain a waste item, classify it as "Não identificado".
+  Com base na imagem, classifique o material residual. Se você não conseguir determinar o material com alta confiança, ou se a imagem não contiver um item de resíduo, classifique-o como "Não identificado".
 
-  Provide a brief justification for your classification.
+  Forneça uma breve justificativa para sua classificação em português.
 
-  Assign points based on the classification:
-  - Plástico: 10 points
-  - Papel: 8 points
-  - Metal: 15 points
-  - Orgânico: 5 points
-  - Não identificado: 0 points
+  Atribua pontos com base na classificação:
+  - Plástico: 10 pontos
+  - Papel: 8 pontos
+  - Metal: 15 pontos
+  - Orgânico: 5 pontos
+  - Não identificado: 0 pontos
 
-  Image: {{media url=photoDataUri}}`,
+  Imagem: {{media url=photoDataUri}}`,
 });
 
 const identifyWasteFlow = ai.defineFlow(
