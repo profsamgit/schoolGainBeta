@@ -27,11 +27,12 @@ export default function AdminDashboardPage() {
     const topStudent = studentUsers.length > 0 ? [...studentUsers].sort((a, b) => b.points - a.points)[0] : null;
 
     const [refreshInterval, setRefreshInterval] = useState<string>('0');
-    const [lastUpdated, setLastUpdated] = useState(new Date());
+    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
 
     // Auto-refresh effect
     useEffect(() => {
+        setLastUpdated(new Date()); // Set initial time
         const interval = parseInt(refreshInterval, 10);
         if (interval > 0) {
             const timer = setInterval(() => {
@@ -103,7 +104,7 @@ export default function AdminDashboardPage() {
                 </div>
             </div>
              <p className="text-xs text-muted-foreground -mt-4">
-                Última atualização: {lastUpdated.toLocaleTimeString()}
+                Última atualização: {lastUpdated ? lastUpdated.toLocaleTimeString() : 'Carregando...'}
              </p>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
