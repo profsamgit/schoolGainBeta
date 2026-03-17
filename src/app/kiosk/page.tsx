@@ -34,6 +34,7 @@ export default function KioskPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const raInputRef = useRef<HTMLInputElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [identificationResult, setIdentificationResult] = useState<IdentifyWasteOutput | null>(null);
@@ -44,13 +45,18 @@ export default function KioskPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // If not in scanning step or if a result is shown, ensure the camera is off.
-    if (step !== 'scanning' || identificationResult) {
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach((track) => track.stop());
+    const stopCamera = () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+      if (videoRef.current) {
         videoRef.current.srcObject = null;
       }
+    };
+
+    if (step !== 'scanning' || identificationResult) {
+      stopCamera();
       return;
     }
 
@@ -60,9 +66,14 @@ export default function KioskPage() {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-          if (!isCancelled && videoRef.current) {
-            videoRef.current.srcObject = stream;
+          if (!isCancelled) {
+            streamRef.current = stream;
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
             setHasCameraPermission(true);
+          } else {
+            stream.getTracks().forEach((track) => track.stop());
           }
         } catch (error) {
           if (!isCancelled) {
@@ -91,11 +102,7 @@ export default function KioskPage() {
 
     return () => {
       isCancelled = true;
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
-        videoRef.current.srcObject = null;
-      }
+      stopCamera();
     };
   }, [step, identificationResult, toast]);
 

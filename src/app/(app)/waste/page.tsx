@@ -28,19 +28,25 @@ const wasteIcons: { [key: string]: React.ElementType } = {
 export default function WastePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [identificationResult, setIdentificationResult] = useState<IdentifyWasteOutput | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    // If a result is being shown, ensure the camera is off.
-    if (identificationResult) {
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach((track) => track.stop());
+    const stopCamera = () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+      if (videoRef.current) {
         videoRef.current.srcObject = null;
       }
+    };
+
+    if (identificationResult) {
+      stopCamera();
       return;
     }
 
@@ -50,9 +56,15 @@ export default function WastePage() {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-          if (!isCancelled && videoRef.current) {
-            videoRef.current.srcObject = stream;
+          if (!isCancelled) {
+            streamRef.current = stream;
+            if (videoRef.current) {
+              videoRef.current.srcObject = stream;
+            }
             setHasCameraPermission(true);
+          } else {
+            // If component unmounted while we were getting permission, stop the stream.
+            stream.getTracks().forEach((track) => track.stop());
           }
         } catch (error) {
           if (!isCancelled) {
@@ -81,11 +93,7 @@ export default function WastePage() {
 
     return () => {
       isCancelled = true;
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
-        videoRef.current.srcObject = null;
-      }
+      stopCamera();
     };
   }, [identificationResult, toast]);
 
