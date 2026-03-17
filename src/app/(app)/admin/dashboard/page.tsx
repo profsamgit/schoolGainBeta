@@ -9,26 +9,102 @@ import {
 import { WasteChart } from '@/components/waste-chart';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { leaderboardData, mockAdmin } from '@/lib/data';
-import { LayoutDashboard } from 'lucide-react';
+import { LayoutDashboard, Expand, Minimize, RefreshCw } from 'lucide-react';
 import type { User } from '@/lib/types';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 
 export default function AdminDashboardPage() {
     const [users] = useState<Omit<User, 'email' | 'avatar'>[]>([...leaderboardData, mockAdmin]);
     const studentUsers = users.filter((u) => u.role === 'student');
     const topStudent = studentUsers.length > 0 ? [...studentUsers].sort((a, b) => b.points - a.points)[0] : null;
 
+    const [refreshInterval, setRefreshInterval] = useState<string>('0');
+    const [lastUpdated, setLastUpdated] = useState(new Date());
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
+    // Auto-refresh effect
+    useEffect(() => {
+        const interval = parseInt(refreshInterval, 10);
+        if (interval > 0) {
+            const timer = setInterval(() => {
+                setLastUpdated(new Date());
+                // In a real app, you would re-fetch data here.
+            }, interval * 1000);
+            return () => clearInterval(timer);
+        }
+    }, [refreshInterval]);
+
+    // Fullscreen effect
+    const handleFullscreenChange = () => {
+        setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    useEffect(() => {
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+        };
+    }, []);
+
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch((err) => {
+                console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+            });
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    };
+
+
     return (
         <div className="space-y-6">
-            <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-                    <LayoutDashboard className="h-8 w-8 text-primary" />
-                    Dashboard do Gestor
-                </h1>
-                <p className="text-muted-foreground">
-                    Visão geral das métricas e atividades do SchoolGain.
-                </p>
+             <div className="flex justify-between items-start flex-wrap gap-4">
+                <div className="space-y-2">
+                    <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+                        <LayoutDashboard className="h-8 w-8 text-primary" />
+                        Dashboard do Gestor
+                    </h1>
+                    <p className="text-muted-foreground">
+                        Visão geral das métricas e atividades do SchoolGain.
+                    </p>
+                </div>
+                
+                <div className="flex items-center gap-2 sm:gap-4">
+                    <div className="flex items-center gap-2">
+                        <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                        <Select value={refreshInterval} onValueChange={setRefreshInterval}>
+                            <SelectTrigger className="w-[150px] sm:w-[180px]">
+                                <SelectValue placeholder="Atualização" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="0">Manual</SelectItem>
+                                <SelectItem value="5">5 segundos</SelectItem>
+                                <SelectItem value="15">15 segundos</SelectItem>
+                                <SelectItem value="30">30 segundos</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <Button variant="outline" size="icon" onClick={toggleFullscreen} className="hidden sm:inline-flex">
+                        {isFullscreen ? <Minimize className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
+                        <span className="sr-only">{isFullscreen ? 'Sair da tela cheia' : 'Entrar em tela cheia'}</span>
+                    </Button>
+                </div>
             </div>
+             <p className="text-xs text-muted-foreground -mt-4">
+                Última atualização: {lastUpdated.toLocaleTimeString()}
+             </p>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 <Card>
