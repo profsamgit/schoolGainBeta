@@ -42,10 +42,10 @@ export function WasteChart() {
               }}
             />
             <Legend />
-            <Bar dataKey="Plástico" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="Papel" fill="var(--chart-2)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="Metal" fill="var(--chart-3)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="Orgânico" fill="var(--chart-4)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="Plástico" fill="var(--chart-plastico)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="Papel" fill="var(--chart-papel)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="Metal" fill="var(--chart-metal)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="Orgânico" fill="var(--chart-organico)" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>

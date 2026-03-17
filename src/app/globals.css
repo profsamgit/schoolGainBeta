@@ -23,11 +23,11 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 120 65% 40%;
-    --chart-1: 0 72% 51%; /* Red - Plástico */
-    --chart-2: 212 82% 47%; /* Blue - Papel */
-    --chart-3: 48 96% 53%; /* Yellow - Metal */
-    --chart-4: 30 42% 42%; /* Brown - Orgânico */
-    --chart-5: 120 65% 40%; /* Green - Vidro */
+    --chart-plastico: 0 72% 51%; /* Red */
+    --chart-papel: 212 82% 47%; /* Blue */
+    --chart-metal: 48 96% 53%; /* Yellow */
+    --chart-organico: 30 42% 42%; /* Brown */
+    --chart-vidro: 120 65% 40%; /* Green */
     --radius: 0.5rem;
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 222.2 84% 4.9%;
@@ -59,11 +59,11 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 120 70% 45%;
-    --chart-1: 0 72% 56%; /* Red - Plástico */
-    --chart-2: 212 82% 57%; /* Blue - Papel */
-    --chart-3: 48 96% 63%; /* Yellow - Metal */
-    --chart-4: 30 42% 52%; /* Brown - Orgânico */
-    --chart-5: 120 70% 45%; /* Green - Vidro */
+    --chart-plastico: 0 72% 56%; /* Red */
+    --chart-papel: 212 82% 57%; /* Blue */
+    --chart-metal: 48 96% 63%; /* Yellow */
+    --chart-organico: 30 42% 52%; /* Brown */
+    --chart-vidro: 120 70% 45%; /* Green */
     --sidebar-background: 222.2 84% 4.9%;
     --sidebar-foreground: 210 40% 98%;
     --sidebar-primary: 120 70% 45%;
