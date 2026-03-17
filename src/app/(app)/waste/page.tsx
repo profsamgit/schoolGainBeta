@@ -34,6 +34,16 @@ export default function WastePage() {
   const { toast } = useToast();
 
   useEffect(() => {
+    // If a result is being shown, ensure the camera is off.
+    if (identificationResult) {
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach((track) => track.stop());
+        videoRef.current.srcObject = null;
+      }
+      return;
+    }
+
     let isCancelled = false;
 
     async function getCameraPermission() {
@@ -77,7 +87,7 @@ export default function WastePage() {
         videoRef.current.srcObject = null;
       }
     };
-  }, [toast]);
+  }, [identificationResult, toast]);
 
   const handleScan = async () => {
     if (!videoRef.current || !canvasRef.current) return;
@@ -147,7 +157,7 @@ export default function WastePage() {
           <div className="w-full aspect-video rounded-md overflow-hidden border bg-muted relative">
               <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
               <canvas ref={canvasRef} className="hidden" />
-              {hasCameraPermission === false && (
+              {hasCameraPermission === false && !identificationResult && (
                  <div className="absolute inset-0 flex items-center justify-center bg-black/50">
                     <p className="text-white text-center p-4">Permissão da câmera negada ou não suportada.</p>
                  </div>

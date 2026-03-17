@@ -44,10 +44,11 @@ export default function KioskPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (step !== 'scanning') {
+    // If not in scanning step or if a result is shown, ensure the camera is off.
+    if (step !== 'scanning' || identificationResult) {
       if (videoRef.current && videoRef.current.srcObject) {
         const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
         videoRef.current.srcObject = null;
       }
       return;
@@ -96,7 +97,7 @@ export default function KioskPage() {
         videoRef.current.srcObject = null;
       }
     };
-  }, [step, toast]);
+  }, [step, identificationResult, toast]);
 
   const handleStudentIdentification = () => {
     if (!studentRa.trim()) {
@@ -282,7 +283,7 @@ export default function KioskPage() {
           <div className="w-full aspect-video rounded-md overflow-hidden border bg-muted relative">
               <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
               <canvas ref={canvasRef} className="hidden" />
-              {hasCameraPermission === false && (
+              {hasCameraPermission === false && !identificationResult && (
                  <div className="absolute inset-0 flex items-center justify-center bg-black/50">
                     <p className="text-white text-center p-4">Permissão da câmera negada ou não suportada.</p>
                  </div>
