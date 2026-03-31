@@ -12,6 +12,10 @@
 
 # testing
 /coverage
+test-ai.ts
+test-direct-sdk.ts
+test-ai.js
+test-direct-sdk.js
 
 # next.js
 /.next/
