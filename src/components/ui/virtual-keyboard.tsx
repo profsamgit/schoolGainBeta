@@ -72,7 +72,7 @@ export function VirtualKeyboard({ onInput, onBackspace, onEnter, className, layo
           <Button onClick={() => handleKeyPress(' ')} variant="outline" className="h-11 flex-1 bg-background">
             Space
           </Button>
-         <Button onClick={onEnter} variant="primary" className="h-11 w-24">
+          <Button onClick={onEnter} variant="default" className="h-11 w-24">
             Enter <CornerDownLeft className="ml-2"/>
           </Button>
       </div>

@@ -50,8 +50,12 @@ const pointsMapping: Record<string, number> = {
 
 const prompt = ai.definePrompt({
   name: 'identifyWastePrompt',
+  model: 'googleai/gemini-2.5-flash',
   input: { schema: IdentifyWasteInputSchema },
   output: { schema: IdentifyWasteOutputSchema },
+  config: {
+    responseMimeType: 'application/json',
+  },
   prompt: `Você é um especialista em classificação de resíduos para um programa de reciclagem. Sua tarefa é identificar o item na imagem fornecida e retornar suas características.
 
   1.  **Analise a Imagem:** Determine se o item na imagem é um resíduo.
@@ -85,35 +89,42 @@ const identifyWasteFlow = ai.defineFlow(
       inputSchema: IdentifyWasteInputSchema,
       outputSchema: IdentifyWasteOutputSchema,
     },
-    async (input) => {
-      const {output} = await prompt(input);
+    async (input): Promise<IdentifyWasteOutput> => {
+      console.log('--- Identificando Resíduo ---');
+      console.log('Input length:', input.photoDataUri.length);
+      
+      try {
+          const {output} = await prompt(input);
+          console.log('AI Response:', JSON.stringify(output, null, 2));
 
-      if (output) {
-          if (!output.isWaste) {
-            return {
-              isWaste: false,
-              wasteType: 'Não reciclável',
-              material: 'Não é um resíduo',
-              recyclable: false,
-              recyclingInstructions: 'A imagem não parece conter um item de resíduo para descarte.',
-              points: 0,
-              justification: 'Nenhum resíduo foi detectado na imagem.',
-            };
+          if (output) {
+              if (!output.isWaste) {
+                const result = {
+                  isWaste: false,
+                  wasteType: 'Não reciclável' as const,
+                  material: 'Não é um resíduo',
+                  recyclable: false,
+                  recyclingInstructions: 'A imagem não parece conter um item de resíduo para descarte.',
+                  points: 0,
+                  justification: 'Nenhum resíduo foi detectado na imagem.',
+                };
+                console.log('Not waste result:', result);
+                return result;
+              }
+              // Ensure points are consistent with our mapping
+              const finalResult = {
+                ...output,
+                points: pointsMapping[output.wasteType] ?? 0,
+              };
+              console.log('Identification success:', finalResult);
+              return finalResult;
           }
-          // Ensure points are consistent with our mapping
-          output.points = pointsMapping[output.wasteType] ?? 0;
-          return output;
+      } catch (promptError) {
+          console.error('Error during AI prompt execution:', promptError);
       }
       
+      console.log('Flow fallback: hitting error throw.');
       // Fallback in case the model fails to generate a valid output
-      return {
-          isWaste: false,
-          wasteType: 'Não reciclável',
-          material: 'Não identificado',
-          recyclable: false,
-          recyclingInstructions: 'Não foi possível analisar a imagem.',
-          points: 0,
-          justification: 'A IA não conseguiu processar a imagem fornecida. Tente novamente com outra foto.',
-      }
+      throw new Error('Falha ao identificar o resíduo. Tente novamente.');
     }
   );
