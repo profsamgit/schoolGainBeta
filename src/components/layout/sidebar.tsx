@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useMemo } from 'react';
+import { cn } from '@/lib/utils';
 import {
   SidebarProvider,
   Sidebar,
@@ -25,11 +27,12 @@ import {
   Leaf,
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-import { mockAdmin, mockUser } from '@/lib/data';
+import { ADMIN_MOCK, STUDENT_MOCK, LEADERBOARD_MOCK } from '@/lib/data';
+import { useEcosystem } from '@/app/(app)/ecosystem-context';
 
 const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/waste', label: 'Registro de Resíduo', icon: Trash2 },
+  { href: '/meu-ecossistema', label: 'Meu Ecossistema', icon: Leaf },
   { href: '/leaderboard', label: 'Ranking', icon: Trophy },
   { href: '/education', label: 'Educação', icon: BookOpen },
   { href: '/quiz', label: 'Quizzes', icon: BrainCircuit },
@@ -43,8 +46,16 @@ const adminMenuItems = [
 
 export function AppSidebar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { logout, currentUser, getGlobalLeader } = useEcosystem();
   const isAdminView = pathname.startsWith('/admin');
-  const currentUser = isAdminView ? mockAdmin : mockUser;
+  
+  const isLeader = useMemo(() => {
+    if (!currentUser) return false;
+    const leader = getGlobalLeader();
+    return leader?.ra === (currentUser as any)?.ra;
+  }, [getGlobalLeader, currentUser]);
+
+  const displayUser = isAdminView ? ADMIN_MOCK : (currentUser || STUDENT_MOCK);
 
   return (
     <SidebarProvider defaultOpen>
@@ -89,9 +100,15 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
                     <SidebarMenuButton
                       isActive={pathname.startsWith(item.href)}
                       tooltip={{ children: item.label }}
+                      className="group/btn"
                     >
-                      <item.icon />
-                      <span>{item.label}</span>
+                      <item.icon className={cn(
+                        "transition-all duration-500",
+                        item.label === 'Meu Ecossistema' && isLeader && "text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.6)] scale-110"
+                      )} />
+                      <span className={cn(
+                        item.label === 'Meu Ecossistema' && isLeader && "text-yellow-500 font-black italic tracking-tighter"
+                      )}>{item.label}</span>
                     </SidebarMenuButton>
                   </Link>
                 </SidebarMenuItem>
@@ -108,7 +125,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
                 <span>Configurações</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <Link href="/">
+            <Link href="/" onClick={() => logout()}>
                 <SidebarMenuItem>
                 <SidebarMenuButton tooltip={{ children: 'Trocar Perfil' }}>
                     <LogOut />

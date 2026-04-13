@@ -9,41 +9,43 @@ const getImage = (id: string) => {
   };
 };
 
-export const mockUser: User = {
+export const STUDENT_MOCK: User = {
   id: 'user-1',
   name: 'Alex Verde',
   email: 'alex.verde@schoolgain.com',
   avatar: getImage('user-avatar-1').url,
   role: 'student',
-  points: 1250,
-  level: 'Prata',
+  points: 5000,
+  level: 'Broto',
   ra: '123456',
-  turma: '8º A',
+  turma: '2ª Série',
+  curso: 'Técnico em Desenvolvimento de Sistemas',
 };
 
-export const mockAdmin: User = {
+export const ADMIN_MOCK: User = {
   id: 'admin-1',
   name: 'Gestor Escolar',
   email: 'gestor@schoolgain.com',
   avatar: 'https://picsum.photos/seed/admin/100/100',
   role: 'admin',
   points: 0,
-  level: 'Bronze',
+  level: 'Semente',
   ra: 'admin01',
   turma: 'Administração',
+  curso: 'Gestão Escolar',
 };
 
-export const leaderboardData: Omit<User, 'email' | 'avatar'>[] = [
-  { id: 'user-2', name: 'Sofia Recicla', points: 3400, level: 'Ouro', ra: '234567', turma: '9º B', role: 'student' },
-  { id: 'user-3', name: 'Pedro Planta', points: 2850, level: 'Ouro', ra: '345678', turma: '9º A', role: 'student' },
-  { id: 'user-1', name: 'Alex Verde', points: 1250, level: 'Prata', ra: '123456', turma: '8º A', role: 'student' },
-  { id: 'user-4', name: 'Lia Sustentável', points: 980, level: 'Bronze', ra: '456789', turma: '7º C', role: 'student' },
-  { id: 'user-5', name: 'Carlos Coleta', points: 720, level: 'Bronze', ra: '567890', turma: '8º B', role: 'student' },
-  { id: 'user-6', name: 'Mariana Horta', points: 510, level: 'Bronze', ra: '678901', turma: '7º A', role: 'student' },
-  { id: 'user-7', name: 'Beto Água', points: 300, level: 'Bronze', ra: '789012', turma: '6º B', role: 'student' },
+export const LEADERBOARD_MOCK: Omit<User, 'email' | 'avatar'>[] = [
+  { id: 'user-2', name: 'Sofia Recicla', points: 5000, level: 'Broto', ra: '234567', turma: '3ª Série', curso: 'Técnico em Desenvolvimento de Sistemas', role: 'student' },
+  { id: 'user-3', name: 'Pedro Planta', points: 5000, level: 'Broto', ra: '345678', turma: '3ª Série', curso: 'Técnico em Agropecuária', role: 'student' },
+  { id: 'user-1', name: 'Alex Verde', points: 5000, level: 'Broto', ra: '123456', turma: '2ª Série', curso: 'Técnico em Desenvolvimento de Sistemas', role: 'student' },
+  { id: 'user-4', name: 'Lia Sustentável', points: 5000, level: 'Broto', ra: '456789', turma: '2ª Série', curso: 'Técnico em Agropecuária', role: 'student' },
+  { id: 'user-5', name: 'Carlos Coleta', points: 5000, level: 'Broto', ra: '567890', turma: '1ª Série', curso: 'Técnico em Desenvolvimento de Sistemas', role: 'student' },
+  { id: 'user-6', name: 'Mariana Horta', points: 5000, level: 'Broto', ra: '678901', turma: '1ª Série', curso: 'Técnico em Agropecuária', role: 'student' },
+  { id: 'user-7', name: 'Beto Água', points: 5000, level: 'Broto', ra: '789012', turma: '1ª Série', curso: 'Técnico em Desenvolvimento de Sistemas', role: 'student' },
 ];
 
-export const rewards: Reward[] = [
+export const REWARDS_MOCK: Reward[] = [
   {
     id: 'reward-1',
     name: 'Livro sobre Natureza',
@@ -78,7 +80,7 @@ export const rewards: Reward[] = [
   },
 ];
 
-export const educationArticles: EducationArticle[] = [
+export const ARTICLES_MOCK: EducationArticle[] = [
   {
     id: 'edu-1',
     slug: 'guia-da-reciclagem',
@@ -138,7 +140,7 @@ A água é essencial para todos os seres vivos. Embora o planeta seja coberto po
   },
 ];
 
-export const quizTopics: string[] = [
+export const QUIZ_TOPICS_MOCK: string[] = [
   'Reciclagem',
   'Consumo Consciente',
   'Biodiversidade',
@@ -146,7 +148,7 @@ export const quizTopics: string[] = [
   'Desmatamento',
 ];
 
-export const wasteData = [
+export const WASTE_DATA_MOCK = [
   { type: 'Plástico', collected: 450, date: '2024-01' },
   { type: 'Papel', collected: 620, date: '2024-01' },
   { type: 'Metal', collected: 120, date: '2024-01' },
@@ -159,47 +161,4 @@ export const wasteData = [
   { type: 'Papel', collected: 680, date: '2024-03' },
   { type: 'Metal', collected: 180, date: '2024-03' },
   { type: 'Orgânico', collected: 880, date: '2024-03' },
-];
-
-export const participantsData: Participant[] = [
-  {
-    id: 'participant-1',
-    name: 'Samuel Coelho de Sá',
-    role: 'Professor',
-    description: 'Analista de Sistemas - Especialista em Segurança, Redes e Engenharia da Computação',
-    avatar: 'https://picsum.photos/seed/prof-samuel/200/200',
-    initials: 'SC',
-  },
-  {
-    id: 'participant-2',
-    name: 'Lincoln Rodrigues',
-    role: 'Desenvolvedor',
-    description: 'Aluno de TDS 2B 2026 - CETI Frei José Apicella',
-    avatar: 'https://picsum.photos/seed/lincoln/200/200',
-    initials: 'LR',
-  },
-  {
-    id: 'participant-3',
-    name: 'Michelly Maria',
-    role: 'Desenvolvedora',
-    description: 'Aluna de TDS 2B 2026 - CETI Frei José Apicella',
-    avatar: 'https://picsum.photos/seed/michelly/200/200',
-    initials: 'MM',
-  },
-  {
-    id: 'participant-4',
-    name: 'Raphael Guimarães',
-    role: 'Desenvolvedor',
-    description: 'Aluno de TDS 2B 2026 - CETI Frei José Apicella',
-    avatar: 'https://picsum.photos/seed/raphael/200/200',
-    initials: 'RG',
-  },
-  {
-    id: 'participant-5',
-    name: 'Safira de Cássia',
-    role: 'Desenvolvedora',
-    description: 'Aluna de TDS 2B 2026 - CETI Frei José Apicella',
-    avatar: 'https://picsum.photos/seed/safira/200/200',
-    initials: 'SK',
-  },
 ];

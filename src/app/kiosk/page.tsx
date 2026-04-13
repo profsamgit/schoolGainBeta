@@ -16,9 +16,10 @@ import { identifyWasteAction } from '@/app/(app)/waste/actions';
 import { type IdentifyWasteOutput } from '@/ai/flows/identify-waste';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
-import { leaderboardData } from '@/lib/data';
+import { STUDENT_MOCK, LEADERBOARD_MOCK, ADMIN_MOCK } from '@/lib/data';
 import type { User as UserData } from '@/lib/types';
 import { VirtualKeyboard } from '@/components/ui/virtual-keyboard';
+import { useEcosystem } from '@/app/(app)/ecosystem-context';
 
 const wasteIcons: { [key: string]: React.ElementType } = {
   'Plástico': Recycle,
@@ -31,6 +32,10 @@ const wasteIcons: { [key: string]: React.ElementType } = {
 };
 
 export default function KioskPage() {
+  return <KioskContent />;
+}
+
+function KioskContent() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const raInputRef = useRef<HTMLInputElement>(null);
@@ -42,6 +47,7 @@ export default function KioskPage() {
   const [studentRa, setStudentRa] = useState('');
   const [identifiedStudent, setIdentifiedStudent] = useState<Omit<UserData, 'email' | 'avatar'> | null>(null);
   const [showKeyboard, setShowKeyboard] = useState(false);
+  const { users, addPoints } = useEcosystem();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -116,7 +122,7 @@ export default function KioskPage() {
         return;
     }
 
-    const student = leaderboardData.find(user => user.ra === studentRa.trim());
+    const student = users.find((user: any) => user.ra === studentRa.trim());
 
     if (student) {
         setIdentifiedStudent(student);
@@ -180,6 +186,10 @@ export default function KioskPage() {
   
   const handleConfirm = () => {
     if(!identificationResult || identificationResult.points === 0) return;
+    
+    // ADICIONAR PONTOS REALMENTE
+    addPoints(identificationResult.points, studentRa);
+
     toast({
         title: 'Registro bem-sucedido!',
         description: `${identifiedStudent?.name || `Aluno com RA ${studentRa}`} ganhou ${identificationResult.points} pontos por reciclar: ${identificationResult.material}.`,

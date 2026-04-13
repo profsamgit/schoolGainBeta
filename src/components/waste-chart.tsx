@@ -15,14 +15,14 @@ import {
   ChartLegendContent,
   type ChartConfig,
 } from '@/components/ui/chart';
-import { wasteData } from '@/lib/data';
+import { WASTE_DATA_MOCK } from '@/lib/data';
 
-const monthlyData = wasteData.reduce((acc, item) => {
+const monthlyData = WASTE_DATA_MOCK.reduce((acc, item) => {
   const month = new Date(item.date).toLocaleString('default', { month: 'short' });
   if (!acc[month]) {
     acc[month] = { month };
   }
-  acc[month][item.type] = item.collected;
+  acc[month][item.type] = (acc[month][item.type] || 0) + item.collected;
   return acc;
 }, {} as Record<string, any>);
 

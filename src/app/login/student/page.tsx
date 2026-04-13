@@ -8,23 +8,23 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Keyboard, UserCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { VirtualKeyboard } from '@/components/ui/virtual-keyboard';
-import { leaderboardData } from '@/lib/data';
+import { useEcosystem } from '../../(app)/ecosystem-context';
 import Link from 'next/link';
 
 export default function StudentLoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { login, users } = useEcosystem();
   const [ra, setRa] = useState('');
   const [showKeyboard, setShowKeyboard] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleLogin = () => {
-    const student = leaderboardData.find((user) => user.ra === ra.trim());
-    if (student) {
-      // In a real app, we'd set an auth token/session here.
-      // For now, we'll just navigate.
+    const success = login(ra.trim());
+    if (success) {
+      const student = users.find((u: any) => u.ra === ra.trim());
       toast({
-        title: `Bem-vindo, ${student.name}!`,
+        title: `Bem-vindo, ${student?.name || 'Aluno'}!`,
         description: 'Redirecionando para o seu painel.',
       });
       router.push('/dashboard');
@@ -32,7 +32,7 @@ export default function StudentLoginPage() {
       toast({
         variant: 'destructive',
         title: 'Aluno não encontrado',
-        description: 'O RA digitado não corresponde a nenhum aluno cadastrado. Tente novamente.',
+        description: 'O RA digitado não corresponde a nenhum aluno cadastrado ou não persistido.',
       });
       setRa('');
     }

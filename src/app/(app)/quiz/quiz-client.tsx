@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
+import { useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -35,8 +37,8 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { quizTopics } from '@/lib/data';
 import { Label } from '@/components/ui/label';
+import { useEcosystem } from '../ecosystem-context';
 
 const formSchema = z.object({
   topic: z.string().min(1, 'Por favor, selecione um tópico.'),
@@ -57,15 +59,25 @@ export function QuizClient() {
   const [showResults, setShowResults] = useState(false);
 
   const { toast } = useToast();
+  const { completeDailyMission, allQuizTopics } = useEcosystem();
+  const searchParams = useSearchParams();
 
   const form = useForm<QuizFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      topic: quizTopics[0] || 'Reciclagem',
+      topic: searchParams.get('topic') || allQuizTopics[0] || 'Reciclagem',
       difficulty: 'medium',
       numberOfQuestions: 5,
     },
   });
+
+  // Auto-start quiz if requested via URL
+  useEffect(() => {
+    const autoStart = searchParams.get('autoStart') === 'true';
+    if (autoStart && !quizData && !isLoading) {
+      form.handleSubmit(onSubmit)();
+    }
+  }, [searchParams, quizData, isLoading, form]);
 
   async function onSubmit(values: QuizFormValues) {
     setIsLoading(true);
@@ -94,12 +106,25 @@ export function QuizClient() {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
       setShowResults(true);
-      const score = calculateScore();
-      const points = score * 10;
-      toast({
-        title: 'Quiz finalizado!',
-        description: `Você ganhou ${points} pontos!`,
-      });
+      
+      // Lógica de Recompensas do Ecossistema
+      const isRecovery = form.getValues('topic') === 'Reciclagem';
+      const points = isRecovery ? 20 : 10;
+      
+      const success = completeDailyMission(points);
+      
+      if (success) {
+        toast({
+          variant: 'success',
+          title: 'Parabéns!',
+          description: 'Você ganhou pontos e manteve sua folha viva! 🌿',
+        });
+      } else {
+        toast({
+          title: 'Quiz finalizado!',
+          description: 'Você já completou sua missão diária hoje, mas continue praticando!',
+        });
+      }
     }
   }
   
@@ -225,7 +250,7 @@ export function QuizClient() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {quizTopics.map((topic) => (
+                      {allQuizTopics.map((topic) => (
                         <SelectItem key={topic} value={topic}>
                           {topic}
                         </SelectItem>

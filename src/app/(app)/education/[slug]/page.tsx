@@ -1,4 +1,4 @@
-import { educationArticles } from '@/lib/data';
+import { ARTICLES_MOCK } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import {
@@ -11,7 +11,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 
 export async function generateStaticParams() {
-  return educationArticles.map((article) => ({
+  return ARTICLES_MOCK.map((article) => ({
     slug: article.slug,
   }));
 }
@@ -21,7 +21,7 @@ export default function EducationArticlePage({
 }: {
   params: { slug: string };
 }) {
-  const article = educationArticles.find((a) => a.slug === params.slug);
+  const article = ARTICLES_MOCK.find((a) => a.slug === params.slug);
 
   if (!article) {
     notFound();
@@ -47,7 +47,7 @@ export default function EducationArticlePage({
       </div>
 
       <div className="prose prose-lg dark:prose-invert max-w-none">
-        {article.content.split('\n\n').map((paragraph, index) => {
+        {article.content.split('\n\n').map((paragraph: string, index: number) => {
           if (paragraph.startsWith('###')) {
             return (
               <h3 key={index} className="text-2xl font-semibold mt-6 mb-2">
@@ -56,7 +56,7 @@ export default function EducationArticlePage({
             );
           }
           if (paragraph.startsWith('- ')) {
-            const items = paragraph.split('\n').map((item, i) => (
+            const items = paragraph.split('\n').map((item: string, i: number) => (
               <li key={i} className="mb-2">
                 {item.replace('- ', '')}
               </li>

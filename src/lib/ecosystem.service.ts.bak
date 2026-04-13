@@ -1,0 +1,596 @@
+import { BehaviorSubject } from 'rxjs';
+import { STUDENT_MOCK, LEADERBOARD_MOCK, REWARDS_MOCK, ARTICLES_MOCK, QUIZ_TOPICS_MOCK, ADMIN_MOCK } from './data';
+import { User, Reward, EducationArticle, Participant } from './types';
+
+const TEAM_MOCK: Participant[] = [
+  {
+    id: 'participant-1',
+    name: 'Samuel Coelho de Sá',
+    role: 'Professor',
+    description: 'Analista de Sistemas - Especialista em Segurança, Redes e Engenharia da Computação',
+    avatar: 'https://picsum.photos/seed/prof-samuel/200/200',
+    initials: 'SC',
+  },
+  {
+    id: 'participant-2',
+    name: 'Lincoln Rodrigues',
+    role: 'Desenvolvedor',
+    description: 'Aluno de TDS 2B 2026 - CETI Frei José Apicella',
+    avatar: 'https://picsum.photos/seed/lincoln/200/200',
+    initials: 'LR',
+  },
+  {
+    id: 'participant-3',
+    name: 'Michelly Maria',
+    role: 'Desenvolvedora',
+    description: 'Aluna de TDS 2B 2026 - CETI Frei José Apicella',
+    avatar: 'https://picsum.photos/seed/michelly/200/200',
+    initials: 'MM',
+  },
+  {
+    id: 'participant-4',
+    name: 'Raphael Guimarães',
+    role: 'Desenvolvedor',
+    description: 'Aluno de TDS 2B 2026 - CETI Frei José Apicella',
+    avatar: 'https://picsum.photos/seed/raphael/200/200',
+    initials: 'RG',
+  },
+  {
+    id: 'participant-5',
+    name: 'Safira de Cássia',
+    role: 'Desenvolvedora',
+    description: 'Aluna de TDS 2B 2026 - CETI Frei José Apicella',
+    avatar: 'https://picsum.photos/seed/safira/200/200',
+    initials: 'SK',
+  },
+];
+
+export type EcosystemItem = 
+  'filtro_ar' | 'limpar_rio' | 'reparar_grama' | 
+  'arvore_1' | 'arvore_2' | 'arvore_3' | 
+  'passaro_1' | 'passaro_2' | 
+  'peixe_1' | 'peixe_2' | 'peixe_3' | 
+  'cachorro' | 'coelho' | 'borboletas';
+
+export interface EcosystemUserState {
+  balance: number;
+  vitality: number;
+  purchasedItems: EcosystemItem[];
+  lastMissionDate: string | null;
+  curso?: string;
+}
+
+export interface EcosystemData {
+  // Dados Globais
+  users: Omit<User, 'email' | 'avatar'>[];
+  rewards: Reward[];
+  articles: EducationArticle[];
+  quizTopics: string[];
+  currentUserRa: string | null;
+  participants: Participant[];
+  turmas: string[];
+  cursos: string[];
+  // Mapeamento de progresso por usuário
+  userStates: Record<string, EcosystemUserState>;
+}
+
+const STORAGE_KEY = 'schoolgain_ecosystem';
+
+export class EcosystemService {
+  private balanceSubject: BehaviorSubject<number>;
+  private vitalitySubject: BehaviorSubject<number>;
+  private data: EcosystemData = {
+    users: [ADMIN_MOCK, ...LEADERBOARD_MOCK],
+    rewards: [...REWARDS_MOCK],
+    articles: [...ARTICLES_MOCK],
+    quizTopics: [...QUIZ_TOPICS_MOCK],
+    currentUserRa: null,
+    participants: [...TEAM_MOCK],
+    turmas: ['1ª Série', '2ª Série', '3ª Série'],
+    cursos: ['Técnico em Desenvolvimento de Sistemas', 'Técnico em Agropecuária', 'Gestão Escolar'],
+    userStates: {},
+  };
+
+  private participantsSubject: BehaviorSubject<Participant[]>;
+  private purchasedItemsSubject: BehaviorSubject<EcosystemItem[]>;
+  private lastMissionDateSubject: BehaviorSubject<string | null>;
+  private currentUserRaSubject: BehaviorSubject<string | null>;
+  private usersSubject: BehaviorSubject<any[]>;
+  private rewardsSubject: BehaviorSubject<Reward[]>;
+  private articlesSubject: BehaviorSubject<EducationArticle[]>;
+  private quizTopicsSubject: BehaviorSubject<string[]>;
+  private turmasSubject: BehaviorSubject<string[]>;
+  private cursosSubject: BehaviorSubject<string[]>;
+
+  constructor() {
+    // Inicialização segura (serão atualizados no initialize)
+    this.balanceSubject = new BehaviorSubject<number>(0);
+    this.vitalitySubject = new BehaviorSubject<number>(100);
+    this.currentUserRaSubject = new BehaviorSubject<string | null>(null);
+    this.usersSubject = new BehaviorSubject<any[]>(this.data.users);
+    this.rewardsSubject = new BehaviorSubject<Reward[]>(this.data.rewards);
+    this.articlesSubject = new BehaviorSubject<EducationArticle[]>(this.data.articles);
+    this.quizTopicsSubject = new BehaviorSubject<string[]>(this.data.quizTopics);
+    this.participantsSubject = new BehaviorSubject<Participant[]>(this.data.participants);
+    this.purchasedItemsSubject = new BehaviorSubject<EcosystemItem[]>([]);
+    this.lastMissionDateSubject = new BehaviorSubject<string | null>(null);
+    this.turmasSubject = new BehaviorSubject<string[]>(this.data.turmas);
+    this.cursosSubject = new BehaviorSubject<string[]>(this.data.cursos);
+  }
+
+  /**
+   * Inicializa o serviço carregando dados do localStorage (apenas no cliente)
+   */
+  initialize() {
+    if (typeof window === 'undefined') return;
+    this.loadFromStorage();
+    
+    // Disparar atualizações globais
+    this.currentUserRaSubject.next(this.data.currentUserRa);
+    this.usersSubject.next(this.data.users);
+    this.rewardsSubject.next(this.data.rewards);
+    this.articlesSubject.next(this.data.articles);
+    this.quizTopicsSubject.next(this.data.quizTopics);
+    this.participantsSubject.next(this.data.participants);
+    this.turmasSubject.next(this.data.turmas);
+    this.cursosSubject.next(this.data.cursos);
+
+    // Se houver um usuário logado, carregar o estado dele
+    if (this.data.currentUserRa) {
+      this.syncStateWithUser(this.data.currentUserRa);
+    }
+  }
+
+  private syncStateWithUser(ra: string) {
+    const userState = this.data.userStates[ra];
+    const userRecord = this.data.users.find(u => u.ra === ra);
+
+    if (userState) {
+      this.balanceSubject.next(userState.balance);
+      this.vitalitySubject.next(userState.vitality);
+      this.purchasedItemsSubject.next(userState.purchasedItems);
+      this.lastMissionDateSubject.next(userState.lastMissionDate);
+    } else if (userRecord) {
+      // Primeiro acesso: Inicializar com 5000 pontos e 0% de vitalidade (Day Zero)
+      const newState: EcosystemUserState = {
+        balance: 5000, 
+        vitality: 0,
+        purchasedItems: [],
+        lastMissionDate: null,
+        curso: userRecord.curso
+      };
+      this.data.userStates[ra] = newState;
+      this.balanceSubject.next(newState.balance);
+      this.vitalitySubject.next(newState.vitality);
+      this.purchasedItemsSubject.next(newState.purchasedItems);
+      this.lastMissionDateSubject.next(newState.lastMissionDate);
+      this.saveToStorage();
+    }
+  }
+
+  // Getters para os dados globais
+  get users() { return this.data.users; }
+  get allRewards() { return this.data.rewards; }
+  get allArticles() { return this.data.articles; }
+  get allQuizTopics() { return this.data.quizTopics; }
+  get allParticipants() { return this.data.participants; }
+  get allTurmas() { return this.data.turmas; }
+  get allCursos() { return this.data.cursos; }
+
+  // Observables (Async behavior)
+  get users$() {
+    return this.usersSubject.asObservable();
+  }
+  get balance$() {
+    return this.balanceSubject.asObservable();
+  }
+
+  get vitality$() {
+    return this.vitalitySubject.asObservable();
+  }
+
+  get currentUserRa$() {
+    return this.currentUserRaSubject.asObservable();
+  }
+
+  get rewards$() {
+    return this.rewardsSubject.asObservable();
+  }
+
+  get articles$() {
+    return this.articlesSubject.asObservable();
+  }
+
+  get quizTopics$() {
+    return this.quizTopicsSubject.asObservable();
+  }
+
+  get participants$() {
+    return this.participantsSubject.asObservable();
+  }
+  get turmas$() {
+    return this.turmasSubject.asObservable();
+  }
+  get cursos$() {
+    return this.cursosSubject.asObservable();
+  }
+
+  get purchasedItems$() {
+    return this.purchasedItemsSubject.asObservable();
+  }
+
+  // Getters for immediate value
+  get balance() {
+    return this.balanceSubject.value;
+  }
+
+  get vitality() {
+    return this.vitalitySubject.value;
+  }
+
+  getCurrentState(): EcosystemUserState {
+    const ra = this.data.currentUserRa;
+    if (!ra) return this.getDefaultState();
+    return this.data.userStates[ra] || this.getDefaultState();
+  }
+
+  getUserState(ra: string): EcosystemUserState {
+    return this.data.userStates[ra] || this.getDefaultState();
+  }
+
+  private getDefaultState(): EcosystemUserState {
+    return {
+      balance: 5000,
+      vitality: 0,
+      purchasedItems: [],
+      lastMissionDate: null,
+      curso: ''
+    };
+  }
+
+  get currentUserRa() {
+    return this.currentUserRaSubject.value;
+  }
+
+  get isMissionDone() {
+    const lastDate = this.lastMissionDateSubject.value;
+    if (!lastDate) return false;
+    const today = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    return lastDate === today;
+  }
+
+  get purchasedItems() {
+    return this.purchasedItemsSubject.value;
+  }
+
+  private loadFromStorage() {
+    if (typeof window === 'undefined') return;
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        // Mesclar com os dados padrão para evitar campos ausentes em migrações
+        this.data = { ...this.data, ...parsed };
+
+        // Garantir que a equipe padrão apareça se a lista estiver vazia (migração)
+        if (!this.data.participants || this.data.participants.length === 0) {
+          this.data.participants = [...TEAM_MOCK];
+        }
+
+        // Garantir que o ADMIN_MOCK esteja sempre presente na lista de usuários (correção de migração)
+        if (this.data.users && !this.data.users.find(u => u.ra === ADMIN_MOCK.ra)) {
+          this.data.users = [ADMIN_MOCK, ...this.data.users];
+        }
+      } catch (e) {
+        console.error('Error loading ecosystem data', e);
+      }
+    }
+
+    // --- MIGRATION: Force Global Reset (WIPE) ---
+    // Reseta TODOS os usuários para o estado inicial (5000 PTS / 0% Vitality)
+    // Útil para garantir que todos comecem a nova fase do ecossistema do zero.
+    let hasChanges = false;
+    
+    const RESET_VERSION = 'v7_thematic_levels';
+    if ((this.data as any).resetVersion !== RESET_VERSION) {
+      this.data.userStates = {};
+      this.data.turmas = ['1ª Série', '2ª Série', '3ª Série'];
+      this.data.cursos = ['Técnico em Desenvolvimento de Sistemas', 'Técnico em Agropecuária', 'Gestão Escolar'];
+      (this.data as any).resetVersion = RESET_VERSION;
+      hasChanges = true;
+    }
+
+    this.data.users.forEach(user => {
+      if (user.ra) {
+        // Se o usuário não tem estado salvo (ou foi limpo acima), inicializa com 5.000/0
+        if (!this.data.userStates[user.ra]) {
+          this.data.userStates[user.ra] = {
+            balance: 5000,
+            vitality: 0,
+            purchasedItems: [],
+            lastMissionDate: null,
+            curso: user.curso
+          };
+          hasChanges = true;
+        }
+        
+        // Sincroniza o saldo e as novas métricas para o Leaderboard (Auditoria de Integridade)
+        const currentState = this.data.userStates[user.ra];
+        const currentPoints = currentState.balance;
+        const currentVitality = currentState.vitality;
+        const currentItemsCount = currentState.purchasedItems.length;
+
+        // Recalcular Score e Nível usando o motor centralizado
+        const score = EcosystemService.calculateTotalScore(currentPoints, currentVitality, currentItemsCount);
+        const level = this.calculateLevel(score);
+
+        if (user.points !== currentPoints || user.vitality !== currentVitality || user.itemsCount !== currentItemsCount || user.level !== level) {
+          user.points = currentPoints;
+          user.vitality = currentVitality;
+          user.itemsCount = currentItemsCount;
+          user.level = level;
+          hasChanges = true;
+        }
+      }
+    });
+
+    if (hasChanges) {
+      this.saveToStorage();
+    }
+
+
+    // --------------------------------------------------------------------------------------------------
+  }
+
+
+  private saveToStorage() {
+    if (typeof window === 'undefined') return;
+    
+    this.data.currentUserRa = this.currentUserRaSubject.value;
+
+    // Sincronizar estado do usuário ATUAL no mapeamento antes de salvar
+    if (this.data.currentUserRa) {
+      this.data.userStates[this.data.currentUserRa] = {
+        balance: this.balanceSubject.value,
+        vitality: this.vitalitySubject.value,
+        purchasedItems: this.purchasedItemsSubject.value,
+        lastMissionDate: this.lastMissionDateSubject.value,
+        curso: (this.data.users.find(u => u.ra === this.data.currentUserRa) as any)?.curso
+      };
+
+        // Atualizar também o saldo e as novas métricas na lista global de usuários para o Leaderboard
+        const userIndex = this.data.users.findIndex(u => u.ra === this.data.currentUserRa);
+        if (userIndex !== -1) {
+          const u = this.data.users[userIndex];
+          u.points = this.balanceSubject.value;
+          u.vitality = this.vitalitySubject.value;
+          u.itemsCount = this.purchasedItemsSubject.value.length;
+          
+          // Recalcular nível usando o motor centralizado
+          const score = EcosystemService.calculateTotalScore(u.points, u.vitality, u.itemsCount);
+          u.level = this.calculateLevel(score);
+        }
+    }
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+  }
+
+  /**
+   * Completa a missão diária (1x por dia no fuso de Brasília)
+   */
+   completeDailyMission(points: number) {
+    const today = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    
+    if (this.lastMissionDateSubject.value === today) {
+      console.warn('Missão diária já completada hoje.');
+      return false;
+    }
+
+    this.lastMissionDateSubject.next(today);
+    this.balanceSubject.next(this.balance + points);
+    this.saveToStorage();
+    return true;
+  }
+
+  /**
+   * Deduz pontos (ex: para resgate de prêmios)
+   */
+  deductPoints(points: number) {
+    if (this.balance < points) {
+      console.warn('Saldo insuficiente para dedução.');
+      return false;
+    }
+    this.balanceSubject.next(this.balance - points);
+    this.saveToStorage();
+    return true;
+  }
+
+  /**
+   * Cura a vitalidade do ecossistema usando pontos (10 PTS = 1%)
+   */
+  healVitality(points: number) {
+    if (this.balance < points) return false;
+    
+    const vitalityGain = Math.floor(points / 10);
+    const newVitality = Math.min(100, this.vitality + vitalityGain);
+    
+    if (newVitality === this.vitality) return false; // Já está no máximo
+
+    this.balanceSubject.next(this.balance - points);
+    this.vitalitySubject.next(newVitality);
+    this.saveToStorage();
+    return true;
+  }
+
+  /**
+   * Registra a frequência do aluno
+   */
+  registerAttendance(status: 'presente' | 'falta') {
+    if (status === 'falta') {
+      const newVitality = Math.max(0, this.vitality - 20);
+      this.vitalitySubject.next(newVitality);
+      this.saveToStorage();
+    }
+  }
+
+  /**
+   * Compra um item da Loja Ambiental
+   */
+  buyUpgrade(item: EcosystemItem) {
+    const catalog: Record<string, { price: number; minVitality?: number; required?: string }> = {
+      'limpar_rio': { price: 300, minVitality: 70 },
+      'filtro_ar': { price: 200, minVitality: 70 },
+      'reparar_grama': { price: 150, minVitality: 70 },
+      'arvore_1': { price: 200, minVitality: 70, required: 'reparar_grama' },
+      'arvore_2': { price: 200, minVitality: 70, required: 'reparar_grama' },
+      'arvore_3': { price: 200, minVitality: 70, required: 'reparar_grama' },
+      'passaro_1': { price: 150, required: 'arvore_1' },
+      'passaro_2': { price: 150, required: 'arvore_2' },
+      'peixe_1': { price: 100, required: 'limpar_rio' },
+      'peixe_2': { price: 100, required: 'limpar_rio' },
+      'peixe_3': { price: 100, required: 'limpar_rio' },
+      'cachorro': { price: 400, required: 'reparar_grama' },
+      'coelho': { price: 250, required: 'reparar_grama' },
+      'borboletas': { price: 150, required: 'reparar_grama' },
+    };
+
+    const upgrade = catalog[item];
+    
+    // Validar se já possui
+    if (this.purchasedItemsSubject.value.includes(item)) {
+      console.warn('Item já adquirido.');
+      return false;
+    }
+
+    // Validar Vitalidade Mínima
+    if (upgrade.minVitality && this.vitality < upgrade.minVitality) {
+      console.warn(`Vitalidade insuficiente. Requer ${upgrade.minVitality}% para este item.`);
+      return false;
+    }
+
+    // Validar requisitos
+    if (upgrade.required && !this.purchasedItemsSubject.value.includes(upgrade.required)) {
+      console.warn(`Necessário adquirir ${upgrade.required} primeiro.`);
+      return false;
+    }
+
+    // Validar saldo
+    if (this.balance < upgrade.price) {
+      console.warn('Saldo insuficiente.');
+      return false;
+    }
+
+    // Processar compra
+    this.balanceSubject.next(this.balance - upgrade.price);
+    const newItems = [...this.purchasedItemsSubject.value, item];
+    this.purchasedItemsSubject.next(newItems);
+    this.saveToStorage();
+    return true;
+  }
+
+
+  /**
+   * Adiciona pontos para um aluno específico (usado pelo Kiosk)
+   */
+  addPoints(points: number, studentRa?: string) {
+    const targetRa = studentRa || this.currentUserRa;
+    
+    if (targetRa === this.currentUserRa && targetRa !== null) {
+      // Adiciona ao usuário logado
+      this.balanceSubject.next(this.balance + points);
+    } else if (targetRa) {
+      // Adiciona a outro aluno na lista persistida
+      const userIndex = this.data.users.findIndex(u => u.ra === targetRa);
+      if (userIndex !== -1) {
+        this.data.users[userIndex].points += points;
+      }
+    }
+    this.saveToStorage();
+  }
+
+  /**
+   * Realiza o login do aluno via RA
+   */
+  login(ra: string) {
+    const user = this.data.users.find(u => u.ra === ra);
+    if (user) {
+      this.currentUserRaSubject.next(ra);
+      this.syncStateWithUser(ra);
+      this.saveToStorage();
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Realiza o logout
+   */
+  logout() {
+    this.currentUserRaSubject.next(null);
+    // Resetar estados para os valores padrão ao sair
+    this.balanceSubject.next(0);
+    this.vitalitySubject.next(100);
+    this.purchasedItemsSubject.next([]);
+    this.lastMissionDateSubject.next(null);
+    this.saveToStorage();
+  }
+
+  /**
+   * Métodos de Atualização do Admin
+   */
+  updateUsers(newUsers: Omit<User, 'email' | 'avatar'>[]) {
+    this.data.users = newUsers;
+    this.usersSubject.next(newUsers);
+    this.saveToStorage();
+  }
+
+  updateRewards(newRewards: Reward[]) {
+    this.data.rewards = newRewards;
+    this.rewardsSubject.next(newRewards);
+    this.saveToStorage();
+  }
+
+  updateArticles(newArticles: EducationArticle[]) {
+    this.data.articles = newArticles;
+    this.articlesSubject.next(newArticles);
+    this.saveToStorage();
+  }
+
+  updateQuizTopics(newTopics: string[]) {
+    this.data.quizTopics = newTopics;
+    this.quizTopicsSubject.next(newTopics);
+    this.saveToStorage();
+  }
+
+  updateParticipants(newParticipants: Participant[]) {
+    this.data.participants = newParticipants;
+    this.participantsSubject.next(newParticipants);
+    this.saveToStorage();
+  }
+
+  updateTurmas(newTurmas: string[]) {
+    this.data.turmas = newTurmas;
+    this.turmasSubject.next(newTurmas);
+    this.saveToStorage();
+  }
+
+  updateCursos(newCursos: string[]) {
+    this.data.cursos = newCursos;
+    this.cursosSubject.next(newCursos);
+    this.saveToStorage();
+  }
+
+  // MOTOR DE SCORE E NÍVEIS CENTRALIZADO
+  static calculateTotalScore(points: number, vitality: number, itemsCount: number): number {
+    return Math.floor(points + (vitality * 100) + (itemsCount * 500));
+  }
+
+  private calculateLevel(score: number): any {
+    if (score >= 17000) return 'Guardião da Biosfera';
+    if (score >= 14000) return 'Floresta';
+    if (score >= 11000) return 'Árvore';
+    if (score >= 8000) return 'Folha';
+    if (score >= 5000) return 'Broto';
+    return 'Semente';
+  }
+}

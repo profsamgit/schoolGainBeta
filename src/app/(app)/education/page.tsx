@@ -1,3 +1,5 @@
+'use client';
+
 import {
   Card,
   CardContent,
@@ -6,13 +8,28 @@ import {
   CardTitle,
   CardFooter,
 } from '@/components/ui/card';
-import { educationArticles } from '@/lib/data';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, BookOpen } from 'lucide-react';
+import { useEcosystem } from '@/app/(app)/ecosystem-context';
+import { useToast } from '@/hooks/use-toast';
 
 export default function EducationPage() {
+  const { completeDailyMission, allArticles } = useEcosystem();
+  const { toast } = useToast();
+
+  const handleReadArticle = () => {
+    const success = completeDailyMission(10);
+    if (success) {
+      toast({
+        variant: 'success',
+        title: 'Missão de Leitura Concluída!',
+        description: 'Parabéns! Você ganhou pontos e manteve sua folha viva! 🌿',
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -27,12 +44,12 @@ export default function EducationPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {educationArticles.map((article) => (
+        {allArticles.map((article) => (
           <Card
             key={article.id}
             className="flex flex-col overflow-hidden hover:shadow-lg transition-shadow duration-300"
           >
-            <Link href={`/education/${article.slug}`} className="block">
+            <Link href={`/education/${article.slug}`} className="block" onClick={handleReadArticle}>
               <div className="relative h-48 w-full">
                 <Image
                   src={article.image}
@@ -50,7 +67,7 @@ export default function EducationPage() {
               <CardDescription>{article.summary}</CardDescription>
             </CardContent>
             <CardFooter>
-              <Button asChild variant="outline" className="w-full">
+              <Button asChild variant="outline" className="w-full" onClick={handleReadArticle}>
                 <Link href={`/education/${article.slug}`}>
                   Ler Artigo <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>

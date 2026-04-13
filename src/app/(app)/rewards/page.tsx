@@ -9,22 +9,32 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { mockUser, rewards } from '@/lib/data';
 import { Gift, ShoppingCart } from 'lucide-react';
+import { useEcosystem } from '../ecosystem-context';
 import Image from 'next/image';
 
 export default function RewardsPage() {
   const { toast } = useToast();
+  const { balance, deductPoints, allRewards } = useEcosystem();
 
   const handleRedeem = (rewardName: string, cost: number) => {
-    toast({
-      title: 'Recompensa Resgatada!',
-      description: `Você resgatou "${rewardName}" por ${cost} pontos.`,
-    });
+    const success = deductPoints(cost);
+    if (success) {
+      toast({
+        title: 'Recompensa Resgatada!',
+        description: `Você resgatou "${rewardName}" por ${cost} pontos.`,
+      });
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Erro no Resgate',
+        description: 'Saldo insuficiente para esta recompensa.',
+      });
+    }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-500">
       <Card>
         <CardHeader className="flex flex-row justify-between items-center">
           <div>
@@ -37,14 +47,14 @@ export default function RewardsPage() {
             </CardDescription>
           </div>
           <div className="text-right">
-            <p className="text-sm text-muted-foreground">Seus Pontos</p>
-            <p className="text-2xl font-bold text-primary">{mockUser.points}</p>
+            <p className="text-sm text-muted-foreground">Seu Saldo Real</p>
+            <p className="text-2xl font-bold text-primary">{balance} pts</p>
           </div>
         </CardHeader>
       </Card>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {rewards.map((reward) => (
-          <Card key={reward.id} className="flex flex-col overflow-hidden">
+        {allRewards.map((reward) => (
+          <Card key={reward.id} className="flex flex-col overflow-hidden hover:shadow-lg transition-shadow">
             <div className="relative h-48 w-full">
               <Image
                 src={reward.image}
@@ -67,12 +77,12 @@ export default function RewardsPage() {
               <Button
                 className="w-full"
                 onClick={() => handleRedeem(reward.name, reward.cost)}
-                disabled={mockUser.points < reward.cost}
+                disabled={balance < reward.cost}
               >
                 <ShoppingCart className="mr-2 h-4 w-4" />
-                {mockUser.points >= reward.cost
+                {balance >= reward.cost
                   ? 'Resgatar'
-                  : 'Pontos insuficientes'}
+                  : 'Saldo insuficiente'}
               </Button>
             </CardFooter>
           </Card>

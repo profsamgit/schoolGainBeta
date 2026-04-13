@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { mockUser, mockAdmin } from '@/lib/data';
+import { ADMIN_MOCK, STUDENT_MOCK } from '@/lib/data';
 import {
   Home,
   LayoutDashboard,
@@ -18,7 +18,10 @@ import {
   Settings,
   Shield,
   User as UserIcon,
+  Leaf,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useEcosystem } from '@/app/(app)/ecosystem-context';
 import { useSidebar } from '@/components/ui/sidebar';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -30,7 +33,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 const pathToTitle: { [key: string]: string } = {
   dashboard: 'Dashboard',
@@ -40,6 +43,7 @@ const pathToTitle: { [key: string]: string } = {
   quiz: 'Quizzes',
   rewards: 'Recompensas',
   admin: 'Gerenciamento',
+  'meu-ecossistema': 'Meu Ecossistema',
 };
 
 function BreadcrumbNav() {
@@ -91,13 +95,30 @@ export function Header() {
   const title =
     pathToTitle[pathname.split('/').pop() || ''] || 'SchoolGain Hub';
   
+  const { balance, vitality, currentUser, logout, currentUserRa, getGlobalLeader } = useEcosystem();
+  
+  const isLeader = useMemo(() => {
+    if (!currentUserRa) return false;
+    const leader = getGlobalLeader();
+    return leader?.ra === currentUserRa;
+  }, [getGlobalLeader, currentUserRa]);
   const isAdminView = pathname.startsWith('/admin');
-  const currentUser = isAdminView ? mockAdmin : mockUser;
+  
+  // Se for administrador, usamos o ADMIN_MOCK, senão usamos o currentUser do contexto (ou STUDENT_MOCK se nulo)
+  const displayUser = isAdminView ? ADMIN_MOCK : (currentUser || STUDENT_MOCK);
 
   const [hasMounted, setHasMounted] = useState(false);
+
   useEffect(() => {
     setHasMounted(true);
   }, []);
+
+  const getLeafColor = (v: number) => {
+    if (isLeader) return '#fbbf24'; // Ouro PURO (Tailwind yellow-400)
+    if (v >= 70) return '#22c55e'; // Verde Vibrante (emerald-500)
+    if (v >= 30) return '#f59e0b'; // Amber-500 (Difere do Ouro)
+    return '#92400e'; // Marrom (amber-900)
+  };
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
@@ -116,60 +137,79 @@ export function Header() {
       <BreadcrumbNav />
       <h1 className="text-lg font-semibold md:hidden">{title}</h1>
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-4">
+        {hasMounted && !isAdminView && (
+          <Link 
+            href="/meu-ecossistema" 
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/50 hover:bg-accent transition-colors"
+          >
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] font-medium text-muted-foreground uppercase leading-none">Pontos</span>
+              <span className="text-sm font-bold text-primary">{balance}</span>
+            </div>
+            <Leaf 
+              className={cn("h-5 w-5 transition-all duration-500", isLeader && "drop-shadow-[0_0_8px_rgba(250,204,21,0.8)] scale-110")} 
+              fill={getLeafColor(vitality)} 
+              stroke={getLeafColor(vitality)} 
+            />
+          </Link>
+        )}
+
         {hasMounted ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="overflow-hidden rounded-full"
-              >
-                <Avatar className="h-8 w-8">
-                  <AvatarImage
-                    src={currentUser.avatar}
-                    alt={`Avatar de ${currentUser.name}`}
-                  />
-                  <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>
-                <p className="font-semibold">{currentUser.name}</p>
-                <p className="text-xs text-muted-foreground font-normal">
-                  {currentUser.email}
-                </p>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <UserIcon className="mr-2 h-4 w-4" />
-                <span>Perfil</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Configurações</span>
-              </DropdownMenuItem>
-              {currentUser.role === 'admin' && (
-                <>
-                  <DropdownMenuSeparator />
-                  <Link href="/admin/dashboard">
-                    <DropdownMenuItem>
-                      <LayoutDashboard className="mr-2 h-4 w-4" />
-                      <span>Painel do Gestor</span>
-                    </DropdownMenuItem>
-                  </Link>
-                </>
-              )}
-              <DropdownMenuSeparator />
-              <Link href="/">
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="overflow-hidden rounded-full hover:ring-2 hover:ring-primary/20 transition-all"
+                >
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage
+                      src={displayUser.avatar}
+                      alt={`Avatar de ${displayUser.name}`}
+                    />
+                    <AvatarFallback>{displayUser.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>
+                  <p className="font-semibold">{displayUser.name}</p>
+                  <p className="text-xs text-muted-foreground font-normal">
+                    {displayUser.email || (displayUser.ra ? `RA: ${displayUser.ra}` : '')}
+                  </p>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Trocar Perfil</span>
+                  <UserIcon className="mr-2 h-4 w-4" />
+                  <span>Perfil</span>
                 </DropdownMenuItem>
-              </Link>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuItem>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Configurações</span>
+                </DropdownMenuItem>
+                {displayUser.role === 'admin' && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <Link href="/admin/dashboard">
+                      <DropdownMenuItem>
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        <span>Painel do Gestor</span>
+                      </DropdownMenuItem>
+                    </Link>
+                  </>
+                )}
+                <DropdownMenuSeparator />
+                <Link href="/" onClick={() => logout()}>
+                  <DropdownMenuItem>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Trocar Perfil</span>
+                  </DropdownMenuItem>
+                </Link>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         ) : (
           <Button
             variant="outline"
@@ -178,7 +218,7 @@ export function Header() {
             disabled
           >
             <Avatar className="h-8 w-8">
-              <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
+              <AvatarFallback>{displayUser.name.charAt(0)}</AvatarFallback>
             </Avatar>
           </Button>
         )}

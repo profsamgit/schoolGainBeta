@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
+import { EcosystemProvider } from './(app)/ecosystem-context';
 
 export const metadata: Metadata = {
   title: 'SchoolGain Hub',
@@ -27,8 +28,10 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        {children}
-        <Toaster />
+        <EcosystemProvider>
+          {children}
+          <Toaster />
+        </EcosystemProvider>
       </body>
     </html>
   );

@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/card';
 import { WasteChart } from '@/components/waste-chart';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { leaderboardData, mockAdmin } from '@/lib/data';
+import { LEADERBOARD_MOCK, ADMIN_MOCK } from '@/lib/data';
 import { LayoutDashboard, Expand, Minimize, RefreshCw, Clock, MapPin, Sun, Cloudy, CloudRain } from 'lucide-react';
 import type { User } from '@/lib/types';
 import { useState, useEffect, useRef } from 'react';
@@ -24,7 +24,7 @@ import { cn } from '@/lib/utils';
 import { useSidebar } from '@/components/ui/sidebar';
 
 export default function AdminDashboardPage() {
-    const [users] = useState<Omit<User, 'email' | 'avatar'>[]>([...leaderboardData, mockAdmin]);
+    const [users] = useState<Omit<User, 'email' | 'avatar'>[]>([...LEADERBOARD_MOCK, ADMIN_MOCK]);
     const studentUsers = users.filter((u) => u.role === 'student');
     const topStudent = studentUsers.length > 0 ? [...studentUsers].sort((a, b) => b.points - a.points)[0] : null;
 

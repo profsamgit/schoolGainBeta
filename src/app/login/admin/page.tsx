@@ -8,12 +8,14 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Keyboard, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { VirtualKeyboard } from '@/components/ui/virtual-keyboard';
-import { mockAdmin } from '@/lib/data';
+import { ADMIN_MOCK } from '@/lib/data';
+import { useEcosystem } from '@/app/(app)/ecosystem-context';
 import Link from 'next/link';
 import { Label } from '@/components/ui/label';
 
 export default function AdminLoginPage() {
   const router = useRouter();
+  const { login } = useEcosystem();
   const { toast } = useToast();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -25,12 +27,15 @@ export default function AdminLoginPage() {
 
   const handleLogin = () => {
     // In a real app, this would be a secure API call.
-    if (username.trim().toLowerCase() === mockAdmin.email.toLowerCase() && password === 'admin123') {
+    if (username.trim().toLowerCase() === ADMIN_MOCK.email.toLowerCase() && password === 'admin123') {
+       // Realiza o login efetivo no ecossistema
+       login(ADMIN_MOCK.ra!);
+       
        toast({
-        title: `Bem-vindo, ${mockAdmin.name}!`,
-        description: 'Redirecionando para o painel do gestor.',
+        title: `Bem-vindo, ${ADMIN_MOCK.name}!`,
+        description: 'Redirecionando para o painel de gerenciamento.',
       });
-      router.push('/admin/dashboard');
+      router.push('/admin');
     } else {
       toast({
         variant: 'destructive',

@@ -14,7 +14,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { identifyWasteAction } from './actions';
 import { type IdentifyWasteOutput } from '@/ai/flows/identify-waste';
-import { mockUser } from '@/lib/data';
+import { useEcosystem } from '../ecosystem-context';
 
 const wasteIcons: { [key: string]: React.ElementType } = {
   'Plástico': Recycle,
@@ -34,6 +34,7 @@ export default function WastePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [identificationResult, setIdentificationResult] = useState<IdentifyWasteOutput | null>(null);
   const { toast } = useToast();
+  const { currentUser, addPoints } = useEcosystem();
 
   useEffect(() => {
     const stopCamera = () => {
@@ -137,9 +138,13 @@ export default function WastePage() {
   
   const handleConfirm = () => {
     if(!identificationResult || identificationResult.points === 0) return;
+    
+    // Adicionar pontos ao usuário logado
+    addPoints(identificationResult.points);
+
     toast({
         title: 'Registro bem-sucedido!',
-        description: `${mockUser.name}, você ganhou ${identificationResult.points} pontos por reciclar: ${identificationResult.material}.`,
+        description: `${currentUser?.name || 'Agente'}, você ganhou ${identificationResult.points} pontos por reciclar: ${identificationResult.material}.`,
     });
     setIdentificationResult(null);
   }

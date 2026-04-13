@@ -1,11 +1,15 @@
+'use client';
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { participantsData } from '@/lib/data';
+import { useEcosystem } from '@/app/(app)/ecosystem-context';
 import { ArrowLeft, Users } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AboutPage() {
+  const { allParticipants } = useEcosystem();
+
   return (
     <div className="flex min-h-screen flex-col bg-muted/40">
         <main className="flex-1 w-full flex flex-col items-center justify-center p-4 sm:p-6">
@@ -21,7 +25,7 @@ export default function AboutPage() {
                     <h2 className="text-2xl font-semibold text-center">Equipe de Desenvolvimento</h2>
                     <div className="flex justify-center pt-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {participantsData.map((person) => (
+                            {allParticipants.map((person) => (
                                 <div key={person.id} className="flex flex-col items-center text-center p-2">
                                 <Avatar className="h-32 w-32 border-4 border-primary/50">
                                     <AvatarImage src={person.avatar} alt={`Foto de ${person.name}`} />

@@ -9,11 +9,12 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { POINTS_MAPPING, WASTE_TYPES } from '@/lib/constants';
 
 const IdentifyWasteOutputSchema = z.object({
   isWaste: z.boolean().describe('A imagem contém um item de resíduo?'),
   wasteType: z
-    .enum(['Plástico', 'Papel', 'Vidro', 'Metal', 'Orgânico', 'Eletrônico', 'Não reciclável'])
+    .enum(WASTE_TYPES)
     .describe('O tipo de resíduo principal identificado na imagem.'),
   material: z.string().describe('O material específico do item (ex: Garrafa PET, Lata de Alumínio, Casca de Banana). Se não for um resíduo, retorne "Não é um resíduo".'),
   recyclable: z.boolean().describe('O item é reciclável?'),
@@ -38,15 +39,7 @@ export async function identifyWaste(input: IdentifyWasteInput): Promise<Identify
   return identifyWasteFlow(input);
 }
 
-const pointsMapping: Record<string, number> = {
-    'Plástico': 10,
-    'Papel': 8,
-    'Vidro': 12,
-    'Metal': 15,
-    'Orgânico': 5,
-    'Eletrônico': 20,
-    'Não reciclável': 0,
-};
+// pointsMapping removido e centralizado em @/lib/constants
 
 const prompt = ai.definePrompt({
   name: 'identifyWastePrompt',
@@ -114,7 +107,7 @@ const identifyWasteFlow = ai.defineFlow(
               // Ensure points are consistent with our mapping
               const finalResult = {
                 ...output,
-                points: pointsMapping[output.wasteType] ?? 0,
+                points: POINTS_MAPPING[output.wasteType] ?? 0,
               };
               console.log('Identification success:', finalResult);
               return finalResult;
