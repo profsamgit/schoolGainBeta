@@ -1,4 +1,4 @@
-import type { User, Reward, EducationArticle, Participant } from './types';
+import type { User, Reward, EducationArticle, Participant, School } from './types';
 import { PlaceHolderImages } from './placeholder-images';
 
 const getImage = (id: string) => {
@@ -8,6 +8,27 @@ const getImage = (id: string) => {
     hint: image?.imageHint ?? 'abstract',
   };
 };
+
+export const SCHOOLS_MOCK: School[] = [
+  {
+    id: 'school-1',
+    name: 'CETI Frei José Apicella',
+    city: 'Guadalupe',
+    state: 'PI',
+    status: 'active',
+    contactEmail: 'direcao@cetifreijose.com',
+    joinedDate: '2024-01-10'
+  },
+  {
+    id: 'school-2',
+    name: 'Escola Modelo Sustentável',
+    city: 'Teresina',
+    state: 'PI',
+    status: 'active',
+    contactEmail: 'admin@escolamodelo.com',
+    joinedDate: '2024-03-15'
+  }
+];
 
 export const STUDENT_MOCK: User = {
   id: 'user-1',
@@ -20,6 +41,7 @@ export const STUDENT_MOCK: User = {
   ra: '123456',
   turma: '2ª Série',
   curso: 'Técnico em Desenvolvimento de Sistemas',
+  schoolId: 'school-1',
 };
 
 export const ADMIN_MOCK: User = {
@@ -27,22 +49,36 @@ export const ADMIN_MOCK: User = {
   name: 'Gestor Escolar',
   email: 'gestor@schoolgain.com',
   avatar: 'https://picsum.photos/seed/admin/100/100',
-  role: 'admin',
+  role: 'super_admin',
+  password: '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', // Hash de 'admin123'
   points: 0,
   level: 'Semente',
   ra: 'admin01',
+  rfid: 'ADMIN_RFID',
   turma: 'Administração',
   curso: 'Gestão Escolar',
+  schoolId: 'school-1',
+};
+
+export const VISITANTE_MOCK: User = {
+  id: 'visitor-1',
+  name: 'Visitante',
+  avatar: 'https://picsum.photos/seed/visitor/100/100',
+  role: 'visitor',
+  points: 0,
+  level: 'Semente',
+  ra: 'VISITANTE',
+  schoolId: 'school-1',
 };
 
 export const LEADERBOARD_MOCK: Omit<User, 'email' | 'avatar'>[] = [
-  { id: 'user-2', name: 'Sofia Recicla', points: 5000, level: 'Broto', ra: '234567', turma: '3ª Série', curso: 'Técnico em Desenvolvimento de Sistemas', role: 'student' },
-  { id: 'user-3', name: 'Pedro Planta', points: 5000, level: 'Broto', ra: '345678', turma: '3ª Série', curso: 'Técnico em Agropecuária', role: 'student' },
-  { id: 'user-1', name: 'Alex Verde', points: 5000, level: 'Broto', ra: '123456', turma: '2ª Série', curso: 'Técnico em Desenvolvimento de Sistemas', role: 'student' },
-  { id: 'user-4', name: 'Lia Sustentável', points: 5000, level: 'Broto', ra: '456789', turma: '2ª Série', curso: 'Técnico em Agropecuária', role: 'student' },
-  { id: 'user-5', name: 'Carlos Coleta', points: 5000, level: 'Broto', ra: '567890', turma: '1ª Série', curso: 'Técnico em Desenvolvimento de Sistemas', role: 'student' },
-  { id: 'user-6', name: 'Mariana Horta', points: 5000, level: 'Broto', ra: '678901', turma: '1ª Série', curso: 'Técnico em Agropecuária', role: 'student' },
-  { id: 'user-7', name: 'Beto Água', points: 5000, level: 'Broto', ra: '789012', turma: '1ª Série', curso: 'Técnico em Desenvolvimento de Sistemas', role: 'student' },
+  { id: 'user-2', name: 'Sofia Recicla', points: 5000, level: 'Broto', ra: '234567', turma: '3ª Série', curso: 'Técnico em Desenvolvimento de Sistemas', role: 'student', schoolId: 'school-1' },
+  { id: 'user-3', name: 'Pedro Planta', points: 5000, level: 'Broto', ra: '345678', turma: '3ª Série', curso: 'Técnico em Agropecuária', role: 'student', schoolId: 'school-1' },
+  { id: 'user-1', name: 'Alex Verde', points: 5000, level: 'Broto', ra: '123456', turma: '2ª Série', curso: 'Técnico em Desenvolvimento de Sistemas', role: 'student', schoolId: 'school-1' },
+  { id: 'user-4', name: 'Lia Sustentável', points: 5000, level: 'Broto', ra: '456789', turma: '2ª Série', curso: 'Técnico em Agropecuária', role: 'student', schoolId: 'school-1' },
+  { id: 'user-5', name: 'Carlos Coleta', points: 5000, level: 'Broto', ra: '567890', turma: '1ª Série', curso: 'Técnico em Desenvolvimento de Sistemas', role: 'student', schoolId: 'school-1' },
+  { id: 'user-6', name: 'Mariana Horta', points: 5000, level: 'Broto', ra: '678901', turma: '1ª Série', curso: 'Técnico em Agropecuária', role: 'student', schoolId: 'school-1' },
+  { id: 'user-7', name: 'Beto Água', points: 5000, level: 'Broto', ra: '789012', turma: '1ª Série', curso: 'Técnico em Desenvolvimento de Sistemas', role: 'student', schoolId: 'school-1' },
 ];
 
 export const REWARDS_MOCK: Reward[] = [
@@ -53,6 +89,7 @@ export const REWARDS_MOCK: Reward[] = [
     cost: 500,
     image: getImage('reward-book').url,
     imageHint: getImage('reward-book').hint,
+    schoolId: 'school-1',
   },
   {
     id: 'reward-2',
@@ -61,6 +98,7 @@ export const REWARDS_MOCK: Reward[] = [
     cost: 800,
     image: getImage('reward-kit').url,
     imageHint: getImage('reward-kit').hint,
+    schoolId: 'school-1',
   },
   {
     id: 'reward-3',
@@ -69,6 +107,7 @@ export const REWARDS_MOCK: Reward[] = [
     cost: 1200,
     image: getImage('reward-plant').url,
     imageHint: getImage('reward-plant').hint,
+    schoolId: 'school-1',
   },
   {
     id: 'reward-4',
@@ -77,6 +116,7 @@ export const REWARDS_MOCK: Reward[] = [
     cost: 1500,
     image: getImage('reward-bottle').url,
     imageHint: getImage('reward-bottle').hint,
+    schoolId: 'school-1',
   },
 ];
 
@@ -98,6 +138,7 @@ A reciclagem é um dos pilares da sustentabilidade. Separar o lixo corretamente 
     `,
     image: getImage('edu-recycling').url,
     imageHint: getImage('edu-recycling').hint,
+    schoolId: 'school-1',
   },
   {
     id: 'edu-2',
@@ -119,6 +160,7 @@ A compostagem é um processo natural que transforma matéria orgânica em húmus
 `,
     image: getImage('edu-composting').url,
     imageHint: getImage('edu-composting').hint,
+    schoolId: 'school-1',
   },
   {
     id: 'edu-3',
@@ -137,6 +179,7 @@ A água é essencial para todos os seres vivos. Embora o planeta seja coberto po
     image: getImage('edu-water').url,
     imageHint: getImage('edu-water').hint,
     videoUrl: 'https://www.youtube.com/embed/v343-uG-p2Q',
+    schoolId: 'school-1',
   },
 ];
 

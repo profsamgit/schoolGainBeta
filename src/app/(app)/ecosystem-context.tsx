@@ -2,30 +2,37 @@
 
 import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { EcosystemService, EcosystemItem } from '@/lib/ecosystem.service';
-import { Participant, AuditLogEntry } from '@/lib/types';
+import { Participant, AuditLogEntry, Terminal, TerminalStatus, School } from '@/lib/types';
 
+/**
+ * EcosystemContextType: Define o contrato do que está disponível para a interface.
+ * 
+ * Imagine que este contexto é um "Controle Remoto" para o sistema.
+ * Qualquer componente que segurar este controle pode ver o saldo, 
+ * a vitalidade e realizar ações como comprar itens ou fazer login.
+ */
 interface EcosystemContextType {
-  balance: number;
-  vitality: number;
-  isMissionDone: boolean;
-  purchasedItems: EcosystemItem[];
-  completeDailyMission: (points: number) => boolean;
-  deductPoints: (points: number) => boolean;
-  registerAttendance: (status: 'presente' | 'falta') => void;
-  buyUpgrade: (item: EcosystemItem) => boolean;
-  healVitality: (points: number) => boolean;
-  // Novos campos e métodos
-  allParticipants: Participant[];
+  balance: number;           // Bio-Coins (saldo) do aluno logado
+  vitality: number;          // Percentual de saúde do ecossistema (0-100)
+  isMissionDone: boolean;    // Indica se a missão do dia já foi concluída
+  purchasedItems: EcosystemItem[]; // Lista de objetos/animais que o aluno já comprou
+  level: string;             // Título do aluno (ex: "Semente", "Árvore")
+  completeDailyMission: (points: number) => boolean; // Função para ganhar pontos diários
+  deductPoints: (points: number) => boolean;         // Função para gastar pontos
+  registerAttendance: (status: 'presente' | 'falta') => void; // Registra presença/falta
+  buyUpgrade: (item: EcosystemItem) => boolean;      // Compra um item para o mundo virtual
+  healVitality: (points: number) => boolean;         // Recupera saúde do mundo gastando pontos
+  allParticipants: Participant[]; // Lista da equipe do projeto
   updateParticipants: (newParticipants: Participant[]) => void;
-  users: any[];
-  allRewards: any[];
-  allArticles: any[];
-  allQuizTopics: string[];
-  currentUserRa: string | null;
-  currentUser: any | null;
-  login: (ra: string) => boolean;
-  logout: () => void;
-  addPoints: (points: number, studentRa?: string) => void;
+  users: any[];              // Lista de todos os alunos (para ranking)
+  allRewards: any[];         // Prêmios disponíveis
+  allArticles: any[];        // Artigos educativos
+  allQuizTopics: string[];   // Assuntos para o Quiz
+  currentUserRa: string | null; // RA do aluno logado
+  currentUser: any | null;      // Dados completos do aluno logado
+  login: (ra: string, password?: string) => Promise<boolean>; // Entrar no sistema
+  logout: () => void;             // Sair do sistema
+  addPoints: (points: number, studentRa?: string) => void; // Dar pontos
   updateUsers: (newUsers: any[]) => void;
   updateRewards: (newRewards: any[]) => void;
   updateArticles: (newArticles: any[]) => void;
@@ -35,18 +42,30 @@ interface EcosystemContextType {
   updateTurmas: (newTurmas: string[]) => void;
   updateCursos: (newCursos: string[]) => void;
   getUserState: (ra: string) => any;
-  auditLogs: AuditLogEntry[];
+  auditLogs: AuditLogEntry[]; // Histórico de pontos dados por admins
   grantPoints: (ra: string, points: number, sector: string, action: string, adminName: string) => boolean;
-  getMonthlyLegends: () => any[];
-  isNessieAvailable: () => boolean;
-  getGlobalLeader: () => any;
+  getMonthlyLegends: () => any[]; // Alunos que conseguiram itens raros
+  isNessieAvailable: () => boolean; // Verifica se item raro pode ser comprado
+  getGlobalLeader: () => any;       // O aluno número 1 do sistema
   grantSightingBonus: (ra: string) => void;
+  systemSettings: any;              // Configurações de hardware
+  updateSystemSettings: (settings: any) => void;
+  pendingHardwareLogin: { ra: string, terminalId: string } | null;
+  terminals: Terminal[];
+  requestTerminalAuthorization: (hardwareId: string, location: string, schoolId: string) => boolean;
+  updateTerminalStatus: (id: string, status: TerminalStatus, schoolId?: string) => void;
+  deleteTerminal: (id: string) => void;
+  schools: School[];
+  requestSchoolRegistration: (data: Omit<School, 'id' | 'status' | 'joinedDate'>) => boolean;
+  updateSchoolStatus: (id: string, status: 'active' | 'pending') => void;
+  deleteSchool: (id: string) => void;
+  changePassword: (ra: string, newPassword: string) => Promise<boolean>;
+  updateMyPassword: (current: string, newPass: string) => Promise<boolean>;
 }
 
 const EcosystemContext = createContext<EcosystemContextType | null>(null);
 
 export function EcosystemProvider({ children }: { children: React.ReactNode }) {
-  // O serviço é instanciado uma única vez
   const service = useMemo(() => new EcosystemService(), []);
 
   const [balance, setBalance] = useState(service.balance);
@@ -62,10 +81,14 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const [turmas, setTurmas] = useState<string[]>(service.allTurmas);
   const [cursos, setCursos] = useState<string[]>(service.allCursos);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(service.auditLogs);
+  const [level, setLevel] = useState<string>('Iniciante');
+  const [systemSettings, setSystemSettings] = useState(service.systemSettings);
+  const [pendingHardwareLogin, setPendingHardwareLogin] = useState<{ ra: string, terminalId: string } | null>(null);
+  const [terminals, setTerminals] = useState<Terminal[]>(service.terminals);
+  const [schools, setSchools] = useState<School[]>(service.schools);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    // Subscrever aos BehaviorSubjects para atualizar o estado do React em tempo real
     const balanceSub = service.balance$.subscribe(setBalance);
     const vitalitySub = service.vitality$.subscribe(setVitality);
     const raSub = service.currentUserRa$.subscribe(setCurrentUserRa);
@@ -78,8 +101,12 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
     const cursosSub = service.cursos$.subscribe(setCursos);
     const purchasedItemsSub = service.purchasedItems$.subscribe(setPurchasedItems);
     const auditLogsSub = service.auditLogs$.subscribe(setAuditLogs);
+    const levelSub = service.level$.subscribe(setLevel);
+    const settingsSub = service.systemSettings$.subscribe(setSystemSettings);
+    const pendingLoginSub = service.pendingLogin$.subscribe(setPendingHardwareLogin);
+    const terminalsSub = service.terminals$.subscribe(setTerminals);
+    const schoolsSub = service.schools$.subscribe(setSchools);
     
-    // Inicializar o serviço (disparar carga do localStorage)
     service.initialize();
     setIsMounted(true);
     
@@ -96,10 +123,14 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
       cursosSub.unsubscribe();
       purchasedItemsSub.unsubscribe();
       auditLogsSub.unsubscribe();
+      levelSub.unsubscribe();
+      settingsSub.unsubscribe();
+      pendingLoginSub.unsubscribe();
+      terminalsSub.unsubscribe();
+      schoolsSub.unsubscribe();
     };
   }, [service]);
 
-  // Helper para obter o objeto do usuário logado
   const currentUser = useMemo(() => {
     if (!currentUserRa) return null;
     return users.find((u: any) => u.ra === currentUserRa) || null;
@@ -110,6 +141,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
     vitality,
     isMissionDone,
     purchasedItems,
+    level,
     completeDailyMission: (points: number) => {
       const res = service.completeDailyMission(points);
       if (res) {
@@ -119,13 +151,8 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
     },
     deductPoints: service.deductPoints.bind(service),
     registerAttendance: service.registerAttendance.bind(service),
-    buyUpgrade: (item: EcosystemItem) => {
-      return service.buyUpgrade(item);
-    },
-    healVitality: (points: number) => {
-      return service.healVitality(points);
-    },
-    // Novas exportações
+    buyUpgrade: (item: EcosystemItem) => service.buyUpgrade(item),
+    healVitality: (points: number) => service.healVitality(points),
     allParticipants: participants,
     updateParticipants: service.updateParticipants.bind(service),
     users,
@@ -134,7 +161,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
     allQuizTopics: quizTopics,
     currentUserRa,
     currentUser,
-    login: service.login.bind(service),
+    login: (ra: string, pass?: string) => service.login(ra, pass),
     logout: service.logout.bind(service),
     addPoints: service.addPoints.bind(service),
     updateUsers: service.updateUsers.bind(service),
@@ -143,7 +170,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
     updateQuizTopics: service.updateQuizTopics.bind(service),
     allTurmas: turmas,
     allCursos: cursos,
-  updateTurmas: service.updateTurmas.bind(service),
+    updateTurmas: service.updateTurmas.bind(service),
     updateCursos: service.updateCursos.bind(service),
     getUserState: service.getUserState.bind(service),
     auditLogs,
@@ -152,9 +179,22 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
     isNessieAvailable: service.isNessieAvailable.bind(service),
     getGlobalLeader: service.getGlobalLeader.bind(service),
     grantSightingBonus: service.grantSightingBonus.bind(service),
+    systemSettings,
+    updateSystemSettings: service.updateSystemSettings.bind(service),
+    pendingHardwareLogin,
+    terminals,
+    requestTerminalAuthorization: service.requestTerminalAuthorization.bind(service),
+    updateTerminalStatus: service.updateTerminalStatus.bind(service),
+    deleteTerminal: service.deleteTerminal.bind(service),
+    schools,
+    requestSchoolRegistration: service.requestSchoolRegistration.bind(service),
+    updateSchoolStatus: service.updateSchoolStatus.bind(service),
+    deleteSchool: service.deleteSchool.bind(service),
+    changePassword: service.changePassword.bind(service),
+    updateMyPassword: async (current: string, newPass: string) => service.updateMyPassword(current, newPass),
   };
 
-  // Evitar hidratação (SSR) inconsistente
+  // Evita problemas de renderização no servidor (Next.js)
   if (!isMounted) return null;
 
   return (
@@ -164,10 +204,16 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * useEcosystem: O Hook de Acesso
+ * 
+ * É a forma mais fácil de usar o sistema em qualquer lugar.
+ * Exemplo: const { balance, buyUpgrade } = useEcosystem();
+ */
 export function useEcosystem() {
   const context = useContext(EcosystemContext);
   if (!context) {
-    throw new Error('useEcosystem must be used within an EcosystemProvider');
+    throw new Error('useEcosystem deve ser usado dentro de um EcosystemProvider');
   }
   return context;
 }

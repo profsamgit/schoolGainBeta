@@ -1,16 +1,20 @@
 export type User = {
   id: string;
   name: string;
-  email: string;
-  avatar: string;
-  role: 'student' | 'admin';
+  email?: string;
+  avatar?: string;
+  role: 'student' | 'admin' | 'visitor' | 'super_admin';
+  password?: string;
   points: number;
-  level: 'Semente' | 'Broto' | 'Folha' | 'Árvore' | 'Floresta' | 'Guardião da Biosfera';
+  level: 'Semente' | 'Broto' | 'Folha' | 'Árvore' | 'Floresta' | 'Guardião da Biosfera' | 'Guardião da Lenda';
   ra?: string;
+  rfid?: string;
   turma?: string;
   curso?: string;
+  position?: 'Diretoria' | 'Coordenação' | 'TI' | string;
   vitality?: number;
   itemsCount?: number;
+  schoolId?: string;
 };
 
 export type Reward = {
@@ -20,6 +24,7 @@ export type Reward = {
   cost: number;
   image: string;
   imageHint: string;
+  schoolId: string;
 };
 
 export type EducationArticle = {
@@ -31,6 +36,7 @@ export type EducationArticle = {
   image: string;
   imageHint: string;
   videoUrl?: string;
+  schoolId?: string;
 };
 
 export type Participant = {
@@ -40,6 +46,7 @@ export type Participant = {
     description: string;
     avatar: string;
     initials: string;
+    schoolId?: string;
 };
 
 export type AuditLogEntry = {
@@ -51,6 +58,7 @@ export type AuditLogEntry = {
     action: string;
     timestamp: string;
     adminName: string;
+    schoolId?: string;
 };
 
 export const SCHOOL_SECTORS = [
@@ -64,3 +72,28 @@ export const SCHOOL_SECTORS = [
 ] as const;
 
 export type SchoolSector = (typeof SCHOOL_SECTORS)[number];
+
+export type TerminalStatus = 'pending' | 'active' | 'inactive';
+
+export type Terminal = {
+  id: string;
+  hardwareId: string;
+  location: string;
+  status: TerminalStatus;
+  requestDate: string;
+  lastSeen?: string;
+  schoolId?: string; // Escola onde o terminal está fisicamente
+};
+
+export type School = {
+  id: string;
+  name: string;
+  city: string;
+  state: string;
+  logo?: string;
+  contactEmail: string;
+  managerEmail?: string;     // E-mail de login do gestor da unidade
+  managerPassword?: string;  // Senha inicial do gestor
+  status: 'active' | 'pending';
+  joinedDate: string;
+};

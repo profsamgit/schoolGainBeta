@@ -49,8 +49,9 @@ const pathToTitle: { [key: string]: string } = {
 function BreadcrumbNav() {
   const pathname = usePathname();
   const segments = pathname.split('/').filter(Boolean);
+  const { currentUser } = useEcosystem();
   const isAdminView = pathname.startsWith('/admin');
-  const homeHref = isAdminView ? '/admin/dashboard' : '/dashboard';
+  const homeHref = currentUser?.role === 'super_admin' ? '/super-admin' : currentUser?.role === 'admin' ? '/admin' : '/dashboard';
 
   return (
     <Breadcrumb className="hidden md:flex">
@@ -104,8 +105,8 @@ export function Header() {
   }, [getGlobalLeader, currentUserRa]);
   const isAdminView = pathname.startsWith('/admin');
   
-  // Se for administrador, usamos o ADMIN_MOCK, senão usamos o currentUser do contexto (ou STUDENT_MOCK se nulo)
-  const displayUser = isAdminView ? ADMIN_MOCK : (currentUser || STUDENT_MOCK);
+  // Prioriza o usuário logado do contexto. Fallback apenas se deslogado.
+  const displayUser = currentUser || (isAdminView ? ADMIN_MOCK : STUDENT_MOCK);
 
   const [hasMounted, setHasMounted] = useState(false);
 
@@ -155,6 +156,7 @@ export function Header() {
           </Link>
         )}
 
+
         {hasMounted ? (
           <div className="flex items-center gap-2">
             <DropdownMenu>
@@ -181,14 +183,20 @@ export function Header() {
                   </p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <UserIcon className="mr-2 h-4 w-4" />
-                  <span>Perfil</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Configurações</span>
-                </DropdownMenuItem>
+                <Link href={displayUser.role === 'super_admin' ? '/super-admin' : displayUser.role === 'admin' ? '/admin' : '/dashboard'}>
+                  <DropdownMenuItem>
+                    <UserIcon className="mr-2 h-4 w-4" />
+                    <span>Perfil / Painel</span>
+                  </DropdownMenuItem>
+                </Link>
+                {isAdminView && (
+                  <Link href="/admin?tab=hardware">
+                    <DropdownMenuItem>
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Configurações</span>
+                    </DropdownMenuItem>
+                  </Link>
+                )}
                 {displayUser.role === 'admin' && (
                   <>
                     <DropdownMenuSeparator />

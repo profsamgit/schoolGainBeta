@@ -6,11 +6,16 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-muted/40">
       <main className="flex-1 flex flex-col items-center justify-center p-4">
+        {/* Cabeçalho de boas-vindas */}
         <div className="mb-10 text-center">
           <h1 className="text-4xl font-bold text-primary">Bem-vindo ao SchoolGain</h1>
           <p className="text-lg text-muted-foreground mt-2">Selecione seu perfil de acesso para continuar.</p>
         </div>
+
+        {/* Grade de opções de acesso (Cards) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-4xl">
+          
+          {/* Opção 1: Área do Aluno (Login via RA) */}
           <Link href="/login/student" className="block h-full">
             <Card className="hover:border-primary hover:shadow-lg transition-all h-full flex flex-col">
               <CardHeader className="flex-row items-center gap-4">
@@ -25,6 +30,8 @@ export default function Home() {
               </CardContent>
             </Card>
           </Link>
+
+          {/* Opção 2: Área do Gestor (Login Administrativo) */}
           <Link href="/login/admin" className="block h-full">
             <Card className="hover:border-primary hover:shadow-lg transition-all h-full flex flex-col">
               <CardHeader className="flex-row items-center gap-4">
@@ -39,6 +46,8 @@ export default function Home() {
               </CardContent>
             </Card>
           </Link>
+
+          {/* Opção 3: Terminal Kiosk (Acesso rápido para coleta física) */}
           <Link href="/kiosk" className="block h-full">
             <Card className="hover:border-primary hover:shadow-lg transition-all h-full flex flex-col">
               <CardHeader className="flex-row items-center gap-4">
@@ -53,6 +62,7 @@ export default function Home() {
               </CardContent>
             </Card>
           </Link>
+
         </div>
       </main>
       <footer className="p-4 text-center text-xs text-muted-foreground">

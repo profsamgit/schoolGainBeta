@@ -1,5 +1,12 @@
 'use client';
 
+/**
+ * DashboardPage: A "Página Inicial" do Aluno
+ * 
+ * Esta é a tela que o aluno vê logo após fazer login. Ela resume seu progresso,
+ * mostra seu nível atual, sua posição no ranking e suas missões pendentes.
+ */
+
 import { STUDENT_MOCK, LEADERBOARD_MOCK, ADMIN_MOCK } from '@/lib/data';
 import {
   Card,
@@ -28,6 +35,8 @@ import {
   TreeDeciduous,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -40,13 +49,10 @@ import { useEcosystem } from '@/app/(app)/ecosystem-context';
 import { EcosystemService } from '@/lib/ecosystem.service';
 import { cn } from '@/lib/utils';
 
-const levelProgress: { [key: string]: number } = {
-  Bronze: 25,
-  Prata: 50,
-  Ouro: 75,
-  Diamante: 100,
-};
-
+/**
+ * getLevelIcon: Retorna um ícone visual que representa o crescimento do aluno.
+ * Note como o nível "Guardião da Lenda" tem uma animação extra (animate-pulse).
+ */
 const getLevelIcon = (level: string) => {
   switch (level) {
     case 'Semente':
@@ -61,73 +67,97 @@ const getLevelIcon = (level: string) => {
       return <div className="p-2 bg-green-200 rounded-full"><Trees className="h-5 w-5 text-green-800" /></div>;
     case 'Guardião da Biosfera':
       return <div className="p-2 bg-indigo-100 rounded-full"><ShieldCheck className="h-5 w-5 text-indigo-600" /></div>;
+    case 'Guardião da Lenda':
+      return <div className="p-2 bg-amber-100 rounded-full shadow-[0_0_15px_rgba(251,191,36,0.5)]"><Trophy className="h-5 w-5 text-amber-600 animate-pulse" /></div>;
     default:
       return <Medal className="text-orange-400" />;
   }
 };
 
+import { StudentCard } from '@/components/ecosystem/StudentCard';
+
 export default function DashboardPage() {
-  const { balance, vitality, purchasedItems, isMissionDone, users, currentUser, currentUserRa } = useEcosystem();
+  /**
+   * CONSUMO DO CONTEXTO:
+   * Aqui pegamos as informações que o EcosystemProvider está "espalhando" para o sistema.
+   * balance: saldo atual
+   * vitality: saúde do ecossistema
+   * currentUser: dados do aluno logado
+   */
+  const { balance, vitality, purchasedItems, isMissionDone, users, currentUser, currentUserRa, level } = useEcosystem();
+  const router = useRouter();
 
-  // Cálculo dinâmico de nível baseado em pontos (Exemplo de lógica)
-  // Cálculo dinâmico de nível baseado no Score Sustentável
-  const getDynamicLevel = (score: number) => {
-    if (score >= 17000) return 'Guardião da Biosfera';
-    if (score >= 14000) return 'Floresta';
-    if (score >= 11000) return 'Árvore';
-    if (score >= 8000) return 'Folha';
-    if (score >= 5000) return 'Broto';
-    return 'Semente';
-  };
+  // Redireciona visitantes para o Kiosk (Visitantes não têm dashboard próprio)
+  useEffect(() => {
+    if (currentUser?.role === 'visitor') {
+      router.push('/kiosk');
+    }
+  }, [currentUser, router]);
 
+  // Score Global: Uma fórmula matemática que soma pontos + bônus por conquistas
   const globalScore = EcosystemService.calculateTotalScore(balance, vitality, purchasedItems.length);
-  const currentLevel = getDynamicLevel(globalScore);
+  const currentLevel = level;
   
+  /**
+   * LÓGICA DE NÍVEL:
+   * Define quantos pontos faltam para o próximo "título" do aluno.
+   */
   const nextLevelScore =
     currentLevel === 'Semente' ? 5000 :
     currentLevel === 'Broto' ? 8000 :
     currentLevel === 'Folha' ? 11000 :
     currentLevel === 'Árvore' ? 14000 :
-    currentLevel === 'Floresta' ? 17000 : 20000;
+    currentLevel === 'Floresta' ? 17000 : 
+    currentLevel === 'Guardião da Biosfera' ? 20000 : 25000;
   
+  // Percentual para a barra de progresso
   const progressToNextLevel = Math.min(100, (globalScore / nextLevelScore) * 100);
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-8rem)]">
       <div className="grid gap-6 flex-grow">
+        
+        {/* CARD DE BOAS-VINDAS E RESUMO */}
         <Card>
-          <CardHeader>
-            <CardTitle>Olá, {currentUser?.name || 'Agente'}!</CardTitle>
-            <CardDescription>
-              Bem-vindo ao seu painel pessoal de sustentabilidade.
-            </CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div className="space-y-1">
+              <CardTitle>Olá, {currentUser?.name || 'Agente'}!</CardTitle>
+              <CardDescription>
+                Bem-vindo ao seu painel pessoal de sustentabilidade.
+              </CardDescription>
+            </div>
+            <StudentCard />
           </CardHeader>
           <CardContent className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            
+            {/* Bloco de Saldo */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Pontos</CardTitle>
+                <CardTitle className="text-sm font-medium">Bio-Coins</CardTitle>
                 <Target className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{balance}</div>
-                <p className="text-xs text-muted-foreground">+20 na última semana</p>
+                <p className="text-xs text-muted-foreground">Saldo disponível para upgrades</p>
               </CardContent>
             </Card>
+
+            {/* Bloco de Nível */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Nível</CardTitle>
+                <CardTitle className="text-sm font-medium">Nível Atual</CardTitle>
                 {getLevelIcon(currentLevel)}
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{currentLevel}</div>
-                <p className="text-xs text-muted-foreground">
-                  Progresso para o próximo nível
-                </p>
+                <p className="text-xs text-muted-foreground">Sua patente ecológica</p>
               </CardContent>
             </Card>
+
+            {/* Bloco de Ranking */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Ranking</CardTitle>
+                <CardTitle className="text-sm font-medium">Sua Posição</CardTitle>
                 <Trophy className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -135,17 +165,18 @@ export default function DashboardPage() {
                   #
                   {(() => {
                     if (!Array.isArray(users) || !currentUser) return 0;
-                    const sorted = [...users].map((u: any) => 
+                    const students = users.filter((u: any) => u.role === 'student');
+                    const sorted = [...students].map((u: any) => 
                       u.ra === currentUserRa ? { ...u, points: balance } : u
                     ).sort((a: any, b: any) => b.points - a.points);
                     return sorted.findIndex((u: any) => u.ra === currentUserRa) + 1;
                   })()}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  de {users.length} alunos
-                </p>
+                <p className="text-xs text-muted-foreground">de {users.filter(u => u.role === 'student').length} alunos</p>
               </CardContent>
             </Card>
+
+            {/* Bloco de Vitalidade */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Vitalidade</CardTitle>
@@ -153,22 +184,19 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{vitality}%</div>
-                <p className="text-xs text-muted-foreground">Status da sua Árvore</p>
+                <p className="text-xs text-muted-foreground">Saúde do seu ecossistema</p>
               </CardContent>
             </Card>
+
           </CardContent>
+          
+          {/* BARRA DE PROGRESSO DE NÍVEL */}
           <CardFooter>
             <div className="w-full">
               <div className="flex justify-between text-sm text-muted-foreground mb-1">
-                <span>Progresso para {
-                    currentLevel === 'Semente' ? 'Broto' : 
-                    currentLevel === 'Broto' ? 'Folha' : 
-                    currentLevel === 'Folha' ? 'Árvore' : 
-                    currentLevel === 'Árvore' ? 'Floresta' : 
-                    currentLevel === 'Floresta' ? 'Guardião' : 'Mestre'
-                }</span>
+                <span>Rumo ao próximo nível</span>
                 <span>
-                  {globalScore.toLocaleString()} / {nextLevelScore.toLocaleString()} Score
+                  {globalScore.toLocaleString()} / {nextLevelScore.toLocaleString()} Total Score
                 </span>
               </div>
               <Progress value={progressToNextLevel} className="h-2" />
@@ -177,7 +205,9 @@ export default function DashboardPage() {
         </Card>
 
         <div className="grid gap-6 lg:grid-cols-2">
-          {/* Nova Missão de Vitalidade */}
+          
+          {/* CARD DE MISSÃO DIÁRIA */}
+          {/* Ele muda de cor (fica laranja) se a vitalidade do aluno estiver baixa! */}
           <Card className={cn(
             "relative overflow-hidden transition-all duration-500",
             isMissionDone ? "opacity-60 bg-slate-50 dark:bg-slate-900/40" : (vitality < 70 ? "border-amber-500 bg-amber-500/5" : "border-primary/50")
@@ -189,12 +219,12 @@ export default function DashboardPage() {
                 ) : (
                   vitality < 70 ? <AlertTriangle className="h-5 w-5 text-amber-500" /> : <Target className="h-5 w-5 text-primary" />
                 )}
-                <CardTitle>Missão de Vitalidade</CardTitle>
+                <CardTitle>Missão Diária</CardTitle>
               </div>
               <CardDescription>
                 {isMissionDone 
-                  ? "Você já completou sua missão diária. Bom trabalho!" 
-                  : (vitality < 70 ? "Sua folha está secando! Recupere sua vitalidade agora." : "Complete sua atividade diária para ganhar pontos.")
+                  ? "Parabéns! Missão cumprida por hoje." 
+                  : (vitality < 70 ? "Alerta! Seu ecossistema está fraco. Recupere vitalidade." : "Complete um desafio para ganhar Bio-Coins.")
                 }
               </CardDescription>
             </CardHeader>
@@ -203,19 +233,19 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                   <p className="text-sm font-medium">
                     {vitality < 70 
-                      ? "O ecossistema precisa de você. Faça um Quiz de Recuperação sobre Reciclagem." 
-                      : "Aprenda algo novo no módulo de educação hoje."
+                      ? "O rio está poluído! Faça um Quiz sobre Reciclagem para limpar o ambiente." 
+                      : "Aprenda sobre energia limpa para fortalecer sua base."
                     }
                   </p>
                   <Button asChild className={cn("w-full gap-2", vitality < 70 ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700")}>
                     {vitality < 70 ? (
                       <Link href="/quiz?topic=Reciclagem&autoStart=true">
-                        Fazer Quiz de Recuperação
+                        Fazer Quiz de Emergência
                         <BrainCircuit className="h-4 w-4" />
                       </Link>
                     ) : (
                       <Link href="/education">
-                        Ir para Educação
+                        Estudar e Ganhar Pontos
                         <BookOpen className="h-4 w-4" />
                       </Link>
                     )}
@@ -228,18 +258,19 @@ export default function DashboardPage() {
                     <CheckCircle2 className="h-6 w-6 text-emerald-600" />
                   </div>
                   <p className="text-sm font-bold text-emerald-600">Missão Concluída</p>
-                  <p className="text-xs text-muted-foreground mt-1">Volte amanhã para novos desafios!</p>
+                  <p className="text-xs text-muted-foreground mt-1">Sua recompensa foi creditada.</p>
                 </div>
               )}
             </CardContent>
           </Card>
 
+          {/* CARD DE RANKING RÁPIDO */}
           <Card>
             <CardHeader className="flex flex-row items-center">
-              <CardTitle>Ranking da Turma</CardTitle>
+              <CardTitle>Top 3 Alunos</CardTitle>
               <Button asChild size="sm" className="ml-auto" variant="ghost">
                 <Link href="/leaderboard" className="gap-1">
-                  Ver Tudo
+                  Ver Ranking Completo
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
@@ -249,14 +280,15 @@ export default function DashboardPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12 text-center">Pos</TableHead>
-                    <TableHead>Agente</TableHead>
-                    <TableHead className="text-right">Score Global</TableHead>
+                    <TableHead>Nome</TableHead>
+                    <TableHead className="text-right">Score Total</TableHead>
                   </TableRow>
                 </TableHeader>
               <TableBody>
                 {(() => {
                   if (!Array.isArray(users) || !currentUser) return null;
                   
+                  // Lógica para ordenar a tabela em tempo real no dashboard
                   const calculateScore = (u: any) => {
                     const p = u.ra === currentUserRa ? balance : (u.points || 0);
                     const v = u.ra === currentUserRa ? vitality : (u.vitality || 0);
@@ -284,28 +316,19 @@ export default function DashboardPage() {
               </TableBody>
               </Table>
             </CardContent>
-            <CardFooter className="pt-2">
-              <Link href="/rewards" className="w-full">
-                <Button variant="outline" className="w-full text-xs h-8">
-                  Ver Minhas Recompensas
-                </Button>
-              </Link>
-            </CardFooter>
           </Card>
         </div>
       </div>
 
-      {/* Banner de Rodapé Fixo */}
+      {/* RODAPÉ INFORMATIVO */}
       <footer className="mt-8 border-t py-6 bg-slate-50 dark:bg-slate-900/50 rounded-t-3xl">
         <div className="container px-4 flex flex-col items-center text-center gap-2">
           <p className="text-sm text-muted-foreground flex items-center gap-2">
             <span className="text-xl">♻️</span>
-            O descarte físico de materiais é feito exclusivamente via 
-            <span className="font-bold text-foreground"> Visão Computacional</span> 
-            nos Terminais Kiosk da escola.
+            Dica: Ganhe Bio-Coins descartando materiais recicláveis nos totens da escola.
           </p>
           <p className="text-[10px] text-muted-foreground px-4 py-1 bg-muted rounded-full uppercase tracking-widest font-bold">
-            Eficiência e Sustentabilidade SchoolGain
+            Powered by SchoolGain Technology
           </p>
         </div>
       </footer>

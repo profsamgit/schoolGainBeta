@@ -15,7 +15,11 @@ import Image from 'next/image';
 
 export default function RewardsPage() {
   const { toast } = useToast();
-  const { balance, deductPoints, allRewards } = useEcosystem();
+  const { balance, deductPoints, allRewards, currentUser } = useEcosystem();
+
+  const schoolRewards = allRewards.filter(reward => 
+    !reward.schoolId || reward.schoolId === currentUser?.schoolId
+  );
 
   const handleRedeem = (rewardName: string, cost: number) => {
     const success = deductPoints(cost);
@@ -53,7 +57,7 @@ export default function RewardsPage() {
         </CardHeader>
       </Card>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {allRewards.map((reward) => (
+        {schoolRewards.map((reward) => (
           <Card key={reward.id} className="flex flex-col overflow-hidden hover:shadow-lg transition-shadow">
             <div className="relative h-48 w-full">
               <Image

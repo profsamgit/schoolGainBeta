@@ -77,7 +77,8 @@ export default function LeaderboardPage() {
 
   const dynamicLeaderboard = useMemo(() => {
     if (!users) return [];
-    return [...users]
+    return users
+      .filter(u => u.role === 'student')
       .map(u => ({
         ...u,
         displayPoints: u.ra === currentUserRa ? balance : (u.points || 0),

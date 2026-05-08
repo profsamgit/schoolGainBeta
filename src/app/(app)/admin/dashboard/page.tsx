@@ -9,6 +9,7 @@ import {
 import { WasteChart } from '@/components/waste-chart';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { LEADERBOARD_MOCK, ADMIN_MOCK } from '@/lib/data';
+import { useEcosystem } from '@/app/(app)/ecosystem-context';
 import { LayoutDashboard, Expand, Minimize, RefreshCw, Clock, MapPin, Sun, Cloudy, CloudRain } from 'lucide-react';
 import type { User } from '@/lib/types';
 import { useState, useEffect, useRef } from 'react';
@@ -22,9 +23,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/components/ui/sidebar';
+import Link from 'next/link';
 
 export default function AdminDashboardPage() {
-    const [users] = useState<Omit<User, 'email' | 'avatar'>[]>([...LEADERBOARD_MOCK, ADMIN_MOCK]);
+    const { users, currentUser } = useEcosystem();
     const studentUsers = users.filter((u) => u.role === 'student');
     const topStudent = studentUsers.length > 0 ? [...studentUsers].sort((a, b) => b.points - a.points)[0] : null;
 
@@ -123,6 +125,20 @@ export default function AdminDashboardPage() {
         }
     };
 
+    if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'super_admin')) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6 max-w-md mx-auto">
+          <div className="h-24 w-24 rounded-full bg-red-100 flex items-center justify-center text-red-600 animate-pulse">
+            <LayoutDashboard className="h-12 w-12" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-3xl font-bold tracking-tight">Acesso Restrito</h2>
+            <p className="text-muted-foreground">Área exclusiva para gestores autorizados.</p>
+          </div>
+          <Button asChild size="lg"><Link href="/dashboard">Voltar para o Painel</Link></Button>
+        </div>
+      );
+    }
 
     return (
         <div className="space-y-6">

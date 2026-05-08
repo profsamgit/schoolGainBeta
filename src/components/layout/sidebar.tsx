@@ -25,6 +25,7 @@ import {
   Trash2,
   Trophy,
   Leaf,
+  Info,
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { ADMIN_MOCK, STUDENT_MOCK, LEADERBOARD_MOCK } from '@/lib/data';
@@ -44,6 +45,10 @@ const adminMenuItems = [
   { href: '/admin', label: 'Gerenciamento', icon: Shield, exact: true },
 ];
 
+const superAdminMenuItems = [
+  { href: '/super-admin', label: 'Central de Rede', icon: Shield, color: 'text-red-500' },
+];
+
 export function AppSidebar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { logout, currentUser, getGlobalLeader } = useEcosystem();
@@ -55,7 +60,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
     return leader?.ra === (currentUser as any)?.ra;
   }, [getGlobalLeader, currentUser]);
 
-  const displayUser = isAdminView ? ADMIN_MOCK : (currentUser || STUDENT_MOCK);
+  const displayUser = currentUser || STUDENT_MOCK;
 
   return (
     <SidebarProvider defaultOpen>
@@ -113,23 +118,41 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
                   </Link>
                 </SidebarMenuItem>
               ))}
+              {currentUser?.role === 'super_admin' && superAdminMenuItems.map((item: any) => (
+                <SidebarMenuItem key={item.href}>
+                  <Link href={item.href}>
+                    <SidebarMenuButton
+                      isActive={pathname.startsWith(item.href)}
+                      tooltip={{ children: item.label }}
+                      className="text-red-600 font-bold bg-red-50/50 hover:bg-red-50"
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           )}
         </SidebarContent>
         <Separator />
         <SidebarFooter>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton tooltip={{ children: 'Configurações' }}>
-                <Settings />
-                <span>Configurações</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <Link href="/" onClick={() => logout()}>
+            {isAdminView && (
+              <SidebarMenuItem>
+                <Link href="/admin?tab=hardware" className="w-full">
+                  <SidebarMenuButton tooltip={{ children: 'Configurações de Hardware' }}>
+                    <Settings />
+                    <span>Configurações</span>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+            )}
+            <Link href="/" onClick={() => logout()} className="w-full">
                 <SidebarMenuItem>
                 <SidebarMenuButton tooltip={{ children: 'Trocar Perfil' }}>
                     <LogOut />
-                    <span>Trocar Perfil</span>
+                    <span>Sair / Trocar</span>
                 </SidebarMenuButton>
                 </SidebarMenuItem>
             </Link>
