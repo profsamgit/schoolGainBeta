@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { EcosystemService, EcosystemItem } from '@/lib/ecosystem.service';
-import { Participant, AuditLogEntry, Terminal, TerminalStatus, School } from '@/lib/types';
+import { Participant, AuditLogEntry, Terminal, TerminalStatus, School, WasteEntry, WasteType, CycleSnapshot, Turma, Curso } from '@/lib/types';
 
 /**
  * EcosystemContextType: Define o contrato do que está disponível para a interface.
@@ -37,13 +37,13 @@ interface EcosystemContextType {
   updateRewards: (newRewards: any[]) => void;
   updateArticles: (newArticles: any[]) => void;
   updateQuizTopics: (newTopics: string[]) => void;
-  allTurmas: string[];
-  allCursos: string[];
-  updateTurmas: (newTurmas: string[]) => void;
-  updateCursos: (newCursos: string[]) => void;
+  allTurmas: Turma[];
+  allCursos: Curso[];
+  updateTurmas: (newTurmas: Turma[]) => void;
+  updateCursos: (newCursos: Curso[]) => void;
   getUserState: (ra: string) => any;
   auditLogs: AuditLogEntry[]; // Histórico de pontos dados por admins
-  grantPoints: (ra: string, points: number, sector: string, action: string, adminName: string) => boolean;
+  grantPoints: (ra: string, points: number, sector: string, action: string, adminName: string, password?: string) => Promise<boolean>;
   getMonthlyLegends: () => any[]; // Alunos que conseguiram itens raros
   isNessieAvailable: () => boolean; // Verifica se item raro pode ser comprado
   getGlobalLeader: () => any;       // O aluno número 1 do sistema
@@ -57,10 +57,19 @@ interface EcosystemContextType {
   deleteTerminal: (id: string) => void;
   schools: School[];
   requestSchoolRegistration: (data: Omit<School, 'id' | 'status' | 'joinedDate'>) => boolean;
+  registerSchool: (data: Omit<School, 'id' | 'status' | 'joinedDate'>) => Promise<boolean>;
   updateSchoolStatus: (id: string, status: 'active' | 'pending') => void;
+  updateSchools: (newSchools: School[]) => void;
   deleteSchool: (id: string) => void;
+  getLockoutStatus: (id: string) => { isLocked: boolean, remainingSeconds: number };
+  wasteEntries: WasteEntry[];
+  registerWaste: (ra: string, type: WasteType, weightKg: number) => boolean;
+  identifyKioskUser: (ra: string | null) => void;
+  resetHistory: CycleSnapshot[];
+  performCycleReset: (password: string, schoolId?: string) => Promise<boolean>;
+  verifyPassword: (password: string) => Promise<boolean>;
   changePassword: (ra: string, newPassword: string) => Promise<boolean>;
-  updateMyPassword: (current: string, newPass: string) => Promise<boolean>;
+  updateMyPassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
 }
 
 const EcosystemContext = createContext<EcosystemContextType | null>(null);
@@ -78,13 +87,15 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const [articles, setArticles] = useState<any[]>(service.allArticles);
   const [quizTopics, setQuizTopics] = useState<string[]>(service.allQuizTopics);
   const [participants, setParticipants] = useState<Participant[]>(service.allParticipants);
-  const [turmas, setTurmas] = useState<string[]>(service.allTurmas);
-  const [cursos, setCursos] = useState<string[]>(service.allCursos);
+  const [turmas, setTurmas] = useState<Turma[]>(service.allTurmas);
+  const [cursos, setCursos] = useState<Curso[]>(service.allCursos);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(service.auditLogs);
   const [level, setLevel] = useState<string>('Iniciante');
   const [systemSettings, setSystemSettings] = useState(service.systemSettings);
   const [pendingHardwareLogin, setPendingHardwareLogin] = useState<{ ra: string, terminalId: string } | null>(null);
   const [terminals, setTerminals] = useState<Terminal[]>(service.terminals);
+  const [wasteEntries, setWasteEntries] = useState<WasteEntry[]>(service.wasteEntries);
+  const [resetHistory, setResetHistory] = useState<CycleSnapshot[]>(service.resetHistory || []);
   const [schools, setSchools] = useState<School[]>(service.schools);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -105,6 +116,8 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
     const settingsSub = service.systemSettings$.subscribe(setSystemSettings);
     const pendingLoginSub = service.pendingLogin$.subscribe(setPendingHardwareLogin);
     const terminalsSub = service.terminals$.subscribe(setTerminals);
+    const wasteEntriesSub = service.wasteEntries$.subscribe(setWasteEntries);
+    const resetHistorySub = service.resetHistory$.subscribe(setResetHistory);
     const schoolsSub = service.schools$.subscribe(setSchools);
     
     service.initialize();
@@ -127,6 +140,8 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
       settingsSub.unsubscribe();
       pendingLoginSub.unsubscribe();
       terminalsSub.unsubscribe();
+      wasteEntriesSub.unsubscribe();
+      resetHistorySub.unsubscribe();
       schoolsSub.unsubscribe();
     };
   }, [service]);
@@ -174,7 +189,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
     updateCursos: service.updateCursos.bind(service),
     getUserState: service.getUserState.bind(service),
     auditLogs,
-    grantPoints: service.grantPoints.bind(service),
+    grantPoints: (ra: string, pts: number, sec: string, act: string, adm: string, pass?: string) => service.grantPoints(ra, pts, sec, act, adm, pass),
     getMonthlyLegends: service.getMonthlyLegends.bind(service),
     isNessieAvailable: service.isNessieAvailable.bind(service),
     getGlobalLeader: service.getGlobalLeader.bind(service),
@@ -188,10 +203,19 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
     deleteTerminal: service.deleteTerminal.bind(service),
     schools,
     requestSchoolRegistration: service.requestSchoolRegistration.bind(service),
-    updateSchoolStatus: service.updateSchoolStatus.bind(service),
-    deleteSchool: service.deleteSchool.bind(service),
+    registerSchool: (data: any) => service.registerSchool(data),
+    updateSchoolStatus: (id: any, status: any) => service.updateSchoolStatus(id, status),
+    updateSchools: (newSchools: any) => service.updateSchools(newSchools),
+    deleteSchool: (id: any) => service.deleteSchool(id),
+    wasteEntries,
+    registerWaste: service.registerWaste.bind(service),
+    identifyKioskUser: service.identifyKioskUser.bind(service),
+    resetHistory,
+    performCycleReset: (pass: string, sId?: string) => service.performCycleReset(pass, sId),
+    verifyPassword: (pass: string) => service.verifyPassword(pass),
     changePassword: service.changePassword.bind(service),
     updateMyPassword: async (current: string, newPass: string) => service.updateMyPassword(current, newPass),
+    getLockoutStatus: service.getLockoutStatus.bind(service),
   };
 
   // Evita problemas de renderização no servidor (Next.js)

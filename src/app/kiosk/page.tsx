@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Leaf, Paperclip, Recycle, Trash2, Atom, Camera, Loader2, Sparkles, Check, ArrowLeft, User, ArrowRight, Keyboard, Cpu, GlassWater, QrCode, MonitorOff, Lock, Clock } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { identifyWasteAction } from '@/app/(app)/waste/actions'; 
 import { type IdentifyWasteOutput } from '@/ai/flows/identify-waste';
@@ -31,10 +31,12 @@ import { School as SchoolIcon } from 'lucide-react';
 // Importação dinâmica do Scanner para evitar erros de SSR
 const QRScanner = dynamic(() => import('@/components/ui/qr-scanner'), { ssr: false });
 
-import { STUDENT_MOCK, LEADERBOARD_MOCK, ADMIN_MOCK } from '@/lib/data';
+import { STUDENT_MOCK, ADMIN_MOCK } from '@/lib/data';
 import type { User as UserData } from '@/lib/types';
 import { VirtualKeyboard } from '@/components/ui/virtual-keyboard';
 import { useEcosystem } from '@/app/(app)/ecosystem-context';
+import { POINTS_MAPPING } from '@/lib/constants';
+import { playBeep } from '@/lib/utils';
 
 const wasteIcons: { [key: string]: React.ElementType } = {
   'Plástico': Recycle,
@@ -62,15 +64,21 @@ function KioskContent() {
   const [studentRa, setStudentRa] = useState('');
   const [identifiedStudent, setIdentifiedStudent] = useState<Omit<UserData, 'email' | 'avatar'> | null>(null);
   const [showKeyboard, setShowKeyboard] = useState(false);
+  const [activeTab, setActiveTab] = useState('manual');
+  const [lockoutSecs, setLockoutSecs] = useState(0);
   const { 
     users, 
     addPoints, 
+    login,
+    getLockoutStatus,
     systemSettings, 
     pendingHardwareLogin,
     terminals,
     schools,
     requestTerminalAuthorization,
-    deleteTerminal
+    deleteTerminal,
+    registerWaste,
+    identifyKioskUser
   } = useEcosystem();
   const { toast } = useToast();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -97,26 +105,77 @@ function KioskContent() {
     setIsMobileDevice(checkMobile());
   }, []);
 
+  useEffect(() => {
+    if (lockoutSecs > 0) {
+      const timer = setInterval(() => setLockoutSecs(s => Math.max(0, s - 1)), 1000);
+      return () => clearInterval(timer);
+    }
+  }, [lockoutSecs]);
+
+  // Sanitiza inputs básicos
+  const sanitize = (val: string) => val.replace(/[<>]/g, '').trim();
+
+  const handleLogin = useCallback(async (targetRa: string) => {
+    const cleanRa = sanitize(targetRa);
+    if (!cleanRa) return;
+
+    // 1. Verifica Lockout
+    const lockout = getLockoutStatus(cleanRa);
+    if (lockout.isLocked) {
+        setLockoutSecs(lockout.remainingSeconds);
+        toast({
+            variant: 'destructive',
+            title: 'Acesso Bloqueado',
+            description: `Muitas tentativas falhas para o RA ${cleanRa}. Aguarde ${lockout.remainingSeconds}s.`,
+        });
+        return;
+    }
+
+    const student = users.find((user: any) => user.ra === cleanRa || user.rfid === cleanRa);
+
+    if (student) {
+        identifyKioskUser(cleanRa);
+        setIdentifiedStudent(student || null);
+        setStep('scanning');
+        playBeep('success');
+    } else {
+        toast({
+            variant: 'destructive',
+            title: 'Não identificado',
+            description: 'RA ou RFID inválido.',
+        });
+        playBeep('error');
+        setIdentifiedStudent(null);
+        setStudentRa('');
+    }
+  }, [identifyKioskUser, users, toast, getLockoutStatus]);
+
   /**
    * POLING DE HARDWARE:
    * Detecta se o aluno se identificou via hardware externo (ESP32).
    */
   useEffect(() => {
-    if (step !== 'identification') return;
+    // Só inicia o polling se estiver na aba de RFID ou na de QR (quando usar hardware externo)
+    const shouldPoll = step === 'identification' && (activeTab === 'rfid' || (activeTab === 'qr' && systemSettings.loginCameraSource !== 'browser'));
+    
+    if (!shouldPoll) return;
 
     const pollHardware = async () => {
       try {
         const res = await fetch(`/api/hardware/input?terminalId=${systemSettings.terminalId}`);
         const data = await res.json();
         if (data.ra) {
-          console.log(`[KIOSK] Aluno identificado via Hardware: ${data.ra}`);
-          setStudentRa(data.ra);
-          // Auto-confirmar se o RA ou RFID for válido
-          const student = users.find((user: any) => user.ra === data.ra.trim() || user.rfid === data.ra.trim());
-          if (student) {
-              setIdentifiedStudent(student);
-              setStep('scanning');
+          const cleanRa = sanitize(data.ra);
+          
+          // Verifica lockout antes de processar hardware
+          const lockout = getLockoutStatus(cleanRa);
+          if (lockout.isLocked) {
+            setLockoutSecs(lockout.remainingSeconds);
+            return;
           }
+
+          setStudentRa(cleanRa);
+          handleLogin(cleanRa);
         }
       } catch (e) {
         console.error("Erro no polling do kiosk:", e);
@@ -125,7 +184,41 @@ function KioskContent() {
 
     const interval = setInterval(pollHardware, 2000);
     return () => clearInterval(interval);
-  }, [step, systemSettings.terminalId, users]);
+  }, [step, activeTab, systemSettings.terminalId, users, getLockoutStatus, systemSettings.loginCameraSource, handleLogin]);
+
+  /**
+   * ESCUTA DE TECLADO (RFID HID):
+   * Detecta se um leitor RFID "digitou" algo rápido e deu Enter.
+   */
+  useEffect(() => {
+    if (activeTab !== 'rfid') return;
+
+    let buffer = '';
+    let lastKeyTime = Date.now();
+
+    const handleGlobalKey = (e: KeyboardEvent) => {
+      const currentTime = Date.now();
+      
+      // Se demorar mais de 100ms entre teclas, provavelmente é digitação manual, não hardware
+      if (currentTime - lastKeyTime > 100) {
+        buffer = '';
+      }
+
+      if (e.key === 'Enter') {
+        if (buffer.length >= 4) { // Tamanho mínimo de um RA/UID
+          handleLogin(buffer);
+        }
+        buffer = '';
+      } else if (e.key.length === 1) {
+        buffer += e.key;
+      }
+      
+      lastKeyTime = currentTime;
+    };
+
+    window.addEventListener('keydown', handleGlobalKey);
+    return () => window.removeEventListener('keydown', handleGlobalKey);
+  }, [activeTab, handleLogin]);
 
   /**
    * INICIALIZAÇÃO DA CÂMERA LOCAL:
@@ -151,7 +244,6 @@ function KioskContent() {
     let isCancelled = false;
 
     async function getCameraPermission() {
-      console.log("[KIOSK] Iniciando captura de vídeo...");
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -207,33 +299,9 @@ function KioskContent() {
     }
   }, [step]);
 
-  const handleStudentIdentification = () => {
-    if (!studentRa.trim()) {
-        toast({
-            variant: 'destructive',
-            title: 'RA Inválido',
-            description: 'Por favor, digite um RA para continuar.',
-        });
-        return;
-    }
-
-    const student = users.find((user: any) => user.ra === studentRa.trim() || user.rfid === studentRa.trim());
-
-    if (student) {
-        setIdentifiedStudent(student);
-        setStep('scanning');
-    } else {
-        toast({
-            variant: 'destructive',
-            title: 'Aluno não encontrado',
-            description: 'O RA digitado não corresponde a nenhum aluno cadastrado.',
-        });
-        setIdentifiedStudent(null);
-    }
-  };
 
   const handleKeyboardInput = (key: string) => {
-    setStudentRa((prev) => prev + key);
+    setStudentRa((prev) => (prev + key).toUpperCase());
     raInputRef.current?.focus();
   };
 
@@ -280,10 +348,18 @@ function KioskContent() {
   };
   
   const handleConfirm = () => {
-    if(!identificationResult || identificationResult.points === 0) return;
+    if(!identificationResult) return;
     
-    // ADICIONAR PONTOS REALMENTE
-    addPoints(identificationResult.points, studentRa);
+    const realPoints = POINTS_MAPPING[identificationResult.wasteType] || 0;
+    
+    // Se não for um resíduo válido (ex: Não reciclável ou não reconhecido como resíduo pela IA)
+    if (!identificationResult.isWaste && identificationResult.wasteType !== 'Não reciclável') {
+        toast({ title: 'Ação Bloqueada', description: 'O objeto detectado não parece ser um resíduo para coleta.', variant: 'destructive' });
+        return;
+    }
+    
+    // ADICIONAR PONTOS E REGISTRAR RESÍDUO COM PESO ESTIMADO PELA IA
+    registerWaste(studentRa, identificationResult.wasteType as any, identificationResult.estimatedWeightKg || 0.05);
 
     if (identifiedStudent?.role === 'visitor') {
         setSuccessMessage('Obrigado por sua visita! Sua atitude inspira nossa escola. Pequenas ações constroem um grande futuro.');
@@ -311,22 +387,58 @@ function KioskContent() {
 
   const WasteIcon = identificationResult ? wasteIcons[identificationResult.wasteType] : null;
   
-  // VERIFICAÇÃO DE AUTORIZAÇÃO DO TERMINAL
+  // 1. VERIFICAÇÃO DE DISPOSITIVO MÓVEL (PRIORIDADE MÁXIMA)
+  if (isMobileDevice) {
+    return (
+      <div className="flex min-h-screen flex-col bg-background items-center justify-center p-4">
+        <Card className="w-full max-w-lg border-primary/20 shadow-xl overflow-hidden">
+          <div className="h-2 bg-red-500"></div>
+          <CardHeader className="text-center">
+             <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-red-100 text-red-600">
+                <MonitorOff className="h-8 w-8" />
+             </div>
+             <CardTitle className="text-2xl font-black uppercase tracking-tighter text-red-600">
+                Dispositivo Incompatível
+             </CardTitle>
+             <CardDescription className="font-medium">
+                O sistema Kiosk foi projetado exclusivamente para totens e computadores fixos.
+             </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+             <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-center space-y-2">
+                <p className="text-sm font-bold text-red-800">Acesso móvel bloqueado para este terminal.</p>
+                <p className="text-xs text-red-600">
+                  Para acessar sua conta, utilize a <b>Área do Aluno</b> ou <b>Gestão</b> na tela inicial.
+                </p>
+             </div>
+          </CardContent>
+          <CardFooter>
+             <Button variant="outline" className="w-full h-12 gap-2 font-bold" asChild>
+                <Link href="/">
+                   <ArrowLeft className="h-4 w-4" /> Voltar para o Início
+                </Link>
+             </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+
+  // 2. VERIFICAÇÃO DE AUTORIZAÇÃO DO TERMINAL
   if (!isAuthorized) {
     return (
       <div className="flex min-h-screen flex-col bg-background items-center justify-center p-4">
         <Card className="w-full max-w-lg border-primary/20 shadow-xl overflow-hidden">
           <div className={`h-2 ${isBlocked ? 'bg-red-500' : isPending ? 'bg-amber-500' : 'bg-slate-300'}`}></div>
           <CardHeader className="text-center">
-             <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${isMobileDevice ? 'bg-red-100 text-red-600' : isBlocked ? 'bg-red-100 text-red-600' : isPending ? 'bg-amber-100 text-amber-600 animate-pulse' : 'bg-slate-100 text-slate-400'}`}>
-                {isMobileDevice ? <MonitorOff className="h-8 w-8" /> : isBlocked ? <Lock className="h-8 w-8" /> : isPending ? <Clock className="h-8 w-8" /> : <MonitorOff className="h-8 w-8" />}
+             <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${isBlocked ? 'bg-red-100 text-red-600' : isPending ? 'bg-amber-100 text-amber-600 animate-pulse' : 'bg-slate-100 text-slate-400'}`}>
+                {isBlocked ? <Lock className="h-8 w-8" /> : isPending ? <Clock className="h-8 w-8" /> : <MonitorOff className="h-8 w-8" />}
              </div>
-             <CardTitle className="text-2xl font-black uppercase tracking-tighter italic">
-                {isMobileDevice ? 'Dispositivo Incompatível' : isBlocked ? 'Terminal Bloqueado' : isPending ? 'Aguardando Aprovação' : 'Terminal não Cadastrado'}
+             <CardTitle className="text-2xl font-black uppercase tracking-tighter">
+                {isBlocked ? 'Terminal Bloqueado' : isPending ? 'Aguardando Aprovação' : 'Terminal não Cadastrado'}
              </CardTitle>
              <CardDescription>
-                {isMobileDevice ? 'O sistema Kiosk foi projetado para totens e computadores fixos. Smartphones não são compatíveis.' :
-                 isBlocked ? 'Este dispositivo foi desativado por um administrador.' : 
+                {isBlocked ? 'Este dispositivo foi desativado por um administrador.' : 
                  isPending ? 'Sua solicitação de acesso está sendo analisada.' : 
                  'Este totem precisa ser autorizado para operar o sistema.'}
              </CardDescription>
@@ -340,9 +452,9 @@ function KioskContent() {
                    </div>
                    <div className="flex justify-between items-center text-xs">
                       <span className="font-bold text-amber-700 uppercase">Localização Informada:</span>
-                      <span className="italic text-amber-900">{currentTerminal?.location}</span>
+                      <span className="text-amber-900">{currentTerminal?.location}</span>
                    </div>
-                   <p className="text-[10px] text-amber-600 text-center font-medium italic">
+                   <p className="text-[10px] text-amber-600 text-center font-medium">
                       Por favor, contate o administrador da escola para liberar este terminal.
                    </p>
                 </div>
@@ -449,10 +561,10 @@ function KioskContent() {
                     <div className="mx-auto w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-4">
                         <Sparkles className="h-10 w-10 text-primary animate-pulse" />
                     </div>
-                    <CardTitle className="text-3xl font-black italic text-primary uppercase tracking-tighter">Ação Registrada!</CardTitle>
+                    <CardTitle className="text-3xl font-black text-primary uppercase tracking-tighter">Ação Registrada!</CardTitle>
                 </CardHeader>
                 <CardContent className="text-center py-8 px-8">
-                    <p className="text-xl font-bold text-slate-800 leading-relaxed italic">
+                    <p className="text-xl font-bold text-slate-800 leading-relaxed">
                         "{successMessage}"
                     </p>
                     <p className="mt-6 text-sm text-muted-foreground uppercase font-black tracking-widest">Equipe SchoolGain</p>
@@ -487,44 +599,62 @@ function KioskContent() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <Tabs defaultValue="manual" className="w-full">
-                            <TabsList className="grid w-full grid-cols-2 mb-4">
-                                <TabsTrigger value="manual">Manual / RFID</TabsTrigger>
-                                <TabsTrigger value="qr">Carteira (QR)</TabsTrigger>
+                        <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="w-full">
+                            <TabsList className="grid w-full grid-cols-3 mb-4">
+                                <TabsTrigger value="manual" className="gap-2">
+                                  <User className="h-4 w-4" /> RA
+                                </TabsTrigger>
+                                <TabsTrigger value="qr" className="gap-2">
+                                  <QrCode className="h-4 w-4" /> QR
+                                </TabsTrigger>
+                                <TabsTrigger value="rfid" className="gap-2">
+                                  <Cpu className="h-4 w-4" /> RFID
+                                </TabsTrigger>
                             </TabsList>
 
+                            {/* RA LOGIN */}
                             <TabsContent value="manual" className="space-y-4">
+                                {lockoutSecs > 0 && (
+                                    <div className="bg-destructive/10 border border-destructive/20 p-3 rounded-lg text-destructive text-sm text-center font-medium animate-pulse">
+                                      <Lock className="h-4 w-4 inline mr-2" /> 
+                                      Acesso suspenso por {lockoutSecs}s
+                                    </div>
+                                )}
                                 <div className="space-y-2">
-                                    <label htmlFor="ra-input" className="text-sm font-medium">RA do Aluno</label>
+                                    <label htmlFor="ra-input" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Identificação Digital (RA)</label>
                                     <Input 
                                         id="ra-input"
                                         ref={raInputRef}
-                                        placeholder="Digite ou aproxime o cartão" 
+                                        placeholder="Digite seu RA" 
                                         value={studentRa}
-                                        onChange={(e) => setStudentRa(e.target.value)}
-                                        onKeyDown={(e) => { if (e.key === 'Enter') handleStudentIdentification()}}
-                                        className="text-lg p-4 h-14 text-center"
+                                        onChange={(e) => setStudentRa(e.target.value.toUpperCase())}
+                                        onKeyDown={(e) => { if (e.key === 'Enter') handleLogin(studentRa)}}
+                                        className="text-2xl p-4 h-16 text-center font-black tracking-tighter uppercase"
                                         autoFocus
-                                        inputMode={showKeyboard ? 'none' : 'numeric'}
-                                        pattern="\d*"
+                                        disabled={lockoutSecs > 0}
+                                        inputMode={showKeyboard ? 'none' : 'text'}
                                     />
                                 </div>
                                 {showKeyboard && (
                                     <VirtualKeyboard
-                                        layout="numeric"
+                                        layout="alphanumeric"
                                         onInput={handleKeyboardInput}
                                         onBackspace={handleKeyboardBackspace}
-                                        onEnter={handleStudentIdentification}
+                                        onEnter={() => handleLogin(studentRa)}
                                     />
                                 )}
                                 <Button 
-                                    className="w-full"
+                                    className="w-full h-14 text-lg font-bold shadow-md transition-all hover:scale-[1.02] active:scale-95"
                                     size="lg"
-                                    onClick={handleStudentIdentification}
-                                    disabled={!studentRa.trim()}
+                                    onClick={() => handleLogin(studentRa)}
+                                    disabled={!studentRa.trim() || lockoutSecs > 0}
                                 >
-                                    Continuar
-                                    <ArrowRight className="ml-2 h-5 w-5" />
+                                    {lockoutSecs > 0 ? `Bloqueado (${lockoutSecs}s)` : (
+                                      <>
+                                        Continuar
+                                        <ArrowRight className="ml-2 h-5 w-5" />
+                                      </>
+                                    )}
                                 </Button>
                                 <Button
                                     variant="ghost"
@@ -536,28 +666,12 @@ function KioskContent() {
                                 </Button>
                             </TabsContent>
 
+                            {/* QR LOGIN */}
                             <TabsContent value="qr" className="space-y-4">
                                 {systemSettings.loginCameraSource === 'browser' ? (
                                     <div className="space-y-4">
-                                        <QRScanner key={scannerKey} onScan={(text) => {
-                                            setStudentRa(text);
-                                            // Procura o aluno imediatamente
-                                            const student = users.find((user: any) => user.ra === text.trim() || user.rfid === text.trim());
-                                            if (student) {
-                                                setIdentifiedStudent(student);
-                                                setStep('scanning');
-                                            } else {
-                                                toast({
-                                                    variant: 'destructive',
-                                                    title: 'Não identificado',
-                                                    description: 'Código inválido. Tente novamente.',
-                                                });
-                                                setStudentRa('');
-                                                // Reinicia o scanner para permitir nova tentativa automática
-                                                setTimeout(() => setScannerKey(prev => prev + 1), 1500);
-                                            }
-                                        }} />
-                                        <p className="text-xs text-center text-muted-foreground uppercase font-bold tracking-widest">
+                                        <QRScanner key={scannerKey} onScan={(text) => handleLogin(text)} />
+                                        <p className="text-xs text-center text-muted-foreground uppercase font-black tracking-widest bg-slate-100 py-2 rounded-full">
                                             Aproxime sua Carteira da câmera
                                         </p>
                                     </div>
@@ -565,7 +679,7 @@ function KioskContent() {
                                     <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg space-y-4 bg-primary/5">
                                         <QrCode className="h-16 w-16 text-primary animate-pulse" />
                                         <div className="text-center">
-                                            <p className="font-bold">Aguardando ESP32-CAM</p>
+                                            <p className="font-bold uppercase tracking-tight">Câmera Externa Ativa</p>
                                             <p className="text-sm text-muted-foreground">O terminal fará a leitura automática via hardware externo.</p>
                                         </div>
                                         <div className="flex gap-2">
@@ -575,6 +689,28 @@ function KioskContent() {
                                         </div>
                                     </div>
                                 )}
+                            </TabsContent>
+
+                            {/* RFID LOGIN */}
+                            <TabsContent value="rfid" className="space-y-4">
+                                <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed rounded-2xl space-y-6 bg-primary/5 border-primary/20 relative overflow-hidden group">
+                                    <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                    <div className="relative">
+                                      <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping"></div>
+                                      <Cpu className="h-20 w-20 text-primary relative z-10 transition-transform group-hover:scale-110 duration-500" />
+                                    </div>
+                                    <div className="text-center space-y-2">
+                                      <p className="text-2xl font-black uppercase tracking-tighter">Aproxime seu Cartão</p>
+                                      <p className="text-sm text-muted-foreground max-w-[200px] mx-auto font-medium leading-tight">
+                                        O sensor RFID está aguardando sua leitura para login instantâneo.
+                                      </p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <span className="w-3 h-3 bg-primary rounded-full animate-bounce"></span>
+                                      <span className="w-3 h-3 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                                      <span className="w-3 h-3 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                                    </div>
+                                </div>
                             </TabsContent>
                         </Tabs>
 
@@ -682,7 +818,7 @@ function KioskContent() {
                                 <div className='text-left'>
                                     <p className="text-lg font-semibold text-white">{identificationResult.material}</p>
                                     <p className="text-sm text-slate-200">{identificationResult.wasteType} ({identificationResult.recyclable ? 'Reciclável' : 'Não Reciclável'})</p>
-                                    <p className="text-2xl font-bold text-primary">+{identificationResult.points} pontos</p>
+                                    <p className="text-2xl font-bold text-primary">+{POINTS_MAPPING[identificationResult.wasteType] || 0} pontos</p>
                                 </div>
                             </div>
 
@@ -693,7 +829,7 @@ function KioskContent() {
                             </AlertDescription>
                             </Alert>
 
-                            <p className="text-xs text-slate-400 italic max-w-sm">"{identificationResult.justification}"</p>
+                            <p className="text-xs text-slate-400 max-w-sm">"{identificationResult.justification}"</p>
                         </div>
                     )}
                 </div>

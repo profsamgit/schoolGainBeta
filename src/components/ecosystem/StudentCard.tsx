@@ -16,6 +16,10 @@ import PrintableBadge from './PrintableBadge';
  * StudentCard: Exibe a Carteira virtual do aluno com seu QR Code.
  * Agora utiliza o mesmo design premium da Carteira administrativa.
  */
+export default function StudentCard() {
+  const { currentUser } = useEcosystem();
+
+  if (!currentUser) return null;
   const handlePrint = () => {
     const badgeElement = document.getElementById(`badge-${currentUser.id}`);
     if (!badgeElement) return;

@@ -7,7 +7,7 @@
  * mostra seu nível atual, sua posição no ranking e suas missões pendentes.
  */
 
-import { STUDENT_MOCK, LEADERBOARD_MOCK, ADMIN_MOCK } from '@/lib/data';
+import { STUDENT_MOCK, ADMIN_MOCK } from '@/lib/data';
 import {
   Card,
   CardContent,
@@ -74,7 +74,7 @@ const getLevelIcon = (level: string) => {
   }
 };
 
-import { StudentCard } from '@/components/ecosystem/StudentCard';
+import StudentCard from '@/components/ecosystem/StudentCard';
 
 export default function DashboardPage() {
   /**
@@ -297,6 +297,7 @@ export default function DashboardPage() {
                   };
 
                   const dynamicLeaderboard = [...users]
+                    .filter((u: any) => u.role === 'student')
                     .map((u: any) => ({
                       ...u,
                       totalScore: calculateScore(u)

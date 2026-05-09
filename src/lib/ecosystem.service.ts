@@ -1,5 +1,6 @@
 import { BehaviorSubject } from 'rxjs';
-import { STUDENT_MOCK, LEADERBOARD_MOCK, REWARDS_MOCK, ARTICLES_MOCK, QUIZ_TOPICS_MOCK, ADMIN_MOCK, VISITANTE_MOCK, SCHOOLS_MOCK } from './data';
+import { POINTS_MAPPING } from './constants';
+import { STUDENT_MOCK, REWARDS_MOCK, ARTICLES_MOCK, QUIZ_TOPICS_MOCK, ADMIN_MOCK, VISITANTE_MOCK, SCHOOLS_MOCK, PARTICIPANTS_MOCK } from './data';
 import { 
   User, 
   Reward, 
@@ -10,78 +11,13 @@ import {
   SchoolSector,
   Terminal,
   TerminalStatus,
-  School
+  School,
+  WasteEntry,
+  WasteType,
+  CycleSnapshot,
+  Turma,
+  Curso
 } from './types';
-
-/**
- * Lista de participantes da equipe (professores e alunos desenvolvedores).
- * Estes dados são fixos e usados na página "Sobre" ou "Equipe".
- */
-const TEAM_MOCK: Participant[] = [
-  {
-    id: 'participant-1',
-    name: 'Samuel Coelho de Sá',
-    role: 'Professor',
-    description: 'Analista de Sistemas - Especialista em Segurança, Redes e Engenharia da Computação',
-    avatar: 'https://picsum.photos/seed/prof-samuel/200/200',
-    initials: 'SC',
-    schoolId: 'school-1',
-  },
-  {
-    id: 'participant-2',
-    name: 'Lincoln Rodrigues',
-    role: 'Desenvolvedor',
-    description: 'Aluno de TDS 2B 2026 - CETI Frei José Apicella',
-    avatar: 'https://picsum.photos/seed/lincoln/200/200',
-    initials: 'LR',
-    schoolId: 'school-1',
-  },
-  {
-    id: 'participant-3',
-    name: 'Michelly Maria',
-    role: 'Desenvolvedora',
-    description: 'Aluna de TDS 2B 2026 - CETI Frei José Apicella',
-    avatar: 'https://picsum.photos/seed/michelly/200/200',
-    initials: 'MM',
-    schoolId: 'school-1',
-  },
-  {
-    id: 'participant-4',
-    name: 'Pedro Henrique',
-    role: 'Desenvolvedor',
-    description: 'Aluno de TDS 2B 2026 - CETI Frei José Apicella',
-    avatar: 'https://picsum.photos/seed/pedro-h/200/200',
-    initials: 'PH',
-    schoolId: 'school-1',
-  },
-  {
-    id: 'participant-5',
-    name: 'Samuel Lucas',
-    role: 'Desenvolvedor',
-    description: 'Aluno de TDS 2B 2026 - CETI Frei José Apicella',
-    avatar: 'https://picsum.photos/seed/samuel-l/200/200',
-    initials: 'SL',
-    schoolId: 'school-1',
-  },
-  {
-    id: 'participant-6',
-    name: 'Samuel Viana',
-    role: 'Desenvolvedor',
-    description: 'Aluno de TDS 2B 2026 - CETI Frei José Apicella',
-    avatar: 'https://picsum.photos/seed/samuel-v/200/200',
-    initials: 'SV',
-    schoolId: 'school-1',
-  },
-  {
-    id: 'participant-7',
-    name: 'Yann Kaio',
-    role: 'Desenvolvedor',
-    description: 'Aluno de TDS 2B 2026 - CETI Frei José Apicella',
-    avatar: 'https://picsum.photos/seed/yann/200/200',
-    initials: 'YK',
-    schoolId: 'school-1',
-  }
-];
 
 /**
  * Tipos de itens que podem ser adquiridos no ecossistema.
@@ -93,7 +29,7 @@ export type EcosystemItem =
   'passaro_1' | 'passaro_2' | 
   'peixe_1' | 'peixe_2' | 'peixe_3' | 
   'cachorro' | 'coelho' | 'borboletas' | 'borboletas_2' | 'borboletas_3' |
-  'casa' | 'barco_1' | 'barco_2';
+  'casa' | 'barco_1' | 'barco_2' | 'monstro_lago';
 
 /**
  * Interface que define o estado individual de cada usuário.
@@ -106,6 +42,14 @@ export interface EcosystemUserState {
   lastMissionDate: string | null;  // Data da última missão diária completada
   nessiePurchaseDate?: string;     // Data de compra do item especial (Nessie/Casa)
   curso?: string;            // Curso do aluno
+}
+
+/**
+ * Estado de segurança para controle de brute-force.
+ */
+export interface SecurityState {
+  failedAttempts: number;
+  lockoutUntil: string | null;
 }
 
 /**
@@ -128,12 +72,17 @@ export interface EcosystemData {
   quizTopics: string[];                    // Tópicos de quiz
   currentUserRa: string | null;            // RA do usuário atualmente logado
   participants: Participant[];             // Equipe do projeto
-  turmas: string[];                        // Lista de séries/turmas
-  cursos: string[];                        // Lista de cursos técnicos
+  turmas: Turma[];                         // Lista de séries/turmas
+  cursos: Curso[];                         // Lista de cursos técnicos
   userStates: Record<string, EcosystemUserState>; // Estado de cada aluno indexado pelo RA
   systemSettings: SystemSettings;          // Configurações de hardware e login
   terminals: Terminal[];                   // Lista de terminais físicos cadastrados
   schools: School[];                       // Lista de escolas parceiras
+  wasteEntries: WasteEntry[];              // Histórico de resíduos coletados
+  auditLogs: AuditLogEntry[];              // Histórico de auditoria unificado
+  resetHistory: CycleSnapshot[];           // Snapshots de ciclos passados
+  resetVersion: string;                    // Versão atual para controle de migração
+  securityState?: Record<string, SecurityState>; // Rastreamento de falhas de login
 }
 
 const STORAGE_KEY = 'schoolgain_ecosystem';
@@ -153,6 +102,14 @@ export class EcosystemService {
    */
   public static async hashPassword(password: string): Promise<string> {
     if (typeof window === 'undefined') return password;
+    
+    // Fallback para contextos não-seguros (HTTP) onde crypto.subtle não existe
+    if (!window.crypto || !window.crypto.subtle) {
+      console.warn("[SECURITY] crypto.subtle não disponível. Usando fallback de hash inseguro para desenvolvimento.");
+      // Simples "hash" para não travar o sistema em desenvolvimento via IP local (HTTP)
+      return password.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a }, 0).toString(16);
+    }
+
     const encoder = new TextEncoder();
     const data = encoder.encode(password);
     const hash = await crypto.subtle.digest('SHA-256', data);
@@ -177,9 +134,17 @@ export class EcosystemService {
     articles: [...ARTICLES_MOCK],
     quizTopics: [...QUIZ_TOPICS_MOCK],
     currentUserRa: null,
-    participants: [...TEAM_MOCK],
-    turmas: ['1ª Série', '2ª Série', '3ª Série'],
-    cursos: ['Técnico em Desenvolvimento de Sistemas', 'Técnico em Agropecuária', 'Gestão Escolar'],
+    participants: [...PARTICIPANTS_MOCK],
+    turmas: [
+      { id: 't1', name: '1ª Série', status: 'active' },
+      { id: 't2', name: '2ª Série', status: 'active' },
+      { id: 't3', name: '3ª Série', status: 'active' }
+    ],
+    cursos: [
+      { id: 'c1', name: 'Técnico em Desenvolvimento de Sistemas', status: 'active' },
+      { id: 'c2', name: 'Técnico em Agropecuária', status: 'active' },
+      { id: 'c3', name: 'Gestão Escolar', status: 'active' }
+    ],
     userStates: {},
     systemSettings: {
       loginMethod: 'all',
@@ -192,8 +157,12 @@ export class EcosystemService {
       { id: 'term-2', hardwareId: 'SG-TOTEM-02', location: 'CETI Frei José - Refeitório', status: 'active', schoolId: 'school-1', requestDate: '2024-05-02' }
     ],
     schools: [...SCHOOLS_MOCK],
-    resetVersion: 'v21_clean'
-  } as any;
+    securityState: {},
+    wasteEntries: [],
+    auditLogs: [],
+    resetHistory: [],
+    resetVersion: 'v22_stable'
+  };
 
   /**
    * BehaviorSubjects (RxJS):
@@ -212,8 +181,8 @@ export class EcosystemService {
   private terminalsSubject = new BehaviorSubject<Terminal[]>([]);
   private schoolsSubject = new BehaviorSubject<School[]>([]);
   private lastMissionDateSubject = new BehaviorSubject<string | null>(null);
-  private turmasSubject = new BehaviorSubject<string[]>([]);
-  private cursosSubject = new BehaviorSubject<string[]>([]);
+  private turmasSubject = new BehaviorSubject<Turma[]>([]);
+  private cursosSubject = new BehaviorSubject<Curso[]>([]);
   private auditLogsSubject = new BehaviorSubject<AuditLogEntry[]>([]);
   private levelSubject = new BehaviorSubject<string>('Iniciante');
   
@@ -225,6 +194,9 @@ export class EcosystemService {
     terminalId: 'TERM-01'
   });
   private pendingLoginSubject = new BehaviorSubject<{ ra: string, terminalId: string } | null>(null);
+  private wasteEntriesSubject = new BehaviorSubject<WasteEntry[]>([]);
+  private resetHistorySubject = new BehaviorSubject<CycleSnapshot[]>([]);
+  private kioskUserRaSubject = new BehaviorSubject<string | null>(null);
 
   constructor() {
     // Inicializa os canais com os dados iniciais (mockados)
@@ -243,6 +215,8 @@ export class EcosystemService {
     });
     this.terminalsSubject.next(this.data.terminals || []);
     this.schoolsSubject.next(this.data.schools || []);
+    this.wasteEntriesSubject.next(this.data.wasteEntries || []);
+    this.resetHistorySubject.next(this.data.resetHistory || []);
   }
 
   /**
@@ -251,6 +225,8 @@ export class EcosystemService {
   initialize() {
     if (typeof window === 'undefined') return;
     this.loadFromStorage();
+    
+    this.sanitizeData(); // Limpa dados legados e intrusos
     
     // Notifica todos os inscritos sobre os dados carregados
     this.currentUserRaSubject.next(this.data.currentUserRa);
@@ -263,6 +239,17 @@ export class EcosystemService {
     this.cursosSubject.next(this.data.cursos);
     this.terminalsSubject.next(this.data.terminals || []);
     this.schoolsSubject.next(this.data.schools || []);
+    this.schoolsSubject.next(this.data.schools || []);
+    this.wasteEntriesSubject.next(this.data.wasteEntries || []);
+
+    // Sincronização entre abas: Ouve mudanças no localStorage vindas de outras abas (ex: Kiosk)
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'schoolgain_ecosystem_data') {
+        console.log('[ECOSYSTEM] Dados atualizados em outra aba, sincronizando...');
+        this.loadFromStorage();
+        this.notifyAll();
+      }
+    });
 
     // Se houver um usuário logado, sincroniza os pontos e ecossistema dele
     if (this.data.currentUserRa) {
@@ -271,40 +258,23 @@ export class EcosystemService {
   }
 
   /**
-   * Sincroniza o estado global com os dados específicos do usuário logado.
-   * @param ra Registro Acadêmico do aluno.
+   * Sincroniza o estado (balance, vitality, etc) com um RA específico.
    */
   private syncStateWithUser(ra: string) {
-    const userState = this.data.userStates[ra];
-    const userRecord = this.data.users.find(u => u.ra === ra);
-
-    if (userState) {
-      // Carrega o estado existente do aluno
-      if (userRecord && userRecord.points < userState.balance) {
-        userRecord.points = userState.balance;
-      }
-      this.balanceSubject.next(userState.balance);
-      this.vitalitySubject.next(userState.vitality);
-      this.purchasedItemsSubject.next(userState.purchasedItems);
-      this.lastMissionDateSubject.next(userState.lastMissionDate);
-      
-      // Atualiza o nível do aluno baseado no seu progresso
-      this.levelSubject.next(this.calculateLevel(this.balance, this.purchasedItems));
-    } else if (userRecord) {
-      // Cria um estado inicial para novos alunos (5000 Bio-Coins bônus)
-      const newState: EcosystemUserState = {
-        balance: 5000, 
-        vitality: 0,
-        purchasedItems: [],
-        lastMissionDate: null,
-        curso: userRecord.curso
-      };
-      this.data.userStates[ra] = newState;
-      this.balanceSubject.next(newState.balance);
-      this.vitalitySubject.next(newState.vitality);
-      this.purchasedItemsSubject.next(newState.purchasedItems);
-      this.lastMissionDateSubject.next(newState.lastMissionDate);
+    const userState = this.data.userStates[ra] || this.getDefaultState();
+    const user = this.data.users.find(u => u.ra === ra);
+    
+    // Se for o usuário global, atualiza os canais globais
+    if (ra === this.data.currentUserRa) {
+        this.balanceSubject.next(userState.balance);
+        this.vitalitySubject.next(userState.vitality);
+        this.purchasedItemsSubject.next(userState.purchasedItems);
+        this.lastMissionDateSubject.next(userState.lastMissionDate);
+        if (user) this.levelSubject.next(user.level || 'Iniciante');
     }
+    
+    // Sempre retorna os dados para quem pediu (ex: Kiosk)
+    return { ...userState, level: user?.level || 'Iniciante' };
   }
 
   /**
@@ -318,8 +288,8 @@ export class EcosystemService {
     state.balance += currentBalanceChange;
     this.data.userStates[ra] = state;
 
-    // Se for o usuário logado, atualiza a tela instantaneamente
-    if (ra === this.currentUserRa) {
+    // Atualiza os canais se o RA for o global OU o do Kiosk
+    if (ra === this.data.currentUserRa || ra === this.kioskUserRaSubject.value) {
       this.balanceSubject.next(state.balance);
     }
 
@@ -331,7 +301,10 @@ export class EcosystemService {
       
       const score = EcosystemService.calculateTotalScore(student.points, state.vitality, state.purchasedItems.length);
       student.level = this.calculateLevel(score, state.purchasedItems);
-      if (ra === this.currentUserRa) this.levelSubject.next(student.level);
+      
+      if (ra === this.data.currentUserRa || ra === this.kioskUserRaSubject.value) {
+        this.levelSubject.next(student.level);
+      }
       
       this.data.users[studentIdx] = { ...student };
       this.usersSubject.next([...this.data.users]);
@@ -351,6 +324,8 @@ export class EcosystemService {
   get auditLogs() { return this.auditLogsSubject.value; }
   get terminals() { return this.terminalsSubject.value; }
   get schools() { return this.schoolsSubject.value; }
+  get wasteEntries() { return this.wasteEntriesSubject.value; }
+  get resetHistory() { return this.resetHistorySubject.value; }
 
   // Observables para os componentes React se inscreverem
   get users$() { return this.usersSubject.asObservable(); }
@@ -370,6 +345,8 @@ export class EcosystemService {
   get pendingLogin$() { return this.pendingLoginSubject.asObservable(); }
   get terminals$() { return this.terminalsSubject.asObservable(); }
   get schools$() { return this.schoolsSubject.asObservable(); }
+  get wasteEntries$() { return this.wasteEntriesSubject.asObservable(); }
+  get resetHistory$() { return this.resetHistorySubject.asObservable(); }
 
   get balance() { return this.balanceSubject.value; }
   get vitality() { return this.vitalitySubject.value; }
@@ -443,6 +420,43 @@ export class EcosystemService {
   }
 
   /**
+   * Registra uma nova escola diretamente como ativa (uso do Super Admin).
+   */
+  async registerSchool(schoolData: Omit<School, 'id' | 'status' | 'joinedDate'>) {
+    if (!this.checkAdminAuth()) return false;
+
+    const newSchool: School = {
+      ...schoolData,
+      id: `school-${Date.now()}`,
+      status: 'active',
+      joinedDate: new Date().toISOString().split('T')[0]
+    };
+
+    this.data.schools.push(newSchool);
+
+    // Cria o usuário gestor imediatamente
+    if (newSchool.managerEmail) {
+      const newUser: User = {
+        id: `user-admin-${Date.now()}`,
+        name: `Gestor ${newSchool.name}`,
+        email: newSchool.managerEmail,
+        password: newSchool.managerPassword ? await EcosystemService.hashPassword(newSchool.managerPassword) : '46bedf6fe2d6d6bf157b58c3ddfe0ff5ec53dad2f5689c63cf0f16901049dff5', // Default rizdy6-wumkyh-rEqxox
+        role: 'admin',
+        schoolId: newSchool.id,
+        ra: `G-${Date.now().toString().slice(-4)}`,
+        points: 0,
+        level: 'Semente'
+      };
+      this.data.users.push(newUser);
+      this.usersSubject.next([...this.data.users]);
+    }
+
+    this.schoolsSubject.next([...this.data.schools]);
+    this.saveToStorage();
+    return true;
+  }
+
+  /**
    * Solicita o registro de uma nova escola.
    */
   requestSchoolRegistration(schoolData: Omit<School, 'id' | 'status' | 'joinedDate'>) {
@@ -476,12 +490,12 @@ export class EcosystemService {
             id: `user-admin-${Date.now()}`,
             name: `Gestor ${school.name}`,
             email: school.managerEmail,
-            password: school.managerPassword ? await EcosystemService.hashPassword(school.managerPassword) : '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', // Default admin123 hash
+            password: school.managerPassword ? await EcosystemService.hashPassword(school.managerPassword) : '46bedf6fe2d6d6bf157b58c3ddfe0ff5ec53dad2f5689c63cf0f16901049dff5', // Default rizdy6-wumkyh-rEqxox
             role: 'admin',
             schoolId: school.id,
             ra: `G-${Date.now().toString().slice(-4)}`,
             points: 0,
-            level: 'Iniciante'
+            level: 'Semente'
           };
           this.data.users.push(newUser);
           this.usersSubject.next([...this.data.users]);
@@ -494,7 +508,17 @@ export class EcosystemService {
   }
 
   /**
-   * Remove uma escola.
+   * Atualiza a lista completa de escolas.
+   */
+  updateSchools(newSchools: School[]) {
+    if (!this.checkAdminAuth()) return;
+    this.data.schools = newSchools;
+    this.schoolsSubject.next([...newSchools]);
+    this.saveToStorage();
+  }
+
+  /**
+   * Remove uma escola da rede.
    */
   deleteSchool(id: string) {
     if (!this.checkAdminAuth()) return;
@@ -502,6 +526,7 @@ export class EcosystemService {
     this.schoolsSubject.next([...this.data.schools]);
     this.saveToStorage();
   }
+
 
   /**
    * Retorna o estado de um usuário específico.
@@ -511,7 +536,14 @@ export class EcosystemService {
   }
 
   private getDefaultState(): EcosystemUserState {
-    return { balance: 5000, vitality: 0, purchasedItems: [], lastMissionDate: null, curso: '', nessiePurchaseDate: undefined };
+    return { 
+      balance: 5000, 
+      vitality: 100, 
+      purchasedItems: [], 
+      lastMissionDate: null, 
+      curso: '', 
+      nessiePurchaseDate: undefined 
+    };
   }
 
   /**
@@ -588,7 +620,7 @@ export class EcosystemService {
 
     // Lógica de reset (para atualizações de versão do sistema)
     let hasChanges = false;
-    const RESET_VERSION = 'v21_clean'; // Nova versão
+    const RESET_VERSION = 'v22_stable'; // Versão de produção estável
     if ((this.data as any).resetVersion !== RESET_VERSION) {
       this.data.userStates = {};
       this.data.users = [ADMIN_MOCK, VISITANTE_MOCK]; 
@@ -754,6 +786,7 @@ export class EcosystemService {
       'casa': { price: 1500, minVitality: 100, required: 'arvore_1' },
       'barco_1': { price: 500, required: 'limpar_rio' },
       'barco_2': { price: 600, required: 'barco_1' },
+      'monstro_lago': { price: 5000, required: 'casa' },
     };
 
     const upgrade = catalog[item];
@@ -761,7 +794,7 @@ export class EcosystemService {
     if (upgrade.minVitality && this.vitality < upgrade.minVitality) return false; // Vitalidade insuficiente
 
     // Lógica para itens lendários (só podem ser comprados se todos os normais já foram)
-    const legendaryItems: EcosystemItem[] = ['casa', 'barco_1', 'barco_2'];
+    const legendaryItems: EcosystemItem[] = ['casa', 'barco_1', 'barco_2', 'monstro_lago'];
     const isLegendary = legendaryItems.includes(item);
 
     if (isLegendary) {
@@ -800,8 +833,18 @@ export class EcosystemService {
    * Concede pontos a um aluno específico (Usado por Administradores).
    * Registra a ação no log de auditoria.
    */
-  grantPoints(ra: string, points: number, sector: string, action: string, adminName: string): boolean {
-    // Verificação básica de autorização (em um sistema real, isso seria feito no servidor)
+  async grantPoints(ra: string, points: number, sector: string, action: string, adminName: string, password?: string): Promise<boolean> {
+    // 1. Verifica se a senha foi fornecida e é válida (Exigência de Segurança)
+    if (password) {
+      const isMatch = await this.verifyPassword(password);
+      if (!isMatch) {
+        console.error('[SECURITY] Senha incorreta para concessão de pontos');
+        return false;
+      }
+    } else {
+       console.warn('[SECURITY] Tentativa de concessão de pontos sem verificação de senha');
+    }
+
     const currentAdmin = this.data.users.find(u => u.ra === this.currentUserRa);
     if (!currentAdmin || (currentAdmin.role !== 'admin' && currentAdmin.role !== 'super_admin')) {
       console.error('[SECURITY] Tentativa de conceder pontos por usuário não autorizado');
@@ -831,6 +874,123 @@ export class EcosystemService {
   }
 
   /**
+   * Registra a coleta de um resíduo e atribui pontos ao aluno.
+   */
+  registerWaste(ra: string, type: WasteType, weightKg: number) {
+    const student = this.data.users.find(u => u.ra === ra);
+    if (!student) return false;
+
+    // 1. Gera pontos baseados no mapeamento de constantes (ex: Plástico=10, Metal=15)
+    // Multiplicamos pelo peso apenas se o peso for significativo (> 1kg), caso contrário assume 1 unidade
+    const basePoints = POINTS_MAPPING[type] || 0;
+    const points = weightKg >= 1 ? Math.floor(weightKg * basePoints) : basePoints;
+    
+    const newEntry: WasteEntry = {
+      id: Math.random().toString(36).substr(2, 9),
+      date: new Date().toISOString(),
+      type: type,
+      collected: weightKg,
+      ra: ra,
+      schoolId: student.schoolId
+    };
+
+    console.log(`[ECOSYSTEM] Registrando coleta: ${weightKg}kg de ${type} para o aluno ${ra}. Pontos: ${points}`);
+    
+    this.addPoints(points, ra);
+    
+    this.data.wasteEntries = [...(this.data.wasteEntries || []), newEntry];
+    this.wasteEntriesSubject.next([...this.data.wasteEntries]);
+    this.saveToStorage();
+
+    return true;
+  }
+
+  /**
+   * Executa o Reset de Ciclo:
+   * 1. Gera um snapshot dos dados atuais para o histórico.
+   * 2. Zera pontos de todos os alunos.
+   * 3. Limpa coletas e logs de auditoria.
+   * 4. Limpa estados de ecossistema (opcional, mas recomendado para fresh start).
+   */
+  async performCycleReset(password: string, schoolId?: string) {
+    const isMatch = await this.verifyPassword(password);
+    if (!isMatch) {
+      console.error('[SECURITY] Senha incorreta para reset de ciclo');
+      return false;
+    }
+
+    const currentAdmin = this.data.users.find(u => u.ra === this.currentUserRa);
+    if (!currentAdmin || currentAdmin.role !== 'super_admin') {
+      console.error('[SECURITY] Tentativa de reset de ciclo por usuário não autorizado');
+      return false;
+    }
+
+    // 1. GERA SNAPSHOT
+    const students = this.data.users.filter(u => u.role === 'student' && (!schoolId || u.schoolId === schoolId));
+    const relevantWaste = this.data.wasteEntries.filter(w => !schoolId || w.schoolId === schoolId);
+    
+    const snapshot: CycleSnapshot = {
+      id: `cycle-${Date.now()}`,
+      endDate: new Date().toISOString(),
+      totalWasteKg: relevantWaste.reduce((acc, curr) => acc + curr.collected, 0),
+      totalPoints: students.reduce((acc, curr) => acc + curr.points, 0),
+      topStudents: [...students]
+        .sort((a, b) => b.points - a.points)
+        .slice(0, 5)
+        .map(s => ({ name: s.name, points: s.points, ra: s.ra || '' })),
+      wasteByType: relevantWaste.reduce((acc, curr) => {
+        acc[curr.type] = (acc[curr.type] || 0) + curr.collected;
+        return acc;
+      }, {} as Record<string, number>),
+      schoolId
+    };
+
+    // 2. SALVA NO HISTÓRICO
+    this.data.resetHistory = [snapshot, ...(this.data.resetHistory || [])];
+    this.resetHistorySubject.next(this.data.resetHistory);
+
+    // 3. LIMPEZA DE DADOS (RESET)
+    // Zera pontos e níveis dos usuários
+    this.data.users = this.data.users.map(u => {
+      if (u.role === 'student' && (!schoolId || u.schoolId === schoolId)) {
+        return { ...u, points: 0, level: 'Semente' };
+      }
+      return u;
+    });
+
+    // Limpa coletas
+    if (this.data.wasteEntries) {
+      this.data.wasteEntries = this.data.wasteEntries.filter(w => schoolId && w.schoolId !== schoolId);
+    }
+    
+    // Limpa logs de auditoria
+    if (this.data.auditLogs) {
+      this.data.auditLogs = this.data.auditLogs.filter(l => schoolId && l.schoolId !== schoolId);
+    }
+
+    // Reseta estados de ecossistema (vitalidade e itens)
+    Object.keys(this.data.userStates).forEach(ra => {
+      const user = this.data.users.find(u => u.ra === ra);
+      if (user && (!schoolId || user.schoolId === schoolId)) {
+        this.data.userStates[ra] = this.getDefaultState();
+      }
+    });
+
+    // 4. NOTIFICA E PERSISTE
+    this.usersSubject.next([...this.data.users]);
+    this.wasteEntriesSubject.next([...this.data.wasteEntries]);
+    this.auditLogsSubject.next([...this.data.auditLogs]);
+    
+    // Se o usuário logado foi resetado, atualiza saldo local
+    if (this.currentUserRa) {
+      this.syncStateWithUser(this.currentUserRa);
+    }
+
+    this.saveToStorage();
+    return true;
+  }
+
+  /**
    * Adiciona pontos genéricos a um usuário.
    */
   addPoints(points: number, studentRa?: string) {
@@ -849,16 +1009,46 @@ export class EcosystemService {
   }
 
   /**
+   * Verifica se um identificador está em período de bloqueio.
+   */
+  getLockoutStatus(id: string): { isLocked: boolean, remainingSeconds: number } {
+    const cleanId = id.trim().toLowerCase();
+    const security = this.data.securityState?.[cleanId];
+    
+    if (!security || !security.lockoutUntil) return { isLocked: false, remainingSeconds: 0 };
+    
+    const now = new Date();
+    const lockoutDate = new Date(security.lockoutUntil);
+    
+    if (now < lockoutDate) {
+      return { 
+        isLocked: true, 
+        remainingSeconds: Math.ceil((lockoutDate.getTime() - now.getTime()) / 1000) 
+      };
+    }
+    
+    return { isLocked: false, remainingSeconds: 0 };
+  }
+
+  /**
    * Autentica um usuário pelo RA ou RFID.
    */
   async login(id: string, password?: string) {
     const cleanId = id.trim();
     const cleanPassword = password?.trim();
+    const securityKey = cleanId.toLowerCase();
 
+    // 1. Verifica Lockout
+    const lockout = this.getLockoutStatus(cleanId);
+    if (lockout.isLocked) {
+      return false;
+    }
+
+    // Busca insensível a maiúsculas/minúsculas para RA, RFID e Email
     const user = this.data.users.find(u => 
-      u.ra === cleanId || 
-      u.rfid === cleanId || 
-      u.email?.toLowerCase() === cleanId.toLowerCase()
+      (u.ra && u.ra.toLowerCase() === cleanId.toLowerCase()) || 
+      (u.rfid && u.rfid.toLowerCase() === cleanId.toLowerCase()) || 
+      (u.email && u.email.toLowerCase() === cleanId.toLowerCase())
     );
 
     if (user) {
@@ -869,12 +1059,20 @@ export class EcosystemService {
             const ra = user.ra!;
             this.currentUserRaSubject.next(ra);
             this.syncStateWithUser(ra);
+            this.resetSecurityState(securityKey);
             this.saveToStorage();
             return true;
         }
         
         const hashedInput = await EcosystemService.hashPassword(cleanPassword);
-        if (user.password !== hashedInput) {
+        
+        // Verifica se a senha confere (tentando o hash SHA-256, o fallback ou texto plano para legados)
+        const isMatch = user.password === hashedInput || 
+                        user.password === cleanPassword ||
+                        (user.password === '46bedf6fe2d6d6bf157b58c3ddfe0ff5ec53dad2f5689c63cf0f16901049dff5' && cleanPassword === 'rizdy6-wumkyh-rEqxox');
+
+        if (!isMatch) {
+            this.handleFailedLogin(securityKey);
             console.error(`[AUTH] Senha incorreta para o gestor: ${cleanId}`);
             return false;
         }
@@ -883,16 +1081,65 @@ export class EcosystemService {
       const ra = user.ra!;
       this.currentUserRaSubject.next(ra);
       this.syncStateWithUser(ra);
+      this.resetSecurityState(securityKey);
       this.saveToStorage();
       return true;
     }
+
+    // Se o usuário não foi encontrado, também rastreamos como falha (proteção contra enumeração/brute force)
+    this.handleFailedLogin(securityKey);
     return false;
   }
+
+  /**
+   * Registra uma falha de login e aplica bloqueio se necessário.
+   */
+  private handleFailedLogin(id: string) {
+    if (!this.data.securityState) this.data.securityState = {};
+    
+    const security = this.data.securityState[id] || { failedAttempts: 0, lockoutUntil: null };
+    security.failedAttempts += 1;
+    
+    // Bloqueio progressivo: 5, 10, 15... falhas
+    if (security.failedAttempts >= 5) {
+      const minutes = Math.min(60, Math.pow(2, Math.floor(security.failedAttempts / 5)) * 5);
+      const lockoutDate = new Date();
+      lockoutDate.setMinutes(lockoutDate.getMinutes() + minutes);
+      security.lockoutUntil = lockoutDate.toISOString();
+      
+      this.grantPoints('SECURITY_ALERT', 0, 'SISTEMA', `BLOQUEIO: ${id} após ${security.failedAttempts} falhas`, 'Antigravity Security');
+    }
+    
+    this.data.securityState[id] = security;
+    this.saveToStorage();
+  }
+
+  /**
+   * Reseta o estado de segurança após sucesso.
+   */
+  private resetSecurityState(id: string) {
+    if (this.data.securityState?.[id]) {
+      delete this.data.securityState[id];
+      this.saveToStorage();
+    }
+  }
+
+  /**
+   * Identifica um usuário especificamente para o Kiosk, sem mudar o login global.
+   */
+  identifyKioskUser(ra: string | null) {
+    this.kioskUserRaSubject.next(ra);
+    if (ra) {
+      this.syncStateWithUser(ra);
+    }
+  }
+
 
   /**
    * Finaliza a sessão do usuário.
    */
   logout() {
+    this.data.currentUserRa = null;
     this.currentUserRaSubject.next(null);
     this.balanceSubject.next(0);
     this.vitalitySubject.next(100);
@@ -905,7 +1152,7 @@ export class EcosystemService {
   updateUsers(newUsers: any[]) {
     if (!this.checkAdminAuth()) return;
     this.data.users = newUsers;
-    this.usersSubject.next(newUsers);
+    this.usersSubject.next([...newUsers]);
     this.saveToStorage();
   }
 
@@ -937,17 +1184,17 @@ export class EcosystemService {
     this.saveToStorage();
   }
 
-  updateTurmas(newTurmas: string[]) {
+  updateTurmas(newTurmas: Turma[]) {
     if (!this.checkAdminAuth()) return;
     this.data.turmas = newTurmas;
-    this.turmasSubject.next(newTurmas);
+    this.turmasSubject.next([...newTurmas]);
     this.saveToStorage();
   }
 
-  updateCursos(newCursos: string[]) {
+  updateCursos(newCursos: Curso[]) {
     if (!this.checkAdminAuth()) return;
     this.data.cursos = newCursos;
-    this.cursosSubject.next(newCursos);
+    this.cursosSubject.next([...newCursos]);
     this.saveToStorage();
   }
 
@@ -970,26 +1217,35 @@ export class EcosystemService {
    * Altera a própria senha, exigindo a senha atual.
    */
   async updateMyPassword(currentPassword: string, newPassword: string) {
+    const isMatch = await this.verifyPassword(currentPassword);
+    if (!isMatch) return false;
+
     const ra = this.currentUserRaSubject.value;
     if (!ra) return false;
-    
     const user = this.data.users.find(u => u.ra === ra);
     if (!user) return false;
 
-    const hashedCurrent = await EcosystemService.hashPassword(currentPassword);
-    const isStoredHashed = user.password && user.password.length === 64;
-    
-    const isMatch = isStoredHashed 
-      ? user.password === hashedCurrent 
-      : user.password === currentPassword;
+    user.password = await EcosystemService.hashPassword(newPassword);
+    this.usersSubject.next([...this.data.users]);
+    this.saveToStorage();
+    return true;
+  }
 
-    if (isMatch) {
-      user.password = await EcosystemService.hashPassword(newPassword);
-      this.usersSubject.next([...this.data.users]);
-      this.saveToStorage();
-      return true;
-    }
-    return false;
+  /**
+   * Verifica se a senha fornecida pertence ao usuário atualmente logado.
+   */
+  async verifyPassword(password: string): Promise<boolean> {
+    const ra = this.currentUserRaSubject.value;
+    if (!ra) return false;
+    const user = this.data.users.find(u => u.ra === ra);
+    if (!user || !user.password) return false;
+
+    const hashedInput = await EcosystemService.hashPassword(password);
+    const isStoredHashed = user.password.length === 64;
+    
+    return isStoredHashed 
+      ? user.password === hashedInput 
+      : user.password === password;
   }
 
   /**
@@ -1012,5 +1268,86 @@ export class EcosystemService {
     if (score >= 8000) return 'Folha';
     if (score >= 5000) return 'Broto';
     return 'Semente';
+  }
+
+  private notifyAll() {
+    this.usersSubject.next([...this.data.users]);
+    this.wasteEntriesSubject.next([...(this.data.wasteEntries || [])]);
+    this.auditLogsSubject.next([...(this.data.auditLogs || [])]);
+    this.schoolsSubject.next([...(this.data.schools || [])]);
+    this.terminalsSubject.next([...(this.data.terminals || [])]);
+    this.rewardsSubject.next([...(this.data.rewards || [])]);
+    this.articlesSubject.next([...(this.data.articles || [])]);
+    this.systemSettingsSubject.next({...this.data.systemSettings});
+    
+    if (this.data.currentUserRa) {
+      this.syncStateWithUser(this.data.currentUserRa);
+    }
+  }
+
+  /**
+   * Limpa dados legados, nomes de teste e garante que apenas alunos apareçam no ranking.
+   */
+  private sanitizeData() {
+    // APENAS garante que quem NÃO é aluno tenha 0 pontos no ranking
+    // Não removemos mais nenhum usuário para evitar perda de dados reais
+    // REMOVE DUPLICATAS POR ID E EMAIL (Garante integridade após atualizações)
+    const uniqueUsers = new Map<string, User>();
+    this.data.users.forEach(u => {
+        const secondaryKey = u.email || u.ra;
+        // Prioriza manter registros que já existem sobre novas inserções
+        if (!uniqueUsers.has(u.id) && (!secondaryKey || !uniqueUsers.has(secondaryKey))) {
+            uniqueUsers.set(u.id, u);
+            if (secondaryKey) uniqueUsers.set(secondaryKey, u);
+        }
+    });
+    this.data.users = Array.from(new Set(uniqueUsers.values()));
+
+    if (this.data.users.length < 1) {
+      this.data.users = [ADMIN_MOCK, STUDENT_MOCK, VISITANTE_MOCK];
+    }
+
+    // RESTAURA DADOS PEDAGÓGICOS SE ESTIVEREM VAZIOS OU INCOMPLETOS (FONTE DA VERDADE)
+    const currentArticles = this.data.articles || [];
+    if (currentArticles.length < ARTICLES_MOCK.length) {
+      this.data.articles = [...ARTICLES_MOCK];
+    }
+    
+    const currentQuiz = this.data.quizTopics || [];
+    if (currentQuiz.length < QUIZ_TOPICS_MOCK.length) {
+      this.data.quizTopics = [...QUIZ_TOPICS_MOCK];
+    }
+
+    const currentRewards = this.data.rewards || [];
+    if (currentRewards.length < REWARDS_MOCK.length) {
+      this.data.rewards = [...REWARDS_MOCK];
+    }
+
+    const currentParticipants = this.data.participants || [];
+    if (currentParticipants.length < PARTICIPANTS_MOCK.length) {
+      this.data.participants = [...PARTICIPANTS_MOCK];
+    }
+
+    if (!this.data.systemSettings) {
+      this.data.systemSettings = {
+        loginMethod: 'all',
+        loginCameraSource: 'browser',
+        scanningCameraSource: 'browser',
+        terminalId: 'TOTEM-01'
+      };
+    }
+
+    this.data.users = this.data.users.map(u => {
+      // FORÇA A ATUALIZAÇÃO DA SENHA DO GESTOR PRINCIPAL
+      if (u.email?.toLowerCase() === 'gestor@schoolgain.com') {
+        u.password = ADMIN_MOCK.password;
+        u.ra = ADMIN_MOCK.ra;
+      }
+      if (u.role !== 'student' && u.role !== 'visitor') u.points = 0;
+      return u;
+    });
+
+    this.saveToStorage();
+    this.notifyAll();
   }
 }

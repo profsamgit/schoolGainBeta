@@ -34,7 +34,7 @@ export default function WastePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [identificationResult, setIdentificationResult] = useState<IdentifyWasteOutput | null>(null);
   const { toast } = useToast();
-  const { currentUser, addPoints } = useEcosystem();
+  const { currentUser, addPoints, registerWaste } = useEcosystem();
 
   useEffect(() => {
     const stopCamera = () => {
@@ -139,8 +139,10 @@ export default function WastePage() {
   const handleConfirm = () => {
     if(!identificationResult || identificationResult.points === 0) return;
     
-    // Adicionar pontos ao usuário logado
-    addPoints(identificationResult.points);
+    // Registrar resíduo e adicionar pontos automaticamente
+    if (currentUser?.ra) {
+        registerWaste(currentUser.ra, identificationResult.wasteType as any, identificationResult.estimatedWeightKg || 0.05);
+    }
 
     toast({
         title: 'Registro bem-sucedido!',

@@ -28,7 +28,7 @@ import {
   Info,
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-import { ADMIN_MOCK, STUDENT_MOCK, LEADERBOARD_MOCK } from '@/lib/data';
+import { ADMIN_MOCK, STUDENT_MOCK } from '@/lib/data';
 import { useEcosystem } from '@/app/(app)/ecosystem-context';
 
 const menuItems = [
@@ -71,11 +71,8 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
             className="flex items-center gap-2 font-semibold text-lg"
           >
             <Leaf className="h-7 w-7 text-primary" />
-            <span className="text-primary group-data-[collapsible=icon]:hidden">
-              School
-            </span>
-            <span className="font-light group-data-[collapsible=icon]:hidden">
-              Gain
+            <span className="font-black tracking-tighter group-data-[collapsible=icon]:hidden">
+              <span className="text-primary">School</span>Gain
             </span>
           </Link>
         </SidebarHeader>
@@ -112,7 +109,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
                         item.label === 'Meu Ecossistema' && isLeader && "text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.6)] scale-110"
                       )} />
                       <span className={cn(
-                        item.label === 'Meu Ecossistema' && isLeader && "text-yellow-500 font-black italic tracking-tighter"
+                        item.label === 'Meu Ecossistema' && isLeader && "text-yellow-500 font-black tracking-tighter"
                       )}>{item.label}</span>
                     </SidebarMenuButton>
                   </Link>

@@ -50,7 +50,7 @@ export default function RegisterSchoolPage() {
             <div className="mx-auto w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
               <CheckCircle2 className="h-10 w-10 text-emerald-600" />
             </div>
-            <CardTitle className="text-2xl font-black uppercase tracking-tighter italic">Solicitação Recebida!</CardTitle>
+            <CardTitle className="text-2xl font-black uppercase tracking-tighter">Solicitação Recebida!</CardTitle>
             <CardDescription>
               Obrigado pelo interesse no SchoolGain. Nossa equipe analisará os dados da <strong>{formData.name}</strong> e entrará em contato pelo e-mail <strong>{formData.contactEmail}</strong>.
             </CardDescription>
@@ -73,7 +73,7 @@ export default function RegisterSchoolPage() {
               <Link href="/"><ArrowLeft className="h-5 w-5" /></Link>
            </Button>
            <div>
-              <h1 className="text-2xl font-black uppercase tracking-tighter italic flex items-center gap-2">
+              <h1 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-2">
                  <SchoolIcon className="h-6 w-6 text-primary" /> Seja uma Escola Parceira
               </h1>
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Leve a sustentabilidade para seus alunos</p>

@@ -15,8 +15,10 @@ import {
   Loader2,
   CheckCircle2,
   XCircle,
-  Volume2
+  Volume2,
+  Lock
 } from 'lucide-react';
+import { playBeep } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { VirtualKeyboard } from '@/components/ui/virtual-keyboard';
 import { useEcosystem } from '../../(app)/ecosystem-context';
@@ -30,51 +32,46 @@ const QRScanner = dynamic(() => import('@/components/ui/qr-scanner'), { ssr: fal
 export default function StudentLoginPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { login, users, systemSettings, pendingHardwareLogin } = useEcosystem();
+  const { login, users, systemSettings, getLockoutStatus } = useEcosystem();
 
   const [ra, setRa] = useState('');
   const [showKeyboard, setShowKeyboard] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [activeTab, setActiveTab] = useState('manual');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [lockoutSecs, setLockoutSecs] = useState(0);
   const [scannerKey, setScannerKey] = useState(0);
   
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Som de Beep para feedback (opcional)
-  const playBeep = (type: 'success' | 'error') => {
-    try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(type === 'success' ? 880 : 220, ctx.currentTime);
-      gain.gain.setValueAtTime(0.1, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-      
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      
-      osc.start();
-      osc.stop(ctx.currentTime + 0.2);
-    } catch (e) {
-      console.warn("Áudio não suportado ou bloqueado pelo navegador.");
-    }
-  };
+  // Sanitiza inputs básicos
+  const sanitize = (val: string) => val.replace(/[<>]/g, '').trim();
 
   /**
    * Função central de Login
    */
   const handleLogin = useCallback(async (targetRa: string) => {
-    if (!targetRa.trim() || isProcessing) return;
+    const cleanRa = sanitize(targetRa);
+    if (!cleanRa || isProcessing) return;
     
+    // 1. Verifica Lockout
+    const lockout = getLockoutStatus(cleanRa);
+    if (lockout.isLocked) {
+      setLockoutSecs(lockout.remainingSeconds);
+      toast({ 
+        variant: 'destructive', 
+        title: 'Acesso Bloqueado', 
+        description: `Muitas tentativas falhas para o RA ${cleanRa}. Aguarde ${lockout.remainingSeconds}s.` 
+      });
+      return;
+    }
+
     setIsProcessing(true);
-    const success = await login(targetRa.trim());
+    const success = await login(cleanRa);
     
     if (success) {
       playBeep('success');
-      const student = users.find((u: any) => u.ra === targetRa.trim() || u.rfid === targetRa.trim());
+      const student = users.find((u: any) => u.ra === cleanRa || u.rfid === cleanRa);
       toast({
         title: `Bem-vindo, ${student?.name || 'Agente'}!`,
         description: 'Identificação confirmada. Redirecionando...',
@@ -83,23 +80,42 @@ export default function StudentLoginPage() {
       if (student?.role === 'visitor') {
         router.push('/kiosk');
       } else if (student?.role === 'admin' || student?.role === 'super_admin') {
-        router.push('/admin');
+        router.push('/admin/dashboard');
       } else {
         router.push('/dashboard');
       }
     } else {
       playBeep('error');
-      toast({
-        variant: 'destructive',
-        title: 'Não identificado',
-        description: 'O código não corresponde a nenhum aluno cadastrado.',
-      });
+      
+      const updatedLockout = getLockoutStatus(cleanRa);
+      if (updatedLockout.isLocked) {
+        setLockoutSecs(updatedLockout.remainingSeconds);
+        toast({ 
+          variant: 'destructive', 
+          title: 'Segurança: RA Bloqueado', 
+          description: 'Múltiplas falhas detectadas para este RA. Acesso suspenso temporariamente.' 
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Não identificado',
+          description: 'O código não corresponde a nenhum aluno cadastrado.',
+        });
+      }
+      
       setIsProcessing(false);
       setRa('');
       // Reinicia o scanner após erro para permitir nova tentativa
       setTimeout(() => setScannerKey(prev => prev + 1), 1000);
     }
-  }, [login, users, router, toast, isProcessing]);
+  }, [login, users, router, toast, isProcessing, getLockoutStatus]);
+
+  useEffect(() => {
+    if (lockoutSecs > 0) {
+      const timer = setInterval(() => setLockoutSecs(s => Math.max(0, s - 1)), 1000);
+      return () => clearInterval(timer);
+    }
+  }, [lockoutSecs]);
 
   /**
    * POLING DE HARDWARE:
@@ -116,7 +132,6 @@ export default function StudentLoginPage() {
         const res = await fetch(`/api/hardware/input?terminalId=${systemSettings.terminalId}`);
         const data = await res.json();
         if (data.ra) {
-          console.log(`[POLLING] Login detectado via Hardware: ${data.ra}`);
           handleLogin(data.ra);
         }
       } catch (e) {
@@ -195,34 +210,48 @@ export default function StudentLoginPage() {
 
                     {/* LOGIN MANUAL */}
                     <TabsContent value="manual" className="space-y-4">
-                      <Input
-                          ref={inputRef}
-                          value={ra}
-                          onChange={(e) => setRa(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && handleLogin(ra)}
-                          placeholder="Seu RA"
-                          className="text-center text-xl h-14"
-                          autoFocus
-                          inputMode={showKeyboard ? 'none' : 'numeric'}
-                      />
-                      {showKeyboard && (
-                        <VirtualKeyboard
-                          layout="numeric"
-                          onInput={(key) => setRa(p => p + key)}
-                          onBackspace={() => setRa(p => p.slice(0, -1))}
-                          onEnter={() => handleLogin(ra)}
-                        />
+                      {lockoutSecs > 0 && (
+                        <div className="bg-destructive/10 border border-destructive/20 p-3 rounded-lg text-destructive text-sm text-center font-medium animate-pulse">
+                          <Lock className="h-4 w-4 inline mr-2" /> 
+                          Tentativas excedidas. Aguarde {lockoutSecs}s.
+                        </div>
                       )}
-                      <Button className="w-full" size="lg" onClick={() => handleLogin(ra)} disabled={!ra.trim() || isProcessing}>
-                        {isProcessing ? <Loader2 className="animate-spin mr-2" /> : 'Entrar'} <ArrowRight className="ml-2" />
-                      </Button>
+                      
+                      <form onSubmit={(e) => { e.preventDefault(); handleLogin(ra); }} className="space-y-4">
+                        <Input
+                            ref={inputRef}
+                            value={ra}
+                            onChange={(e) => setRa(e.target.value.toUpperCase())}
+                            placeholder="Seu RA"
+                            className="text-center text-xl h-14 uppercase"
+                            disabled={lockoutSecs > 0}
+                            inputMode={showKeyboard ? 'none' : 'text'}
+                            autoComplete="username"
+                        />
+                        
+                        {showKeyboard && (
+                          <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                            <VirtualKeyboard
+                              layout="alphanumeric"
+                              onInput={(key) => setRa(p => (p + key).toUpperCase())}
+                              onBackspace={() => setRa(p => p.slice(0, -1))}
+                              onEnter={() => handleLogin(ra)}
+                            />
+                          </div>
+                        )}
+                        
+                        <Button type="submit" className="w-full h-12 text-lg" disabled={!ra.trim() || isProcessing || lockoutSecs > 0}>
+                          {isProcessing ? <Loader2 className="animate-spin mr-2" /> : (lockoutSecs > 0 ? `Bloqueado (${lockoutSecs}s)` : 'Entrar')} <ArrowRight className="ml-2" />
+                        </Button>
+                      </form>
+
                       <Button
                           variant="ghost"
                           className="w-full text-muted-foreground"
                           onClick={() => setShowKeyboard((prev) => !prev)}
                       >
                           <Keyboard className="mr-2" />
-                          {showKeyboard ? 'Esconder' : 'Mostrar'} Teclado Virtual
+                          {showKeyboard ? 'Usar Teclado Nativo' : 'Usar Teclado Virtual'}
                       </Button>
                     </TabsContent>
 

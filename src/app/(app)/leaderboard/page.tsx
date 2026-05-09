@@ -159,7 +159,7 @@ export default function LeaderboardPage() {
                     <p className="text-2xl md:text-3xl font-black text-white leading-none tabular-nums tracking-tighter">
                         {user.totalScore.toLocaleString()}
                     </p>
-                    <p className="text-[9px] font-black uppercase text-emerald-400/80 tracking-[0.25em] mt-2 italic">Score Global</p>
+                    <p className="text-[9px] font-black uppercase text-emerald-400/80 tracking-[0.25em] mt-2">Score Global</p>
                 </div>
 
                 <div className="pt-5">
@@ -233,12 +233,12 @@ export default function LeaderboardPage() {
          </div>
          
          <div className="text-center space-y-4 mb-20 relative z-10">
-            <h2 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tighter uppercase italic flex items-center justify-center gap-6">
+            <h2 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tighter uppercase flex items-center justify-center gap-6">
                <Star className="text-emerald-500 animate-pulse h-10 w-10" fill="currentColor" />
                Pódio da Elite
                <Star className="text-emerald-500 animate-pulse h-10 w-10" fill="currentColor" />
             </h2>
-            <p className="text-slate-400 font-black text-base uppercase tracking-[0.3em] italic">Os Guardiões da Biosfera em Destaque</p>
+            <p className="text-slate-400 font-black text-base uppercase tracking-[0.3em]">Os Guardiões da Biosfera em Destaque</p>
          </div>
 
          <div className="flex flex-wrap justify-center items-end gap-6 md:gap-12 px-6 w-full">
@@ -260,7 +260,7 @@ export default function LeaderboardPage() {
                     <Sparkles className="h-4 w-4 text-yellow-400" />
                     <span className="text-[10px] font-black text-yellow-400 uppercase tracking-widest">Exclusividade Mensal</span>
                  </div>
-                 <h3 className="text-4xl font-black text-white italic uppercase tracking-tighter">Hall das Lendas</h3>
+                 <h3 className="text-4xl font-black text-white uppercase tracking-tighter">Hall das Lendas</h3>
                  <p className="text-slate-400 font-bold text-sm max-w-md uppercase tracking-wide leading-relaxed">
                     Apenas 3 agentes por mês conseguem domar a Nessie. Estes são os pioneiros deste ciclo.
                  </p>
@@ -288,7 +288,7 @@ export default function LeaderboardPage() {
                             )}>
                                {legend ? legend.name.split(' ')[0] : 'Vaga Aberta'}
                             </p>
-                            {legend && <p className="text-[8px] text-white/40 font-bold uppercase mt-1 italic">{new Date(legend.purchaseDate).toLocaleDateString()}</p>}
+                            {legend && <p className="text-[8px] text-white/40 font-bold uppercase mt-1">{new Date(legend.purchaseDate).toLocaleDateString()}</p>}
                          </div>
                       </div>
                     );
@@ -303,7 +303,7 @@ export default function LeaderboardPage() {
         <CardHeader className="border-b border-slate-100 p-10 md:p-12">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-2">
-              <CardTitle className="flex items-center gap-4 text-3xl font-black italic uppercase tracking-tighter text-slate-800">
+              <CardTitle className="flex items-center gap-4 text-3xl font-black uppercase tracking-tighter text-slate-800">
                 <Flame className="h-9 w-9 text-orange-500 animate-pulse" />
                 Corrida Sustentável
               </CardTitle>
@@ -339,7 +339,7 @@ export default function LeaderboardPage() {
                     user.level === 'Guardião da Lenda' && "bg-yellow-50/30 border-l-[6px] border-l-yellow-400 shadow-[inset_0_0_20px_rgba(250,204,21,0.1)]"
                   )}
                 >
-                  <TableCell className="font-black text-center text-slate-300 text-2xl py-10 italic tabular-nums group-hover:text-emerald-500 transition-colors">
+                  <TableCell className="font-black text-center text-slate-300 text-2xl py-10 tabular-nums group-hover:text-emerald-500 transition-colors">
                     {index + 4}º
                   </TableCell>
                   <TableCell>

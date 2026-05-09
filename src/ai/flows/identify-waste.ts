@@ -20,6 +20,7 @@ const IdentifyWasteOutputSchema = z.object({
   recyclable: z.boolean().describe('O item é reciclável?'),
   recyclingInstructions: z.string().describe('Breves instruções de como preparar o item para o descarte (ex: "Lavar e secar antes de descartar"). Se não for reciclável, informe o motivo.'),
   points: z.number().describe('Os pontos concedidos para este tipo de resíduo.'),
+  estimatedWeightKg: z.number().describe('O peso estimado do item em quilogramas (ex: 0.02 para garrafa PET, 0.15 para lata).'),
   justification: z
     .string()
     .describe('Uma breve justificativa para a classificação e pontuação.'),
@@ -71,6 +72,8 @@ const prompt = ai.definePrompt({
   - Eletrônico: 20
   - Não reciclável: 0
 
+  **Peso Estimado:** Estime o peso real do objeto identificado em KG. Seja realista (ex: Garrafa PET vazia ~0.02kg, Lata alumínio ~0.015kg, Papel A4 ~0.005kg).
+
   Responda estritamente no formato JSON de saída definido.
 
   Imagem: {{media url=photoDataUri}}`,
@@ -108,7 +111,9 @@ const identifyWasteFlow = ai.defineFlow(
               const finalResult = {
                 ...output,
                 points: POINTS_MAPPING[output.wasteType] ?? 0,
+                estimatedWeightKg: output.estimatedWeightKg || 0.05
               };
+              
               console.log('Identification success:', finalResult);
               return finalResult;
           }

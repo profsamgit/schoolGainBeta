@@ -15,6 +15,7 @@ export type User = {
   vitality?: number;
   itemsCount?: number;
   schoolId?: string;
+  mustChangePassword?: boolean;
 };
 
 export type Reward = {
@@ -63,6 +64,8 @@ export type AuditLogEntry = {
 
 export const SCHOOL_SECTORS = [
   'Biblioteca',
+  'Setor Pedagógico',
+  'Setor Administrativo',
   'Horta Escolar',
   'Cantina',
   'Laboratório',
@@ -96,4 +99,37 @@ export type School = {
   managerPassword?: string;  // Senha inicial do gestor
   status: 'active' | 'pending';
   joinedDate: string;
+};
+
+export type CycleSnapshot = {
+    id: string;
+    endDate: string;
+    totalWasteKg: number;
+    totalPoints: number;
+    topStudents: { name: string, points: number, ra: string }[];
+    wasteByType: Record<string, number>;
+    schoolId?: string;
+};
+
+export type WasteType = 'Plástico' | 'Papel' | 'Metal' | 'Orgânico' | 'Vidro' | 'Eletrônico' | 'Não reciclável';
+
+export type WasteEntry = {
+    id: string;
+    date: string;
+    collected: number; // em kg
+    type: WasteType;
+    ra?: string;
+    schoolId?: string;
+};
+
+export type Turma = {
+  id: string;
+  name: string;
+  status: 'active' | 'inactive';
+};
+
+export type Curso = {
+  id: string;
+  name: string;
+  status: 'active' | 'inactive';
 };

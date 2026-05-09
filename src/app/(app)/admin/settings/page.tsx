@@ -121,8 +121,18 @@ export default function AdminSettingsPage() {
               </p>
             </div>
           </CardContent>
+          <CardFooter>
+            <Button className="w-full gap-2" onClick={handleSave}>
+              <Save className="h-4 w-4" /> Salvar Preferências
+            </Button>
+          </CardFooter>
         </Card>
 
+        {/* Configurações de Segurança (Alterar Senha) */}
+        <PasswordChangeCard />
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
         {/* Configurações de Hardware (Câmera) */}
         <Card>
           <CardHeader>
@@ -167,13 +177,110 @@ export default function AdminSettingsPage() {
               </div>
             )}
           </CardContent>
-          <CardFooter>
-            <Button className="w-full gap-2" onClick={handleSave}>
-              <Save className="h-4 w-4" /> Salvar Configurações
-            </Button>
-          </CardFooter>
         </Card>
       </div>
     </div>
+  );
+}
+
+function PasswordChangeCard() {
+  const { updateMyPassword } = useEcosystem();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [passwords, setPasswords] = useState({
+    current: '',
+    new: '',
+    confirm: ''
+  });
+
+  const handleChangePassword = async () => {
+    if (passwords.new !== passwords.confirm) {
+      toast({
+        variant: "destructive",
+        title: "Erro na Confirmação",
+        description: "As novas senhas não coincidem.",
+      });
+      return;
+    }
+
+    if (passwords.new.length < 6) {
+      toast({
+        variant: "destructive",
+        title: "Senha muito curta",
+        description: "A nova senha deve ter pelo menos 6 caracteres.",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const success = await updateMyPassword(passwords.current, passwords.new);
+      if (success) {
+        toast({
+          title: "Senha Atualizada",
+          description: "Sua senha de acesso foi alterada com sucesso.",
+        });
+        setPasswords({ current: '', new: '', confirm: '' });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Erro ao atualizar",
+          description: "A senha atual está incorreta.",
+        });
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="h-5 w-5 text-primary" />
+          <CardTitle>Segurança da Conta</CardTitle>
+        </div>
+        <CardDescription>
+          Mantenha sua conta de gestor protegida alterando sua senha periodicamente.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label>Senha Atual</Label>
+          <Input 
+            type="password" 
+            value={passwords.current}
+            onChange={(e) => setPasswords({...passwords, current: e.target.value})}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Nova Senha</Label>
+          <Input 
+            type="password" 
+            value={passwords.new}
+            onChange={(e) => setPasswords({...passwords, new: e.target.value})}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Confirmar Nova Senha</Label>
+          <Input 
+            type="password" 
+            value={passwords.confirm}
+            onChange={(e) => setPasswords({...passwords, confirm: e.target.value})}
+          />
+        </div>
+      </CardContent>
+      <CardFooter>
+        <Button 
+          className="w-full gap-2" 
+          onClick={handleChangePassword}
+          disabled={loading || !passwords.current || !passwords.new}
+        >
+          {loading ? "Processando..." : "Atualizar Senha"}
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }

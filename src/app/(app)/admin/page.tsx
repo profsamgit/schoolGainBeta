@@ -26,6 +26,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
@@ -80,7 +81,8 @@ import {
   School as SchoolIcon,
   Globe,
   Plus,
-  Sparkles
+  Sparkles,
+  ShieldCheck,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -99,6 +101,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { EcosystemService } from '@/lib/ecosystem.service';
 
 const userSchema = z.object({
   id: z.string().optional(),
@@ -113,20 +116,16 @@ const userSchema = z.object({
   password: z.string().optional().or(z.literal('')),
   confirmPassword: z.string().optional().or(z.literal('')),
 }).superRefine((data, ctx) => {
-  // Validação condicional para Gestores
+  // Validação simplificada: Senha apenas se for NOVO usuário e Admin
+  const isNew = !data.id;
+  
   if (data.role === 'admin') {
-    if (!data.name || data.name.length < 3) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'O nome é obrigatório para gestores', path: ['name'] });
-    }
-    if (!data.position) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'O cargo é obrigatório para gestores', path: ['position'] });
-    }
-    if (!data.email || !data.email.includes('@')) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'E-mail obrigatório para gestores', path: ['email'] });
-    }
-    // Senha obrigatória apenas no cadastro de novos gestores
-    if (!data.id && (!data.password || data.password.length < 6)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Senha deve ter pelo menos 6 caracteres', path: ['password'] });
+    if (!data.name || data.name.length < 3) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'O nome é obrigatório', path: ['name'] });
+    if (!data.position) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'O cargo é obrigatório', path: ['position'] });
+    if (!data.email || !data.email.includes('@')) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'E-mail inválido', path: ['email'] });
+    
+    if (isNew && (!data.password || data.password.length < 6)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Senha inicial obrigatória (mín. 6 chars)', path: ['password'] });
     }
   }
 
@@ -240,6 +239,7 @@ function AdminContent() {
   const [grantPointsValue, setGrantPointsValue] = useState(0);
   const [grantSector, setGrantSector] = useState(SCHOOL_SECTORS[0] as string);
   const [grantAction, setGrantAction] = useState('');
+  const [grantPassword, setGrantPassword] = useState('');
 
   // Estados para Busca em Recompensas e Artigos
   const [rewardSearch, setRewardSearch] = useState('');
@@ -252,7 +252,6 @@ function AdminContent() {
   }, [searchParams, currentUser]);
 
   const filteredUsersForAdmin = useMemo(() => {
-    console.log('[ADMIN] Filtrando para schoolId:', targetSchoolId);
     if (!targetSchoolId) return users;
     // Filtra apenas usuários que pertencem à unidade selecionada
     return users.filter(u => u.schoolId === targetSchoolId);
@@ -271,6 +270,13 @@ function AdminContent() {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [itemType, setItemType] = useState<'user' | 'reward' | 'article' | 'participant' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mustChangePass, setMustChangePass] = useState(false);
+
+  useEffect(() => {
+    if (currentUser?.mustChangePassword) {
+      setMustChangePass(true);
+    }
+  }, [currentUser]);
   const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
   const [isRFIDCapturing, setIsRFIDCapturing] = useState(false);
 
@@ -284,13 +290,15 @@ function AdminContent() {
   }, [terminals, targetSchoolId]);
 
   const filteredRewards = useMemo(() => {
-    const list = targetSchoolId ? rewards.filter(r => r.schoolId === targetSchoolId) : rewards;
+    // Mostra recompensas da escola atual, globais da 'school-1' ou sem escola (legado)
+    const list = rewards.filter(r => !targetSchoolId || r.schoolId === targetSchoolId || r.schoolId === 'school-1' || !r.schoolId);
     if (!rewardSearch) return list;
     return list.filter(r => r.name.toLowerCase().includes(rewardSearch.toLowerCase()));
   }, [rewards, targetSchoolId, rewardSearch]);
 
   const filteredArticles = useMemo(() => {
-    const list = targetSchoolId ? articles.filter(a => a.schoolId === targetSchoolId) : articles;
+    // Artigos são mostrados se pertencerem à escola atual, se forem da 'school-1' ou se não tiverem escola (legado)
+    const list = articles.filter(a => !targetSchoolId || a.schoolId === targetSchoolId || a.schoolId === 'school-1' || !a.schoolId);
     if (!articleSearch) return list;
     return list.filter(a => a.title.toLowerCase().includes(articleSearch.toLowerCase()));
   }, [articles, targetSchoolId, articleSearch]);
@@ -321,29 +329,52 @@ function AdminContent() {
     if (isQRScannerOpen) setIsSearchQRScannerOpen(false);
   }, [isQRScannerOpen]);
 
-  // Password Change Modal State
-  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  // Password Change State
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [passFormData, setPassFormData] = useState({ currentPass: '', newPass: '', confirmPass: '' });
 
-  const handlePasswordChange = () => {
-    if (newPassword.length < 6) {
-      toast({ title: 'Erro', description: 'A senha deve ter pelo menos 6 caracteres.', variant: 'destructive' });
-      return;
-    }
-    if (newPassword !== confirmPassword) {
+  const handleUpdateUserPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const { currentPass, newPass, confirmPass } = passFormData;
+
+    if (newPass !== confirmPass) {
       toast({ title: 'Erro', description: 'As senhas não coincidem.', variant: 'destructive' });
       return;
     }
     
-    if (currentUser?.ra) {
-      const success = changePassword(currentUser.ra, newPassword);
-      if (success) {
-        toast({ title: 'Sucesso', description: 'Sua senha foi alterada com sucesso!' });
-        setIsPasswordModalOpen(false);
-        setNewPassword('');
-        setConfirmPassword('');
+    if (newPass.length < 6) {
+      toast({ title: 'Erro', description: 'Senha muito curta.', variant: 'destructive' });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Se for troca obrigatória, não precisa da senha atual (porque é o primeiro acesso/reset)
+      if (!mustChangePass) {
+        const hashedAuth = await EcosystemService.hashPassword(currentPass);
+        if (currentUser?.password !== hashedAuth) {
+          toast({ title: 'Erro', description: 'Sua senha atual está incorreta.', variant: 'destructive' });
+          return;
+        }
       }
+
+      const hashedNew = await EcosystemService.hashPassword(newPass);
+      const updatedUsers = users.map(u => u.id === (selectedItem?.id || currentUser?.id) ? { 
+        ...u, 
+        password: hashedNew,
+        mustChangePassword: false 
+      } : u);
+      
+      updateUsers(updatedUsers);
+      
+      toast({ title: 'Sucesso', description: 'Senha atualizada com sucesso!' });
+      setIsPasswordDialogOpen(false);
+      setMustChangePass(false);
+      setPassFormData({ currentPass: '', newPass: '', confirmPass: '' });
+    } catch (e) {
+      toast({ title: 'Erro', description: 'Falha ao atualizar senha.', variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -449,7 +480,7 @@ function AdminContent() {
     setIsNew(false);
     setViewMode('form');
     
-    if (type === 'user') userForm.reset({ ...item, email: item.email || '', password: item.password || '', confirmPassword: item.password || '' });
+    if (type === 'user') userForm.reset({ ...item, email: item.email || '', password: '', confirmPassword: '' });
     if (type === 'reward') rewardForm.reset(item);
     if (type === 'article') articleForm.reset(item);
     if (type === 'participant') participantForm.reset(item);
@@ -554,16 +585,16 @@ function AdminContent() {
   };
 
   const handleAddTurma = () => {
-    if (newTurma && !allTurmas.includes(newTurma)) {
-      updateTurmas([...allTurmas, newTurma]);
+    if (newTurma && !allTurmas.some(t => t.name === newTurma)) {
+      updateTurmas([...allTurmas, { id: `turma-${Date.now()}`, name: newTurma, status: 'active' }]);
       setNewTurma('');
       toast({ title: 'Turma Adicionada!', description: `"${newTurma}" foi adicionada.` });
     }
   };
 
   const handleAddCurso = () => {
-    if (newCurso && !allCursos.includes(newCurso)) {
-      updateCursos([...allCursos, newCurso]);
+    if (newCurso && !allCursos.some(c => c.name === newCurso)) {
+      updateCursos([...allCursos, { id: `curso-${Date.now()}`, name: newCurso, status: 'active' }]);
       setNewCurso('');
       toast({ title: 'Curso Adicionado!', description: `"${newCurso}" foi adicionado.` });
     }
@@ -592,18 +623,22 @@ function AdminContent() {
   }, [isRFIDCapturing, viewMode, itemType, systemSettings.terminalId, userForm, toast]);
 
   const handleGrantSubmit = () => {
-    if (!grantRa || grantPointsValue <= 0 || !grantAction) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Selecione um aluno, informe os pontos e descreva a ação.' });
+    if (!grantRa || grantPointsValue <= 0 || !grantAction || !grantPassword) {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Preencha todos os campos, incluindo sua senha de gestor.' });
       return;
     }
-    if (grantPoints(grantRa, grantPointsValue, grantSector, grantAction, currentUser?.name || 'Gestor')) {
-      toast({ title: 'Pontos Atribuídos!', description: `${grantPointsValue} pontos foram dados para o aluno por: ${grantAction}.` });
-      setGrantRa('');
-      setGrantPointsValue(0);
-      setGrantAction('');
-    } else {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Aluno não encontrado ou falha no sistema.' });
-    }
+    
+    grantPoints(grantRa, grantPointsValue, grantSector, grantAction, currentUser?.name || 'Gestor', grantPassword).then(success => {
+      if (success) {
+        toast({ title: 'Pontos Atribuídos!', description: `${grantPointsValue} pontos foram dados para o aluno por: ${grantAction}.` });
+        setGrantRa('');
+        setGrantPointsValue(0);
+        setGrantAction('');
+        setGrantPassword('');
+      } else {
+        toast({ variant: 'destructive', title: 'Erro', description: 'Senha incorreta ou falha no sistema.' });
+      }
+    });
   };
 
   const handleBadgePrint = (userToPrint: any) => {
@@ -699,7 +734,7 @@ function AdminContent() {
       <div className="space-y-2">
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-black italic uppercase tracking-tighter flex items-center gap-2">
+            <h1 className="text-3xl font-black uppercase tracking-tighter flex items-center gap-2">
               <Shield className="h-8 w-8 text-primary" /> Painel do Gestor
             </h1>
             <p className="text-muted-foreground font-medium">Gestão Operacional: {schools.find(s => s.id === currentUser.schoolId)?.name || 'Unidade SchoolGain'}</p>
@@ -749,7 +784,7 @@ function AdminContent() {
                       ) : (
                         <div className="space-y-2">
                           <Label>Perfil de Visitante</Label>
-                          <Input value="Visitante (Padrão)" disabled className="bg-slate-50 italic text-muted-foreground" />
+                          <Input value="Visitante (Padrão)" disabled className="bg-slate-50 text-muted-foreground" />
                         </div>
                       )}
                       {userForm.watch('role') === 'admin' && (
@@ -808,13 +843,14 @@ function AdminContent() {
                             {userForm.watch('role') === 'admin' && (
                               <FormField control={userForm.control} name="position" render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Cargo</FormLabel>
+                                  <FormLabel>Cargo Administrativo</FormLabel>
                                   <Select onValueChange={field.onChange} value={field.value}>
                                     <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione o cargo" /></SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="Diretoria">Diretoria</SelectItem>
                                       <SelectItem value="Coordenação">Coordenação</SelectItem>
                                       <SelectItem value="TI">Tecnologia da Informação (TI)</SelectItem>
+                                      <SelectItem value="Financeiro">Financeiro / Administrativo</SelectItem>
                                     </SelectContent>
                                   </Select>
                                   <FormMessage />
@@ -830,7 +866,7 @@ function AdminContent() {
                                           <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                           <SelectContent>
                                               {userForm.watch('role') === 'student' ? (
-                                                  allTurmas.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)
+                                                  allTurmas.filter(t => t.status === 'active').map(t => <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>)
                                               ) : (
                                                   <>
                                                       <SelectItem value="Diretoria">Diretoria</SelectItem>
@@ -853,7 +889,7 @@ function AdminContent() {
                                       <Select onValueChange={field.onChange} value={field.value}>
                                           <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione o curso" /></SelectTrigger>
                                           <SelectContent>
-                                              {allCursos.filter(c => c !== 'Gestão Escolar').map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                                              {allCursos.filter(c => c.status === 'active' && c.name !== 'Gestão Escolar').map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
                                           </SelectContent>
                                       </Select>
                                       <FormMessage />
@@ -861,20 +897,20 @@ function AdminContent() {
                               )} />
                             )}
                             {/* Cargo no Sistema unificado com Cargo Administrativo e oculto para visitantes */}
-                            {userForm.watch('role') === 'admin' && (
+                            {userForm.watch('role') === 'admin' && isNew && (
                               <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-4">
                                 <div className="flex justify-between items-center">
-                                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Segurança do Gestor</Label>
+                                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Senha Inicial</Label>
                                   <Button type="button" variant="ghost" size="sm" onClick={generateStrongPassword} className="h-7 text-[10px] font-bold uppercase tracking-tighter text-primary">
-                                    <Sparkles className="h-3 w-3 mr-1" /> Gerar Senha Forte
+                                    <Sparkles className="h-3 w-3 mr-1" /> Gerar Forte
                                   </Button>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                   <FormField control={userForm.control} name="password" render={({ field }) => (
-                                    <FormItem><FormLabel>Nova Senha</FormLabel><FormControl><Input {...field} type="password" placeholder="Mínimo 6 caracteres" className="bg-white" /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Definir Senha</FormLabel><FormControl><Input {...field} type="password" placeholder="Mínimo 6 caracteres" className="bg-white" /></FormControl><FormMessage /></FormItem>
                                   )} />
                                   <FormField control={userForm.control} name="confirmPassword" render={({ field }) => (
-                                    <FormItem><FormLabel>Confirmar Senha</FormLabel><FormControl><Input {...field} type="password" placeholder="Repita a senha" className="bg-white" /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Confirmar</FormLabel><FormControl><Input {...field} type="password" placeholder="Repita a senha" className="bg-white" /></FormControl><FormMessage /></FormItem>
                                   )} />
                                 </div>
                               </div>
@@ -892,46 +928,19 @@ function AdminContent() {
             </Card>
           ) : (
             <div className="space-y-6">
-              {/* RECONHECIMENTO DE MÉRITO (NOVO POSITION) */}
-              <Card className="border-emerald-100 shadow-sm bg-emerald-50/20">
-                <CardHeader className="pb-4"><CardTitle className="flex items-center gap-2 italic uppercase tracking-tighter text-emerald-700 font-black text-sm"><Leaf className="h-5 w-5" /> Reconhecimento de Mérito</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="md:col-span-1 space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Identificar Aluno (RA)</Label>
-                      <Select onValueChange={setGrantRa} value={grantRa}>
-                        <SelectTrigger className="bg-white border-emerald-200"><SelectValue placeholder="Selecione o aluno..." /></SelectTrigger>
-                        <SelectContent>{filteredUsersForAdmin.filter(u => u.role === 'student').map(u => <SelectItem key={u.id} value={u.ra || ''}>{u.name} ({u.ra})</SelectItem>)}</SelectContent>
-                      </Select>
-                    </div>
-                    <div className="md:col-span-1 space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Descrição da Ação</Label>
-                      <Input placeholder="Ex: Ajudou na horta..." value={grantAction} onChange={(e) => setGrantAction(e.target.value)} className="bg-white border-emerald-200" />
-                    </div>
-                    <div className="md:col-span-1 flex gap-2 items-end">
-                      <div className="flex-1 space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">PTS</Label>
-                        <Input type="number" value={grantPointsValue} onChange={(e) => setGrantPointsValue(Number(e.target.value))} className="bg-white border-emerald-200" />
-                      </div>
-                      <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={handleGrantSubmit}><Plus className="h-4 w-4" /></Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
               <div className="grid gap-6 md:grid-cols-2">
                 <Card>
                     <CardHeader><CardTitle className="text-sm font-black uppercase tracking-widest text-slate-500">Turmas</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
                         <div className="flex gap-2"><Input placeholder="Ex: 1ª Série" value={newTurma} onChange={(e) => setNewTurma(e.target.value)} /><Button onClick={handleAddTurma}>+</Button></div>
-                        <div className="flex flex-wrap gap-2">{allTurmas.map(t => <Badge key={t} variant="outline" className="text-[10px]">{t}</Badge>)}</div>
+                        <div className="flex flex-wrap gap-2">{allTurmas.map(t => <Badge key={t.id} variant="outline" className={`text-[10px] ${t.status === 'inactive' ? 'opacity-40' : ''}`}>{t.name}</Badge>)}</div>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader><CardTitle className="text-sm font-black uppercase tracking-widest text-slate-500">Cursos</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
                         <div className="flex gap-2"><Input placeholder="Ex: Técnico em TDS" value={newCurso} onChange={(e) => setNewCurso(e.target.value)} /><Button onClick={handleAddCurso}>+</Button></div>
-                        <div className="flex flex-wrap gap-2">{allCursos.map(c => <Badge key={c} variant="outline" className="text-[10px]">{c}</Badge>)}</div>
+                        <div className="flex flex-wrap gap-2">{allCursos.map(c => <Badge key={c.id} variant="outline" className={`text-[10px] ${c.status === 'inactive' ? 'opacity-40' : ''}`}>{c.name}</Badge>)}</div>
                     </CardContent>
                 </Card>
               </div>
@@ -1003,7 +1012,7 @@ function AdminContent() {
                           <SelectContent>
                             <SelectItem value="all">Todas as Turmas</SelectItem>
                             {allTurmas.map(t => (
-                              <SelectItem key={t} value={t}>{t}</SelectItem>
+                              <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -1052,18 +1061,40 @@ function AdminContent() {
                                   <Button variant="outline" size="sm" onClick={() => { setBadgeUser(user as any); setIsBadgeOpen(true); }} className="h-8 px-2 gap-1 text-[10px] uppercase font-black tracking-tighter">
                                     <QrCode className="h-3 w-3" /> Carteira
                                   </Button>
-                                  {(user.role === 'admin' || user.role === 'super_admin') && (
-                                    <Button variant="outline" size="sm" onClick={() => setIsPasswordModalOpen(true)} className="h-8 px-2 gap-1 text-[10px] uppercase font-black tracking-tighter border-amber-200 text-amber-700 hover:bg-amber-50">
-                                      <Lock className="h-3 w-3" /> Senha
-                                    </Button>
-                                  )}
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild><Button variant="ghost" size="sm" className="h-8 w-8 p-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-40">
-                                      <DropdownMenuItem onClick={() => handleEdit(user, 'user')} className="gap-2"><Edit className="h-4 w-4" /> Editar</DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => handleDelete(user, 'user')} className="text-red-600 gap-2"><Trash2 className="h-4 w-4" /> Excluir</DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
+                                  <div className="flex justify-end gap-2">
+                                     {user.role === 'admin' && (
+                                       <Button 
+                                         variant="ghost" 
+                                         size="icon" 
+                                         title="Trocar Senha"
+                                         className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-50"
+                                         onClick={() => {
+                                           setSelectedItem(user);
+                                           setIsPasswordDialogOpen(true);
+                                         }}
+                                       >
+                                          <Lock className="h-4 w-4" />
+                                       </Button>
+                                     )}
+                                     <Button 
+                                       variant="ghost" 
+                                       size="icon" 
+                                       title="Editar"
+                                       className="h-8 w-8 text-slate-400 hover:text-slate-900"
+                                       onClick={() => handleEdit(user, 'user')}
+                                     >
+                                        <Edit className="h-4 w-4" />
+                                     </Button>
+                                     <Button 
+                                       variant="ghost" 
+                                       size="icon" 
+                                       title="Excluir"
+                                       className="h-8 w-8 text-slate-400 hover:text-red-600"
+                                       onClick={() => handleDelete(user, 'user')}
+                                     >
+                                        <Trash2 className="h-4 w-4" />
+                                     </Button>
+                                  </div>
                                 </div>
                               </TableCell>
                             </TableRow>
@@ -1106,7 +1137,7 @@ function AdminContent() {
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 uppercase tracking-tighter italic font-black text-sm">
+                <CardTitle className="flex items-center gap-2 uppercase tracking-tighter font-black text-sm">
                   <Cpu className="h-5 w-5 text-primary" /> Identificação e Sensores
                 </CardTitle>
                 <CardDescription>Configure como os terminais físicos interagem com o sistema.</CardDescription>
@@ -1146,7 +1177,7 @@ function AdminContent() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 uppercase tracking-tighter italic font-black text-sm">
+                <CardTitle className="flex items-center gap-2 uppercase tracking-tighter font-black text-sm">
                   <Monitor className="h-5 w-5 text-primary" /> Visão Computacional
                 </CardTitle>
                 <CardDescription>Fonte de captura para identificação de resíduos.</CardDescription>
@@ -1175,7 +1206,7 @@ function AdminContent() {
           <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle className="flex items-center gap-2 uppercase tracking-tighter italic font-black text-sm"><Monitor className="h-5 w-5 text-primary" /> Gestão de Totens</CardTitle>
+                  <CardTitle className="flex items-center gap-2 uppercase tracking-tighter font-black text-sm"><Monitor className="h-5 w-5 text-primary" /> Gestão de Totens</CardTitle>
                   <CardDescription>Gerencie terminais físicos e solicitações de acesso da sua unidade.</CardDescription>
                 </div>
                 <Badge variant="outline" className="gap-2 bg-emerald-50 text-emerald-700 border-emerald-200">
@@ -1329,6 +1360,37 @@ function AdminContent() {
             </Card>
           ) : (
             <div className="space-y-6">
+                {/* RECONHECIMENTO DE MÉRITO (NOVO POSITION) */}
+                <Card className="border-emerald-100 shadow-sm bg-emerald-50/20">
+                  <CardHeader className="pb-4"><CardTitle className="flex items-center gap-2 uppercase tracking-tighter text-emerald-700 font-black text-sm"><Leaf className="h-5 w-5" /> Reconhecimento de Mérito</CardTitle></CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="md:col-span-1 space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Identificar Aluno (RA)</Label>
+                        <Select onValueChange={setGrantRa} value={grantRa}>
+                          <SelectTrigger className="bg-white border-emerald-200"><SelectValue placeholder="Selecione o aluno..." /></SelectTrigger>
+                          <SelectContent>{filteredUsersForAdmin.filter(u => u.role === 'student').map(u => <SelectItem key={u.id} value={u.ra || ''}>{u.name} ({u.ra})</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                      <div className="md:col-span-1 space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Descrição da Ação</Label>
+                        <Input placeholder="Ex: Ajudou na horta..." value={grantAction} onChange={(e) => setGrantAction(e.target.value)} className="bg-white border-emerald-200" />
+                      </div>
+                      <div className="md:col-span-1 flex gap-2 items-end">
+                        <div className="flex-1 space-y-2">
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">PTS</Label>
+                          <Input type="number" value={grantPointsValue} onChange={(e) => setGrantPointsValue(Number(e.target.value))} className="bg-white border-emerald-200" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Sua Senha (Gestor)</Label>
+                          <Input type="password" value={grantPassword} onChange={(e) => setGrantPassword(e.target.value)} placeholder="Confirme para autorizar" className="bg-white border-emerald-200" />
+                        </div>
+                        <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={handleGrantSubmit}><Plus className="h-4 w-4" /></Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <div><CardTitle>Recompensas</CardTitle><CardDescription>Catálogo de prêmios por pontos.</CardDescription></div>
@@ -1377,7 +1439,7 @@ function AdminContent() {
                 </Card>
 
                 <Card>
-                    <CardHeader><CardTitle className="flex items-center gap-2 italic uppercase tracking-tighter"><History className="h-6 w-6 text-primary" /> Histórico de Transações</CardTitle><CardDescription>Auditoria completa de atribuição de pontos na unidade.</CardDescription></CardHeader>
+                    <CardHeader><CardTitle className="flex items-center gap-2 uppercase tracking-tighter"><History className="h-6 w-6 text-primary" /> Histórico de Transações</CardTitle><CardDescription>Auditoria completa de atribuição de pontos na unidade.</CardDescription></CardHeader>
                     <CardContent>
                     <Table>
                         <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Aluno</TableHead><TableHead>Ação Realizada</TableHead><TableHead>Setor</TableHead><TableHead>Gestor</TableHead><TableHead className="text-right">Bônus</TableHead></TableRow></TableHeader>
@@ -1578,6 +1640,112 @@ function AdminContent() {
         </TabsContent>
       </Tabs>
       </div>
+      <Dialog open={isPasswordDialogOpen} onOpenChange={(open) => {
+        setIsPasswordDialogOpen(open);
+        if (!open) {
+          setSelectedItem(null);
+          setPassFormData({ currentPass: '', newPass: '', confirmPass: '' });
+        }
+      }}>
+        <DialogContent>
+           <DialogHeader>
+              <DialogTitle className="text-xl font-black uppercase tracking-tighter flex items-center gap-2">
+                <Lock className="h-5 w-5 text-primary" /> Alterar Senha: {selectedItem?.name}
+              </DialogTitle>
+              <DialogDescription>
+                {selectedItem?.id === currentUser?.id 
+                  ? 'Confirme sua senha atual para definir uma nova.' 
+                  : 'Digite SUA SENHA de Gestor para autorizar o reset.'}
+              </DialogDescription>
+           </DialogHeader>
+           <form onSubmit={handleUpdateUserPassword} className="space-y-4 pt-4">
+              <div className="space-y-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                 <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Sua Senha de Gestor (Autorização)</Label>
+                 <Input 
+                   type="password"
+                   required 
+                   value={passFormData.currentPass}
+                   onChange={e => setPassFormData({...passFormData, currentPass: e.target.value})}
+                   placeholder="Digite sua senha"
+                 />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Nova Senha</Label>
+                    <Input 
+                      type="password"
+                      required
+                      value={passFormData.newPass}
+                      onChange={e => setPassFormData({...passFormData, newPass: e.target.value})}
+                      placeholder="Mínimo 6 chars"
+                    />
+                 </div>
+                 <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Confirmar</Label>
+                    <Input 
+                      type="password"
+                      required
+                      value={passFormData.confirmPass}
+                      onChange={e => setPassFormData({...passFormData, confirmPass: e.target.value})}
+                      placeholder="Repita a senha"
+                    />
+                 </div>
+              </div>
+              <DialogFooter className="pt-4">
+                 <Button type="submit" disabled={isSubmitting} className="w-full bg-primary font-black uppercase text-xs tracking-widest">
+                    {isSubmitting ? 'Atualizando...' : 'Confirmar Nova Senha'}
+                 </Button>
+              </DialogFooter>
+           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* BLOQUEIO DE SEGURANÇA: TROCA OBRIGATÓRIA DE SENHA */}
+      <Dialog open={mustChangePass} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-md border-2 border-primary bg-slate-50">
+           <DialogHeader>
+              <DialogTitle className="text-2xl font-black uppercase tracking-tighter flex items-center gap-2 text-primary">
+                <ShieldCheck className="h-6 w-6" /> Segurança: Primeiro Acesso
+              </DialogTitle>
+              <DialogDescription className="text-slate-700 font-medium">
+                Sua conta passou por um reset administrativo ou é um novo cadastro. 
+                <strong> Defina sua senha pessoal agora para continuar.</strong>
+              </DialogDescription>
+           </DialogHeader>
+           
+           <form onSubmit={handleUpdateUserPassword} className="space-y-4 pt-2">
+              <div className="grid grid-cols-1 gap-4">
+                 <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Nova Senha Pessoal</Label>
+                    <Input 
+                      type="password"
+                      required
+                      value={passFormData.newPass}
+                      onChange={e => setPassFormData({...passFormData, newPass: e.target.value})}
+                      placeholder="Mínimo 6 caracteres"
+                      className="bg-white border-slate-300"
+                    />
+                 </div>
+                 <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Confirmar Nova Senha</Label>
+                    <Input 
+                      type="password"
+                      required
+                      value={passFormData.confirmPass}
+                      onChange={e => setPassFormData({...passFormData, confirmPass: e.target.value})}
+                      placeholder="Repita a senha"
+                      className="bg-white border-slate-300"
+                    />
+                 </div>
+              </div>
+              <DialogFooter className="pt-4">
+                 <Button type="submit" disabled={isSubmitting} className="w-full bg-primary font-black uppercase text-xs tracking-widest h-12">
+                    {isSubmitting ? 'Salvando...' : 'Definir Senha e Acessar Painel'}
+                 </Button>
+              </DialogFooter>
+           </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

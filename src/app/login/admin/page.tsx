@@ -4,21 +4,21 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Keyboard, ShieldCheck, QrCode, Cpu, User, Loader2, Volume2, Lock } from 'lucide-react';
+import { ArrowRight, Keyboard, ShieldCheck, QrCode, Cpu, Loader2, Volume2, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { VirtualKeyboard } from '@/components/ui/virtual-keyboard';
-import { ADMIN_MOCK } from '@/lib/data';
 import { useEcosystem } from '@/app/(app)/ecosystem-context';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Label } from '@/components/ui/label';
+import { playBeep } from '@/lib/utils';
 
 const QRScanner = dynamic(() => import('@/components/ui/qr-scanner'), { ssr: false });
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const { login, systemSettings, users } = useEcosystem();
+  const { login, systemSettings, users, getLockoutStatus } = useEcosystem();
   const { toast } = useToast();
 
   const [username, setUsername] = useState('');
@@ -27,44 +27,57 @@ export default function AdminLoginPage() {
   const [activeInput, setActiveInput] = useState<'username' | 'password'>('username');
   const [activeTab, setActiveTab] = useState('manual');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [lockoutSecs, setLockoutSecs] = useState(0);
   
   const usernameRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
-  const playBeep = (type: 'success' | 'error') => {
-    try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(type === 'success' ? 880 : 220, ctx.currentTime);
-      gain.gain.setValueAtTime(0.1, ctx.currentTime);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.2);
-    } catch (e) {}
-  };
+  // Sanitiza inputs básicos
+  const sanitize = (val: string) => val.replace(/[<>]/g, '').trim();
+
 
   const handleManualLogin = async () => {
+    const cleanUser = sanitize(username);
+    const cleanPass = sanitize(password);
+    
+    if (!cleanUser || !cleanPass) {
+        toast({ variant: 'destructive', title: 'Erro de entrada', description: 'Caracteres inválidos detectados.' });
+        return;
+    }
+
     setIsProcessing(true);
-    const success = await login(username.trim(), password.trim());
+    
+    const lockout = getLockoutStatus(cleanUser);
+    if (lockout.isLocked) {
+      setLockoutSecs(lockout.remainingSeconds);
+      setIsProcessing(false);
+      toast({ variant: 'destructive', title: 'Acesso Bloqueado', description: `Muitas tentativas falhas. Aguarde ${lockout.remainingSeconds}s.` });
+      return;
+    }
+
+    const success = await login(cleanUser, cleanPass);
     
     if (success) {
        playBeep('success');
        // Busca o usuário logado para saber o papel
-       const user = users.find(u => u.ra === username || u.email?.toLowerCase() === username.toLowerCase());
+       const user = users.find(u => u.ra === cleanUser || u.email?.toLowerCase() === cleanUser.toLowerCase());
        
        if (user?.role === 'super_admin') {
          toast({ title: `Bem-vindo, ${user.name}!`, description: 'Acesso total à rede concedido.' });
          router.push('/super-admin');
        } else {
          toast({ title: `Bem-vindo, ${user?.name || 'Gestor'}!`, description: 'Painel administrativo liberado.' });
-         router.push('/admin');
+         router.push('/admin/dashboard');
        }
     } else {
        playBeep('error');
-       toast({ variant: 'destructive', title: 'Falha no login', description: 'RA/Email ou senha incorretos.' });
+       const updatedLockout = getLockoutStatus(cleanUser);
+       if (updatedLockout.isLocked) {
+         setLockoutSecs(updatedLockout.remainingSeconds);
+         toast({ variant: 'destructive', title: 'Segurança: Bloqueado', description: 'Múltiplas falhas detectadas. Seu acesso foi suspenso temporariamente.' });
+       } else {
+         toast({ variant: 'destructive', title: 'Falha no login', description: 'RA/Email ou senha incorretos.' });
+       }
        setPassword('');
        setIsProcessing(false);
     }
@@ -88,7 +101,7 @@ export default function AdminLoginPage() {
       if (user.role === 'super_admin') {
         router.push('/super-admin');
       } else {
-        router.push('/admin');
+        router.push('/admin/dashboard');
       }
     } else {
       playBeep('error');
@@ -96,6 +109,13 @@ export default function AdminLoginPage() {
       setIsProcessing(false);
     }
   }, [login, router, toast, isProcessing, users]);
+
+  useEffect(() => {
+    if (lockoutSecs > 0) {
+      const timer = setInterval(() => setLockoutSecs(s => Math.max(0, s - 1)), 1000);
+      return () => clearInterval(timer);
+    }
+  }, [lockoutSecs]);
 
   useEffect(() => {
     // Só inicia o polling se estiver na aba de RFID ou na de QR (quando usar hardware externo)
@@ -140,19 +160,64 @@ export default function AdminLoginPage() {
                         </TabsList>
 
                         <TabsContent value="manual" className="space-y-4">
-                            <div className='space-y-1'>
-                                <Label htmlFor="username">Login (E-mail)</Label>
-                                <Input id="username" ref={usernameRef} value={username} onChange={(e) => setUsername(e.target.value)} onFocus={() => setActiveInput('username')} placeholder="admin@escola.com" inputMode={showKeyboard ? 'none' : 'email'} />
-                            </div>
-                            <div className='space-y-1'>
-                                <Label htmlFor="password">Senha</Label>
-                                <Input id="password" ref={passwordRef} type="password" value={password} onChange={(e) => setPassword(e.target.value)} onFocus={() => setActiveInput('password')} onKeyDown={(e) => e.key === 'Enter' && handleManualLogin()} placeholder="••••••••" inputMode={showKeyboard ? 'none' : 'text'} />
-                            </div>
-                            {showKeyboard && (
-                                <VirtualKeyboard layout="alphanumeric" onInput={(key) => activeInput === 'username' ? setUsername(p => p + key) : setPassword(p => p + key)} onBackspace={() => activeInput === 'username' ? setUsername(p => p.slice(0, -1)) : setPassword(p => p.slice(0, -1))} onEnter={handleManualLogin} />
+                            {lockoutSecs > 0 && (
+                                <div className="bg-destructive/10 border border-destructive/20 p-3 rounded-lg text-destructive text-sm text-center font-medium animate-pulse">
+                                    <Lock className="h-4 w-4 inline mr-2" /> 
+                                    Acesso suspenso por {lockoutSecs}s
+                                </div>
                             )}
-                            <Button className="w-full" size="lg" onClick={handleManualLogin} disabled={!username.trim() || !password.trim()}>Entrar <ArrowRight className="ml-2" /></Button>
-                            <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => setShowKeyboard(p => !p)}><Keyboard className="mr-2" /> {showKeyboard ? 'Esconder' : 'Mostrar'} Teclado</Button>
+                            
+                            <form onSubmit={(e) => { e.preventDefault(); handleManualLogin(); }} className="space-y-4">
+                                <div className='space-y-1'>
+                                    <Label htmlFor="username">Login (E-mail ou RA)</Label>
+                                    <Input 
+                                        id="username" 
+                                        ref={usernameRef} 
+                                        value={username} 
+                                        onChange={(e) => setUsername(e.target.value)} 
+                                        onFocus={() => setActiveInput('username')} 
+                                        placeholder="admin@escola.com" 
+                                        inputMode={showKeyboard ? 'none' : 'email'} 
+                                        disabled={lockoutSecs > 0}
+                                        autoComplete="username"
+                                    />
+                                </div>
+                                <div className='space-y-1'>
+                                    <Label htmlFor="password">Senha</Label>
+                                    <Input 
+                                        id="password" 
+                                        ref={passwordRef} 
+                                        type="password" 
+                                        value={password} 
+                                        onChange={(e) => setPassword(e.target.value)} 
+                                        onFocus={() => setActiveInput('password')} 
+                                        placeholder="••••••••" 
+                                        inputMode={showKeyboard ? 'none' : 'text'} 
+                                        disabled={lockoutSecs > 0}
+                                        autoComplete="current-password"
+                                    />
+                                </div>
+                                
+                                {showKeyboard && !lockoutSecs && (
+                                    <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                        <VirtualKeyboard 
+                                            layout="alphanumeric" 
+                                            onInput={(key) => activeInput === 'username' ? setUsername(p => p + key) : setPassword(p => p + key)} 
+                                            onBackspace={() => activeInput === 'username' ? setUsername(p => p.slice(0, -1)) : setPassword(p => p.slice(0, -1))} 
+                                            onEnter={handleManualLogin} 
+                                        />
+                                    </div>
+                                )}
+                                
+                                <Button type="submit" className="w-full h-12 text-lg" disabled={!username.trim() || !password.trim() || lockoutSecs > 0}>
+                                    {lockoutSecs > 0 ? `Bloqueado (${lockoutSecs}s)` : 'Entrar'} <ArrowRight className="ml-2" />
+                                </Button>
+                            </form>
+
+                            <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => setShowKeyboard(p => !p)} disabled={lockoutSecs > 0}>
+                                <Keyboard className="mr-2" /> 
+                                {showKeyboard ? 'Usar Teclado Nativo' : 'Usar Teclado Virtual'}
+                            </Button>
                         </TabsContent>
 
                         <TabsContent value="qr" className="space-y-4">
@@ -189,6 +254,7 @@ export default function AdminLoginPage() {
         </main>
         <footer className="p-4 text-center text-xs text-muted-foreground space-y-2">
             <Link href="/" className="hover:text-primary underline">Voltar</Link>
+            <p>Não é uma escola parceira? <Link href="/register-school" className="text-primary font-bold hover:underline">Solicite acesso aqui</Link></p>
             <p><Link href="/about" className="hover:text-primary hover:underline">TDS 2B 2026 - CETI Frei José Apicella</Link></p>
         </footer>
     </div>

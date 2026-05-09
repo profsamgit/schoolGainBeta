@@ -1,8 +1,18 @@
 import type { User, Reward, EducationArticle, Participant, School } from './types';
-import { PlaceHolderImages } from './placeholder-images';
+
+// Centralização de Imagens Placeholder (reduzindo dependência de arquivos externos)
+const PLACEHOLDER_IMAGES = [
+  { id: "reward-book", imageUrl: "https://picsum.photos/seed/reward1/600/400", imageHint: "book nature" },
+  { id: "reward-kit", imageUrl: "https://picsum.photos/seed/reward2/600/400", imageHint: "school supplies" },
+  { id: "reward-plant", imageUrl: "https://picsum.photos/seed/reward3/600/400", imageHint: "plant pot" },
+  { id: "reward-bottle", imageUrl: "https://picsum.photos/seed/reward4/600/400", imageHint: "water bottle" },
+  { id: "edu-recycling", imageUrl: "https://picsum.photos/seed/edu1/800/450", imageHint: "recycling bins" },
+  { id: "edu-composting", imageUrl: "https://picsum.photos/seed/edu2/800/450", imageHint: "compost garden" },
+  { id: "edu-water", imageUrl: "https://picsum.photos/seed/edu3/800/450", imageHint: "clean river" }
+];
 
 const getImage = (id: string) => {
-  const image = PlaceHolderImages.find((img) => img.id === id);
+  const image = PLACEHOLDER_IMAGES.find((img) => img.id === id);
   return {
     url: image?.imageUrl ?? `https://picsum.photos/seed/${id}/600/400`,
     hint: image?.imageHint ?? 'abstract',
@@ -31,32 +41,25 @@ export const SCHOOLS_MOCK: School[] = [
 ];
 
 export const STUDENT_MOCK: User = {
-  id: 'user-1',
-  name: 'Alex Verde',
-  email: 'alex.verde@schoolgain.com',
-  avatar: getImage('user-avatar-1').url,
+  id: 'user-empty',
+  name: 'Aguardando Cadastro',
   role: 'student',
-  points: 5000,
-  level: 'Broto',
-  ra: '123456',
-  turma: '2ª Série',
-  curso: 'Técnico em Desenvolvimento de Sistemas',
+  points: 0,
+  level: 'Semente',
+  ra: '000000',
   schoolId: 'school-1',
 };
 
 export const ADMIN_MOCK: User = {
-  id: 'admin-1',
-  name: 'Gestor Escolar',
+  id: 'master-admin',
+  name: 'Gestor Principal',
   email: 'gestor@schoolgain.com',
   avatar: 'https://picsum.photos/seed/admin/100/100',
   role: 'super_admin',
-  password: '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', // Hash de 'admin123'
+  password: '46bedf6fe2d6d6bf157b58c3ddfe0ff5ec53dad2f5689c63cf0f16901049dff5', // Hash para rizdy6-wumkyh-rEqxox
   points: 0,
   level: 'Semente',
-  ra: 'admin01',
-  rfid: 'ADMIN_RFID',
-  turma: 'Administração',
-  curso: 'Gestão Escolar',
+  ra: 'gestor@schoolgain.com',
   schoolId: 'school-1',
 };
 
@@ -71,53 +74,43 @@ export const VISITANTE_MOCK: User = {
   schoolId: 'school-1',
 };
 
-export const LEADERBOARD_MOCK: Omit<User, 'email' | 'avatar'>[] = [
-  { id: 'user-2', name: 'Sofia Recicla', points: 5000, level: 'Broto', ra: '234567', turma: '3ª Série', curso: 'Técnico em Desenvolvimento de Sistemas', role: 'student', schoolId: 'school-1' },
-  { id: 'user-3', name: 'Pedro Planta', points: 5000, level: 'Broto', ra: '345678', turma: '3ª Série', curso: 'Técnico em Agropecuária', role: 'student', schoolId: 'school-1' },
-  { id: 'user-1', name: 'Alex Verde', points: 5000, level: 'Broto', ra: '123456', turma: '2ª Série', curso: 'Técnico em Desenvolvimento de Sistemas', role: 'student', schoolId: 'school-1' },
-  { id: 'user-4', name: 'Lia Sustentável', points: 5000, level: 'Broto', ra: '456789', turma: '2ª Série', curso: 'Técnico em Agropecuária', role: 'student', schoolId: 'school-1' },
-  { id: 'user-5', name: 'Carlos Coleta', points: 5000, level: 'Broto', ra: '567890', turma: '1ª Série', curso: 'Técnico em Desenvolvimento de Sistemas', role: 'student', schoolId: 'school-1' },
-  { id: 'user-6', name: 'Mariana Horta', points: 5000, level: 'Broto', ra: '678901', turma: '1ª Série', curso: 'Técnico em Agropecuária', role: 'student', schoolId: 'school-1' },
-  { id: 'user-7', name: 'Beto Água', points: 5000, level: 'Broto', ra: '789012', turma: '1ª Série', curso: 'Técnico em Desenvolvimento de Sistemas', role: 'student', schoolId: 'school-1' },
-];
-
 export const REWARDS_MOCK: Reward[] = [
   {
-    id: 'reward-1',
-    name: 'Livro sobre Natureza',
-    description: 'Um livro fascinante sobre a vida selvagem.',
+    id: 'rew-1',
+    name: 'Caderno Ecológico SG',
+    description: 'Caderno produzido com papel 100% reciclado e capa de fibra de coco.',
     cost: 500,
-    image: getImage('reward-book').url,
-    imageHint: getImage('reward-book').hint,
-    schoolId: 'school-1',
+    image: 'https://api.dicebear.com/7.x/shapes/svg?seed=book',
+    imageHint: 'recycled notebook',
+    schoolId: 'school-1'
   },
   {
-    id: 'reward-2',
-    name: 'Kit de Material Escolar Ecológico',
-    description: 'Cadernos, lápis e borrachas feitos de material reciclado.',
-    cost: 800,
-    image: getImage('reward-kit').url,
-    imageHint: getImage('reward-kit').hint,
-    schoolId: 'school-1',
-  },
-  {
-    id: 'reward-3',
-    name: 'Muda de Planta',
-    description: 'Uma pequena planta para você cuidar em casa.',
+    id: 'rew-2',
+    name: 'Squeeze de Alumínio',
+    description: 'Garrafa térmica para reduzir o uso de copos descartáveis na escola.',
     cost: 1200,
-    image: getImage('reward-plant').url,
-    imageHint: getImage('reward-plant').hint,
-    schoolId: 'school-1',
+    image: 'https://api.dicebear.com/7.x/shapes/svg?seed=bottle',
+    imageHint: 'aluminum bottle',
+    schoolId: 'school-1'
   },
   {
-    id: 'reward-4',
-    name: 'Garrafa de Água Reutilizável',
-    description: 'Leve sua água para todo lugar e evite copos plásticos.',
-    cost: 1500,
-    image: getImage('reward-bottle').url,
-    imageHint: getImage('reward-bottle').hint,
-    schoolId: 'school-1',
+    id: 'rew-3',
+    name: 'Kit de Canetas Bio',
+    description: 'Conjunto de canetas com corpo biodegradável e tinta recarregável.',
+    cost: 300,
+    image: 'https://api.dicebear.com/7.x/shapes/svg?seed=pen',
+    imageHint: 'eco-friendly pens',
+    schoolId: 'school-1'
   },
+  {
+    id: 'rew-test-new',
+    name: 'Muda de Árvore Nativa',
+    description: 'Ganhe uma muda de árvore para ajudar no reflorestamento.',
+    cost: 800,
+    image: 'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?w=800&auto=format&fit=crop&q=60',
+    imageHint: 'small tree plant',
+    schoolId: 'school-1'
+  }
 ];
 
 export const ARTICLES_MOCK: EducationArticle[] = [
@@ -166,21 +159,24 @@ A compostagem é um processo natural que transforma matéria orgânica em húmus
     id: 'edu-3',
     slug: 'a-importancia-da-agua',
     title: 'Água: Nosso Tesouro Precioso',
-    summary: 'Descubra por que a conservação da água é vital para a vida na Terra e aprenda dicas simples para economizar no dia a dia.',
-    content: `
-A água é essencial para todos os seres vivos. Embora o planeta seja coberto por água, menos de 1% está disponível para consumo humano. Por isso, cada gota conta!
-
-### Dicas para economizar:
-- Feche a torneira ao escovar os dentes.
-- Tome banhos mais curtos.
-- Reutilize a água da máquina de lavar para limpar o quintal.
-- Verifique se há vazamentos em sua casa.
-    `,
+    summary: 'Dicas simples para economizar água e preservar o planeta.',
+    content: `### Preserve a Água
+A água é vida. Economize hoje para ter amanhã.`,
     image: getImage('edu-water').url,
     imageHint: getImage('edu-water').hint,
-    videoUrl: 'https://www.youtube.com/embed/v343-uG-p2Q',
     schoolId: 'school-1',
   },
+  {
+    id: 'edu-test-new',
+    slug: 'energia-solar-futuro',
+    title: 'Energia Solar: O Futuro é Agora',
+    summary: 'Aprenda sobre energia limpa e renovável.',
+    content: `### Sol: Energia Pura
+O sol é a nossa maior fonte de energia limpa.`,
+    image: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=800&auto=format&fit=crop&q=60',
+    imageHint: 'solar panels',
+    schoolId: 'school-1',
+  }
 ];
 
 export const QUIZ_TOPICS_MOCK: string[] = [
@@ -191,17 +187,33 @@ export const QUIZ_TOPICS_MOCK: string[] = [
   'Desmatamento',
 ];
 
-export const WASTE_DATA_MOCK = [
-  { type: 'Plástico', collected: 450, date: '2024-01' },
-  { type: 'Papel', collected: 620, date: '2024-01' },
-  { type: 'Metal', collected: 120, date: '2024-01' },
-  { type: 'Orgânico', collected: 800, date: '2024-01' },
-  { type: 'Plástico', collected: 480, date: '2024-02' },
-  { type: 'Papel', collected: 650, date: '2024-02' },
-  { type: 'Metal', collected: 150, date: '2024-02' },
-  { type: 'Orgânico', collected: 830, date: '2024-02' },
-  { type: 'Plástico', collected: 510, date: '2024-03' },
-  { type: 'Papel', collected: 680, date: '2024-03' },
-  { type: 'Metal', collected: 180, date: '2024-03' },
-  { type: 'Orgânico', collected: 880, date: '2024-03' },
+export const PARTICIPANTS_MOCK: Participant[] = [
+  {
+    id: 'participant-1',
+    name: 'Samuel Coelho de Sá',
+    role: 'Professor Orientador',
+    description: 'Analista de Sistemas - Especialista em Segurança, Redes e Engenharia da Computação. Liderando a inovação sustentável no CETI.',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Samuel&backgroundColor=b6e3f4',
+    schoolId: 'school-1',
+    initials: 'SC'
+  },
+  {
+    id: 'participant-2',
+    name: 'Lincoln Rodrigues',
+    role: 'Líder Desenvolvedor',
+    description: 'Aluno de TDS 2B 2026 - Especialista em Front-end e UX Design do projeto SchoolGain.',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lincoln&backgroundColor=c0aede',
+    schoolId: 'school-1',
+    initials: 'LR'
+  },
+  {
+    id: 'participant-3',
+    name: 'Michelly Maria',
+    role: 'Desenvolvedora Full-Stack',
+    description: 'Aluna de TDS 2B 2026 - Focada em arquitetura de dados e integração de hardware IoT.',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Michelly&backgroundColor=ffdfbf',
+    schoolId: 'school-1',
+    initials: 'MM'
+  }
 ];
+

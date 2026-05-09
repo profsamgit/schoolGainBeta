@@ -30,9 +30,9 @@ import { EcosystemViewer } from '@/components/ecosystem/EcosystemViewer';
 
 export default function MeuEcossistemaPage() {
   const { 
-    balance, 
-    vitality, 
-    purchasedItems, 
+    balance = 0, 
+    vitality = 0, 
+    purchasedItems = [], 
     buyUpgrade,
     healVitality 
   } = useEcosystem();
@@ -114,7 +114,7 @@ export default function MeuEcossistemaPage() {
                   <div className="flex flex-col">
                       <span className="text-xs font-black text-white/40 uppercase tracking-widest leading-none mb-0.5">Créditos</span>
                       <span className="text-lg font-black text-white tracking-widest leading-none tabular-nums">
-                        {balance.toLocaleString()}
+                        {(balance || 0).toLocaleString()}
                       </span>
                   </div>
               </div>
@@ -125,8 +125,8 @@ export default function MeuEcossistemaPage() {
                       <span className="text-xs font-black text-white/40 uppercase tracking-widest leading-none mb-0.5">Vitalidade</span>
                       <span className={cn(
                           "text-lg font-black tracking-widest leading-none transition-colors duration-500",
-                          vitality > 70 ? "text-emerald-400" : vitality > 30 ? "text-amber-400" : "text-rose-500"
-                      )}>{vitality}%</span>
+                          (vitality || 0) > 70 ? "text-emerald-400" : (vitality || 0) > 30 ? "text-amber-400" : "text-rose-500"
+                      )}>{vitality || 0}%</span>
                   </div>
                   
                   <div className="flex-1 h-2.5 bg-white/5 rounded-full overflow-hidden border border-white/5 relative">
@@ -174,7 +174,7 @@ export default function MeuEcossistemaPage() {
                       </div>
                       
                       <div className="space-y-4">
-                          <h2 className="text-5xl font-black text-white tracking-tighter leading-none italic uppercase">Alerta Bio-Vital</h2>
+                          <h2 className="text-5xl font-black text-white tracking-tighter leading-none uppercase">Alerta Bio-Vital</h2>
                           <p className="text-slate-400 text-base font-medium leading-relaxed max-w-[340px] mx-auto opacity-70">
                               O ecossistema está instável. <span className="text-white font-black underline decoration-rose-500/50">Recupere a vitalidade</span> para desbloquear melhorias ambientais.
                           </p>
@@ -267,7 +267,7 @@ export default function MeuEcossistemaPage() {
                             <Sparkles className="w-5 h-5 text-indigo-400" />
                         </div>
                         <div>
-                            <h3 className="text-white font-black text-lg tracking-tighter uppercase italic">Bio-Ecossistema</h3>
+                            <h3 className="text-white font-black text-lg tracking-tighter uppercase">Bio-Ecossistema</h3>
                             <p className="text-white/30 text-[10px] font-bold uppercase tracking-widest leading-none">Biodiversidade & Sustentabilidade</p>
                         </div>
                     </div>
