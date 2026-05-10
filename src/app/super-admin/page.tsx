@@ -62,7 +62,7 @@ export default function SuperAdminPage() {
   const [isUserFormOpen, setIsUserFormOpen] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
-  const [userFormData, setUserFormData] = useState({ name: '', email: '' });
+  const [userFormData, setUserFormData] = useState({ name: '', email: '', password: '' });
   const [passFormData, setPassFormData] = useState({ currentPass: '', newPass: '', confirmPass: '' });
   const [tempGeneratedPass, setTempGeneratedPass] = useState<string | null>(null);
 
@@ -101,6 +101,12 @@ export default function SuperAdminPage() {
         toast({ title: "Não autorizado", description: "Senha de Super Admin incorreta.", variant: "destructive" });
         return;
       }
+      // Validação de E-mail Duplicado
+      if (users.some(u => u.email?.toLowerCase() === newSchool.managerEmail.toLowerCase())) {
+        toast({ title: "E-mail Duplicado", description: "Este e-mail de gestor já está cadastrado no sistema.", variant: "destructive" });
+        return;
+      }
+
       const res = await registerSchool(newSchool);
       if (res) {
         toast({ title: "Sucesso", description: "Nova escola cadastrada e ativa!" });
@@ -166,17 +172,44 @@ export default function SuperAdminPage() {
     }
     setIsSubmitting(true);
     try {
+      // Validação de E-mail Duplicado
+      const emailLower = userFormData.email.toLowerCase().trim();
+      const duplicate = users.find(u => u.email?.toLowerCase() === emailLower && u.id !== editingUser?.id);
+      
+      if (duplicate) {
+        toast({ title: "E-mail Duplicado", description: `O e-mail ${emailLower} já está sendo usado por outro usuário (${duplicate.name}).`, variant: "destructive" });
+        return;
+      }
+
       let updatedUsers = [...users];
       if (editingUser) {
-        updatedUsers = updatedUsers.map(u => u.id === editingUser.id ? { ...u, name: userFormData.name, email: userFormData.email, ra: userFormData.email } : u);
+        // Garantir que estamos editando o objeto correto e atualizando todos os campos necessários
+        updatedUsers = updatedUsers.map(u => 
+          u.id === editingUser.id 
+            ? { ...u, name: userFormData.name, email: emailLower, ra: emailLower } 
+            : u
+        );
       } else {
         const newUser = {
-          id: `super-${Date.now()}`, name: userFormData.name, email: userFormData.email, ra: userFormData.email,
-          role: 'super_admin', password: await EcosystemService.hashPassword('mudar123'), points: 0, level: 'Semente', schoolId: 'global'
+          id: `super-${Date.now()}`, 
+          name: userFormData.name, 
+          email: emailLower, 
+          ra: emailLower,
+          role: 'super_admin', 
+          password: await EcosystemService.hashPassword(userFormData.password || 'mudar123'), 
+          points: 0, 
+          level: 'Semente', 
+          schoolId: 'global'
         };
         updatedUsers.push(newUser as any);
       }
-      updateUsers(updatedUsers);
+      
+      const success = await updateUsers(updatedUsers);
+      if (!success) {
+        toast({ title: "Erro na Operação", description: "Falha ao salvar. Verifique se o e-mail já não pertence a outro usuário da rede.", variant: "destructive" });
+        return;
+      }
+
       toast({ title: "Sucesso", description: editingUser ? "Dados atualizados!" : "Mestre adicionado (Senha padrão: mudar123)" });
       setIsUserFormOpen(false);
       setEditingUser(null);
@@ -196,20 +229,25 @@ export default function SuperAdminPage() {
       const isAuth = await verifyPassword(currentPass);
       if (!isAuth) { toast({ title: "Erro", description: "Senha atual incorreta.", variant: "destructive" }); return; }
       const hashedNewPassword = await EcosystemService.hashPassword(newPass);
-      updateUsers(users.map(u => u.id === editingUser.id ? { ...u, password: hashedNewPassword } : u));
-      toast({ title: "Sucesso", description: `Senha de ${editingUser.name} alterada!` });
-      setIsPasswordDialogOpen(false);
-      setPassFormData({ currentPass: '', newPass: '', confirmPass: '' });
+      const success = await updateUsers(users.map(u => u.id === editingUser.id ? { ...u, password: hashedNewPassword } : u));
+      
+      if (success) {
+        toast({ title: "Sucesso", description: `Senha de ${editingUser.name} alterada!` });
+        setIsPasswordDialogOpen(false);
+        setPassFormData({ currentPass: '', newPass: '', confirmPass: '' });
+      } else {
+        toast({ title: "Erro", description: "Não foi possível atualizar a senha.", variant: "destructive" });
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDeleteSuperAdmin = (userId: string) => {
+  const handleDeleteSuperAdmin = async (userId: string) => {
     if (users.filter(u => u.role === 'super_admin').length <= 1) { toast({ title: "Ação Negada", description: "Não remova o último Super Admin.", variant: "destructive" }); return; }
     if (userId === currentUser?.id) { toast({ title: "Ação Negada", description: "Você não pode se excluir.", variant: "destructive" }); return; }
     if (confirm("Remover este acesso global permanentemente?")) {
-      updateUsers(users.filter(u => u.id !== userId));
+      await updateUsers(users.filter(u => u.id !== userId));
       toast({ title: "Removido", description: "Mestre removido da rede." });
     }
   };
@@ -221,7 +259,7 @@ export default function SuperAdminPage() {
     if (!isAuth) { toast({ title: "Erro", description: "Senha incorreta.", variant: "destructive" }); return; }
     const tempPass = `SG-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
     const hashedTemp = await EcosystemService.hashPassword(tempPass);
-    updateUsers(users.map(u => u.id === user.id ? { ...u, password: hashedTemp, mustChangePassword: true } : u));
+    await updateUsers(users.map(u => u.id === user.id ? { ...u, password: hashedTemp, mustChangePassword: true } : u));
     setTempGeneratedPass(tempPass);
     setEditingUser(user);
     toast({ title: "Reset Concluído!" });

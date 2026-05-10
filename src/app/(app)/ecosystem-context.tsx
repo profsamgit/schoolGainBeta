@@ -33,7 +33,7 @@ interface EcosystemContextType {
   login: (ra: string, password?: string) => Promise<boolean>; // Entrar no sistema
   logout: () => void;             // Sair do sistema
   addPoints: (points: number, studentRa?: string) => void; // Dar pontos
-  updateUsers: (newUsers: User[]) => Promise<void>;
+  updateUsers: (newUsers: User[]) => Promise<boolean>;
   updateRewards: (newRewards: Reward[]) => Promise<void>;
   updateArticles: (newArticles: EducationArticle[]) => Promise<void>;
   updateQuizTopics: (newTopics: QuizTopic[]) => Promise<void>;

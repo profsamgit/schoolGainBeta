@@ -282,11 +282,11 @@ function AdminContent() {
     setIsDeleteConfirmOpen(true);
   };
 
-  const onConfirmDelete = () => {
+  const onConfirmDelete = async () => {
     if (!selectedItem || !itemType || isSubmitting) return;
     setIsSubmitting(true);
     try {
-      if (itemType === 'user') updateUsers(users.filter((i: User) => i.id !== selectedItem.id));
+      if (itemType === 'user') await updateUsers(users.filter((i: User) => i.id !== selectedItem.id));
       else if (itemType === 'reward') updateRewards(rewards.filter((i: Reward) => i.id !== selectedItem.id));
       else if (itemType === 'article') updateArticles(articles.filter((i: EducationArticle) => i.id !== selectedItem.id));
       else if (itemType === 'turma') updateTurmas(allTurmas.filter((i: Turma) => i.id !== selectedItem.id));
@@ -322,7 +322,7 @@ function AdminContent() {
         const sanitizedPayload = Object.fromEntries(
           Object.entries(payload).filter(([_, v]) => v !== undefined && v !== null)
         );
-        await updateUsers(isNew ? [...users, { ...sanitizedPayload, id: `user-${Date.now()}-${Math.random().toString(36).slice(-4)}`, points: 0, level: 'Iniciante' } as unknown as User] : users.map(u => u.id === selectedItem.id ? { ...u, ...sanitizedPayload } as User : u));
+        await updateUsers(isNew ? [...users, { ...sanitizedPayload, id: `user-${Date.now()}-${Math.random().toString(36).slice(-4)}`, points: 0, level: 'Semente' } as unknown as User] : users.map(u => u.id === selectedItem.id ? { ...u, ...sanitizedPayload } as User : u));
       } else if (itemType === 'reward') {
         const sanitizedPayload = Object.fromEntries(
           Object.entries(payload).filter(([_, v]) => v !== undefined && v !== null)
@@ -351,7 +351,11 @@ function AdminContent() {
     setIsSubmitting(true);
     try {
       const hashedNew = await EcosystemService.hashPassword(newPass);
-      updateUsers(users.map(u => u.id === (selectedItem?.id || currentUser?.id) ? { ...u, password: hashedNew, mustChangePassword: false } : u));
+      const success = await updateUsers(users.map(u => u.id === (selectedItem?.id || currentUser?.id) ? { ...u, password: hashedNew, mustChangePassword: false } : u));
+      if (!success) {
+        toast({ title: 'Erro', description: 'Falha ao atualizar senha. E-mail pode estar duplicado.', variant: 'destructive' });
+        return;
+      }
       toast({ title: 'Sucesso', description: 'Senha atualizada!' });
       setIsPasswordDialogOpen(false);
       setMustChangePass(false);

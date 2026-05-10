@@ -24,7 +24,9 @@ import {
   SecurityState,
   SystemSettings,
   EcosystemData,
-  QuizTopic
+  QuizTopic,
+  UserLevel,
+  USER_LEVELS
 } from './types';
 
 
@@ -414,11 +416,11 @@ export class EcosystemService {
         this.vitalitySubject.next(userState.vitality);
         this.purchasedItemsSubject.next(userState.purchasedItems);
         this.lastMissionDateSubject.next(userState.lastMissionDate);
-        if (user) this.levelSubject.next(user.level || 'Iniciante');
+        if (user) this.levelSubject.next(user.level || 'Semente');
     }
     
     // Sempre retorna os dados para quem pediu (ex: Kiosk)
-    return { ...userState, level: user?.level || 'Iniciante' };
+    return { ...userState, level: user?.level || 'Semente' };
   }
 
   /**
@@ -455,8 +457,8 @@ export class EcosystemService {
       
       this.data.users[studentIdx] = { ...student };
       
-      // Sincroniza Aluno e Estado no Firestore
-      setDoc(doc(db, "users", student.ra!), student);
+      // Sincroniza Aluno e Estado no Firestore usando ID único para estabilidade
+      setDoc(doc(db, "users", student.id), student);
       setDoc(doc(db, "userStates", cleanRa), state);
       
       this.usersSubject.next([...this.data.users]);
@@ -575,13 +577,17 @@ export class EcosystemService {
       if (collectionName === "users") {
         const user = this.data.users.find(u => u.id === userId || u.ra === userId || u.email === userId);
         if (user) {
-          dbId = user.ra || user.email || user.id;
+          dbId = user.id;
         }
       }
       
-      // 5. Atualiza o Firestore
+      // 5. Atualiza o Firestore (Usa 'avatar' para pessoas e 'image' para objetos/pedagógico)
       const docRef = doc(db, collectionName, dbId);
-      await setDoc(docRef, { image: downloadURL, avatar: downloadURL }, { merge: true });
+      const updateData = (collectionName === "users" || collectionName === "participants") 
+        ? { avatar: downloadURL } 
+        : { image: downloadURL };
+        
+      await setDoc(docRef, updateData, { merge: true });
       
       // 6. Atualiza o estado local
       if (collectionName === "participants") {
@@ -743,6 +749,13 @@ export class EcosystemService {
       return false;
     }
 
+    // Validação de E-mail Único na Rede
+    const emailLower = schoolData.managerEmail.toLowerCase().trim();
+    if (this.data.users.some(u => u.email?.toLowerCase() === emailLower)) {
+      console.error(`[AUTH] Falha ao registrar escola: O e-mail ${emailLower} já está em uso.`);
+      return false;
+    }
+
     const newSchool: School = {
       ...schoolData,
       id: `school-${Date.now()}`,
@@ -774,10 +787,10 @@ export class EcosystemService {
     // Sincroniza Escola no Firestore
     setDoc(doc(db, "schools", newSchool.id), newSchool);
     
-    // Se criou gestor, sincroniza ele também
+    // Se criou gestor, sincroniza ele também usando seu ID único
     if (newSchool.managerEmail) {
         const adminUser = this.data.users.find(u => u.email === newSchool.managerEmail);
-        if (adminUser) setDoc(doc(db, "users", adminUser.ra!), adminUser);
+        if (adminUser) setDoc(doc(db, "users", adminUser.id), adminUser);
     }
 
     this.saveToStorage();
@@ -846,7 +859,7 @@ export class EcosystemService {
       // Sincroniza novo gestor se criado
       if (status === 'active' && school.managerEmail) {
         const adminUser = this.data.users.find(u => u.email === school.managerEmail);
-        if (adminUser) setDoc(doc(db, "users", adminUser.ra!), adminUser);
+        if (adminUser) setDoc(doc(db, "users", adminUser.id), adminUser);
       }
       
       this.saveToStorage();
@@ -1371,10 +1384,10 @@ export class EcosystemService {
     // Salva o snapshot no Firestore
     setDoc(doc(db, "resetHistory", snapshot.id), snapshot);
 
-    // Atualiza todos os usuários resetados no Firestore
+    // Atualiza todos os usuários resetados no Firestore usando ID único
     this.data.users.forEach(u => {
         if (u.role === 'student' && (!schoolId || u.schoolId === schoolId)) {
-            setDoc(doc(db, "users", u.ra!), u);
+            setDoc(doc(db, "users", u.id), u);
         }
     });
 
@@ -1555,8 +1568,21 @@ export class EcosystemService {
   }
 
   // Funções de atualização em massa (usadas no painel admin)
-  async updateUsers(newUsers: User[]) {
-    if (!this.checkAdminAuth()) return;
+  async updateUsers(newUsers: User[]): Promise<boolean> {
+    if (!this.checkAdminAuth()) return false;
+
+    // Validação Global de E-mails Duplicados
+    const emailCounts = new Map<string, string>();
+    for (const u of newUsers) {
+      if (u.email) {
+        const email = u.email.toLowerCase().trim();
+        if (emailCounts.has(email)) {
+          console.error(`[VALIDATION] Conflito de e-mail detectado: ${email}. Usuários: ${emailCounts.get(email)} e ${u.name}`);
+          return false;
+        }
+        emailCounts.set(email, u.name);
+      }
+    }
     
     // 1. Identifica usuários removidos (estavam na lista antiga mas não na nova)
     const removedUsers = this.data.users.filter(oldU => !newUsers.find(newU => newU.id === oldU.id));
@@ -1576,8 +1602,11 @@ export class EcosystemService {
     
     // Sincroniza apenas os alterados no Firestore
     await Promise.all([
-      // Deleta os removidos
-      ...removedUsers.map(u => deleteDoc(doc(db, "users", u.ra || u.id))),
+      // Deleta os removidos (Tenta pelo ID e pelo RA para garantir limpeza total)
+      ...removedUsers.flatMap(u => [
+        deleteDoc(doc(db, "users", u.id)),
+        ...(u.ra ? [deleteDoc(doc(db, "users", u.ra))] : [])
+      ]),
       
       // Salva/Atualiza os novos ou modificados
       ...changedUsers.map(u => {
@@ -1594,6 +1623,7 @@ export class EcosystemService {
     ]);
     
     this.saveToStorage();
+    return true;
   }
 
   async updateRewards(newRewards: Reward[]) {
@@ -1742,8 +1772,8 @@ export class EcosystemService {
       
       this.usersSubject.next([...this.data.users]);
       
-      // Sincroniza no Firestore
-      setDoc(doc(db, "users", ra), user);
+      // Sincroniza no Firestore usando ID único
+      setDoc(doc(db, "users", user.id), user);
       
       this.saveToStorage();
       return true;
@@ -1768,8 +1798,8 @@ export class EcosystemService {
     
     this.usersSubject.next([...this.data.users]);
     
-    // Sincroniza no Firestore
-    setDoc(doc(db, "users", ra), user);
+    // Sincroniza no Firestore usando ID único
+    setDoc(doc(db, "users", user.id), user);
     
     this.saveToStorage();
     return true;
@@ -1799,14 +1829,19 @@ export class EcosystemService {
   /**
    * Calcula o nível visual do aluno (título honorário).
    */
-  private calculateLevel(score: number, purchasedItems?: EcosystemItem[]): any {
+  private calculateLevel(score: number, purchasedItems?: EcosystemItem[]): UserLevel {
     const items = purchasedItems || this.purchasedItems;
+    
+    // Conquistas especiais por itens
     if (items.includes('casa')) return 'Guardião da Lenda';
-    if (score >= 17000) return 'Guardião da Biosfera';
-    if (score >= 14000) return 'Floresta';
-    if (score >= 11000) return 'Árvore';
-    if (score >= 8000) return 'Folha';
-    if (score >= 5000) return 'Broto';
+    
+    // Progressão por pontuação total
+    if (score >= 20000) return 'Guardião da Biosfera';
+    if (score >= 15000) return 'Floresta';
+    if (score >= 10000) return 'Árvore';
+    if (score >= 5000)  return 'Folha';
+    if (score >= 2000)  return 'Broto';
+    
     return 'Semente';
   }
 
@@ -1900,6 +1935,12 @@ export class EcosystemService {
     this.data.users = this.data.users.map(u => {
       // Garante que não-alunos tenham 0 pontos no ranking
       if (u.role !== 'student' && u.role !== 'visitor') u.points = 0;
+      
+      // AUTO-MIGRAÇÃO: Converte níveis legados para o novo padrão
+      if ((u.level as string) === 'Iniciante' || !u.level) {
+        u.level = 'Semente';
+      }
+      
       return u;
     });
 

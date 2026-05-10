@@ -46,7 +46,7 @@ interface SecuritySectionProps {
   setIsUserFormOpen: (open: boolean) => void;
   editingUser: any;
   setEditingUser: (user: any) => void;
-  userFormData: { name: string, email: string };
+  userFormData: { name: string, email: string, password?: string };
   setUserFormData: (data: any) => void;
   isPasswordDialogOpen: boolean;
   setIsPasswordDialogOpen: (open: boolean) => void;
@@ -110,7 +110,7 @@ export function SecuritySection({
             setIsUserFormOpen(open);
             if (!open) {
               setEditingUser(null);
-              setUserFormData({ name: '', email: '' });
+              setUserFormData({ name: '', email: '', password: '' });
             }
           }}>
             <DialogTrigger asChild>
@@ -144,9 +144,21 @@ export function SecuritySection({
                     required 
                     value={userFormData.email}
                     onChange={e => setUserFormData({...userFormData, email: e.target.value})}
-                    placeholder="gestor@schoolgain.com"
+                    placeholder="desenvolvimentoceepru@gmail.com"
                   />
                 </div>
+                {!editingUser && (
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Senha de Acesso</Label>
+                    <Input 
+                      type="password"
+                      required 
+                      value={userFormData.password}
+                      onChange={e => setUserFormData({...userFormData, password: e.target.value})}
+                      placeholder="••••••••"
+                    />
+                  </div>
+                )}
                 <DialogFooter className="pt-4">
                   <Button type="submit" disabled={isSubmitting} className="w-full bg-slate-900">
                     {isSubmitting ? 'Processando...' : editingUser ? 'Atualizar Dados' : 'Salvar Novo Mestre'}

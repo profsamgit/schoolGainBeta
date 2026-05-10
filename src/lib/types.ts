@@ -1,3 +1,15 @@
+export const USER_LEVELS = [
+  'Semente', 
+  'Broto', 
+  'Folha', 
+  'Árvore', 
+  'Floresta', 
+  'Guardião da Biosfera', 
+  'Guardião da Lenda'
+] as const;
+
+export type UserLevel = (typeof USER_LEVELS)[number];
+
 export type User = {
   id: string;
   name: string;
@@ -6,7 +18,7 @@ export type User = {
   role: 'student' | 'admin' | 'visitor' | 'super_admin';
   password?: string;
   points: number;
-  level: 'Semente' | 'Broto' | 'Folha' | 'Árvore' | 'Floresta' | 'Guardião da Biosfera' | 'Guardião da Lenda';
+  level: UserLevel;
   ra?: string;
   rfid?: string;
   turma?: string;  // Referência ao ID ou Nome da Turma
