@@ -13,14 +13,14 @@ export const SCHOOLS_MOCK: School[] = [];
 // Usuário Administrativo Inicial (Apenas para primeiro acesso se o banco estiver vazio)
 export const ADMIN_MOCK: User = {
   id: 'master-admin',
-  name: 'DevOps CETI Apicella',
-  email: 'desenvolvimentoceepru@gmail.com',
-  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=DevOps',
+  name: 'Administrador do Sistema',
+  email: 'admin@plataforma.app',
+  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Admin',
   role: 'super_admin',
   password: '', // A senha deve ser configurada diretamente no Firebase Authentication em Produção
   points: 0,
   level: 'Semente',
-  ra: 'desenvolvimentoceepru@gmail.com',
+  ra: 'ADMIN-01',
   schoolId: 'global',
 };
 

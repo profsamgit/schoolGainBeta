@@ -5,11 +5,14 @@ import { EcosystemService } from '@/lib/ecosystem.service';
 import { User, Reward, EducationArticle, Participant, AuditLogEntry, Terminal, TerminalStatus, School, WasteEntry, WasteType, CycleSnapshot, Turma, Curso, Cargo, SetorEscolar, EcosystemItem, QuizTopic } from '@/lib/types';
 
 /**
- * EcosystemContextType: Define o contrato do que está disponível para a interface.
+ * ============================================================================
+ * ECOSYSTEM CONTEXT: DISTRIBUIÇÃO DE ESTADO
+ * ============================================================================
+ * Este contexto atua como o sistema de distribuição de dados para a interface.
  * 
- * Imagine que este contexto é um "Controle Remoto" para o sistema.
- * Qualquer componente que segurar este controle pode ver o saldo, 
- * a vitalidade e realizar ações como comprar itens ou fazer login.
+ * Sua função é propagar as informações processadas pelo EcosystemService para 
+ * todos os componentes da aplicação, garantindo que a interface do usuário 
+ * reflita o estado global de forma síncrona e eficiente.
  */
 interface EcosystemContextType {
   balance: number;           // Bio-Coins (saldo) do aluno logado
@@ -130,10 +133,10 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
     const schoolsSub = service.schools$.subscribe(setSchools);
     const cargosSub = service.cargos$.subscribe(setCargos);
     const setoresSub = service.setores$.subscribe(setSetores);
-    
+
     service.initialize();
     setIsMounted(true);
-    
+
     return () => {
       balanceSub.unsubscribe();
       vitalitySub.unsubscribe();

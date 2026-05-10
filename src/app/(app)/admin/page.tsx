@@ -136,6 +136,7 @@ function AdminContent() {
   const [uploadingUserId, setUploadingUserId] = useState<string | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
+  const [securityPassword, setSecurityPassword] = useState('');
 
   useEffect(() => {
     setHasMounted(true);
@@ -282,8 +283,16 @@ function AdminContent() {
     setIsDeleteConfirmOpen(true);
   };
 
-  const onConfirmDelete = async () => {
-    if (!selectedItem || !itemType || isSubmitting) return;
+  const confirmDelete = async () => {
+    if (!selectedItem || !itemType) return;
+    
+    // Verificação de Segurança (Chave Mestra)
+    const isAuthorized = await EcosystemService.verifyUniversalPassword(securityPassword, currentUser, users);
+    if (!isAuthorized) {
+      toast({ variant: 'destructive', title: 'Não Autorizado', description: 'Senha de segurança incorreta.' });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       if (itemType === 'user') await updateUsers(users.filter((i: User) => i.id !== selectedItem.id));
@@ -300,14 +309,35 @@ function AdminContent() {
       toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível remover o item.' });
     } finally {
       setIsSubmitting(false);
+      setSecurityPassword('');
+      setIsDeleteConfirmOpen(false);
     }
   };
 
   const onSubmit = async (values: any) => {
     if (isSubmitting) return;
+
+    // Verificação de Segurança (Chave Mestra)
+    const isAuthorized = await EcosystemService.verifyUniversalPassword(securityPassword, currentUser, users);
+    if (!isAuthorized) {
+      toast({ variant: 'destructive', title: 'Não Autorizado', description: 'Senha de segurança incorreta.' });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      let payload = { ...values, ra: (values.ra || '').toUpperCase().trim(), schoolId: targetSchoolId };
+      // Higienização Global: Converte campos de texto para MAIÚSCULO (exceto técnicos)
+      const sanitizedValues = { ...values };
+      Object.keys(sanitizedValues).forEach(key => {
+        if (
+          typeof sanitizedValues[key] === 'string' && 
+          !['email', 'password', 'confirmPassword', 'role', 'avatar', 'image', 'slug'].includes(key)
+        ) {
+          sanitizedValues[key] = sanitizedValues[key].toUpperCase().trim();
+        }
+      });
+
+      let payload = { ...sanitizedValues, ra: (values.ra || Math.random().toString(36).substring(2, 14).toUpperCase().padEnd(12, '0')).toUpperCase().trim(), schoolId: targetSchoolId };
       if (!isNew && itemType === 'user' && !values.password) {
         delete payload.password;
         delete payload.confirmPassword;
@@ -320,17 +350,22 @@ function AdminContent() {
       if (itemType === 'user') {
         // Limpeza profunda do objeto para evitar 'undefined' no Firestore
         const sanitizedPayload = Object.fromEntries(
-          Object.entries(payload).filter(([_, v]) => v !== undefined && v !== null)
+          Object.entries(payload).filter(([_, v]) => v !== undefined && v !== null && _ !== 'confirmPassword')
         );
-        await updateUsers(isNew ? [...users, { ...sanitizedPayload, id: `user-${Date.now()}-${Math.random().toString(36).slice(-4)}`, points: 0, level: 'Semente' } as unknown as User] : users.map(u => u.id === selectedItem.id ? { ...u, ...sanitizedPayload } as User : u));
+        let prefix = 'user';
+        if (sanitizedPayload.role === 'super_admin') prefix = 'super';
+        else if (sanitizedPayload.role === 'admin') prefix = 'admin';
+
+        const newId = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(-4)}`;
+        await updateUsers(isNew ? [...users, { ...sanitizedPayload, id: newId, points: 0, level: 'Semente' } as unknown as User] : users.map(u => u.id === selectedItem.id ? { ...u, ...sanitizedPayload } as User : u));
       } else if (itemType === 'reward') {
         const sanitizedPayload = Object.fromEntries(
-          Object.entries(payload).filter(([_, v]) => v !== undefined && v !== null)
+          Object.entries(payload).filter(([_, v]) => v !== undefined && v !== null && _ !== 'confirmPassword')
         );
         await updateRewards(isNew ? [...rewards, { ...sanitizedPayload, id: `reward-${Date.now()}` } as unknown as Reward] : rewards.map(r => r.id === selectedItem.id ? { ...r, ...sanitizedPayload } as Reward : r));
       } else if (itemType === 'article') {
         const sanitizedPayload = Object.fromEntries(
-          Object.entries(payload).filter(([_, v]) => v !== undefined && v !== null)
+          Object.entries(payload).filter(([_, v]) => v !== undefined && v !== null && _ !== 'confirmPassword')
         );
         await updateArticles(isNew ? [...articles, { ...sanitizedPayload, id: `article-${Date.now()}`, slug: values.title.toLowerCase().replace(/ /g, '-') } as unknown as EducationArticle] : articles.map(a => a.id === selectedItem.id ? { ...a, ...sanitizedPayload } as EducationArticle : a));
       }
@@ -341,6 +376,7 @@ function AdminContent() {
       toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao salvar.' });
     } finally {
       setIsSubmitting(false);
+      setSecurityPassword('');
     }
   };
 
@@ -505,8 +541,10 @@ function AdminContent() {
               uploadingUserId={uploadingUserId}
               setUploadingUserId={setUploadingUserId}
               handleQRDetected={handleQRDetected}
-              confirmDelete={onConfirmDelete}
+              confirmDelete={confirmDelete}
               setIsDeleteConfirmOpen={setIsDeleteConfirmOpen}
+              securityPassword={securityPassword}
+              setSecurityPassword={setSecurityPassword}
             />
           </TabsContent>
 
@@ -522,7 +560,8 @@ function AdminContent() {
                 }
               }}
               handleDeleteTopic={(topic) => updateQuizTopics(quizTopics.filter(t => t.id !== topic.id))}
-              isDeleteConfirmOpen={isDeleteConfirmOpen} setIsDeleteConfirmOpen={setIsDeleteConfirmOpen} selectedItem={selectedItem} onConfirmDelete={onConfirmDelete}
+              isDeleteConfirmOpen={isDeleteConfirmOpen} setIsDeleteConfirmOpen={setIsDeleteConfirmOpen} selectedItem={selectedItem} confirmDelete={confirmDelete}
+              securityPassword={securityPassword} setSecurityPassword={setSecurityPassword}
               uploadUserAvatar={uploadUserAvatar}
               uploadingUserId={uploadingUserId}
               setUploadingUserId={setUploadingUserId}
@@ -547,7 +586,8 @@ function AdminContent() {
                   } else toast({ variant: 'destructive', title: 'Erro' });
                 });
               }}
-              isDeleteConfirmOpen={isDeleteConfirmOpen} setIsDeleteConfirmOpen={setIsDeleteConfirmOpen} selectedItem={selectedItem} onConfirmDelete={onConfirmDelete}
+              isDeleteConfirmOpen={isDeleteConfirmOpen} setIsDeleteConfirmOpen={setIsDeleteConfirmOpen} selectedItem={selectedItem} confirmDelete={confirmDelete}
+              securityPassword={securityPassword} setSecurityPassword={setSecurityPassword}
               uploadUserAvatar={uploadUserAvatar}
               uploadingUserId={uploadingUserId}
               setUploadingUserId={setUploadingUserId}
@@ -608,19 +648,33 @@ function AdminContent() {
       </Dialog>
 
       {isDeleteConfirmOpen && selectedItem && (
-        <div className="fixed bottom-6 right-6 z-50 w-full max-w-md p-4 border-2 border-red-200 bg-white rounded-2xl shadow-2xl animate-in slide-in-from-bottom-10">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+        <div className="fixed bottom-6 right-6 z-50 w-full max-w-sm p-6 border-2 border-red-500 bg-white rounded-2xl shadow-2xl animate-in slide-in-from-bottom-10 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
               <Trash2 className="h-6 w-6 text-red-600" />
-              <div>
-                <p className="font-black uppercase">Excluir?</p>
-                <p className="text-[11px] font-bold">"{selectedItem.name || selectedItem.title}"</p>
-              </div>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setIsDeleteConfirmOpen(false)}>Cancelar</Button>
-              <Button variant="destructive" size="sm" onClick={onConfirmDelete}>Excluir</Button>
+            <div>
+              <p className="font-black uppercase text-red-600">Confirmar Exclusão?</p>
+              <p className="text-[11px] font-bold">"{selectedItem.name || selectedItem.title}"</p>
             </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Senha de Segurança</Label>
+            <Input 
+              type="password" 
+              value={securityPassword} 
+              onChange={e => setSecurityPassword(e.target.value)} 
+              placeholder="Sua senha ou Master" 
+              className="border-red-200"
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={() => { setIsDeleteConfirmOpen(false); setSecurityPassword(''); }}>Cancelar</Button>
+            <Button variant="destructive" className="flex-1" onClick={confirmDelete} disabled={!securityPassword || isSubmitting}>
+              {isSubmitting ? '...' : 'Sim, Excluir'}
+            </Button>
           </div>
         </div>
       )}

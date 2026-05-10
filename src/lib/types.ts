@@ -1,3 +1,14 @@
+/**
+ * ============================================================================
+ * TYPES & MODELS: ESPECIFICAÇÃO TÉCNICA (BLUEPRINT)
+ * ============================================================================
+ * Este arquivo estabelece as definições de estruturas de dados do sistema.
+ * 
+ * Através destas definições, assegura-se que as entidades (Usuários, Unidades, 
+ * Recompensas) sigam um padrão rigoroso, prevenindo inconsistências e erros 
+ * de processamento durante a execução da aplicação.
+ */
+
 export const USER_LEVELS = [
   'Semente', 
   'Broto', 
@@ -62,16 +73,29 @@ export type Participant = {
     schoolId?: string;
 };
 
+export type AuditActionType = 
+  | 'LOGIN_SUCCESS' | 'LOGIN_FAIL' 
+  | 'CRUD_CREATE' | 'CRUD_UPDATE' | 'CRUD_DELETE' 
+  | 'SYSTEM_RESET' | 'POINTS_AWARDED' | 'ITEM_PURCHASED'
+  | 'SECURITY_LOCKOUT' | 'CONFIG_CHANGE';
+
 export type AuditLogEntry = {
     id: string;
-    ra: string;
-    studentName: string;
-    points: number;
-    sector: string;
-    action: string;
+    action: AuditActionType | string;
+    category: 'AUTH' | 'DATA' | 'ECOSYSTEM' | 'SYSTEM';
     timestamp: string;
-    adminName: string;
-    schoolId?: string;
+    actorId: string;   // RA ou ID de quem realizou a ação
+    actorName: string;
+    unitId?: string;   // ID da escola ou 'MASTER'
+    details: string;   // Descrição humanizada da ação
+    metadata?: any;    // Dados técnicos (Ex: snapshot do objeto antes/depois)
+    targetEntity?: string; // Tabela afetada (users, schools, etc)
+    targetId?: string;     // ID do registro afetado
+    // Retrocompatibilidade
+    ra?: string;
+    studentName?: string;
+    points?: number;
+    adminName?: string;
 };
 
 export const SCHOOL_SECTORS = [
@@ -196,7 +220,7 @@ export interface EcosystemUserState {
   vitality: number;          // Percentual de saúde do ambiente (0-100)
   purchasedItems: EcosystemItem[]; // Lista de IDs de itens comprados
   lastMissionDate: string | null;  // Data da última missão diária completada
-  nessiePurchaseDate?: string;     // Data de compra do item especial (Nessie/Casa)
+  nessiePurchaseDate?: string | null;     // Data de compra do item especial (Nessie/Casa)
   curso?: string;            // Curso do aluno
 }
 
@@ -232,6 +256,7 @@ export interface EcosystemData {
   articles: EducationArticle[];            // Artigos educativos
   quizTopics: QuizTopic[];                    // Tópicos de quiz
   currentUserRa: string | null;            // RA do usuário atualmente logado
+  currentUserId: string | null;            // ID único do usuário logado (Firestore)
   participants: Participant[];             // Equipe do projeto
   turmas: Turma[];                         // Lista de séries/turmas
   cursos: Curso[];                         // Lista de cursos técnicos

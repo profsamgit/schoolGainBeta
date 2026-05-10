@@ -38,6 +38,17 @@ const wasteIcons: { [key: string]: React.ElementType } = {
   'Não reciclável': Trash2,
 };
 
+/**
+ * ============================================================================
+ * KIOSK PAGE: INTERFACE DO TERMINAL DE INTERAÇÃO
+ * ============================================================================
+ * Esta página provê a interface lógica para os terminais físicos de coleta.
+ * 
+ * O fluxo de operação consiste em três estágios principais:
+ * 1. Identificação do usuário via hardware ou entrada manual.
+ * 2. Processamento e validação da entrada de dados (visão computacional/sensores).
+ * 3. Comunicação com o barramento de serviços para persistência e premiação.
+ */
 export default function KioskPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -272,7 +283,7 @@ export default function KioskPage() {
 
     registerWaste(identifiedStudent?.ra || studentRa, identificationResult.wasteType as any, estimatedWeightKg, currentTerminal?.schoolId);
     if (identifiedStudent?.role === 'visitor') {
-        setSuccessMessage('Obrigado por sua visita! Sua atitude inspira nossa escola.');
+        setSuccessMessage('Agradecemos pela visita! Este engajamento inspira esta instituição.');
     } else {
         toast({ title: 'Registro bem-sucedido!', description: `${identifiedStudent?.name} ganhou ${actualPoints} pontos.` });
         setStep('identification'); setStudentRa(''); setIdentifiedStudent(null); setIdentificationResult(null);

@@ -109,7 +109,7 @@ export function Header() {
   const displayUser = currentUser || (isAdminView ? ADMIN_MOCK : {
     name: 'Visitante',
     role: 'visitor',
-    avatar: '',
+    avatar: undefined,
     ra: '',
     email: ''
   });
@@ -174,7 +174,7 @@ export function Header() {
                 >
                   <Avatar className="h-8 w-8">
                     <AvatarImage
-                      src={displayUser.avatar}
+                      src={displayUser.avatar || undefined}
                       alt={`Avatar de ${displayUser.name}`}
                     />
                     <AvatarFallback>{displayUser.name.charAt(0)}</AvatarFallback>

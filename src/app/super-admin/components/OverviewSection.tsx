@@ -58,10 +58,10 @@ export function OverviewSection({
   const recentActivities = useMemo(() => {
     const logs = (auditLogs || []).slice(0, 10).map((log: AuditLogEntry) => ({
       id: log.id || Math.random().toString(),
-      title: 'Concessão de Bio-Coins',
-      description: `${log.adminName || 'Admin'} enviou ${log.points || 0} pontos para RA ${log.ra || 'Desconhecido'}.`,
+      title: log.action === 'POINTS_AWARDED' ? 'Concessão de Bio-Coins' : (log.action as string).replace('_', ' '),
+      description: log.details || `${log.adminName || log.actorName || 'Admin'} realizou uma ação.`,
       date: new Date(log.timestamp || Date.now()),
-      color: 'bg-primary'
+      color: log.action === 'POINTS_AWARDED' ? 'bg-primary' : 'bg-slate-900'
     }));
 
     const wastes = (wasteEntries || []).slice(0, 10).map((w: WasteEntry) => ({

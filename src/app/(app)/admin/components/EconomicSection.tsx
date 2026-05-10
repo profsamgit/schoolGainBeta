@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
-  Leaf, Gift, History, Plus, ArrowLeft, Edit, Trash2, MoreHorizontal, Camera, Loader2 
+  Leaf, Gift, History, Plus, ArrowLeft, Edit, Trash2, MoreHorizontal, Camera, Loader2, Lock 
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
@@ -30,7 +30,7 @@ interface EconomicSectionProps {
   auditLogs: AuditLogEntry[];
   filteredUsersForAdmin: any[];
   viewMode: 'list' | 'form';
-  itemType: string | null;
+  itemType: 'user' | 'reward' | 'article' | 'turma' | 'curso' | 'cargo' | 'setor' | null;
   isNew: boolean;
   isSubmitting: boolean;
   rewardForm: any;
@@ -53,10 +53,12 @@ interface EconomicSectionProps {
   isDeleteConfirmOpen: boolean;
   setIsDeleteConfirmOpen: (open: boolean) => void;
   selectedItem: any;
-  onConfirmDelete: () => void;
+  confirmDelete: () => void;
   uploadUserAvatar: (id: string, file: File) => Promise<string | null>;
   uploadingUserId: string | null;
   setUploadingUserId: (id: string | null) => void;
+  securityPassword: string;
+  setSecurityPassword: (val: string) => void;
 }
 
 export function EconomicSection({
@@ -87,10 +89,12 @@ export function EconomicSection({
   isDeleteConfirmOpen,
   setIsDeleteConfirmOpen,
   selectedItem,
-  onConfirmDelete,
+  confirmDelete,
   uploadUserAvatar,
   uploadingUserId,
-  setUploadingUserId
+  setUploadingUserId,
+  securityPassword,
+  setSecurityPassword
 }: EconomicSectionProps) {
 
   const filteredRewards = useMemo(() => {
@@ -167,6 +171,22 @@ export function EconomicSection({
                 </div>
               </div>
             </div>
+            <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 space-y-2 mt-6">
+              <div className="flex items-center gap-2 text-amber-900">
+                <Lock className="h-4 w-4" />
+                <span className="text-xs font-black uppercase tracking-widest">Confirmação de Segurança</span>
+              </div>
+              <Input 
+                type="password" 
+                required 
+                value={securityPassword} 
+                onChange={(e) => setSecurityPassword(e.target.value)} 
+                placeholder="Sua senha ou senha Master" 
+                className="bg-white border-amber-200"
+              />
+              <p className="text-[9px] text-amber-700 font-medium">Autorização necessária para salvar recompensas.</p>
+            </div>
+
             <div className="flex justify-end gap-4 pt-4 border-t mt-6">
               <Button type="button" variant="ghost" onClick={closeAllForms}>Cancelar</Button>
               <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Salvando...' : 'Salvar Recompensa'}</Button>
@@ -259,17 +279,9 @@ export function EconomicSection({
                  <Input placeholder="Buscar por nome..." value={rewardSearch} onChange={(e) => setRewardSearch(e.target.value)} className="bg-white" />
               </div>
               
-              {isDeleteConfirmOpen && itemType === 'reward' && selectedItem && (
-                <div className="mb-6 p-4 border-2 border-red-200 bg-red-50 rounded-lg">
-                  <div className="flex items-center justify-between">
-                      <p className="font-bold text-red-900">Excluir "{selectedItem.name}"?</p>
-                      <div className="flex gap-2">
-                          <Button variant="outline" size="sm" onClick={() => setIsDeleteConfirmOpen(false)}>Não</Button>
-                          <Button variant="destructive" size="sm" onClick={onConfirmDelete}>Sim, Excluir</Button>
-                      </div>
-                  </div>
-                </div>
-              )}
+              <div className="mb-4">
+                 {/* Redundância removida: O painel de exclusão global agora gerencia isso */}
+              </div>
               <Table>
                 <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Custo</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
                 <TableBody>
@@ -303,12 +315,18 @@ export function EconomicSection({
                   <TableBody>
                   {filteredAuditLogs.map((log) => (
                       <TableRow key={log.id}>
-                      <TableCell className="text-[10px] text-slate-500">{new Date(log.timestamp).toLocaleString('pt-BR')}</TableCell>
-                      <TableCell className="font-bold">{log.studentName}</TableCell>
-                      <TableCell className="text-xs italic text-slate-600">{log.action}</TableCell>
-                      <TableCell><Badge variant="outline" className="text-[10px] uppercase font-black tracking-tighter">{log.sector}</Badge></TableCell>
-                      <TableCell className="italic text-slate-400 text-xs">{log.adminName}</TableCell>
-                      <TableCell className="text-right font-black text-emerald-600">+{log.points} PTS</TableCell>
+                        <TableCell className="text-[10px] text-slate-500">{new Date(log.timestamp).toLocaleString('pt-BR')}</TableCell>
+                        <TableCell className="font-bold">{log.studentName || log.metadata?.studentName || 'N/A'}</TableCell>
+                        <TableCell className="text-xs italic text-slate-600">{log.details || log.action}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-[10px] uppercase font-black tracking-tighter">
+                            {log.metadata?.sector || 'Geral'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="italic text-slate-400 text-xs">{log.adminName || log.actorName}</TableCell>
+                        <TableCell className="text-right font-black text-emerald-600">
+                          {log.points || log.metadata?.points ? `+${log.points || log.metadata?.points} PTS` : '-'}
+                        </TableCell>
                       </TableRow>
                   ))}
                   {filteredAuditLogs.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-12 text-slate-400 uppercase text-[10px] font-black tracking-widest">Sem transações registradas nesta unidade.</TableCell></TableRow>}

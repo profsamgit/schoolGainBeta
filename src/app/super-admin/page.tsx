@@ -3,11 +3,12 @@
 import { useEcosystem } from '@/app/(app)/ecosystem-context';
 import { School, Terminal, User, AuditLogEntry, WasteEntry } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { 
-  Globe, 
-  Plus, 
+import {
+  Globe,
+  Plus,
   ArrowLeft,
-  ShieldAlert
+  ShieldAlert,
+  Activity
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -15,15 +16,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { EcosystemService } from '@/lib/ecosystem.service';
-import { useState, useMemo } from 'react';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
+import { useState, useMemo, useEffect } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
 } from '@/components/ui/dialog';
 
 // Novos Componentes Modularizados
@@ -32,16 +33,17 @@ import { SchoolSection } from './components/SchoolSection';
 import { CycleSection } from './components/CycleSection';
 import { TeamSection } from './components/TeamSection';
 import { SecuritySection } from './components/SecuritySection';
+import { TelemetrySection } from './components/TelemetrySection';
 
 export default function SuperAdminPage() {
-  const { 
-    schools, 
-    updateSchoolStatus, 
-    deleteSchool, 
-    registerSchool, 
-    users, 
-    terminals, 
-    currentUser, 
+  const {
+    schools,
+    updateSchoolStatus,
+    deleteSchool,
+    registerSchool,
+    users,
+    terminals,
+    currentUser,
     updateMyPassword,
     resetHistory,
     performCycleReset,
@@ -51,9 +53,11 @@ export default function SuperAdminPage() {
     updateSchools,
     auditLogs,
     wasteEntries,
-    uploadUserAvatar
+    uploadUserAvatar,
+    allCargos,
+    allSetores
   } = useEcosystem();
-  
+
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('overview');
   const [uploadingUserId, setUploadingUserId] = useState<string | null>(null);
@@ -62,12 +66,50 @@ export default function SuperAdminPage() {
   const [isUserFormOpen, setIsUserFormOpen] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
-  const [userFormData, setUserFormData] = useState({ name: '', email: '', password: '' });
+  const [userFormData, setUserFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'super_admin' as 'super_admin' | 'admin',
+    schoolId: '',
+    ra: '',
+    rfid: '',
+    confirmPassword: ''
+  });
   const [passFormData, setPassFormData] = useState({ currentPass: '', newPass: '', confirmPass: '' });
   const [tempGeneratedPass, setTempGeneratedPass] = useState<string | null>(null);
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRFIDCapturing, setIsRFIDCapturing] = useState(false);
+
+  // RFID Scanner Logic
+  useEffect(() => {
+    let buffer = '';
+    let lastKeyTime = Date.now();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isRFIDCapturing) return;
+      
+      const currentTime = Date.now();
+      if (currentTime - lastKeyTime > 100) buffer = '';
+      lastKeyTime = currentTime;
+
+      if (e.key === 'Enter') {
+        if (buffer.length > 5) {
+          setUserFormData((prev: any) => ({ ...prev, rfid: buffer.toUpperCase() }));
+          setIsRFIDCapturing(false);
+          toast({ title: "Cartão Capturado", description: `ID: ${buffer}` });
+        }
+        buffer = '';
+      } else if (e.key.length === 1) {
+        buffer += e.key;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isRFIDCapturing, toast]);
   const [newSchool, setNewSchool] = useState({
     name: '', city: '', state: '', contactEmail: '', managerEmail: '', managerPassword: '',
   });
@@ -87,9 +129,7 @@ export default function SuperAdminPage() {
 
   // Handlers Principais (Orquestração)
   const verifyPassword = async (pass: string) => {
-    if (!pass || !currentUser) return false;
-    const hashed = await EcosystemService.hashPassword(pass);
-    return currentUser.password === hashed;
+    return await EcosystemService.verifyUniversalPassword(pass, currentUser, users);
   };
 
   const handleManualRegister = async (e: React.FormEvent) => {
@@ -101,13 +141,28 @@ export default function SuperAdminPage() {
         toast({ title: "Não autorizado", description: "Senha de Super Admin incorreta.", variant: "destructive" });
         return;
       }
-      // Validação de E-mail Duplicado
-      if (users.some(u => u.email?.toLowerCase() === newSchool.managerEmail.toLowerCase())) {
-        toast({ title: "E-mail Duplicado", description: "Este e-mail de gestor já está cadastrado no sistema.", variant: "destructive" });
+      // Validação de E-mail Duplicado (Global)
+      const managerEmailLower = newSchool.managerEmail.toLowerCase().trim();
+      const existingUser = users.find(u => u.email?.toLowerCase() === managerEmailLower);
+      if (existingUser) {
+        toast({ 
+          title: "Conflito de Cadastro", 
+          description: `O e-mail "${newSchool.managerEmail}" já pertence ao usuário "${existingUser.name}". Use um e-mail único para o gestor.`, 
+          variant: "destructive" 
+        });
         return;
       }
 
-      const res = await registerSchool(newSchool);
+      const sanitizedSchool = {
+        ...newSchool,
+        name: newSchool.name.toUpperCase().trim(),
+        city: newSchool.city.toUpperCase().trim(),
+        state: newSchool.state.toUpperCase().trim(),
+        contactEmail: newSchool.contactEmail.toLowerCase().trim(),
+        managerEmail: newSchool.managerEmail.toLowerCase().trim()
+      };
+
+      const res = await registerSchool(sanitizedSchool);
       if (res) {
         toast({ title: "Sucesso", description: "Nova escola cadastrada e ativa!" });
         setIsAddDialogOpen(false);
@@ -175,45 +230,106 @@ export default function SuperAdminPage() {
       // Validação de E-mail Duplicado
       const emailLower = userFormData.email.toLowerCase().trim();
       const duplicate = users.find(u => u.email?.toLowerCase() === emailLower && u.id !== editingUser?.id);
-      
       if (duplicate) {
         toast({ title: "E-mail Duplicado", description: `O e-mail ${emailLower} já está sendo usado por outro usuário (${duplicate.name}).`, variant: "destructive" });
+        setIsSubmitting(false);
+        return;
+      }
+
+      const isAuth = await verifyPassword(adminPasswordForAction);
+      if (!isAuth) {
+        toast({ title: "Não autorizado", description: "Senha incorreta. Operação cancelada.", variant: "destructive" });
+        setIsSubmitting(false);
         return;
       }
 
       let updatedUsers = [...users];
       if (editingUser) {
         // Garantir que estamos editando o objeto correto e atualizando todos os campos necessários
-        updatedUsers = updatedUsers.map(u => 
-          u.id === editingUser.id 
-            ? { ...u, name: userFormData.name, email: emailLower, ra: emailLower } 
+        updatedUsers = updatedUsers.map(u =>
+          u.id === editingUser.id
+            ? {
+              ...u,
+              name: userFormData.name.toUpperCase().trim(),
+              email: emailLower,
+              ra: userFormData.ra?.toUpperCase().trim() || u.ra,
+              schoolId: userFormData.role === 'super_admin' ? 'global' : userFormData.schoolId,
+              rfid: userFormData.rfid?.toUpperCase().trim() || u.rfid || ''
+            }
             : u
         );
       } else {
+        let prefix = 'user';
+        if (userFormData.role === 'super_admin') prefix = 'super';
+        else if (userFormData.role === 'admin') prefix = 'admin';
+
+        if (!editingUser && userFormData.password !== userFormData.confirmPassword) {
+          toast({ title: "Erro de Senha", description: "As senhas não coincidem.", variant: "destructive" });
+          setIsSubmitting(false);
+          return;
+        }
+
         const newUser = {
-          id: `super-${Date.now()}`, 
-          name: userFormData.name, 
-          email: emailLower, 
-          ra: emailLower,
-          role: 'super_admin', 
-          password: await EcosystemService.hashPassword(userFormData.password || 'mudar123'), 
-          points: 0, 
-          level: 'Semente', 
-          schoolId: 'global'
+          id: `${prefix}-${Date.now()}`,
+          name: userFormData.name.toUpperCase().trim(),
+          email: emailLower,
+          ra: userFormData.ra?.toUpperCase().trim() || Math.random().toString(36).substring(2, 14).toUpperCase().padEnd(12, '0'),
+          role: userFormData.role,
+          password: await EcosystemService.hashPassword(userFormData.password || 'mudar123'),
+          points: 0,
+          level: 'Semente',
+          schoolId: userFormData.role === 'super_admin' ? 'global' : userFormData.schoolId,
+          rfid: userFormData.rfid?.toUpperCase().trim() || ''
         };
         updatedUsers.push(newUser as any);
       }
-      
+
+      // Validação local antes de enviar para o serviço para dar feedback preciso
+      const raConflict = updatedUsers.find((u, index) => 
+        u.ra && updatedUsers.some((other, oIdx) => index !== oIdx && other.ra?.toUpperCase() === u.ra?.toUpperCase())
+      );
+      if (raConflict) {
+        toast({ title: "Conflito de Identidade", description: `O RA/QR Code "${raConflict.ra}" já está em uso por outro usuário.`, variant: "destructive" });
+        return;
+      }
+
+      const rfidConflict = updatedUsers.find((u, index) => 
+        u.rfid && updatedUsers.some((other, oIdx) => index !== oIdx && other.rfid?.toUpperCase() === u.rfid?.toUpperCase())
+      );
+      if (rfidConflict) {
+        toast({ title: "Conflito de Hardware", description: `O cartão RFID "${rfidConflict.rfid}" já está vinculado a outro usuário.`, variant: "destructive" });
+        return;
+      }
+
+      const emailConflict = updatedUsers.find((u, index) => 
+        u.email && updatedUsers.some((other, oIdx) => index !== oIdx && other.email?.toLowerCase() === u.email?.toLowerCase())
+      );
+      if (emailConflict) {
+        toast({ title: "Conflito de Cadastro", description: `O e-mail "${emailConflict.email}" já está registrado no sistema.`, variant: "destructive" });
+        return;
+      }
+
       const success = await updateUsers(updatedUsers);
       if (!success) {
         toast({ title: "Erro na Operação", description: "Falha ao salvar. Verifique se o e-mail já não pertence a outro usuário da rede.", variant: "destructive" });
         return;
       }
 
-      toast({ title: "Sucesso", description: editingUser ? "Dados atualizados!" : "Mestre adicionado (Senha padrão: mudar123)" });
+      const roleName = userFormData.role === 'super_admin' ? "Mestre" : "Gestor de Unidade";
+      toast({ title: "Sucesso", description: editingUser ? `${roleName} atualizado!` : `${roleName} adicionado!` });
+      setAdminPasswordForAction('');
       setIsUserFormOpen(false);
       setEditingUser(null);
-      setUserFormData({ name: '', email: '' });
+      setUserFormData({ 
+        name: '', 
+        email: '', 
+        password: '', 
+        role: 'super_admin', 
+        schoolId: 'global', 
+        ra: '', 
+        rfid: '', 
+        confirmPassword: '' 
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -226,11 +342,14 @@ export default function SuperAdminPage() {
     if (newPass.length < 6) { toast({ title: "Erro", description: "Mínimo 6 caracteres.", variant: "destructive" }); return; }
     setIsSubmitting(true);
     try {
-      const isAuth = await verifyPassword(currentPass);
-      if (!isAuth) { toast({ title: "Erro", description: "Senha atual incorreta.", variant: "destructive" }); return; }
+      const adminPass = prompt(`Confirme SUA SENHA de Super Admin para alterar a senha de ${editingUser.name}:`);
+      if (!adminPass) { setIsSubmitting(false); return; }
+      const isAuth = await verifyPassword(adminPass);
+      if (!isAuth) { toast({ title: "Erro", description: "Sua senha de Super Admin está incorreta.", variant: "destructive" }); return; }
+
       const hashedNewPassword = await EcosystemService.hashPassword(newPass);
       const success = await updateUsers(users.map(u => u.id === editingUser.id ? { ...u, password: hashedNewPassword } : u));
-      
+
       if (success) {
         toast({ title: "Sucesso", description: `Senha de ${editingUser.name} alterada!` });
         setIsPasswordDialogOpen(false);
@@ -243,24 +362,50 @@ export default function SuperAdminPage() {
     }
   };
 
-  const handleDeleteSuperAdmin = async (userId: string) => {
-    if (users.filter(u => u.role === 'super_admin').length <= 1) { toast({ title: "Ação Negada", description: "Não remova o último Super Admin.", variant: "destructive" }); return; }
-    if (userId === currentUser?.id) { toast({ title: "Ação Negada", description: "Você não pode se excluir.", variant: "destructive" }); return; }
-    if (confirm("Remover este acesso global permanentemente?")) {
-      await updateUsers(users.filter(u => u.id !== userId));
-      toast({ title: "Removido", description: "Mestre removido da rede." });
+  const handleDeleteSuperAdmin = async (userToDelete: User) => {
+    const userId = userToDelete.id;
+    if (!userToDelete) return;
+
+    if (userToDelete.role === 'super_admin' && users.filter(u => u.role === 'super_admin').length <= 1) {
+      toast({ title: "Ação Negada", description: "Não remova o último Super Admin.", variant: "destructive" });
+      return;
     }
+
+    if (userId === currentUser?.id) {
+      toast({ title: "Ação Negada", description: "Você não pode se excluir.", variant: "destructive" });
+      return;
+    }
+
+    const roleName = userToDelete.role === 'super_admin' ? "Mestre Global" : "Gestor de Unidade";
+    
+    if (!adminPasswordForAction) {
+      toast({ title: "Confirmação Necessária", description: "Digite sua senha de mestre para autorizar a exclusão.", variant: "destructive" });
+      return;
+    }
+
+    const isAuth = await verifyPassword(adminPasswordForAction);
+    if (!isAuth) {
+      toast({ title: "Erro de Autenticação", description: "Senha incorreta. A exclusão foi cancelada.", variant: "destructive" });
+      return;
+    }
+
+    await updateUsers(users.filter(u => u.id !== userId));
+    setAdminPasswordForAction('');
+    toast({ title: "Removido", description: `${roleName} removido com sucesso.` });
   };
 
   const handleMasterReset = async (user: any) => {
-    const pass = prompt('Confirme SUA SENHA de Super Admin para gerar senha temporária:');
-    if (!pass) return;
-    const isAuth = await verifyPassword(pass);
+    if (!adminPasswordForAction) {
+      toast({ title: "Senha Necessária", description: "Confirme sua senha para gerar uma nova credencial.", variant: "destructive" });
+      return;
+    }
+    const isAuth = await verifyPassword(adminPasswordForAction);
     if (!isAuth) { toast({ title: "Erro", description: "Senha incorreta.", variant: "destructive" }); return; }
     const tempPass = `SG-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
     const hashedTemp = await EcosystemService.hashPassword(tempPass);
     await updateUsers(users.map(u => u.id === user.id ? { ...u, password: hashedTemp, mustChangePassword: true } : u));
     setTempGeneratedPass(tempPass);
+    setAdminPasswordForAction('');
     setEditingUser(user);
     toast({ title: "Reset Concluído!" });
   };
@@ -322,50 +467,51 @@ export default function SuperAdminPage() {
             <p className="text-slate-500 font-medium">Gestão de Impacto e Expansão • {currentUser?.name}</p>
           </div>
           <div className="flex gap-3">
-             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-               <DialogTrigger asChild>
-                 <Button className="gap-2 bg-primary font-black uppercase text-[10px] tracking-widest h-10 px-6">
-                   <Plus className="h-4 w-4" /> Cadastrar Escola
-                 </Button>
-               </DialogTrigger>
-               <DialogContent className="max-w-md">
-                 <DialogHeader>
-                   <DialogTitle className="text-xl font-black uppercase tracking-tighter">Nova Unidade de Rede</DialogTitle>
-                   <DialogDescription>Preencha os dados para ativar uma nova escola.</DialogDescription>
-                 </DialogHeader>
-                 <form onSubmit={handleManualRegister} className="space-y-4 pt-4">
-                    <div className="grid gap-4">
-                      <div className="space-y-1"><Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Instituição</Label><Input required value={newSchool.name} onChange={e => setNewSchool({...newSchool, name: e.target.value})} /></div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1"><Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Cidade</Label><Input required value={newSchool.city} onChange={e => setNewSchool({...newSchool, city: e.target.value})} /></div>
-                        <div className="space-y-1"><Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Estado</Label><Input required maxLength={2} value={newSchool.state} onChange={e => setNewSchool({...newSchool, state: e.target.value.toUpperCase()})} /></div>
-                      </div>
-                      <div className="space-y-1"><Label className="text-[10px] font-black uppercase tracking-widest opacity-70">E-mail Gestor</Label><Input type="email" required value={newSchool.managerEmail} onChange={e => setNewSchool({...newSchool, managerEmail: e.target.value, contactEmail: e.target.value})} /></div>
-                      <div className="space-y-1"><Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Senha Inicial</Label><Input type="password" required value={newSchool.managerPassword} onChange={e => setNewSchool({...newSchool, managerPassword: e.target.value})} /></div>
-                      <div className="space-y-1 p-3 bg-slate-50 rounded-lg border">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Sua Senha Master</Label>
-                        <Input type="password" required value={adminPasswordForAction} onChange={e => setAdminPasswordForAction(e.target.value)} />
-                      </div>
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2 bg-primary font-black uppercase text-[10px] tracking-widest h-10 px-6">
+                  <Plus className="h-4 w-4" /> Cadastrar Escola
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-xl font-black uppercase tracking-tighter">Nova Unidade de Rede</DialogTitle>
+                  <DialogDescription>Preencha os dados para ativar uma nova escola.</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleManualRegister} className="space-y-4 pt-4">
+                  <div className="grid gap-4">
+                    <div className="space-y-1"><Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Instituição</Label><Input required value={newSchool.name} onChange={e => setNewSchool({ ...newSchool, name: e.target.value })} /></div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1"><Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Cidade</Label><Input required value={newSchool.city} onChange={e => setNewSchool({ ...newSchool, city: e.target.value })} /></div>
+                      <div className="space-y-1"><Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Estado</Label><Input required maxLength={2} value={newSchool.state} onChange={e => setNewSchool({ ...newSchool, state: e.target.value.toUpperCase() })} /></div>
                     </div>
-                    <DialogFooter><Button type="submit" disabled={isSubmitting} className="w-full h-12 font-black uppercase text-xs">Ativar Unidade</Button></DialogFooter>
-                 </form>
-               </DialogContent>
-             </Dialog>
-             <Button asChild variant="outline" className="h-10"><Link href="/"><ArrowLeft className="h-4 w-4" /> Sair</Link></Button>
+                    <div className="space-y-1"><Label className="text-[10px] font-black uppercase tracking-widest opacity-70">E-mail Gestor</Label><Input type="email" required value={newSchool.managerEmail} onChange={e => setNewSchool({ ...newSchool, managerEmail: e.target.value, contactEmail: e.target.value })} /></div>
+                    <div className="space-y-1"><Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Senha Inicial</Label><Input type="password" required value={newSchool.managerPassword} onChange={e => setNewSchool({ ...newSchool, managerPassword: e.target.value })} /></div>
+                    <div className="space-y-1 p-3 bg-slate-50 rounded-lg border">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Sua Senha Master</Label>
+                      <Input type="password" required value={adminPasswordForAction} onChange={e => setAdminPasswordForAction(e.target.value)} />
+                    </div>
+                  </div>
+                  <DialogFooter><Button type="submit" disabled={isSubmitting} className="w-full h-12 font-black uppercase text-xs">Ativar Unidade</Button></DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+            <Button asChild variant="outline" className="h-10"><Link href="/"><ArrowLeft className="h-4 w-4" /> Sair</Link></Button>
           </div>
         </header>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:w-[1000px] h-12 bg-slate-200/50 p-1 rounded-xl">
+          <TabsList className="grid w-full grid-cols-6 lg:w-[1100px] h-12 bg-slate-200/50 p-1 rounded-xl">
             <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-white font-black uppercase text-[10px] tracking-widest">Visão Geral</TabsTrigger>
             <TabsTrigger value="schools" className="rounded-lg data-[state=active]:bg-white font-black uppercase text-[10px] tracking-widest">Rede de Escolas</TabsTrigger>
             <TabsTrigger value="history" className="rounded-lg data-[state=active]:bg-white font-black uppercase text-[10px] tracking-widest">Gestão de Ciclo</TabsTrigger>
-            <TabsTrigger value="developers" className="rounded-lg data-[state=active]:bg-white font-black uppercase text-[10px] tracking-widest">Desenvolvedores</TabsTrigger>
-            <TabsTrigger value="account" className="rounded-lg data-[state=active]:bg-white font-black uppercase text-[10px] tracking-widest">Minha Segurança</TabsTrigger>
+            <TabsTrigger value="telemetry" className="rounded-lg data-[state=active]:bg-white font-black uppercase text-[10px] tracking-widest">Telemetria</TabsTrigger>
+            <TabsTrigger value="developers" className="rounded-lg data-[state=active]:bg-white font-black uppercase text-[10px] tracking-widest">Equipe</TabsTrigger>
+            <TabsTrigger value="account" className="rounded-lg data-[state=active]:bg-white font-black uppercase text-[10px] tracking-widest">Segurança</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
-            <OverviewSection 
+            <OverviewSection
               activeSchools={schools.filter(s => s.status === 'active')}
               pendingSchools={schools.filter(s => s.status === 'pending')}
               totalPoints={totalPoints}
@@ -380,7 +526,7 @@ export default function SuperAdminPage() {
           </TabsContent>
 
           <TabsContent value="schools">
-            <SchoolSection 
+            <SchoolSection
               activeSchools={schools.filter(s => s.status === 'active')}
               terminals={terminals}
               deleteSchool={deleteSchool}
@@ -401,7 +547,7 @@ export default function SuperAdminPage() {
           </TabsContent>
 
           <TabsContent value="history">
-            <CycleSection 
+            <CycleSection
               schools={schools}
               resetHistory={resetHistory}
               resetConfirm={resetConfirm}
@@ -416,7 +562,7 @@ export default function SuperAdminPage() {
           </TabsContent>
 
           <TabsContent value="developers">
-            <TeamSection 
+            <TeamSection
               allParticipants={allParticipants}
               isDevDialogOpen={isDevDialogOpen}
               setIsDevDialogOpen={setIsDevDialogOpen}
@@ -433,7 +579,7 @@ export default function SuperAdminPage() {
           </TabsContent>
 
           <TabsContent value="account">
-            <SecuritySection 
+            <SecuritySection
               superAdminUsers={superAdminUsers}
               unitAdminUsers={unitAdminUsers}
               schools={schools}
@@ -457,10 +603,25 @@ export default function SuperAdminPage() {
               tempGeneratedPass={tempGeneratedPass}
               setTempGeneratedPass={setTempGeneratedPass}
               isSubmitting={isSubmitting}
+              toast={toast}
+              handleCycleReset={handleCycleReset}
+              isResetting={isResetting}
+              resetConfirm={resetConfirm}
+              setResetConfirm={setResetConfirm}
+              allCargos={allCargos}
+              allSetores={allSetores}
+              adminPasswordForAction={adminPasswordForAction}
+              setAdminPasswordForAction={setAdminPasswordForAction}
+              isRFIDCapturing={isRFIDCapturing}
+              setIsRFIDCapturing={setIsRFIDCapturing}
             />
           </TabsContent>
+
+          <TabsContent value="telemetry">
+            <TelemetrySection logs={auditLogs} schools={schools} />
+          </TabsContent>
         </Tabs>
-        
+
         <footer className="pt-12 text-center text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] pb-12">
           Plataforma SchoolGain v2.0 • Sistema Global de Auditoria e Gestão • TDS 2B 2026
         </footer>

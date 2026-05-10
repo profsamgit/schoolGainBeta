@@ -1,47 +1,86 @@
 'use client';
 
-import { useMemo } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { useState, useMemo } from 'react';
 import { 
-  Users, UserPlus, QrCode, ArrowLeft, Printer, Edit, Trash2, Lock, Rss, Sparkles, Camera, Loader2 
+  Users, 
+  UserPlus, 
+  QrCode, 
+  ArrowLeft, 
+  Printer, 
+  Edit, 
+  Trash2, 
+  Lock, 
+  Rss, 
+  Sparkles, 
+  Camera, 
+  Loader2,
+  Search
 } from 'lucide-react';
 import { 
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription 
-} from '@/components/ui/dialog';
-import { 
-  Form, FormControl, FormField, FormItem, FormLabel, FormMessage 
-} from '@/components/ui/form';
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle, 
+  CardDescription 
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { 
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
-} from '@/components/ui/select';
-import { 
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
-} from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription,
+  DialogFooter
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import dynamic from 'next/dynamic';
-import PrintableBadge from '@/components/ecosystem/PrintableBadge';
+import { User, Reward, EducationArticle, Turma, Curso, Cargo, SetorEscolar } from '@/lib/types';
+import { UseFormReturn } from 'react-hook-form';
 
 const QRScanner = dynamic(() => import('@/components/ui/qr-scanner'), { ssr: false });
 
 interface AcademicSectionProps {
-  users: any[];
-  filteredUsersForAdmin: any[];
-  allTurmas: any[];
-  allCursos: any[];
-  allCargos: any[];
-  allSetores: any[];
-  filteredTurmas: any[];
-  filteredSetores: any[];
-  filteredCursos: any[];
+  users: User[];
+  filteredUsersForAdmin: User[];
+  allTurmas: Turma[];
+  allCursos: Curso[];
+  allCargos: Cargo[];
+  allSetores: SetorEscolar[];
+  filteredTurmas: Turma[];
+  filteredSetores: SetorEscolar[];
+  filteredCursos: Curso[];
   viewMode: 'list' | 'form';
-  itemType: string | null;
+  itemType: 'user' | 'reward' | 'article' | 'turma' | 'curso' | 'cargo' | 'setor' | null;
   isNew: boolean;
   isSubmitting: boolean;
-  userForm: any;
+  userForm: UseFormReturn<any>;
   onSubmit: (values: any) => void;
   handleEdit: (item: any, type: any) => void;
   handleDelete: (item: any, type: any) => void;
@@ -49,15 +88,15 @@ interface AcademicSectionProps {
   closeAllForms: () => void;
   isBadgeOpen: boolean;
   setIsBadgeOpen: (open: boolean) => void;
-  badgeUser: any;
-  setBadgeUser: (user: any) => void;
-  handleBadgePrint: (user: any) => void;
+  badgeUser: User | null;
+  setBadgeUser: (user: User | null) => void;
+  handleBadgePrint: (user: User) => void;
   userSearch: string;
-  setUserSearch: (search: string) => void;
-  userRoleFilter: string;
-  setUserRoleFilter: (role: any) => void;
+  setUserSearch: (val: string) => void;
+  userRoleFilter: 'student' | 'admin' | 'visitor';
+  setUserRoleFilter: (val: 'student' | 'admin' | 'visitor') => void;
   userTurmaFilter: string;
-  setUserTurmaFilter: (turma: string) => void;
+  setUserTurmaFilter: (val: string) => void;
   isQRScannerOpen: boolean;
   setIsQRScannerOpen: (open: boolean) => void;
   handleQRDetected: (ra: string) => void;
@@ -71,12 +110,14 @@ interface AcademicSectionProps {
   generateStrongPassword: () => void;
   isPasswordDialogOpen: boolean;
   setIsPasswordDialogOpen: (open: boolean) => void;
-  targetSchoolId: string | undefined;
+  targetSchoolId: string | null | undefined;
   isDeleteConfirmOpen: boolean;
   selectedItem: any;
   setSelectedItem: (item: any) => void;
   confirmDelete: () => void;
   setIsDeleteConfirmOpen: (open: boolean) => void;
+  securityPassword: string;
+  setSecurityPassword: (val: string) => void;
 }
 
 export function AcademicSection({
@@ -128,8 +169,19 @@ export function AcademicSection({
   selectedItem,
   setSelectedItem,
   confirmDelete,
-  setIsDeleteConfirmOpen
+  setIsDeleteConfirmOpen,
+  securityPassword,
+  setSecurityPassword
 }: AcademicSectionProps) {
+  
+  const generateRandomRA = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 12; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    userForm.setValue('ra', result, { shouldValidate: true });
+  };
 
   const filteredUsers = useMemo(() => {
     return filteredUsersForAdmin.filter(u => {
@@ -182,17 +234,22 @@ export function AcademicSection({
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
-                      <div className="flex gap-4 items-end">
+                      <div className="flex gap-2 items-end">
                           <FormField control={userForm.control} name="ra" render={({ field }) => (
                           <FormItem className="flex-1">
                               <FormLabel>RA (Identificação QR)</FormLabel>
-                              <FormControl><Input {...field} className="bg-white font-mono" /></FormControl>
+                              <FormControl><Input {...field} className="bg-white font-mono uppercase" /></FormControl>
                               <FormMessage />
                           </FormItem>
                           )} />
-                          <Button type="button" variant="outline" size="icon" className={`mb-[2px] ${isQRScannerOpen ? 'bg-primary text-white' : 'bg-white'}`} onClick={() => setIsQRScannerOpen(!isQRScannerOpen)}>
-                              <QrCode className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-1 mb-[2px]">
+                            <Button type="button" variant="outline" size="icon" className="bg-white text-primary hover:bg-primary/10" onClick={generateRandomRA} title="Gerar ID Aleatório">
+                                <Sparkles className="h-4 w-4" />
+                            </Button>
+                            <Button type="button" variant="outline" size="icon" className={` ${isQRScannerOpen ? 'bg-primary text-white' : 'bg-white'}`} onClick={() => setIsQRScannerOpen(!isQRScannerOpen)} title="Escanear QR Code">
+                                <QrCode className="h-4 w-4" />
+                            </Button>
+                          </div>
                       </div>
 
                       {isQRScannerOpen && (
@@ -202,22 +259,22 @@ export function AcademicSection({
                                   <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-white hover:text-red-400" onClick={() => setIsQRScannerOpen(false)}>×</Button>
                               </div>
                               <QRScanner onScan={(text: string) => {
-                                  userForm.setValue('ra', text);
+                                  userForm.setValue('ra', text.toUpperCase());
                                   setIsQRScannerOpen(false);
                               }} />
                           </div>
                       )}
 
                       {userForm.watch('role') !== 'visitor' && (
-                          <div className="flex gap-4 items-end">
+                          <div className="flex gap-2 items-end">
                               <FormField control={userForm.control} name="rfid" render={({ field }) => (
                               <FormItem className="flex-1">
                                   <FormLabel>ID do Cartão (RFID)</FormLabel>
-                                  <FormControl><Input {...field} placeholder="Aguardando aproximação..." className="bg-white font-mono" /></FormControl>
+                                  <FormControl><Input {...field} placeholder="Aguardando..." className="bg-white font-mono uppercase" /></FormControl>
                                   <FormMessage />
                               </FormItem>
                               )} />
-                              <Button type="button" variant={isRFIDCapturing ? 'destructive' : 'outline'} size="icon" className={`mb-[2px] ${isRFIDCapturing ? 'animate-pulse' : 'bg-white'}`} onClick={() => setIsRFIDCapturing(!isRFIDCapturing)}>
+                              <Button type="button" variant={isRFIDCapturing ? 'destructive' : 'outline'} size="icon" className={`mb-[2px] ${isRFIDCapturing ? 'animate-pulse' : 'bg-white text-primary'}`} onClick={() => setIsRFIDCapturing(!isRFIDCapturing)}>
                                   <Rss className="h-4 w-4" />
                               </Button>
                           </div>
@@ -296,10 +353,26 @@ export function AcademicSection({
                   </div>
               </div>
 
-              <div className="flex justify-end gap-4 pt-6 border-t mt-6">
-                  <Button type="button" variant="ghost" onClick={closeAllForms} disabled={isSubmitting}>Cancelar</Button>
-                  <Button type="submit" size="lg" disabled={isSubmitting} className="px-8">{isSubmitting ? 'Salvando...' : 'Confirmar e Salvar'}</Button>
-              </div>
+               <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 space-y-2 mt-4">
+                  <div className="flex items-center gap-2 text-amber-900">
+                    <Lock className="h-4 w-4" />
+                    <span className="text-xs font-black uppercase tracking-widest">Confirmação de Segurança</span>
+                  </div>
+                  <Input 
+                    type="password" 
+                    required 
+                    value={securityPassword} 
+                    onChange={(e) => setSecurityPassword(e.target.value)} 
+                    placeholder="Sua senha ou senha Master" 
+                    className="bg-white border-amber-200"
+                  />
+                  <p className="text-[9px] text-amber-700 font-medium">Digite sua senha atual ou uma Chave Mestra para autorizar.</p>
+               </div>
+
+               <div className="flex justify-end gap-4 pt-6 border-t mt-6">
+                   <Button type="button" variant="ghost" onClick={closeAllForms} disabled={isSubmitting}>Cancelar</Button>
+                   <Button type="submit" size="lg" disabled={isSubmitting} className="px-8">{isSubmitting ? 'Salvando...' : 'Confirmar e Salvar'}</Button>
+               </div>
             </form>
           </Form>
         </CardContent>
@@ -309,111 +382,82 @@ export function AcademicSection({
 
   return (
     <div className="space-y-6">
-      <Card>
-        {/* MODAL DE CARTEIRA */}
-        <Dialog open={isBadgeOpen} onOpenChange={setIsBadgeOpen}>
-          <DialogContent className="max-w-[400px]">
-            <DialogHeader>
-              <DialogTitle>Gerar Identificador</DialogTitle>
-              <DialogDescription>Visualize e imprima a Carteira do sistema.</DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-              {badgeUser && <PrintableBadge user={badgeUser} />}
-            </div>
-            <DialogFooter className="flex gap-2 sm:justify-center">
-              <Button variant="outline" onClick={() => setIsBadgeOpen(false)}>Fechar</Button>
-              <Button onClick={() => handleBadgePrint(badgeUser)} className="gap-2">
-                <Printer className="h-4 w-4" /> Imprimir / Salvar PDF
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <CardTitle>Usuários</CardTitle>
-            <CardDescription>Gestão de alunos e equipe escolar.</CardDescription>
+      <Card className="border-none shadow-xl overflow-hidden bg-white/50 backdrop-blur-sm">
+        <CardHeader className="flex flex-row items-center justify-between pb-6">
+          <div className="flex items-center gap-4">
+             <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                <Users className="h-5 w-5" />
+             </div>
+             <div>
+                <CardTitle className="text-xl font-black uppercase tracking-tighter">Corpo Acadêmico</CardTitle>
+                <CardDescription className="text-[10px] font-bold uppercase tracking-widest">Gestão de alunos, visitantes e equipe administrativa local.</CardDescription>
+             </div>
           </div>
-          {targetSchoolId && (
-            <Button onClick={() => handleNew('user')} className="bg-primary hover:bg-primary/90 shadow-md transition-all">
-              <UserPlus className="mr-2 h-4 w-4" />Novo {userRoleFilter === 'admin' ? 'Gestor' : userRoleFilter === 'visitor' ? 'Visitante' : 'Aluno'}
-            </Button>
-          )}
+          <Button onClick={() => handleNew('user')} className="bg-primary text-white font-black uppercase text-[10px] tracking-widest gap-2">
+            <UserPlus className="h-4 w-4" /> Novo Agente
+          </Button>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* BARRA DE FERRAMENTAS DE BUSCA E FILTRO */}
-          <div className="flex flex-col md:flex-row gap-4 p-4 bg-muted/30 rounded-xl border border-muted-foreground/10">
-            <div className="flex-1">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1 block">Pesquisar</Label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Input 
-                      placeholder="Buscar por nome ou RA..." 
-                      value={userSearch} 
-                      onChange={(e) => setUserSearch(e.target.value)}
-                      className="bg-white pr-10"
-                    />
-                    {userSearch && (
-                      <button onClick={() => setUserSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 font-bold">×</button>
-                    )}
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className={`bg-white shrink-0 ${isSearchQRScannerOpen ? 'border-primary text-primary' : ''}`}
-                    onClick={() => setIsSearchQRScannerOpen(!isSearchQRScannerOpen)}
-                  >
-                    <QrCode className="h-4 w-4" />
-                  </Button>
-                </div>
+        
+        <CardContent>
+          <div className="flex flex-col md:flex-row gap-4 mb-8">
+            <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input 
+                  placeholder="Pesquisar por nome ou RA..." 
+                  className="pl-10 bg-white border-slate-200"
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                />
             </div>
             
-            <div className="w-full md:w-64">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1 block">Filtrar por Turma</Label>
-                <Select value={userTurmaFilter} onValueChange={setUserTurmaFilter}>
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="Todas as Turmas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas as Turmas</SelectItem>
-                    {filteredTurmas.map((t, idx) => (
-                      <SelectItem key={t.id || `filter-t-${idx}`} value={t.name}>{t.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="flex gap-2">
+                <div className="w-full md:w-64">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1 block">Filtrar por Turma</Label>
+                    <Select value={userTurmaFilter} onValueChange={setUserTurmaFilter}>
+                      <SelectTrigger className="bg-white">
+                        <SelectValue placeholder="Todas as Turmas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas as Turmas</SelectItem>
+                        {filteredTurmas.map((t, idx) => (
+                          <SelectItem key={t.id || `filter-t-${idx}`} value={t.name}>{t.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                </div>
             </div>
           </div>
 
-          {/* SUB-ABAS PARA SEPARAR ALUNOS E GESTORES */}
-          <Tabs value={userRoleFilter} onValueChange={(v: any) => setUserRoleFilter(v)} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-4">
-              <TabsTrigger value="student" className="gap-2 uppercase font-black text-[10px] tracking-widest">Alunos ({filteredUsersForAdmin.filter(u => u.role === 'student').length})</TabsTrigger>
-              <TabsTrigger value="admin" className="gap-2 uppercase font-black text-[10px] tracking-widest">Gestores ({filteredUsersForAdmin.filter(u => u.role === 'admin' || u.role === 'super_admin').length})</TabsTrigger>
-              <TabsTrigger value="visitor" className="gap-2 uppercase font-black text-[10px] tracking-widest">Visitantes ({filteredUsersForAdmin.filter(u => u.role === 'visitor').length})</TabsTrigger>
+          <Tabs value={userRoleFilter} onValueChange={(v: any) => setUserRoleFilter(v as any)} className="w-full">
+            <TabsList className="grid w-full grid-cols-3 mb-4 h-12 bg-slate-100 p-1">
+              <TabsTrigger value="student" className="gap-2 uppercase font-black text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary">Alunos ({filteredUsersForAdmin.filter(u => u.role === 'student').length})</TabsTrigger>
+              <TabsTrigger value="admin" className="gap-2 uppercase font-black text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary">Gestores ({filteredUsersForAdmin.filter(u => u.role === 'admin' || u.role === 'super_admin').length})</TabsTrigger>
+              <TabsTrigger value="visitor" className="gap-2 uppercase font-black text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary">Visitantes ({filteredUsersForAdmin.filter(u => u.role === 'visitor').length})</TabsTrigger>
             </TabsList>
             
-            <div className="rounded-md border bg-white overflow-hidden">
+            <div className="rounded-xl border border-slate-100 bg-white overflow-hidden shadow-sm">
               <Table>
-                <TableHeader className="bg-slate-50">
+                <TableHeader className="bg-slate-50/50">
                   <TableRow>
-                    <TableHead className="w-10"></TableHead>
-                    <TableHead className="font-black uppercase text-[10px] tracking-wider">Nome</TableHead>
-                    <TableHead className="font-black uppercase text-[10px] tracking-wider">RA / ID</TableHead>
-                    <TableHead className="font-black uppercase text-[10px] tracking-wider">Turma / Setor</TableHead>
-                    <TableHead className="font-black uppercase text-[10px] tracking-wider">Status</TableHead>
-                    <TableHead className="text-right font-black uppercase text-[10px] tracking-wider">Ações</TableHead>
+                    <TableHead className="w-12 px-6"></TableHead>
+                    <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">Identificação</TableHead>
+                    <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">RA / ID</TableHead>
+                    <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">Vínculo</TableHead>
+                    <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">Status</TableHead>
+                    <TableHead className="text-right px-6 font-black uppercase text-[10px] tracking-widest text-slate-400">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredUsers.length > 0 ? filteredUsers.map((user) => (
-                    <TableRow key={`${user.id}-${user.ra}`} className={isDeleteConfirmOpen && selectedItem?.id === user.id ? 'bg-red-50' : 'hover:bg-slate-50 transition-colors'}>
-                      <TableCell>
+                    <TableRow key={`${user.id}-${user.ra}`} className={isDeleteConfirmOpen && selectedItem?.id === user.id ? 'bg-red-50' : 'hover:bg-slate-50 transition-colors group'}>
+                      <TableCell className="px-6">
                       <div className="relative group/avatar">
-                        <Avatar className="h-8 w-8 rounded-lg bg-slate-100 border border-slate-200">
+                        <Avatar className="h-10 w-10 rounded-xl bg-slate-100 border-2 border-transparent group-hover/avatar:border-primary transition-all overflow-hidden">
                           <AvatarImage src={user.avatar || undefined} className="object-cover" />
-                          <AvatarFallback className="text-[10px] font-black">{user.name.charAt(0)}</AvatarFallback>
+                          <AvatarFallback className="text-xs font-black bg-slate-900 text-white">{user.name.charAt(0)}</AvatarFallback>
                         </Avatar>
-                        <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/avatar:opacity-100 rounded-lg cursor-pointer transition-opacity">
-                          {uploadingUserId === user.id ? <Loader2 className="h-3 w-3 text-white animate-spin" /> : <Camera className="h-3 w-3 text-white" />}
+                        <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/avatar:opacity-100 rounded-xl cursor-pointer transition-opacity">
+                          {uploadingUserId === user.id ? <Loader2 className="h-4 w-4 text-white animate-spin" /> : <Camera className="h-4 w-4 text-white" />}
                           <input 
                             type="file" 
                             className="hidden" 
@@ -434,67 +478,75 @@ export function AcademicSection({
                         </label>
                       </div>
                     </TableCell>
-                    <TableCell className="font-semibold text-slate-900">{user.name}</TableCell>
-                      <TableCell className="font-mono text-xs">{user.ra}</TableCell>
-                      <TableCell className="text-slate-600">
-                        {user.position ? (
-                          <div className="flex flex-col">
-                            <span className="font-bold text-primary text-[10px] uppercase">{user.position}</span>
-                            <span className="text-[11px]">{user.turma}</span>
-                          </div>
-                        ) : user.turma}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className="uppercase text-[9px] font-black tracking-widest">
-                          {user.role === 'super_admin' ? 'Rede' : user.role === 'admin' ? 'Gestor' : user.role === 'visitor' ? 'Visitante' : 'Aluno'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="outline" size="sm" onClick={() => { setBadgeUser(user as any); setIsBadgeOpen(true); }} className="h-8 px-2 gap-1 text-[10px] uppercase font-black tracking-tighter">
-                            <QrCode className="h-3 w-3" /> Carteira
-                          </Button>
-                          <div className="flex justify-end gap-2">
-                             {user.role === 'admin' && (
-                               <Button 
-                                 variant="ghost" 
-                                 size="icon" 
-                                 title="Trocar Senha"
-                                 className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-50"
-                                 onClick={() => {
-                                   setSelectedItem(user);
-                                   setIsPasswordDialogOpen(true);
-                                 }}
-                               >
-                                  <Lock className="h-4 w-4" />
-                               </Button>
-                             )}
-                             <Button 
-                               variant="ghost" 
-                               size="icon" 
-                               title="Editar"
-                               className="h-8 w-8 text-slate-400 hover:text-slate-900"
-                               onClick={() => handleEdit(user, 'user')}
-                             >
-                                <Edit className="h-4 w-4" />
-                             </Button>
-                             <Button 
-                               variant="ghost" 
-                               size="icon" 
-                               title="Excluir"
-                               className="h-8 w-8 text-slate-400 hover:text-red-600"
-                               onClick={() => handleDelete(user, 'user')}
-                             >
-                                <Trash2 className="h-4 w-4" />
-                             </Button>
-                          </div>
+                    <TableCell className="font-bold text-slate-900">
+                      <div className="flex flex-col">
+                        <span className="text-sm">{user.name}</span>
+                        <span className="text-[10px] text-slate-400 font-medium lowercase italic">{user.email || 'sem e-mail'}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-mono text-[11px] font-bold text-primary">{user.ra}</TableCell>
+                    <TableCell>
+                      {user.position ? (
+                        <div className="flex flex-col">
+                          <span className="font-black text-slate-900 text-[9px] uppercase tracking-widest">{user.position}</span>
+                          <span className="text-[10px] text-slate-500 font-bold">{user.turma}</span>
                         </div>
-                      </TableCell>
+                      ) : (
+                        <span className="text-[10px] text-slate-500 font-bold">{user.turma || 'Sem Turma'}</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                        <Badge variant={user.role === 'admin' || user.role === 'super_admin' ? 'default' : 'secondary'} className="uppercase text-[8px] font-black tracking-tighter">
+                          {user.role === 'super_admin' ? 'Mestre' : user.role === 'admin' ? 'Gestor' : user.role === 'visitor' ? 'Visita' : 'Aluno'}
+                        </Badge>
+                    </TableCell>
+                    <TableCell className="text-right px-6">
+                      <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="icon" onClick={() => { setBadgeUser(user as any); setIsBadgeOpen(true); }} className="h-8 w-8 text-slate-400 hover:text-primary hover:bg-primary/5" title="Ver Carteira">
+                          <QrCode className="h-4 w-4" />
+                        </Button>
+                        {user.role === 'admin' && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            title="Trocar Senha"
+                            className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-50"
+                            onClick={() => {
+                              setSelectedItem(user);
+                              setIsPasswordDialogOpen(true);
+                            }}
+                          >
+                             <Lock className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          title="Editar"
+                          className="h-8 w-8 text-slate-400 hover:text-slate-900 hover:bg-slate-100"
+                          onClick={() => handleEdit(user, 'user')}
+                        >
+                           <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          title="Excluir"
+                          className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                          onClick={() => handleDelete(user, 'user')}
+                        >
+                           <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
                     </TableRow>
                   )) : (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-12 text-muted-foreground italic uppercase text-xs tracking-widest">
-                        Nenhum {userRoleFilter === 'admin' ? 'gestor' : 'aluno'} encontrado para os filtros atuais.
+                      <TableCell colSpan={6} className="text-center py-16">
+                        <div className="flex flex-col items-center gap-2 opacity-30">
+                           <Users className="h-10 w-10" />
+                           <p className="text-[10px] font-black uppercase tracking-widest italic">Nenhum registro encontrado</p>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )}
@@ -503,11 +555,43 @@ export function AcademicSection({
             </div>
           </Tabs>
 
+          {/* MODAL DE CARTEIRA */}
+          <Dialog open={isBadgeOpen} onOpenChange={setIsBadgeOpen}>
+            <DialogContent className="max-w-xs p-0 overflow-hidden border-none bg-transparent">
+              {badgeUser && (
+                <div className="bg-white rounded-3xl overflow-hidden shadow-2xl">
+                  <div className="h-20 bg-primary relative">
+                    <div className="absolute -bottom-10 left-1/2 -translate-x-1/2">
+                      <Avatar className="h-20 w-20 border-4 border-white shadow-lg">
+                        <AvatarImage src={badgeUser.avatar || undefined} />
+                        <AvatarFallback className="bg-slate-900 text-white font-black">{badgeUser.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                    </div>
+                  </div>
+                  <div className="pt-12 pb-6 px-6 text-center space-y-4">
+                    <div>
+                      <h3 className="font-black uppercase tracking-tighter text-xl">{badgeUser.name}</h3>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">{badgeUser.role === 'student' ? badgeUser.turma : badgeUser.position || 'Agente'}</p>
+                    </div>
+                    
+                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center gap-2">
+                       <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-100">
+                          <QrCode className="h-32 w-32 text-slate-900" />
+                       </div>
+                       <span className="font-mono text-sm font-black text-primary tracking-widest">{badgeUser.ra}</span>
+                    </div>
+
+                    <Button onClick={() => handleBadgePrint(badgeUser)} className="w-full bg-slate-900 gap-2 font-black uppercase text-[10px] tracking-widest h-12">
+                      <Printer className="h-4 w-4" /> Imprimir Crachá
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+
          </CardContent>
       </Card>
     </div>
   );
 }
-
-// Helper to keep Tabs component happy in the parent
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';

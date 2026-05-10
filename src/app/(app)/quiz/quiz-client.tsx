@@ -251,8 +251,8 @@ export function QuizClient() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {allQuizTopics.map((topic) => (
-                        <SelectItem key={topic.id} value={topic.name}>
+                      {allQuizTopics.map((topic, idx) => (
+                        <SelectItem key={topic.id || `topic-${idx}`} value={topic.name}>
                           {topic.name}
                         </SelectItem>
                       ))}
