@@ -266,11 +266,15 @@ export default function KioskPage() {
         toast({ title: 'Ação Bloqueada', description: 'Não parece ser um resíduo.', variant: 'destructive' });
         return;
     }
-    registerWaste(identifiedStudent?.ra || studentRa, identificationResult.wasteType as any, identificationResult.estimatedWeightKg || 0.05, currentTerminal?.schoolId);
+    const estimatedWeightKg = identificationResult.estimatedWeightKg || 0.05;
+    const basePoints = POINTS_MAPPING[identificationResult.wasteType] || 0;
+    const actualPoints = estimatedWeightKg >= 1 ? Math.floor(estimatedWeightKg * basePoints) : basePoints;
+
+    registerWaste(identifiedStudent?.ra || studentRa, identificationResult.wasteType as any, estimatedWeightKg, currentTerminal?.schoolId);
     if (identifiedStudent?.role === 'visitor') {
         setSuccessMessage('Obrigado por sua visita! Sua atitude inspira nossa escola.');
     } else {
-        toast({ title: 'Registro bem-sucedido!', description: `${identifiedStudent?.name} ganhou ${identificationResult.points} pontos.` });
+        toast({ title: 'Registro bem-sucedido!', description: `${identifiedStudent?.name} ganhou ${actualPoints} pontos.` });
         setStep('identification'); setStudentRa(''); setIdentifiedStudent(null); setIdentificationResult(null);
     }
     setIdentificationResult(null);

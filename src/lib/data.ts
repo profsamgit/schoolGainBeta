@@ -1,4 +1,4 @@
-import type { User, Reward, EducationArticle, Participant, School, Turma, Curso, Cargo, SetorEscolar, Terminal } from './types';
+import type { User, Reward, EducationArticle, Participant, School, Turma, Curso, Cargo, SetorEscolar, Terminal, QuizTopic } from './types';
 
 /**
  * SchoolGain Data: Produção
@@ -17,7 +17,7 @@ export const ADMIN_MOCK: User = {
   email: 'gestor@schoolgain.com',
   avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Admin',
   role: 'super_admin',
-  password: '46bedf6fe2d6d6bf157b58c3ddfe0ff5ec53dad2f5689c63cf0f16901049dff5',
+  password: '', // A senha deve ser configurada diretamente no Firebase Authentication em Produção
   points: 0,
   level: 'Semente',
   ra: 'gestor@schoolgain.com',

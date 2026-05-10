@@ -86,12 +86,10 @@ const identifyWasteFlow = ai.defineFlow(
       outputSchema: IdentifyWasteOutputSchema,
     },
     async (input): Promise<IdentifyWasteOutput> => {
-      console.log('--- Identificando Resíduo ---');
-      console.log('Input length:', input.photoDataUri.length);
+      console.log('--- Identificando Resíduo via AI ---');
       
       try {
           const {output} = await prompt(input);
-          console.log('AI Response:', JSON.stringify(output, null, 2));
 
           if (output) {
               if (!output.isWaste) {
@@ -102,9 +100,9 @@ const identifyWasteFlow = ai.defineFlow(
                   recyclable: false,
                   recyclingInstructions: 'A imagem não parece conter um item de resíduo para descarte.',
                   points: 0,
+                  estimatedWeightKg: 0,
                   justification: 'Nenhum resíduo foi detectado na imagem.',
                 };
-                console.log('Not waste result:', result);
                 return result;
               }
               // Ensure points are consistent with our mapping
@@ -113,8 +111,6 @@ const identifyWasteFlow = ai.defineFlow(
                 points: POINTS_MAPPING[output.wasteType] ?? 0,
                 estimatedWeightKg: output.estimatedWeightKg || 0.05
               };
-              
-              console.log('Identification success:', finalResult);
               return finalResult;
           }
       } catch (promptError) {

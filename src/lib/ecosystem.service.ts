@@ -388,7 +388,7 @@ export class EcosystemService {
     // Sincronização entre abas: Ouve mudanças no localStorage vindas de outras abas (ex: Kiosk)
     window.addEventListener('storage', (event) => {
       if (event.key === 'schoolgain_ecosystem_data') {
-        console.log('[ECOSYSTEM] Dados atualizados em outra aba, sincronizando...');
+        // Debug: console.log('[ECOSYSTEM] Dados atualizados em outra aba, sincronizando...');
         this.loadFromStorage();
         this.notifyAll();
       }
@@ -517,7 +517,7 @@ export class EcosystemService {
     try {
       let downloadURL = '';
 
-      console.log(`[ECOSYSTEM] Iniciando processamento de foto: ${userId}`);
+      // Debug: console.log(`[ECOSYSTEM] Iniciando processamento de foto: ${userId}`);
 
       // Geramos o Base64 IMEDIATAMENTE. Como o Storage é restrito no plano, 
       // usamos o Firestore (Base64) como método principal e único para máxima velocidade.
@@ -553,7 +553,7 @@ export class EcosystemService {
       });
 
       downloadURL = base64Data;
-      console.log("[ECOSYSTEM] Foto processada localmente com sucesso.");
+      // Debug: console.log("[ECOSYSTEM] Foto processada localmente com sucesso.");
       
       // 4. Determina a coleção (users, participants, rewards, articles)
       let collectionName = "users";
@@ -884,8 +884,8 @@ export class EcosystemService {
 
   private getDefaultState(): EcosystemUserState {
     return { 
-      balance: 5000, 
-      vitality: 100, 
+      balance: 0, 
+      vitality: 0, 
       purchasedItems: [], 
       lastMissionDate: null, 
       curso: '', 
