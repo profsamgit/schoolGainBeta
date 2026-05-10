@@ -18,7 +18,7 @@ import {
   Volume2,
   Lock
 } from 'lucide-react';
-import { playBeep } from '@/lib/utils';
+import { playBeep, cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { VirtualKeyboard } from '@/components/ui/virtual-keyboard';
 import { useEcosystem } from '../../(app)/ecosystem-context';
@@ -37,7 +37,9 @@ export default function StudentLoginPage() {
   const [ra, setRa] = useState('');
   const [showKeyboard, setShowKeyboard] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
-  const [activeTab, setActiveTab] = useState('manual');
+  const initialTab = systemSettings.studentLoginMethod === 'qr' ? 'qr' : 
+                     systemSettings.studentLoginMethod === 'rfid' ? 'rfid' : 'manual';
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [isProcessing, setIsProcessing] = useState(false);
   const [lockoutSecs, setLockoutSecs] = useState(0);
   const [scannerKey, setScannerKey] = useState(0);
@@ -142,9 +144,8 @@ export default function StudentLoginPage() {
     const interval = setInterval(pollHardware, 2000);
     return () => {
       clearInterval(interval);
-      console.log("[AUTH] Polling do aluno desativado.");
     };
-  }, [activeTab, systemSettings.terminalId, systemSettings.loginCameraSource, handleLogin]);
+  }, [activeTab, systemSettings.terminalId, handleLogin]);
 
   /**
    * ESCUTA DE TECLADO (RFID HID):
@@ -196,16 +197,25 @@ export default function StudentLoginPage() {
                 
                 <CardContent>
                   <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-3 mb-6">
-                      <TabsTrigger value="manual" className="gap-2">
-                        <User className="h-4 w-4" /> RA
-                      </TabsTrigger>
-                      <TabsTrigger value="qr" className="gap-2">
-                        <QrCode className="h-4 w-4" /> QR
-                      </TabsTrigger>
-                      <TabsTrigger value="rfid" className="gap-2">
-                        <Cpu className="h-4 w-4" /> RFID
-                      </TabsTrigger>
+                    <TabsList className={cn(
+                      "grid w-full mb-6",
+                      systemSettings.studentLoginMethod === 'all' ? "grid-cols-3" : "grid-cols-1"
+                    )}>
+                      {(systemSettings.studentLoginMethod === 'all' || systemSettings.studentLoginMethod === 'manual') && (
+                        <TabsTrigger value="manual" className="gap-2">
+                          <User className="h-4 w-4" /> RA
+                        </TabsTrigger>
+                      )}
+                      {(systemSettings.studentLoginMethod === 'all' || systemSettings.studentLoginMethod === 'qr') && (
+                        <TabsTrigger value="qr" className="gap-2">
+                          <QrCode className="h-4 w-4" /> QR
+                        </TabsTrigger>
+                      )}
+                      {(systemSettings.studentLoginMethod === 'all' || systemSettings.studentLoginMethod === 'rfid') && (
+                        <TabsTrigger value="rfid" className="gap-2">
+                          <Cpu className="h-4 w-4" /> RFID
+                        </TabsTrigger>
+                      )}
                     </TabsList>
 
                     {/* LOGIN MANUAL */}
@@ -257,23 +267,12 @@ export default function StudentLoginPage() {
 
                     {/* LOGIN QR CODE */}
                     <TabsContent value="qr" className="space-y-4">
-                      {systemSettings.loginCameraSource === 'browser' ? (
-                        <div className="space-y-4">
-                          <QRScanner key={scannerKey} onScan={(text) => handleLogin(text)} />
-                          <p className="text-xs text-center text-muted-foreground">
-                            Aponte sua Carteira física ou virtual para a câmera.
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg space-y-4">
-                          <Cpu className="h-12 w-12 text-primary animate-pulse" />
-                          <div className="text-center">
-                            <p className="font-bold">Aguardando ESP32-CAM</p>
-                            <p className="text-sm text-muted-foreground">Use a câmera do terminal físico para escanear seu QR Code.</p>
-                          </div>
-                          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                        </div>
-                      )}
+                      <div className="space-y-4">
+                        <QRScanner key={scannerKey} onScan={(text) => handleLogin(text)} />
+                        <p className="text-xs text-center text-muted-foreground font-bold uppercase tracking-widest bg-slate-100 py-2 rounded-full">
+                          Aponte sua Carteira para a câmera
+                        </p>
+                      </div>
                     </TabsContent>
 
                     {/* LOGIN RFID */}

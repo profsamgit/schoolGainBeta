@@ -2,7 +2,8 @@
 
 import { QRCodeSVG } from 'qrcode.react';
 import { User } from '@/lib/types';
-import { Shield, Leaf } from 'lucide-react';
+import { Shield, Leaf, User as UserIcon } from 'lucide-react';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 interface PrintableBadgeProps {
   user: User;
@@ -35,11 +36,21 @@ export default function PrintableBadge({ user }: PrintableBadgeProps) {
 
       {/* Conteúdo Principal */}
       <div className="flex flex-1 py-3 gap-4 items-center z-10">
-        {/* Lado Esquerdo: Dados */}
+        {/* LADO ESQUERDO: FOTO (NOVIDADE PREMIUM) */}
+        <div className="h-24 w-20 rounded-lg border-2 border-slate-100 overflow-hidden bg-slate-50 flex items-center justify-center shadow-inner relative">
+            <Avatar className="h-full w-full rounded-none">
+                <AvatarImage src={user.avatar} className="object-cover" />
+                <AvatarFallback className="bg-slate-100 text-slate-300">
+                    <UserIcon className="h-8 w-8" />
+                </AvatarFallback>
+            </Avatar>
+        </div>
+
+        {/* CENTRO: DADOS */}
         <div className="flex-1 flex flex-col justify-center space-y-1.5">
           <div>
             <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Identificação</p>
-            <p className="text-[14px] font-black text-slate-900 leading-tight truncate w-36 uppercase italic tracking-tighter">
+            <p className="text-[13px] font-black text-slate-900 leading-tight truncate w-32 uppercase italic tracking-tighter">
               {user.name}
             </p>
           </div>

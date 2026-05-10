@@ -1,5 +1,6 @@
 'use client';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Card,
   CardContent,
@@ -31,12 +32,11 @@ import { School as SchoolIcon } from 'lucide-react';
 // Importação dinâmica do Scanner para evitar erros de SSR
 const QRScanner = dynamic(() => import('@/components/ui/qr-scanner'), { ssr: false });
 
-import { STUDENT_MOCK, ADMIN_MOCK } from '@/lib/data';
 import type { User as UserData } from '@/lib/types';
 import { VirtualKeyboard } from '@/components/ui/virtual-keyboard';
 import { useEcosystem } from '@/app/(app)/ecosystem-context';
 import { POINTS_MAPPING } from '@/lib/constants';
-import { playBeep } from '@/lib/utils';
+import { playBeep, cn } from '@/lib/utils';
 
 const wasteIcons: { [key: string]: React.ElementType } = {
   'Plástico': Recycle,
@@ -88,6 +88,7 @@ function KioskContent() {
   const [selectedSchoolId, setSelectedSchoolId] = useState('');
   const [isRequestingAuth, setIsRequestingAuth] = useState(false);
   const [scannerKey, setScannerKey] = useState(0);
+  const [generatedTerminalId, setGeneratedTerminalId] = useState('');
 
   const currentTerminal = terminals.find(t => t.hardwareId === systemSettings.terminalId);
   const currentSchool = schools.find(s => s.id === currentTerminal?.schoolId);
@@ -97,6 +98,11 @@ function KioskContent() {
   const terminalExists = !!currentTerminal;
   const [isMobileDevice, setIsMobileDevice] = useState(false);
 
+  // Configurações ativas (Prioriza as do terminal, senão usa as globais)
+  const activeLoginMethod = currentTerminal?.loginMethod || systemSettings.loginMethod || 'all';
+  const activeLoginCameraSource = currentTerminal?.loginCameraSource || systemSettings.loginCameraSource || 'browser';
+  const activeScanningCameraSource = currentTerminal?.scanningCameraSource || systemSettings.scanningCameraSource || 'browser';
+
   useEffect(() => {
     const checkMobile = () => {
       const ua = navigator.userAgent.toLowerCase();
@@ -105,12 +111,32 @@ function KioskContent() {
     setIsMobileDevice(checkMobile());
   }, []);
 
+  const getCameraUrl = (source?: string, url?: string) => {
+    if (!url) return '';
+    if (source === 'esp32') {
+      // Se for apenas um IP, monta a URL de stream padrão do firmware ESP32-CAM (MJPEG)
+      return url.startsWith('http') ? url : `http://${url}/stream`;
+    }
+    return url;
+  };
+
+  const activeScanningUrl = getCameraUrl(currentTerminal?.scanningCameraSource, currentTerminal?.scanningCameraUrl);
+  const activeLoginUrl = getCameraUrl(currentTerminal?.loginCameraSource, currentTerminal?.loginCameraUrl);
+
   useEffect(() => {
     if (lockoutSecs > 0) {
       const timer = setInterval(() => setLockoutSecs(s => Math.max(0, s - 1)), 1000);
       return () => clearInterval(timer);
     }
   }, [lockoutSecs]);
+
+  // GERA ID DO TERMINAL QUANDO O USUÁRIO PREENCHE OS DADOS
+  const { generateTerminalId } = useEcosystem();
+  useEffect(() => {
+    if (requestedLocation && selectedSchoolId && !generatedTerminalId && !terminalExists) {
+      setGeneratedTerminalId(generateTerminalId());
+    }
+  }, [requestedLocation, selectedSchoolId, generatedTerminalId, terminalExists, generateTerminalId]);
 
   // Sanitiza inputs básicos
   const sanitize = (val: string) => val.replace(/[<>]/g, '').trim();
@@ -156,7 +182,7 @@ function KioskContent() {
    */
   useEffect(() => {
     // Só inicia o polling se estiver na aba de RFID ou na de QR (quando usar hardware externo)
-    const shouldPoll = step === 'identification' && (activeTab === 'rfid' || (activeTab === 'qr' && systemSettings.loginCameraSource !== 'browser'));
+    const shouldPoll = step === 'identification' && (activeTab === 'rfid' || (activeTab === 'qr' && activeLoginCameraSource !== 'browser'));
     
     if (!shouldPoll) return;
 
@@ -184,7 +210,7 @@ function KioskContent() {
 
     const interval = setInterval(pollHardware, 2000);
     return () => clearInterval(interval);
-  }, [step, activeTab, systemSettings.terminalId, users, getLockoutStatus, systemSettings.loginCameraSource, handleLogin]);
+  }, [step, activeTab, systemSettings.terminalId, users, getLockoutStatus, activeLoginCameraSource, handleLogin]);
 
   /**
    * ESCUTA DE TECLADO (RFID HID):
@@ -226,17 +252,23 @@ function KioskContent() {
    */
   useEffect(() => {
     const stopCamera = () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      }
       if (videoRef.current) {
-        videoRef.current.srcObject = null;
+        try {
+          videoRef.current.pause();
+          videoRef.current.srcObject = null;
+          videoRef.current.load(); // Libera recursos da superfície de renderização
+        } catch (e) {}
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => {
+          try { track.stop(); } catch(e) {}
+        });
+        streamRef.current = null;
       }
     };
 
     // Só liga a câmera se estiver no passo de escaneamento E a fonte for o navegador
-    if (step !== 'scanning' || identificationResult || systemSettings.scanningCameraSource !== 'browser') {
+    if (step !== 'scanning' || identificationResult || activeScanningCameraSource !== 'browser') {
       stopCamera();
       return;
     }
@@ -246,12 +278,19 @@ function KioskContent() {
     async function getCameraPermission() {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         try {
+          const videoConstraints: any = {
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          };
+
+          if (currentTerminal?.scanningCameraDeviceId && currentTerminal.scanningCameraDeviceId !== 'default') {
+            videoConstraints.deviceId = { exact: currentTerminal.scanningCameraDeviceId };
+          } else {
+            videoConstraints.facingMode = 'environment';
+          }
+
           const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { 
-              facingMode: 'environment',
-              width: { ideal: 1280 },
-              height: { ideal: 720 }
-            } 
+            video: videoConstraints 
           });
           
           if (!isCancelled) {
@@ -287,16 +326,18 @@ function KioskContent() {
       isCancelled = true;
       stopCamera();
     };
-  }, [step, identificationResult, systemSettings.scanningCameraSource, toast]);
+  }, [step, identificationResult, activeScanningCameraSource, toast, currentTerminal?.scanningCameraDeviceId]);
 
   // Efeito extra para garantir que o srcObject seja definido quando o videoRef ficar disponível
   useEffect(() => {
+    let isCancelled = false;
     if (step === 'scanning' && streamRef.current && videoRef.current && !videoRef.current.srcObject) {
       videoRef.current.srcObject = streamRef.current;
       videoRef.current.play().catch(e => {
-        if (e.name !== 'AbortError') console.error("[KIOSK] Erro no re-anexo do vídeo:", e);
+        if (!isCancelled && e.name !== 'AbortError') console.error("[KIOSK] Erro no re-anexo do vídeo:", e);
       });
     }
+    return () => { isCancelled = true; };
   }, [step]);
 
 
@@ -359,7 +400,7 @@ function KioskContent() {
     }
     
     // ADICIONAR PONTOS E REGISTRAR RESÍDUO COM PESO ESTIMADO PELA IA
-    registerWaste(studentRa, identificationResult.wasteType as any, identificationResult.estimatedWeightKg || 0.05);
+    registerWaste(studentRa, identificationResult.wasteType as any, identificationResult.estimatedWeightKg || 0.05, currentTerminal?.schoolId);
 
     if (identifiedStudent?.role === 'visitor') {
         setSuccessMessage('Obrigado por sua visita! Sua atitude inspira nossa escola. Pequenas ações constroem um grande futuro.');
@@ -448,7 +489,7 @@ function KioskContent() {
                 <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg space-y-3">
                    <div className="flex justify-between items-center text-xs">
                       <span className="font-bold text-amber-700 uppercase">ID do Terminal:</span>
-                      <code className="bg-white px-2 py-1 rounded border font-mono">{systemSettings.terminalId}</code>
+                      <code className="bg-white px-2 py-1 rounded border font-mono font-black text-amber-900">{currentTerminal?.id}</code>
                    </div>
                    <div className="flex justify-between items-center text-xs">
                       <span className="font-bold text-amber-700 uppercase">Localização Informada:</span>
@@ -461,14 +502,10 @@ function KioskContent() {
              ) : isBlocked ? (
                 <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-center">
                    <p className="text-sm font-bold text-red-800">O acesso deste terminal foi revogado.</p>
-                   <p className="text-xs text-red-600 mt-1">ID: {systemSettings.terminalId}</p>
+                   <p className="text-xs text-red-600 mt-1 font-bold">ID: {currentTerminal?.id || systemSettings.terminalId}</p>
                 </div>
              ) : (
                 <div className="space-y-4">
-                   <div className="p-4 bg-slate-50 border rounded-lg">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 block">Identificador do Hardware</Label>
-                      <code className="text-sm font-mono block p-2 bg-white border rounded">{systemSettings.terminalId}</code>
-                   </div>
                     <div className="space-y-2">
                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Unidade Escolar</Label>
                        <Select value={selectedSchoolId} onValueChange={setSelectedSchoolId}>
@@ -487,16 +524,27 @@ function KioskContent() {
                           </SelectContent>
                        </Select>
                     </div>
-                    <div className="space-y-2">
-                       <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Localização do Terminal (Ex: Pátio, Entrada)</Label>
-                       <Input 
-                         placeholder="Ex: Pátio Principal" 
-                         value={requestedLocation}
-                         onChange={(e) => setRequestedLocation(e.target.value)}
-                         className="h-12 text-lg"
-                       />
-                    </div>
-                </div>
+                     <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Localização do Terminal (Ex: Pátio, Entrada)</Label>
+                        <Input 
+                          placeholder="Ex: Pátio Principal" 
+                          value={requestedLocation}
+                          onChange={(e) => setRequestedLocation(e.target.value)}
+                          className="h-12 text-lg"
+                        />
+                     </div>
+
+                     {generatedTerminalId && (
+                       <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg animate-in fade-in slide-in-from-top-2">
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-primary mb-1 block">ID do Terminal Gerado pelo Sistema</Label>
+                          <div className="flex items-center justify-between">
+                             <code className="text-xl font-black font-mono text-primary">{generatedTerminalId}</code>
+                             <Badge className="bg-primary text-white">Único & Imutável</Badge>
+                          </div>
+                          <p className="text-[9px] text-slate-500 mt-2 font-medium uppercase tracking-wider italic">Este ID será a identidade permanente deste totem no ecossistema.</p>
+                       </div>
+                     )}
+                 </div>
              )}
           </CardContent>
           <CardFooter className="flex flex-col gap-3">
@@ -506,11 +554,11 @@ function KioskContent() {
                    disabled={!requestedLocation || !selectedSchoolId || isRequestingAuth}
                    onClick={() => {
                       setIsRequestingAuth(true);
-                      const res = requestTerminalAuthorization(systemSettings.terminalId, requestedLocation, selectedSchoolId);
+                      const res = requestTerminalAuthorization(generatedTerminalId, systemSettings.terminalId, requestedLocation, selectedSchoolId);
                       if (res) {
-                         toast({ title: "Solicitação Enviada", description: "Aguarde a aprovação do administrador da unidade." });
+                         toast({ title: "Solicitação Enviada", description: `Terminal ${generatedTerminalId} aguardando aprovação.` });
                       } else {
-                         toast({ title: "Erro", description: "Não foi possível enviar a solicitação.", variant: "destructive" });
+                         toast({ title: "Erro", description: "Não foi possível enviar a solicitação. Verifique se este ID ou Hardware já existem.", variant: "destructive" });
                       }
                       setIsRequestingAuth(false);
                    }}
@@ -600,16 +648,25 @@ function KioskContent() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="w-full">
-                            <TabsList className="grid w-full grid-cols-3 mb-4">
-                                <TabsTrigger value="manual" className="gap-2">
-                                  <User className="h-4 w-4" /> RA
-                                </TabsTrigger>
-                                <TabsTrigger value="qr" className="gap-2">
-                                  <QrCode className="h-4 w-4" /> QR
-                                </TabsTrigger>
-                                <TabsTrigger value="rfid" className="gap-2">
-                                  <Cpu className="h-4 w-4" /> RFID
-                                </TabsTrigger>
+                            <TabsList className={cn(
+                              "grid w-full mb-4",
+                              activeLoginMethod === 'all' ? "grid-cols-3" : "grid-cols-1"
+                            )}>
+                                {(activeLoginMethod === 'all' || activeLoginMethod === 'manual') && (
+                                  <TabsTrigger value="manual" className="gap-2">
+                                    <User className="h-4 w-4" /> RA
+                                  </TabsTrigger>
+                                )}
+                                {(activeLoginMethod === 'all' || activeLoginMethod === 'qr') && (
+                                  <TabsTrigger value="qr" className="gap-2">
+                                    <QrCode className="h-4 w-4" /> QR
+                                  </TabsTrigger>
+                                )}
+                                {(activeLoginMethod === 'all' || activeLoginMethod === 'rfid') && (
+                                  <TabsTrigger value="rfid" className="gap-2">
+                                    <Cpu className="h-4 w-4" /> RFID
+                                  </TabsTrigger>
+                                )}
                             </TabsList>
 
                             {/* RA LOGIN */}
@@ -668,9 +725,13 @@ function KioskContent() {
 
                             {/* QR LOGIN */}
                             <TabsContent value="qr" className="space-y-4">
-                                {systemSettings.loginCameraSource === 'browser' ? (
+                                {activeLoginCameraSource === 'browser' ? (
                                     <div className="space-y-4">
-                                        <QRScanner key={scannerKey} onScan={(text) => handleLogin(text)} />
+                                        <QRScanner 
+                                            key={scannerKey} 
+                                            onScan={(text) => handleLogin(text)} 
+                                            deviceId={currentTerminal?.loginCameraDeviceId}
+                                        />
                                         <p className="text-xs text-center text-muted-foreground uppercase font-black tracking-widest bg-slate-100 py-2 rounded-full">
                                             Aproxime sua Carteira da câmera
                                         </p>
@@ -774,7 +835,7 @@ function KioskContent() {
                 </CardHeader>
                 <CardContent className="flex flex-col items-center gap-4">
                 <div className="w-full aspect-video rounded-md overflow-hidden border bg-muted relative">
-                    {systemSettings.scanningCameraSource === 'browser' ? (
+                    {activeScanningCameraSource === 'browser' ? (
                       <>
                         <video 
                             ref={videoRef} 
@@ -785,11 +846,24 @@ function KioskContent() {
                         <canvas ref={canvasRef} className="hidden" />
                       </>
                     ) : (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 gap-4 text-white p-6 text-center">
-                        <Cpu className="h-16 w-16 text-primary animate-pulse" />
-                        <h3 className="text-xl font-bold">Hardware Externo Ativo</h3>
-                        <p className="text-sm text-slate-400">Aguardando sinal do sensor de imagem do terminal (ESP32-CAM).</p>
-                        <div className="flex gap-2">
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 gap-4 text-white overflow-hidden">
+                        {activeScanningUrl ? (
+                          <img 
+                            src={activeScanningUrl} 
+                            className="w-full h-full object-cover" 
+                            alt="External Camera Stream"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <>
+                            <Cpu className="h-16 w-16 text-primary animate-pulse" />
+                            <h3 className="text-xl font-bold">Hardware Externo Ativo</h3>
+                            <p className="text-sm text-slate-400 p-6 text-center">Aguardando sinal do sensor de imagem do terminal (ESP32-CAM).</p>
+                          </>
+                        )}
+                        <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
                             <span className="w-2 h-2 bg-primary rounded-full animate-bounce"></span>
                             <span className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></span>
                             <span className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></span>
@@ -797,7 +871,7 @@ function KioskContent() {
                       </div>
                     )}
                     
-                    {systemSettings.scanningCameraSource === 'browser' && hasCameraPermission === false && !identificationResult && (
+                    {activeScanningCameraSource === 'browser' && hasCameraPermission === false && !identificationResult && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/50">
                             <p className="text-white text-center p-4">Permissão da câmera negada ou não suportada.</p>
                         </div>

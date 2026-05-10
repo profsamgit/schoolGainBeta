@@ -69,7 +69,7 @@ export default function LeaderboardPage() {
   const monthlyLegends = useMemo(() => getMonthlyLegends(), [getMonthlyLegends, purchasedItems]);
 
   const calculateScore = (u: any) => {
-    const p = u.ra === currentUserRa ? balance : (u.points || 0);
+    const p = u.points || 0;
     const v = u.ra === currentUserRa ? vitality : (u.vitality || 0);
     const items = u.ra === currentUserRa ? purchasedItems.length : (u.itemsCount || 0);
     return EcosystemService.calculateTotalScore(p, v, items);
@@ -81,7 +81,7 @@ export default function LeaderboardPage() {
       .filter(u => u.role === 'student')
       .map(u => ({
         ...u,
-        displayPoints: u.ra === currentUserRa ? balance : (u.points || 0),
+        displayPoints: u.points || 0,
         displayVitality: u.ra === currentUserRa ? vitality : (u.vitality || 0),
         displayItems: u.ra === currentUserRa ? purchasedItems.length : (u.itemsCount || 0),
         totalScore: calculateScore(u)

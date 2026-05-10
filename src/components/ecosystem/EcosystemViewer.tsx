@@ -18,7 +18,7 @@ import {
 import { useEcosystem } from '@/app/(app)/ecosystem-context';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo } from 'react';
-import { EcosystemItem } from '@/lib/ecosystem.service';
+import { EcosystemItem } from '@/lib/types';
  
 // --- COMPONENTES VISUAIS (SUB-ELEMENTOS) ---
 
@@ -185,6 +185,28 @@ const PainterlyBoat = ({ className, delay }: { className?: string, delay?: strin
   </div>
 );
 
+/**
+ * PainterlyNessie: Desenha o monstro lendário do lago.
+ */
+const PainterlyNessie = ({ className }: { className?: string }) => (
+  <div className={cn("relative z-20 group", className)}>
+    <svg viewBox="0 0 120 100" width="100" className="drop-shadow-2xl animate-float-boat">
+      <path 
+        d="M20 80 Q 40 90 60 80 Q 80 70 70 50 Q 60 30 80 20 Q 100 10 110 30 Q 115 50 100 60 L 90 65" 
+        fill="none" 
+        stroke="#10b981" 
+        strokeWidth="12" 
+        strokeLinecap="round" 
+        className="opacity-90"
+      />
+      <circle cx="108" cy="28" r="1.5" fill="black" />
+      {/* Nadadeiras que aparecem na água */}
+      <path d="M30 85 Q 40 75 50 85" fill="#059669" />
+      <path d="M60 85 Q 70 75 80 85" fill="#059669" />
+    </svg>
+  </div>
+);
+
 // ---------------------------------------------
 
 /**
@@ -268,11 +290,11 @@ export function EcosystemViewer({
 
       <div className="absolute inset-0">
         {/* CÉU */}
-        <div className={cn("absolute inset-0 bg-gradient-to-b transition-colors duration-[3000ms]", getSkyGradient)} />
+        <div className={cn("absolute inset-0 bg-gradient-to-b transition-colors transition-duration-[3000ms]", getSkyGradient)} />
         
         {/* SOL OU LUA */}
         <div className={cn(
-          "absolute top-[10%] transition-all duration-[3000ms] w-32 h-32 rounded-full blur-[2px]",
+          "absolute top-[10%] transition-all transition-duration-[3000ms] w-32 h-32 rounded-full blur-[2px]",
           isEcosystemNight ? "left-[70%] bg-slate-200 shadow-[0_0_80px_rgba(255,255,255,0.3)]" : "left-[15%] bg-yellow-100 shadow-[0_0_100px_rgba(251,191,36,0.4)]"
         )} />
 
@@ -287,14 +309,14 @@ export function EcosystemViewer({
             <path 
                 d="M450 0 L1000 0 L1000 450 L0 450 Q550 250 450 0 Z" 
                 fill={riverColor} 
-                className="transition-colors duration-[3000ms]"
+                className="transition-colors transition-duration-[3000ms]"
                 style={{ filter: riverClean ? 'url(#water-ripple)' : 'none' }}
             />
             {/* Terra */}
             <path 
                 d="M0 0 L450 0 Q550 250 0 450 Z" 
                 fill={groundColor}
-                className="transition-colors duration-[3000ms]"
+                className="transition-colors transition-duration-[3000ms]"
             />
         </svg>
 
@@ -314,6 +336,9 @@ export function EcosystemViewer({
                 
                 {/* Barcos */}
                 {purchasedItems.includes('barco_1') && <PainterlyBoat className="absolute bottom-[26%] left-[60%] z-30" />}
+                
+                {/* Nessie (Lendário) */}
+                {purchasedItems.includes('monstro_lago') && <PainterlyNessie className="absolute bottom-[24%] left-[75%] z-20" />}
             </div>
         </div>
       </div>

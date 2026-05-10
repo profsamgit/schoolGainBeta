@@ -7,13 +7,14 @@ import { Card } from '@/components/ui/card';
 interface QRScannerProps {
   onScan: (decodedText: string) => void;
   onError?: (error: any) => void;
+  deviceId?: string;
 }
 
 /**
  * QRScanner: Componente para leitura de QR Code usando a webcam.
  * Altamente resiliente a erros de "AbortError" e conflitos de montagem.
  */
-export default function QRScanner({ onScan, onError }: QRScannerProps) {
+export default function QRScanner({ onScan, onError, deviceId }: QRScannerProps) {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const isStartingRef = useRef(false);
@@ -42,8 +43,12 @@ export default function QRScanner({ onScan, onError }: QRScannerProps) {
 
             if (!isMounted) return;
 
+            const cameraConfig = deviceId && deviceId !== 'default' 
+                ? { deviceId: { exact: deviceId } } 
+                : { facingMode: "user" };
+
             await html5QrCode.start(
-                { facingMode: "user" },
+                cameraConfig,
                 config,
                 (decodedText) => {
                     if (!isMounted || hasScannedRef.current) return;
@@ -75,21 +80,26 @@ export default function QRScanner({ onScan, onError }: QRScannerProps) {
     return () => {
       isMounted = false;
       const cleanup = async () => {
-        // Interrompe tracks de mídia manualmente para evitar "onabort"
+        // Interrompe tracks de mídia manualmente com try/catch agressivo
         try {
           if (containerRef.current) {
               const video = containerRef.current.querySelector('video');
-              if (video && video.srcObject instanceof MediaStream) {
-                  video.srcObject.getTracks().forEach(track => {
-                      try { track.stop(); } catch(e) {}
-                  });
+              if (video) {
+                  video.pause();
+                  if (video.srcObject instanceof MediaStream) {
+                      video.srcObject.getTracks().forEach(track => {
+                          try { track.stop(); } catch(e) {}
+                      });
+                  }
                   video.srcObject = null;
+                  video.load();
               }
           }
         } catch(e) {}
 
+        // Aguarda um pouco se estiver no meio de um start
         if (isStartingRef.current) {
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(resolve => setTimeout(resolve, 200));
         }
         
         if (scannerRef.current) {
@@ -99,15 +109,16 @@ export default function QRScanner({ onScan, onError }: QRScannerProps) {
             }
             await scannerRef.current.clear();
           } catch (err) {
-            // Silenciar erros de limpeza
+            // Silenciar erros de limpeza já que o componente está saindo
           } finally {
             scannerRef.current = null;
+            isStartingRef.current = false;
           }
         }
       };
       cleanup();
     };
-  }, [onScan, onError, elementId]);
+  }, [onScan, onError, elementId, deviceId]);
 
   return (
     <Card className="overflow-hidden border-2 border-primary/20 bg-black relative aspect-square">

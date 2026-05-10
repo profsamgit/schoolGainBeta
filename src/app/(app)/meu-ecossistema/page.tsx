@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
-import { EcosystemItem } from '@/lib/ecosystem.service';
+import { EcosystemItem } from '@/lib/types';
 import Link from 'next/link';
 import { EcosystemViewer } from '@/components/ecosystem/EcosystemViewer';
 
@@ -34,7 +34,8 @@ export default function MeuEcossistemaPage() {
     vitality = 0, 
     purchasedItems = [], 
     buyUpgrade,
-    healVitality 
+    healVitality,
+    isNessieAvailable
   } = useEcosystem();
 
   const [isShopVisible, setIsShopVisible] = useState(false);
@@ -83,6 +84,7 @@ export default function MeuEcossistemaPage() {
     { id: 'barco_1', name: 'Barco 1', icon: <Waves className="text-cyan-400" />, price: 500, req: 'Rio Limpo', reqId: 'limpar_rio', category: 'Lendário' },
     { id: 'barco_2', name: 'Barco 2', icon: <Waves className="text-indigo-400" />, price: 600, req: 'Barco 1', reqId: 'barco_1', category: 'Lendário' },
     { id: 'casa', name: 'Casa Sustentável', icon: <Sparkles className="text-amber-400 animate-pulse" />, price: 1500, req: 'Requisita Ecossistema Full', minVitality: 100, category: 'Lendário' },
+    { id: 'monstro_lago', name: 'Nessie (Lendário)', icon: <Waves className="text-emerald-400 animate-bounce" />, price: 5000, req: 'Casa Sustentável', reqId: 'casa', category: 'Lendário' },
   ];
 
   return (
@@ -91,7 +93,7 @@ export default function MeuEcossistemaPage() {
       <EcosystemViewer 
         vitality={vitality} 
         purchasedItems={purchasedItems as any} 
-        className="absolute inset-0 transition-all duration-1000"
+        className="absolute inset-0 transition-all transition-duration-[1000ms]"
       />
 
       {/* --- NOVO HUD PREMIUM (UNIFICADO) --- */}
@@ -132,7 +134,7 @@ export default function MeuEcossistemaPage() {
                   <div className="flex-1 h-2.5 bg-white/5 rounded-full overflow-hidden border border-white/5 relative">
                       <div 
                           className={cn(
-                              "h-full transition-all duration-[1500ms] rounded-full",
+                              "h-full transition-all transition-duration-[1500ms] rounded-full",
                               vitality > 70 ? "bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_15px_rgba(52,211,153,0.4)]" : 
                               vitality > 30 ? "bg-gradient-to-r from-amber-500 to-orange-400" : "bg-gradient-to-r from-rose-600 to-red-500"
                           )}
@@ -307,7 +309,8 @@ export default function MeuEcossistemaPage() {
                                         const regularItemsCount = shopItems.filter(i => i.category !== 'Lendário').length;
                                         const purchasedRegularCount = shopItems.filter(i => i.category !== 'Lendário' && purchasedItems.includes(i.id as EcosystemItem)).length;
                                         const isLegendaryLocked = item.category === 'Lendário' && purchasedRegularCount < regularItemsCount && !isPurchased;
-                                        const isLocked = isRequirementLocked || isVitalityLocked || isLegendaryLocked;
+                                        const isNessieSoldOut = item.id === 'monstro_lago' && !isNessieAvailable() && !isPurchased;
+                                        const isLocked = isRequirementLocked || isVitalityLocked || isLegendaryLocked || isNessieSoldOut;
                                         const canAfford = balance >= item.price;
 
                                         // Estilos baseados na categoria
@@ -377,7 +380,7 @@ export default function MeuEcossistemaPage() {
                                                         ) : isLocked ? (
                                                             <>
                                                                 <Lock size={10} />
-                                                                <span>Bloqueado</span>
+                                                                <span>{isNessieSoldOut ? 'Esgotado' : 'Bloqueado'}</span>
                                                             </>
                                                         ) : (
                                                             <span>{canAfford ? 'Comprar' : 'Sem Saldo'}</span>

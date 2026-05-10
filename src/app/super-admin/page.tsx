@@ -1,6 +1,6 @@
 'use client';
 import { useEcosystem } from '@/app/(app)/ecosystem-context';
-import { Participant, Turma, Curso, School, Terminal, TerminalStatus } from '@/lib/types';
+import { Participant, Turma, Curso, School, Terminal, TerminalStatus, AuditLogEntry, WasteEntry } from '@/lib/types';
 import { 
   Card, 
   CardContent, 
@@ -36,7 +36,9 @@ import {
   BarChart3,
   Trophy,
   BookOpen,
-  GraduationCap
+  GraduationCap,
+  Camera,
+  Loader2
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -71,13 +73,30 @@ export default function SuperAdminPage() {
     allParticipants,
     updateParticipants,
     updateSchools,
-    allTurmas,
-    allCursos,
-    updateTurmas,
-    updateCursos
+    auditLogs,
+    wasteEntries,
+    uploadUserAvatar
   } = useEcosystem();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('overview');
+  const [uploadingUserId, setUploadingUserId] = useState<string | null>(null);
+
+  const handleAvatarUpload = async (userId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingUserId(userId);
+    try {
+      const url = await uploadUserAvatar(userId, file);
+      if (url) {
+        toast({ title: "Sucesso", description: "Foto de perfil atualizada!" });
+      }
+    } catch (error) {
+      toast({ title: "Erro", description: "Falha ao enviar imagem.", variant: "destructive" });
+    } finally {
+      setUploadingUserId(null);
+    }
+  };
 
   // Estados para Gestão de Super Admins
   const [isUserFormOpen, setIsUserFormOpen] = useState(false);
@@ -129,20 +148,47 @@ export default function SuperAdminPage() {
     state: '',
     managerEmail: ''
   });
-  
-  // Estados para Gestão de Turmas e Cursos
-  const [isTurmaDialogOpen, setIsTurmaDialogOpen] = useState(false);
-  const [isCursoDialogOpen, setIsCursoDialogOpen] = useState(false);
-  const [editingTurma, setEditingTurma] = useState<Turma | null>(null);
-  const [editingCurso, setEditingCurso] = useState<Curso | null>(null);
-  const [turmaFormData, setTurmaFormData] = useState({ name: '', status: 'active' as 'active' | 'inactive' });
-  const [cursoFormData, setCursoFormData] = useState({ name: '', status: 'active' as 'active' | 'inactive' });
 
   const verifyPassword = async (pass: string) => {
     if (!pass || !currentUser) return false;
     const hashed = await EcosystemService.hashPassword(pass);
     return currentUser.password === hashed;
   };
+
+  // Helper para formatar o tempo relativo
+  const formatTime = (date: Date) => {
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 1) return 'Agora mesmo';
+    if (minutes < 60) return `Há ${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `Há ${hours} h`;
+    return date.toLocaleDateString('pt-BR');
+  };
+
+  // Feed de Atividades Unificado
+  const recentActivities = useMemo(() => {
+    const logs = (auditLogs || []).slice(0, 10).map((log: AuditLogEntry) => ({
+      id: log.id || Math.random().toString(),
+      title: 'Concessão de Bio-Coins',
+      description: `${log.adminName || 'Admin'} enviou ${log.points || 0} pontos para RA ${log.ra || 'Desconhecido'}.`,
+      date: new Date(log.timestamp || Date.now()),
+      color: 'bg-primary'
+    }));
+
+    const wastes = (wasteEntries || []).slice(0, 10).map((w: WasteEntry) => ({
+      id: w.id || Math.random().toString(),
+      title: 'Coleta Realizada',
+      description: `Descarte de ${w.collected || 0}kg de ${w.type || 'Resíduo'} registrado.`,
+      date: new Date(w.date || Date.now()),
+      color: 'bg-emerald-500'
+    }));
+
+    return [...logs, ...wastes]
+      .sort((a, b) => b.date.getTime() - a.date.getTime())
+      .slice(0, 6);
+  }, [auditLogs, wasteEntries]);
 
   const handleManualRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -245,36 +291,6 @@ export default function SuperAdminPage() {
 
   const superAdminUsers = useMemo(() => users.filter(u => u.role === 'super_admin'), [users]);
   const unitAdminUsers = useMemo(() => users.filter(u => u.role === 'admin'), [users]);
-
-  const handleSaveTurma = (e: React.FormEvent) => {
-    e.preventDefault();
-    let newTurmas;
-    if (editingTurma) {
-      newTurmas = allTurmas.map(t => t.id === editingTurma.id ? { ...t, ...turmaFormData } : t);
-    } else {
-      newTurmas = [...allTurmas, { id: `turma-${Date.now()}`, ...turmaFormData }];
-    }
-    updateTurmas(newTurmas);
-    setIsTurmaDialogOpen(false);
-    setEditingTurma(null);
-    setTurmaFormData({ name: '', status: 'active' });
-    toast({ title: "Sucesso", description: "Turma atualizada." });
-  };
-
-  const handleSaveCurso = (e: React.FormEvent) => {
-    e.preventDefault();
-    let newCursos;
-    if (editingCurso) {
-      newCursos = allCursos.map(c => c.id === editingCurso.id ? { ...c, ...cursoFormData } : c);
-    } else {
-      newCursos = [...allCursos, { id: `curso-${Date.now()}`, ...cursoFormData }];
-    }
-    updateCursos(newCursos);
-    setIsCursoDialogOpen(false);
-    setEditingCurso(null);
-    setCursoFormData({ name: '', status: 'active' });
-    toast({ title: "Sucesso", description: "Curso atualizado." });
-  };
 
   const handleSaveSuperAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -540,10 +556,7 @@ export default function SuperAdminPage() {
               Gestão de Ciclo
             </TabsTrigger>
             <TabsTrigger value="developers" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-black uppercase text-[10px] tracking-widest">
-              Desenvolvedores
-            </TabsTrigger>
-            <TabsTrigger value="academic" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-black uppercase text-[10px] tracking-widest">
-               Acadêmico
+               Desenvolvedores
             </TabsTrigger>
             <TabsTrigger value="account" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-black uppercase text-[10px] tracking-widest">
               Minha Segurança
@@ -672,26 +685,24 @@ export default function SuperAdminPage() {
               <Card className="lg:col-span-2 border-none shadow-md">
                 <CardHeader>
                   <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-900">Atividade Recente da Rede</CardTitle>
-                  <CardDescription>Monitoramento em tempo real de novos ingressos.</CardDescription>
+                  <CardDescription>Monitoramento em tempo real de novos ingressos e coletas.</CardDescription>
                 </CardHeader>
                 <CardContent>
                    <div className="space-y-6">
-                      <div className="flex gap-4">
-                         <div className="mt-1 h-2 w-2 rounded-full bg-primary shrink-0"></div>
-                         <div className="space-y-1">
-                            <p className="text-sm font-bold">Nova Unidade Integrada</p>
-                            <p className="text-xs text-muted-foreground">O terminal em Guadalupe/PI registrou 50 descartes na última hora.</p>
-                            <p className="text-[10px] text-slate-400 uppercase font-black">Há 15 minutos</p>
-                         </div>
-                      </div>
-                      <div className="flex gap-4">
-                         <div className="mt-1 h-2 w-2 rounded-full bg-emerald-500 shrink-0"></div>
-                         <div className="space-y-1">
-                            <p className="text-sm font-bold">Meta de Sustentabilidade</p>
-                            <p className="text-xs text-muted-foreground">A rede atingiu a marca de 50.000 Bio-Coins distribuídos.</p>
-                            <p className="text-[10px] text-slate-400 uppercase font-black">Há 2 horas</p>
-                         </div>
-                      </div>
+                      {recentActivities.length > 0 ? recentActivities.map((activity) => (
+                        <div key={activity.id} className="flex gap-4 animate-in fade-in slide-in-from-left-4 duration-500">
+                           <div className={`mt-1 h-2 w-2 rounded-full ${activity.color} shrink-0`}></div>
+                           <div className="space-y-1">
+                              <p className="text-sm font-bold">{activity.title}</p>
+                              <p className="text-xs text-muted-foreground">{activity.description}</p>
+                              <p className="text-[10px] text-slate-400 uppercase font-black">{formatTime(activity.date)}</p>
+                           </div>
+                        </div>
+                      )) : (
+                        <div className="text-center py-8 text-muted-foreground text-sm">
+                          Aguardando primeiras atividades da rede...
+                        </div>
+                      )}
                    </div>
                 </CardContent>
               </Card>
@@ -994,12 +1005,29 @@ export default function SuperAdminPage() {
                                 <tr key={`${user.id}-${user.email}-${idx}`} className="hover:bg-slate-50/50 transition-colors">
                                    <td className="px-4 py-4 font-bold text-slate-900">
                                       <div className="flex items-center gap-3">
-                                         <div className="h-8 w-8 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px] font-black">
-                                            {user.name.charAt(0)}
-                                         </div>
-                                         {user.name}
-                                         {user.id === currentUser?.id && <Badge className="bg-emerald-500 text-[8px] font-black uppercase tracking-widest">Você</Badge>}
-                                      </div>
+                                          <div className="relative group/avatar">
+                                             <Avatar className="h-8 w-8 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px] font-black group-hover:scale-110 transition-transform overflow-hidden">
+                                                <AvatarImage src={user.avatar} className="object-cover" />
+                                                <AvatarFallback className="bg-slate-900 text-white">{user.name.charAt(0)}</AvatarFallback>
+                                             </Avatar>
+                                             
+                                             <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/avatar:opacity-100 rounded-full cursor-pointer transition-opacity">
+                                                {uploadingUserId === user.id ? (
+                                                  <Loader2 className="h-3 w-3 text-white animate-spin" />
+                                                ) : (
+                                                  <Camera className="h-3 w-3 text-white" />
+                                                )}
+                                                <input 
+                                                  type="file" 
+                                                  className="hidden" 
+                                                  accept="image/*" 
+                                                  onChange={(e) => handleAvatarUpload(user.id, e)} 
+                                                />
+                                             </label>
+                                          </div>
+                                          {user.name}
+                                          {user.id === currentUser?.id && <Badge className="bg-emerald-500 text-[8px] font-black uppercase tracking-widest">Você</Badge>}
+                                       </div>
                                    </td>
                                    <td className="px-4 py-4 text-slate-500 font-mono text-xs">{user.email}</td>
                                    <td className="px-4 py-4 text-right">
@@ -1086,10 +1114,26 @@ export default function SuperAdminPage() {
                                 <tr key={`${user.id}-${user.email}-${idx}`} className="group hover:bg-slate-50/80 transition-all duration-200">
                                    <td className="px-6 py-5 font-bold text-slate-900">
                                       <div className="flex items-center gap-4">
-                                         <div className="relative">
-                                            <div className="h-10 w-10 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs font-black uppercase group-hover:scale-110 transition-transform">
-                                               {user.name.charAt(0)}
-                                            </div>
+                                         <div className="relative group/avatar">
+                                            <Avatar className="h-10 w-10 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs font-black uppercase group-hover:scale-110 transition-transform overflow-hidden border-2 border-transparent group-hover/avatar:border-primary">
+                                               <AvatarImage src={user.avatar} className="object-cover" />
+                                               <AvatarFallback className="bg-slate-900 text-white">{user.name.charAt(0)}</AvatarFallback>
+                                            </Avatar>
+                                            
+                                            <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/avatar:opacity-100 rounded-xl cursor-pointer transition-opacity">
+                                               {uploadingUserId === user.id ? (
+                                                 <Loader2 className="h-4 w-4 text-white animate-spin" />
+                                               ) : (
+                                                 <Camera className="h-4 w-4 text-white" />
+                                               )}
+                                               <input 
+                                                 type="file" 
+                                                 className="hidden" 
+                                                 accept="image/*" 
+                                                 onChange={(e) => handleAvatarUpload(user.id, e)} 
+                                               />
+                                            </label>
+
                                             {user.mustChangePassword && (
                                               <div className="absolute -top-1 -right-1 h-3 w-3 bg-amber-500 border-2 border-white rounded-full animate-pulse" />
                                             )}
@@ -1404,8 +1448,35 @@ export default function SuperAdminPage() {
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-70">URL do Avatar</Label>
-                                    <Input value={devFormData.avatar} onChange={e => setDevFormData({...devFormData, avatar: e.target.value})} placeholder="https://api.dicebear.com/..." className="text-xs" />
+                                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Foto do Membro</Label>
+                                    <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                                        <Avatar className="h-12 w-12 rounded-xl bg-primary text-white flex items-center justify-center font-black">
+                                            <AvatarImage src={devFormData.avatar} />
+                                            <AvatarFallback>{devFormData.initials || '?'}</AvatarFallback>
+                                        </Avatar>
+                                        <div className="flex-1">
+                                            <p className="text-[10px] text-muted-foreground mb-2">Clique para selecionar uma imagem</p>
+                                            <div className="relative">
+                                                <Button type="button" variant="outline" size="sm" className="w-full h-8 text-[10px] font-black uppercase tracking-widest gap-2 relative">
+                                                    {uploadingUserId === 'new-dev' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}
+                                                    {devFormData.avatar ? 'Trocar Foto' : 'Subir Foto'}
+                                                    <input 
+                                                        type="file" 
+                                                        className="absolute inset-0 opacity-0 cursor-pointer" 
+                                                        accept="image/*" 
+                                                        onChange={async (e) => {
+                                                            const file = e.target.files?.[0];
+                                                            if (!file) return;
+                                                            setUploadingUserId('new-dev');
+                                                            const url = await uploadUserAvatar(`dev-${Date.now()}`, file);
+                                                            if (url) setDevFormData({...devFormData, avatar: url});
+                                                            setUploadingUserId(null);
+                                                        }} 
+                                                    />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <DialogFooter className="pt-4">
                                     <Button type="submit" className="w-full h-12 font-black uppercase text-xs tracking-widest">
@@ -1465,174 +1536,6 @@ export default function SuperAdminPage() {
                     </div>
                 </CardContent>
             </Card>
-          </TabsContent>
-
-          {/* ABA: CONFIGURAÇÕES ACADÊMICAS (CRUD TURMAS E CURSOS) */}
-          <TabsContent value="academic" className="animate-in fade-in duration-500 space-y-8">
-            <div className="grid gap-6 md:grid-cols-2">
-              {/* GESTÃO DE TURMAS */}
-              <Card className="border-none shadow-xl overflow-hidden bg-white/50 backdrop-blur-sm">
-                <div className="h-1.5 bg-indigo-500"></div>
-                <CardHeader className="flex flex-row items-center justify-between pb-6 pt-8">
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center shadow-sm">
-                      <Users className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-xl font-black uppercase tracking-tighter">Séries e Turmas</CardTitle>
-                      <CardDescription>Defina as turmas disponíveis na rede.</CardDescription>
-                    </div>
-                  </div>
-                  <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 font-black uppercase text-[10px] tracking-widest gap-2"
-                    onClick={() => {
-                      setEditingTurma(null);
-                      setTurmaFormData({ name: '', status: 'active' });
-                      setIsTurmaDialogOpen(true);
-                    }}>
-                    <Plus className="h-4 w-4" /> Nova Turma
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {allTurmas?.map(turma => (
-                      <div key={turma.id} className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-xl hover:border-indigo-200 transition-all group">
-                        <div className="flex items-center gap-3">
-                          <span className={`h-2 w-2 rounded-full ${turma.status === 'active' ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
-                          <span className={`font-bold ${turma.status === 'inactive' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{turma.name}</span>
-                          {turma.status === 'inactive' && <Badge variant="secondary" className="text-[8px] uppercase tracking-widest">Inativo</Badge>}
-                        </div>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-indigo-600"
-                            onClick={() => {
-                              setEditingTurma(turma);
-                              setTurmaFormData({ name: turma.name, status: turma.status });
-                              setIsTurmaDialogOpen(true);
-                            }}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-600"
-                            onClick={() => {
-                              if(confirm('Deseja excluir esta turma?')) {
-                                updateTurmas(allTurmas.filter(t => t.id !== turma.id));
-                              }
-                            }}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* GESTÃO DE CURSOS */}
-              <Card className="border-none shadow-xl overflow-hidden bg-white/50 backdrop-blur-sm">
-                <div className="h-1.5 bg-amber-500"></div>
-                <CardHeader className="flex flex-row items-center justify-between pb-6 pt-8">
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center shadow-sm">
-                      <GraduationCap className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-xl font-black uppercase tracking-tighter">Cursos Técnicos</CardTitle>
-                      <CardDescription>Gerencie as especializações acadêmicas.</CardDescription>
-                    </div>
-                  </div>
-                  <Button size="sm" className="bg-amber-600 hover:bg-amber-700 font-black uppercase text-[10px] tracking-widest gap-2"
-                    onClick={() => {
-                      setEditingCurso(null);
-                      setCursoFormData({ name: '', status: 'active' });
-                      setIsCursoDialogOpen(true);
-                    }}>
-                    <Plus className="h-4 w-4" /> Novo Curso
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {allCursos?.map(curso => (
-                      <div key={curso.id} className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-xl hover:border-amber-200 transition-all group">
-                        <div className="flex items-center gap-3">
-                          <span className={`h-2 w-2 rounded-full ${curso.status === 'active' ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
-                          <span className={`font-bold ${curso.status === 'inactive' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{curso.name}</span>
-                          {curso.status === 'inactive' && <Badge variant="secondary" className="text-[8px] uppercase tracking-widest">Inativo</Badge>}
-                        </div>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-amber-600"
-                            onClick={() => {
-                              setEditingCurso(curso);
-                              setCursoFormData({ name: curso.name, status: curso.status });
-                              setIsCursoDialogOpen(true);
-                            }}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-600"
-                            onClick={() => {
-                              if(confirm('Deseja excluir este curso?')) {
-                                updateCursos(allCursos.filter(c => c.id !== curso.id));
-                              }
-                            }}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* MODAIS DE EDIÇÃO */}
-            <Dialog open={isTurmaDialogOpen} onOpenChange={setIsTurmaDialogOpen}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle className="font-black uppercase tracking-tighter">Configurar Turma</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleSaveTurma} className="space-y-4 pt-4">
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Nome da Turma</Label>
-                    <Input required value={turmaFormData.name} onChange={e => setTurmaFormData({...turmaFormData, name: e.target.value})} placeholder="Ex: 1ª Série A" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Status de Operação</Label>
-                    <select 
-                      className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm"
-                      value={turmaFormData.status}
-                      onChange={e => setTurmaFormData({...turmaFormData, status: e.target.value as any})}
-                    >
-                      <option value="active">Ativo (Visível para Alunos)</option>
-                      <option value="inactive">Inativo (Oculto)</option>
-                    </select>
-                  </div>
-                  <Button type="submit" className="w-full bg-indigo-600 uppercase font-black tracking-widest text-xs h-12">Salvar Turma</Button>
-                </form>
-              </DialogContent>
-            </Dialog>
-
-            <Dialog open={isCursoDialogOpen} onOpenChange={setIsCursoDialogOpen}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle className="font-black uppercase tracking-tighter">Configurar Curso</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleSaveCurso} className="space-y-4 pt-4">
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Nome do Curso</Label>
-                    <Input required value={cursoFormData.name} onChange={e => setCursoFormData({...cursoFormData, name: e.target.value})} placeholder="Ex: Informática" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Status de Operação</Label>
-                    <select 
-                      className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm"
-                      value={cursoFormData.status}
-                      onChange={e => setCursoFormData({...cursoFormData, status: e.target.value as any})}
-                    >
-                      <option value="active">Ativo (Visível para Alunos)</option>
-                      <option value="inactive">Inativo (Oculto)</option>
-                    </select>
-                  </div>
-                  <Button type="submit" className="w-full bg-amber-600 uppercase font-black tracking-widest text-xs h-12">Salvar Curso</Button>
-                </form>
-              </DialogContent>
-            </Dialog>
           </TabsContent>
         </Tabs>
         

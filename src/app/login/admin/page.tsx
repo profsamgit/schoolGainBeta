@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Label } from '@/components/ui/label';
-import { playBeep } from '@/lib/utils';
+import { playBeep, cn } from '@/lib/utils';
 
 const QRScanner = dynamic(() => import('@/components/ui/qr-scanner'), { ssr: false });
 
@@ -25,7 +25,9 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('');
   const [showKeyboard, setShowKeyboard] = useState(false);
   const [activeInput, setActiveInput] = useState<'username' | 'password'>('username');
-  const [activeTab, setActiveTab] = useState('manual');
+  const initialTab = systemSettings.adminLoginMethod === 'qr' ? 'qr' : 
+                     systemSettings.adminLoginMethod === 'rfid' ? 'rfid' : 'manual';
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [isProcessing, setIsProcessing] = useState(false);
   const [lockoutSecs, setLockoutSecs] = useState(0);
   
@@ -136,9 +138,8 @@ export default function AdminLoginPage() {
     const interval = setInterval(pollHardware, 2000);
     return () => {
       clearInterval(interval);
-      console.log("[AUTH] Polling de hardware desativado.");
     };
-  }, [activeTab, systemSettings.terminalId, systemSettings.loginCameraSource, handleHybridLogin]);
+  }, [activeTab, systemSettings.terminalId, handleHybridLogin]);
 
   return (
     <div className="flex min-h-screen flex-col bg-muted/40">
@@ -153,10 +154,19 @@ export default function AdminLoginPage() {
                 </CardHeader>
                 <CardContent>
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                        <TabsList className="grid w-full grid-cols-3 mb-6">
-                            <TabsTrigger value="manual" className="gap-2"><Lock className="h-4 w-4" /> Senha</TabsTrigger>
-                            <TabsTrigger value="qr" className="gap-2"><QrCode className="h-4 w-4" /> QR</TabsTrigger>
-                            <TabsTrigger value="rfid" className="gap-2"><Cpu className="h-4 w-4" /> RFID</TabsTrigger>
+                        <TabsList className={cn(
+                            "grid w-full mb-6",
+                            systemSettings.adminLoginMethod === 'all' ? "grid-cols-3" : "grid-cols-1"
+                        )}>
+                            {(systemSettings.adminLoginMethod === 'all' || systemSettings.adminLoginMethod === 'manual') && (
+                                <TabsTrigger value="manual" className="gap-2"><Lock className="h-4 w-4" /> Senha</TabsTrigger>
+                            )}
+                            {(systemSettings.adminLoginMethod === 'all' || systemSettings.adminLoginMethod === 'qr') && (
+                                <TabsTrigger value="qr" className="gap-2"><QrCode className="h-4 w-4" /> QR</TabsTrigger>
+                            )}
+                            {(systemSettings.adminLoginMethod === 'all' || systemSettings.adminLoginMethod === 'rfid') && (
+                                <TabsTrigger value="rfid" className="gap-2"><Cpu className="h-4 w-4" /> RFID</TabsTrigger>
+                            )}
                         </TabsList>
 
                         <TabsContent value="manual" className="space-y-4">
@@ -221,15 +231,12 @@ export default function AdminLoginPage() {
                         </TabsContent>
 
                         <TabsContent value="qr" className="space-y-4">
-                            {systemSettings.loginCameraSource === 'browser' ? (
-                                <div className="space-y-4"><QRScanner onScan={handleHybridLogin} /><p className="text-xs text-center text-muted-foreground">Aponte o QR Code do gestor para a câmera.</p></div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg space-y-4">
-                                    <Cpu className="h-12 w-12 text-primary animate-pulse" />
-                                    <p className="font-bold">Aguardando ESP32-CAM</p>
-                                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                                </div>
-                            )}
+                            <div className="space-y-4">
+                                <QRScanner onScan={handleHybridLogin} />
+                                <p className="text-[10px] text-center text-rose-600 font-black uppercase tracking-[0.2em] bg-rose-50 py-2 rounded-lg">
+                                    Acesso Administrativo via QR
+                                </p>
+                            </div>
                         </TabsContent>
 
                         <TabsContent value="rfid" className="space-y-4">

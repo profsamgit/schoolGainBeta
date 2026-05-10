@@ -1,6 +1,6 @@
 import { BehaviorSubject } from 'rxjs';
 import { POINTS_MAPPING } from './constants';
-import { STUDENT_MOCK, REWARDS_MOCK, ARTICLES_MOCK, QUIZ_TOPICS_MOCK, ADMIN_MOCK, VISITANTE_MOCK, SCHOOLS_MOCK, PARTICIPANTS_MOCK } from './data';
+import { REWARDS_MOCK, ARTICLES_MOCK, QUIZ_TOPICS_MOCK, ADMIN_MOCK, SCHOOLS_MOCK, PARTICIPANTS_MOCK, TURMAS_MOCK, CURSOS_MOCK, CARGOS_MOCK, SETORES_MOCK, TERMINALS_MOCK } from './data';
 import { 
   User, 
   Reward, 
@@ -16,76 +16,41 @@ import {
   WasteType,
   CycleSnapshot,
   Turma,
-  Curso
+  Curso,
+  Cargo,
+  SetorEscolar,
+  EcosystemItem,
+  EcosystemUserState,
+  SecurityState,
+  SystemSettings,
+  EcosystemData
 } from './types';
 
-/**
- * Tipos de itens que podem ser adquiridos no ecossistema.
- * Cada string corresponde a um elemento visual ou funcional no mundo virtual.
- */
-export type EcosystemItem = 
-  'filtro_ar' | 'limpar_rio' | 'reparar_grama' | 
-  'arvore_1' | 'arvore_2' | 'arvore_3' | 
-  'passaro_1' | 'passaro_2' | 
-  'peixe_1' | 'peixe_2' | 'peixe_3' | 
-  'cachorro' | 'coelho' | 'borboletas' | 'borboletas_2' | 'borboletas_3' |
-  'casa' | 'barco_1' | 'barco_2' | 'monstro_lago';
 
-/**
- * Interface que define o estado individual de cada usuário.
- * Armazena saldo atual, vitalidade do seu ecossistema e itens comprados.
- */
-export interface EcosystemUserState {
-  balance: number;           // Bio-Coins atuais do aluno
-  vitality: number;          // Percentual de saúde do ambiente (0-100)
-  purchasedItems: EcosystemItem[]; // Lista de IDs de itens comprados
-  lastMissionDate: string | null;  // Data da última missão diária completada
-  nessiePurchaseDate?: string;     // Data de compra do item especial (Nessie/Casa)
-  curso?: string;            // Curso do aluno
-}
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, auth, storage } from './firebase';
+import { 
+  collection, 
+  onSnapshot, 
+  doc, 
+  setDoc, 
+  updateDoc, 
+  deleteDoc, 
+  query, 
+  where, 
+  orderBy,
+  getDoc,
+  getDocs
+} from 'firebase/firestore';
+import { 
+  signInWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged 
+} from 'firebase/auth';
 
-/**
- * Estado de segurança para controle de brute-force.
- */
-export interface SecurityState {
-  failedAttempts: number;
-  lockoutUntil: string | null;
-}
-
-/**
- * Configurações globais do sistema, gerenciadas pelo gestor.
- */
-export interface SystemSettings {
-  loginMethod: 'manual' | 'qr' | 'rfid' | 'all';
-  loginCameraSource: 'browser' | 'esp32';      // Fonte para login QR
-  scanningCameraSource: 'browser' | 'esp32';   // Fonte para identificar lixo
-  terminalId: string;
-}
-
-/**
- * Estrutura completa dos dados gerenciados pelo serviço.
- */
-export interface EcosystemData {
-  users: User[]; // Lista de todos os usuários (alunos e admins)
-  rewards: Reward[];                       // Prêmios disponíveis para troca
-  articles: EducationArticle[];            // Artigos educativos
-  quizTopics: string[];                    // Tópicos de quiz
-  currentUserRa: string | null;            // RA do usuário atualmente logado
-  participants: Participant[];             // Equipe do projeto
-  turmas: Turma[];                         // Lista de séries/turmas
-  cursos: Curso[];                         // Lista de cursos técnicos
-  userStates: Record<string, EcosystemUserState>; // Estado de cada aluno indexado pelo RA
-  systemSettings: SystemSettings;          // Configurações de hardware e login
-  terminals: Terminal[];                   // Lista de terminais físicos cadastrados
-  schools: School[];                       // Lista de escolas parceiras
-  wasteEntries: WasteEntry[];              // Histórico de resíduos coletados
-  auditLogs: AuditLogEntry[];              // Histórico de auditoria unificado
-  resetHistory: CycleSnapshot[];           // Snapshots de ciclos passados
-  resetVersion: string;                    // Versão atual para controle de migração
-  securityState?: Record<string, SecurityState>; // Rastreamento de falhas de login
-}
-
-const STORAGE_KEY = 'schoolgain_ecosystem';
+const STORAGE_BASE = 'schoolgain_v22';
+const STORAGE_KEY = `${STORAGE_BASE}_ecosystem`;
+const AUDIT_LOGS_KEY = `${STORAGE_BASE}_audit_logs`;
 
 /**
  * EcosystemService: O Cérebro do Sistema
@@ -95,7 +60,6 @@ const STORAGE_KEY = 'schoolgain_ecosystem';
  * as mudanças de dados instantaneamente.
  */
 export class EcosystemService {
-  private STORAGE_PREFIX = 'schoolgain_v21_clean';
   
   /**
    * Converte uma string de texto puro em um hash SHA-256 para armazenamento seguro.
@@ -123,39 +87,36 @@ export class EcosystemService {
    * Nota: Em um sistema real, esta verificação deve ocorrer no Backend.
    */
   private checkAdminAuth(): boolean {
-    const user = this.data.users.find(u => u.ra === this.currentUserRa);
+    if (!this.currentUserRa) return false;
+    const user = this.data.users.find(u => u.ra?.toUpperCase() === this.currentUserRa?.toUpperCase());
     return !!(user && (user.role === 'admin' || user.role === 'super_admin'));
   }
   
   // Dados iniciais e estrutura de armazenamento
   private data: EcosystemData = {
-    users: [ADMIN_MOCK, VISITANTE_MOCK],
+    users: [ADMIN_MOCK],
     rewards: [...REWARDS_MOCK],
     articles: [...ARTICLES_MOCK],
     quizTopics: [...QUIZ_TOPICS_MOCK],
     currentUserRa: null,
     participants: [...PARTICIPANTS_MOCK],
-    turmas: [
-      { id: 't1', name: '1ª Série', status: 'active' },
-      { id: 't2', name: '2ª Série', status: 'active' },
-      { id: 't3', name: '3ª Série', status: 'active' }
-    ],
-    cursos: [
-      { id: 'c1', name: 'Técnico em Desenvolvimento de Sistemas', status: 'active' },
-      { id: 'c2', name: 'Técnico em Agropecuária', status: 'active' },
-      { id: 'c3', name: 'Gestão Escolar', status: 'active' }
-    ],
+    turmas: [...TURMAS_MOCK],
+    cursos: [...CURSOS_MOCK],
+    cargos: [...CARGOS_MOCK],
+    setores: [...SETORES_MOCK],
     userStates: {},
     systemSettings: {
-      loginMethod: 'all',
-      loginCameraSource: 'browser',
-      scanningCameraSource: 'browser',
-      terminalId: 'TERM-01'
+      studentLoginMethod: 'all',
+      adminLoginMethod: 'all',
+      terminalId: 'TERM-01',
+      studentCaptureSource: 'browser',
+      adminCaptureSource: 'browser',
+      studentCaptureDevice: '',
+      adminCaptureDevice: '',
+      studentCaptureUrl: '',
+      adminCaptureUrl: ''
     },
-    terminals: [
-      { id: 'term-1', hardwareId: 'SG-TOTEM-01', location: 'CETI Frei José - Entrada Principal', status: 'active', schoolId: 'school-1', requestDate: '2024-05-01' },
-      { id: 'term-2', hardwareId: 'SG-TOTEM-02', location: 'CETI Frei José - Refeitório', status: 'active', schoolId: 'school-1', requestDate: '2024-05-02' }
-    ],
+    terminals: [...TERMINALS_MOCK],
     schools: [...SCHOOLS_MOCK],
     securityState: {},
     wasteEntries: [],
@@ -175,7 +136,7 @@ export class EcosystemService {
   private usersSubject = new BehaviorSubject<User[]>([]);
   private rewardsSubject = new BehaviorSubject<Reward[]>([]);
   private articlesSubject = new BehaviorSubject<EducationArticle[]>([]);
-  private quizTopicsSubject = new BehaviorSubject<string[]>([]);
+  private quizTopicsSubject = new BehaviorSubject<QuizTopic[]>([]);
   private participantsSubject = new BehaviorSubject<Participant[]>([]);
   private purchasedItemsSubject = new BehaviorSubject<EcosystemItem[]>([]);
   private terminalsSubject = new BehaviorSubject<Terminal[]>([]);
@@ -183,15 +144,22 @@ export class EcosystemService {
   private lastMissionDateSubject = new BehaviorSubject<string | null>(null);
   private turmasSubject = new BehaviorSubject<Turma[]>([]);
   private cursosSubject = new BehaviorSubject<Curso[]>([]);
+  private cargosSubject = new BehaviorSubject<Cargo[]>([]);
+  private setoresSubject = new BehaviorSubject<SetorEscolar[]>([]);
   private auditLogsSubject = new BehaviorSubject<AuditLogEntry[]>([]);
   private levelSubject = new BehaviorSubject<string>('Iniciante');
   
   // Novos canais para hardware e gestão
   private systemSettingsSubject = new BehaviorSubject<SystemSettings>({
-    loginMethod: 'all',
-    loginCameraSource: 'browser',
-    scanningCameraSource: 'browser',
-    terminalId: 'TERM-01'
+    studentLoginMethod: 'all',
+    adminLoginMethod: 'all',
+    terminalId: 'TERM-01',
+    studentCaptureSource: 'browser',
+    adminCaptureSource: 'browser',
+    studentCaptureDevice: '',
+    adminCaptureDevice: '',
+    studentCaptureUrl: '',
+    adminCaptureUrl: ''
   });
   private pendingLoginSubject = new BehaviorSubject<{ ra: string, terminalId: string } | null>(null);
   private wasteEntriesSubject = new BehaviorSubject<WasteEntry[]>([]);
@@ -207,16 +175,170 @@ export class EcosystemService {
     this.participantsSubject.next(this.data.participants);
     this.turmasSubject.next(this.data.turmas);
     this.cursosSubject.next(this.data.cursos);
+    this.cargosSubject.next(this.data.cargos || []);
+    this.setoresSubject.next(this.data.setores || []);
     this.systemSettingsSubject.next(this.data.systemSettings || {
-      loginMethod: 'all',
-      loginCameraSource: 'browser',
-      scanningCameraSource: 'browser',
-      terminalId: 'TERM-01'
+      studentLoginMethod: 'all',
+      adminLoginMethod: 'all',
+      terminalId: 'TERM-01',
+      studentCaptureSource: 'browser',
+      adminCaptureSource: 'browser',
+      studentCaptureDevice: '',
+      adminCaptureDevice: '',
+      studentCaptureUrl: '',
+      adminCaptureUrl: ''
     });
     this.terminalsSubject.next(this.data.terminals || []);
-    this.schoolsSubject.next(this.data.schools || []);
+    this.systemSettingsSubject.next(this.data.systemSettings);
     this.wasteEntriesSubject.next(this.data.wasteEntries || []);
     this.resetHistorySubject.next(this.data.resetHistory || []);
+  }
+
+  /**
+   * Conecta aos canais do Firestore para atualizações em tempo real.
+   */
+  private initFirebaseSync() {
+    if (typeof window === 'undefined') return;
+
+    // 1. Sincronização de Usuários
+    onSnapshot(collection(db, "users"), (snapshot) => {
+      const users: User[] = [];
+      snapshot.forEach(doc => users.push(doc.data() as User));
+      if (users.length > 0) {
+        this.data.users = users;
+        this.usersSubject.next(users);
+        // Garante que o usuário logado localmente ainda exista no banco
+        if (this.data.currentUserRa && !users.find(u => u.ra === this.data.currentUserRa)) {
+          this.logout();
+        }
+      }
+    });
+
+    // 2. Sincronização de Recompensas
+    onSnapshot(collection(db, "rewards"), (snapshot) => {
+      const rewards: Reward[] = [];
+      snapshot.forEach(doc => rewards.push(doc.data() as Reward));
+      if (rewards.length > 0) {
+        this.data.rewards = rewards;
+        this.rewardsSubject.next(rewards);
+      }
+    });
+
+    // 3. Sincronização de Artigos
+    onSnapshot(collection(db, "articles"), (snapshot) => {
+      const articles: EducationArticle[] = [];
+      snapshot.forEach(doc => articles.push(doc.data() as EducationArticle));
+      if (articles.length > 0) {
+        this.data.articles = articles;
+        this.articlesSubject.next(articles);
+      }
+    });
+
+    // 4. Sincronização de Participantes (Créditos)
+    onSnapshot(collection(db, "participants"), (snapshot) => {
+      const participants: Participant[] = [];
+      snapshot.forEach(doc => participants.push(doc.data() as Participant));
+      if (participants.length > 0) {
+        this.data.participants = participants;
+        this.participantsSubject.next(participants);
+      }
+    });
+
+    // 5. Configurações Globais (SystemSettings)
+    // Usamos um documento fixo 'global' na coleção 'settings'
+    onSnapshot(doc(db, "settings", "global"), (docSnap) => {
+      if (docSnap.exists()) {
+        const settings = docSnap.data() as SystemSettings;
+        this.data.systemSettings = settings;
+        this.systemSettingsSubject.next(settings);
+      } else {
+        // Se não existir, cria o padrão no banco
+        setDoc(doc(db, "settings", "global"), this.data.systemSettings);
+      }
+    });
+
+    // Sincronização de Tópicos de Quiz
+    onSnapshot(collection(db, "quizTopics"), (snapshot) => {
+        const topics: QuizTopic[] = [];
+        snapshot.forEach(doc => topics.push(doc.data() as QuizTopic));
+        if (topics.length > 0) {
+            this.data.quizTopics = topics;
+            this.quizTopicsSubject.next(topics);
+        }
+    });
+
+    // 6. Sincronização de Escolas
+    onSnapshot(collection(db, "schools"), (snapshot) => {
+      const schools: School[] = [];
+      snapshot.forEach(doc => schools.push(doc.data() as School));
+      this.data.schools = schools;
+      this.schoolsSubject.next(schools);
+    });
+
+    // 7. Sincronização de Terminais
+    onSnapshot(collection(db, "terminals"), (snapshot) => {
+      const terminals: Terminal[] = [];
+      snapshot.forEach(doc => terminals.push(doc.data() as Terminal));
+      this.data.terminals = terminals;
+      this.terminalsSubject.next(terminals);
+    });
+
+    // 8. Sincronização de Dados Pedagógicos
+    onSnapshot(collection(db, "turmas"), (snapshot) => {
+      const turmas: Turma[] = [];
+      snapshot.forEach(doc => turmas.push(doc.data() as Turma));
+      this.data.turmas = turmas;
+      this.turmasSubject.next(turmas);
+    });
+    onSnapshot(collection(db, "cursos"), (snapshot) => {
+      const cursos: Curso[] = [];
+      snapshot.forEach(doc => cursos.push(doc.data() as Curso));
+      this.data.cursos = cursos;
+      this.cursosSubject.next(cursos);
+    });
+    onSnapshot(collection(db, "cargos"), (snapshot) => {
+      const cargos: Cargo[] = [];
+      snapshot.forEach(doc => cargos.push(doc.data() as Cargo));
+      this.data.cargos = cargos;
+      this.cargosSubject.next(cargos);
+    });
+    onSnapshot(collection(db, "setores"), (snapshot) => {
+      const setores: SetorEscolar[] = [];
+      snapshot.forEach(doc => setores.push(doc.data() as SetorEscolar));
+      this.data.setores = setores;
+      this.setoresSubject.next(setores);
+    });
+
+    // 9. Sincronização de Métricas e Histórico (Limitar a 500 registros para performance)
+    onSnapshot(query(collection(db, "wasteEntries"), orderBy("date", "desc")), (snapshot) => {
+      const entries: WasteEntry[] = [];
+      snapshot.forEach(doc => entries.push(doc.data() as WasteEntry));
+      this.data.wasteEntries = entries;
+      this.wasteEntriesSubject.next(entries);
+    });
+    onSnapshot(query(collection(db, "auditLogs"), orderBy("timestamp", "desc")), (snapshot) => {
+      const logs: AuditLogEntry[] = [];
+      snapshot.forEach(doc => logs.push(doc.data() as AuditLogEntry));
+      this.data.auditLogs = logs;
+      this.auditLogsSubject.next(logs);
+    });
+    onSnapshot(query(collection(db, "resetHistory"), orderBy("endDate", "desc")), (snapshot) => {
+      const history: CycleSnapshot[] = [];
+      snapshot.forEach(doc => history.push(doc.data() as CycleSnapshot));
+      this.data.resetHistory = history;
+      this.resetHistorySubject.next(history);
+    });
+
+    // 10. Sincronização de Estados de Usuários (Sempre em tempo real)
+    onSnapshot(collection(db, "userStates"), (snapshot) => {
+      snapshot.forEach(doc => {
+        this.data.userStates[doc.id] = doc.data() as EcosystemUserState;
+      });
+      // Se houver um usuário logado, atualiza o saldo dele
+      if (this.data.currentUserRa) {
+        this.syncStateWithUser(this.data.currentUserRa);
+      }
+    });
   }
 
   /**
@@ -224,9 +346,8 @@ export class EcosystemService {
    */
   initialize() {
     if (typeof window === 'undefined') return;
-    this.loadFromStorage();
-    
     this.sanitizeData(); // Limpa dados legados e intrusos
+    this.initFirebaseSync(); // Inicia sincronização em tempo real com Firestore
     
     // Notifica todos os inscritos sobre os dados carregados
     this.currentUserRaSubject.next(this.data.currentUserRa);
@@ -237,10 +358,25 @@ export class EcosystemService {
     this.participantsSubject.next(this.data.participants);
     this.turmasSubject.next(this.data.turmas);
     this.cursosSubject.next(this.data.cursos);
+    this.cargosSubject.next(this.data.cargos || []);
+    this.setoresSubject.next(this.data.setores || []);
     this.terminalsSubject.next(this.data.terminals || []);
     this.schoolsSubject.next(this.data.schools || []);
-    this.schoolsSubject.next(this.data.schools || []);
     this.wasteEntriesSubject.next(this.data.wasteEntries || []);
+
+    // 8. Observa estado de autenticação do Firebase
+    onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        // Busca o RA correspondente ao email no nosso banco de dados
+        const user = this.data.users.find(u => u.email?.toLowerCase() === firebaseUser.email?.toLowerCase());
+        if (user && user.ra !== this.data.currentUserRa) {
+          this.data.currentUserRa = user.ra!;
+          this.currentUserRaSubject.next(user.ra!);
+          this.syncStateWithUser(user.ra!);
+          this.saveToStorage();
+        }
+      }
+    });
 
     // Sincronização entre abas: Ouve mudanças no localStorage vindas de outras abas (ex: Kiosk)
     window.addEventListener('storage', (event) => {
@@ -261,11 +397,12 @@ export class EcosystemService {
    * Sincroniza o estado (balance, vitality, etc) com um RA específico.
    */
   private syncStateWithUser(ra: string) {
-    const userState = this.data.userStates[ra] || this.getDefaultState();
-    const user = this.data.users.find(u => u.ra === ra);
+    const cleanRa = ra.toUpperCase().trim();
+    const userState = this.data.userStates[cleanRa] || this.getDefaultState();
+    const user = this.data.users.find(u => u.ra?.toUpperCase() === cleanRa);
     
     // Se for o usuário global, atualiza os canais globais
-    if (ra === this.data.currentUserRa) {
+    if (cleanRa === this.data.currentUserRa?.toUpperCase()) {
         this.balanceSubject.next(userState.balance);
         this.vitalitySubject.next(userState.vitality);
         this.purchasedItemsSubject.next(userState.purchasedItems);
@@ -284,29 +421,37 @@ export class EcosystemService {
    * @param lifetimePointsGain Ganho de pontos vitalícios (usado no ranking).
    */
   private syncUserPoints(ra: string, currentBalanceChange: number, lifetimePointsGain: number) {
-    const state = this.data.userStates[ra] || this.getDefaultState();
-    state.balance += currentBalanceChange;
-    this.data.userStates[ra] = state;
+    const cleanRa = ra.toUpperCase().trim();
+    const state = this.data.userStates[cleanRa] || this.getDefaultState();
+    state.balance += Number(currentBalanceChange);
+    this.data.userStates[cleanRa] = state;
 
     // Atualiza os canais se o RA for o global OU o do Kiosk
-    if (ra === this.data.currentUserRa || ra === this.kioskUserRaSubject.value) {
+    if (cleanRa === this.data.currentUserRa?.toUpperCase() || cleanRa === this.kioskUserRaSubject.value?.toUpperCase()) {
       this.balanceSubject.next(state.balance);
     }
 
     // Atualiza a lista global de usuários para refletir no ranking
-    const studentIdx = this.data.users.findIndex(u => u.ra === ra);
+    const studentIdx = this.data.users.findIndex(u => u.ra?.toUpperCase() === cleanRa);
     if (studentIdx !== -1) {
       const student = this.data.users[studentIdx];
-      student.points = (student.points || 0) + lifetimePointsGain;
+      student.points = (Number(student.points) || 0) + Number(lifetimePointsGain);
+      student.vitality = state.vitality;
+      student.itemsCount = state.purchasedItems.length;
       
       const score = EcosystemService.calculateTotalScore(student.points, state.vitality, state.purchasedItems.length);
       student.level = this.calculateLevel(score, state.purchasedItems);
       
-      if (ra === this.data.currentUserRa || ra === this.kioskUserRaSubject.value) {
+      if (cleanRa === this.data.currentUserRa?.toUpperCase() || cleanRa === this.kioskUserRaSubject.value?.toUpperCase()) {
         this.levelSubject.next(student.level);
       }
       
       this.data.users[studentIdx] = { ...student };
+      
+      // Sincroniza Aluno e Estado no Firestore
+      setDoc(doc(db, "users", student.ra!), student);
+      setDoc(doc(db, "userStates", cleanRa), state);
+      
       this.usersSubject.next([...this.data.users]);
     }
 
@@ -321,6 +466,8 @@ export class EcosystemService {
   get allParticipants() { return this.data.participants; }
   get allTurmas() { return this.data.turmas; }
   get allCursos() { return this.data.cursos; }
+  get allCargos() { return this.data.cargos || []; }
+  get allSetores() { return this.data.setores || []; }
   get auditLogs() { return this.auditLogsSubject.value; }
   get terminals() { return this.terminalsSubject.value; }
   get schools() { return this.schoolsSubject.value; }
@@ -338,6 +485,8 @@ export class EcosystemService {
   get participants$() { return this.participantsSubject.asObservable(); }
   get turmas$() { return this.turmasSubject.asObservable(); }
   get cursos$() { return this.cursosSubject.asObservable(); }
+  get cargos$() { return this.cargosSubject.asObservable(); }
+  get setores$() { return this.setoresSubject.asObservable(); }
   get purchasedItems$() { return this.purchasedItemsSubject.asObservable(); }
   get auditLogs$() { return this.auditLogsSubject.asObservable(); }
   get level$() { return this.levelSubject.asObservable(); }
@@ -355,12 +504,48 @@ export class EcosystemService {
   get systemSettings() { return this.systemSettingsSubject.value; }
 
   /**
+   * Realiza o upload de um avatar para o Firebase Storage e atualiza o usuário.
+   */
+  async uploadUserAvatar(userId: string, file: File): Promise<string | null> {
+    try {
+      // 1. Caminho no Storage: avatars/id-do-usuario
+      const storageRef = ref(storage, `avatars/${userId}`);
+      
+      // 2. Upload do arquivo
+      const snapshot = await uploadBytes(storageRef, file);
+      
+      // 3. Pega a URL pública
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      
+      // 4. Atualiza o Firestore
+      const userRef = doc(db, "users", userId);
+      await setDoc(userRef, { avatar: downloadURL }, { merge: true });
+      
+      // 5. Atualiza o estado local
+      this.data.users = this.data.users.map(u => 
+        u.id === userId ? { ...u, avatar: downloadURL } : u
+      );
+      this.usersSubject.next(this.data.users);
+      
+      return downloadURL;
+    } catch (error) {
+      console.error("[STORAGE] Erro no upload do avatar:", error);
+      return null;
+    }
+  }
+
+  /**
    * Atualiza as configurações de hardware do sistema.
    */
   updateSystemSettings(settings: SystemSettings) {
     this.data.systemSettings = settings;
     this.systemSettingsSubject.next(settings);
     this.saveToStorage();
+    
+    // Sincroniza com Firestore
+    setDoc(doc(db, "settings", "global"), settings).catch(err => {
+      console.error("[FIREBASE] Erro ao salvar configurações:", err);
+    });
   }
 
   /**
@@ -373,24 +558,53 @@ export class EcosystemService {
   }
 
   /**
+   * Gera um ID único e imutável para um terminal (SG-TOTEM-XXXX).
+   */
+  generateTerminalId(): string {
+    const chars = '0123456789ABCDEF';
+    let suffix = '';
+    for (let i = 0; i < 4; i++) {
+      suffix += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const fullId = `SG-TOTEM-${suffix}`;
+    
+    // Verifica unicidade
+    const exists = this.data.terminals?.some(t => t.id === fullId);
+    if (exists) return this.generateTerminalId();
+    
+    return fullId;
+  }
+
+  /**
    * Solicita autorização para um novo terminal.
    */
-  requestTerminalAuthorization(hardwareId: string, location: string, schoolId: string) {
+  requestTerminalAuthorization(terminalId: string, hardwareId: string, location: string, schoolId: string) {
     if (!this.data.terminals) this.data.terminals = [];
+    
+    // Verifica se o ID já existe
+    const idExists = this.data.terminals.some(t => t.id === terminalId);
+    if (idExists) return false;
+
+    // Verifica se o hardware já existe
     const existing = this.data.terminals.find(t => t.hardwareId === hardwareId);
     if (existing) return false;
 
     const newTerminal: Terminal = {
-      id: `term-${Date.now()}`,
+      id: terminalId,
       hardwareId,
       location,
       status: 'pending',
       schoolId,
-      requestDate: new Date().toISOString()
+      requestDate: new Date().toISOString(),
+      loginMethod: 'all',
     };
 
     this.data.terminals.push(newTerminal);
     this.terminalsSubject.next([...this.data.terminals]);
+    
+    // Sincroniza no Firestore
+    setDoc(doc(db, "terminals", newTerminal.id), newTerminal);
+    
     this.saveToStorage();
     return true;
   }
@@ -405,8 +619,30 @@ export class EcosystemService {
       terminal.status = status;
       if (schoolId) terminal.schoolId = schoolId;
       this.terminalsSubject.next([...this.data.terminals]);
+      
+      // Sincroniza no Firestore
+      setDoc(doc(db, "terminals", id), terminal);
+      
       this.saveToStorage();
     }
+  }
+
+  /**
+   * Atualiza as configurações de hardware de um terminal específico.
+   */
+  updateTerminalSettings(id: string, settings: Partial<Terminal>) {
+    if (!this.checkAdminAuth()) return;
+    this.data.terminals = this.data.terminals.map(t => 
+      t.id === id ? { ...t, ...settings } : t
+    );
+    this.terminalsSubject.next([...this.data.terminals]);
+    
+    // Sincroniza no Firestore
+    const updated = this.data.terminals.find(t => t.id === id);
+    if (updated) setDoc(doc(db, "terminals", id), updated);
+    
+    this.saveToStorage();
+    console.log(`[ECOSYSTEM] Configurações do terminal ${id} atualizadas:`, settings);
   }
 
   /**
@@ -416,6 +652,10 @@ export class EcosystemService {
     if (!this.checkAdminAuth()) return;
     this.data.terminals = this.data.terminals.filter(t => t.id !== id);
     this.terminalsSubject.next([...this.data.terminals]);
+    
+    // Remove do Firestore
+    deleteDoc(doc(db, "terminals", id));
+    
     this.saveToStorage();
   }
 
@@ -424,6 +664,11 @@ export class EcosystemService {
    */
   async registerSchool(schoolData: Omit<School, 'id' | 'status' | 'joinedDate'>) {
     if (!this.checkAdminAuth()) return false;
+
+    if (!schoolData.managerEmail || !schoolData.managerPassword) {
+      console.warn("[VALIDATION] Tentativa de registrar escola sem gestor.");
+      return false;
+    }
 
     const newSchool: School = {
       ...schoolData,
@@ -440,7 +685,7 @@ export class EcosystemService {
         id: `user-admin-${Date.now()}`,
         name: `Gestor ${newSchool.name}`,
         email: newSchool.managerEmail,
-        password: newSchool.managerPassword ? await EcosystemService.hashPassword(newSchool.managerPassword) : '46bedf6fe2d6d6bf157b58c3ddfe0ff5ec53dad2f5689c63cf0f16901049dff5', // Default rizdy6-wumkyh-rEqxox
+        password: await EcosystemService.hashPassword(newSchool.managerPassword!),
         role: 'admin',
         schoolId: newSchool.id,
         ra: `G-${Date.now().toString().slice(-4)}`,
@@ -452,6 +697,16 @@ export class EcosystemService {
     }
 
     this.schoolsSubject.next([...this.data.schools]);
+    
+    // Sincroniza Escola no Firestore
+    setDoc(doc(db, "schools", newSchool.id), newSchool);
+    
+    // Se criou gestor, sincroniza ele também
+    if (newSchool.managerEmail) {
+        const adminUser = this.data.users.find(u => u.email === newSchool.managerEmail);
+        if (adminUser) setDoc(doc(db, "users", adminUser.ra!), adminUser);
+    }
+
     this.saveToStorage();
     return true;
   }
@@ -460,6 +715,10 @@ export class EcosystemService {
    * Solicita o registro de uma nova escola.
    */
   requestSchoolRegistration(schoolData: Omit<School, 'id' | 'status' | 'joinedDate'>) {
+    if (!schoolData.managerEmail || !schoolData.managerPassword) {
+      return false;
+    }
+
     const newSchool: School = {
       ...schoolData,
       id: `school-${Date.now()}`,
@@ -469,6 +728,10 @@ export class EcosystemService {
 
     this.data.schools.push(newSchool);
     this.schoolsSubject.next([...this.data.schools]);
+    
+    // Sincroniza no Firestore
+    setDoc(doc(db, "schools", newSchool.id), newSchool);
+    
     this.saveToStorage();
     return true;
   }
@@ -490,7 +753,7 @@ export class EcosystemService {
             id: `user-admin-${Date.now()}`,
             name: `Gestor ${school.name}`,
             email: school.managerEmail,
-            password: school.managerPassword ? await EcosystemService.hashPassword(school.managerPassword) : '46bedf6fe2d6d6bf157b58c3ddfe0ff5ec53dad2f5689c63cf0f16901049dff5', // Default rizdy6-wumkyh-rEqxox
+            password: await EcosystemService.hashPassword(school.managerPassword!),
             role: 'admin',
             schoolId: school.id,
             ra: `G-${Date.now().toString().slice(-4)}`,
@@ -503,6 +766,16 @@ export class EcosystemService {
       }
 
       this.schoolsSubject.next([...this.data.schools]);
+      
+      // Sincroniza Escola no Firestore
+      setDoc(doc(db, "schools", id), school);
+      
+      // Sincroniza novo gestor se criado
+      if (status === 'active' && school.managerEmail) {
+        const adminUser = this.data.users.find(u => u.email === school.managerEmail);
+        if (adminUser) setDoc(doc(db, "users", adminUser.ra!), adminUser);
+      }
+      
       this.saveToStorage();
     }
   }
@@ -532,7 +805,8 @@ export class EcosystemService {
    * Retorna o estado de um usuário específico.
    */
   getUserState(ra: string): EcosystemUserState {
-    return this.data.userStates[ra] || this.getDefaultState();
+    const cleanRa = ra.toUpperCase().trim();
+    return this.data.userStates[cleanRa] || this.getDefaultState();
   }
 
   private getDefaultState(): EcosystemUserState {
@@ -606,6 +880,22 @@ export class EcosystemService {
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
+        
+        // Sanitização de RA no carregamento (Garante que tudo seja Uppercase)
+        if (parsed.users) {
+          parsed.users = parsed.users.map((u: any) => ({ ...u, ra: u.ra?.toUpperCase() }));
+        }
+        if (parsed.userStates) {
+          const newStates: any = {};
+          Object.entries(parsed.userStates).forEach(([ra, state]) => {
+            newStates[ra.toUpperCase()] = state;
+          });
+          parsed.userStates = newStates;
+        }
+        if (parsed.currentUserRa) {
+          parsed.currentUserRa = parsed.currentUserRa.toUpperCase();
+        }
+
         this.data = { ...this.data, ...parsed };
       } catch (e) {
         console.error('Erro ao carregar dados do ecossistema', e);
@@ -613,7 +903,7 @@ export class EcosystemService {
     }
 
     // Carrega logs de auditoria
-    const logsStr = localStorage.getItem(`${this.STORAGE_PREFIX}_audit_logs`);
+    const logsStr = localStorage.getItem(AUDIT_LOGS_KEY);
     if (logsStr) {
       this.auditLogsSubject.next(JSON.parse(logsStr));
     }
@@ -623,15 +913,16 @@ export class EcosystemService {
     const RESET_VERSION = 'v22_stable'; // Versão de produção estável
     if ((this.data as any).resetVersion !== RESET_VERSION) {
       this.data.userStates = {};
-      this.data.users = [ADMIN_MOCK, VISITANTE_MOCK]; 
-      this.data.terminals = [
-        { id: 'term-1', hardwareId: 'SG-TOTEM-01', location: 'CETI Frei José - Entrada Principal', status: 'active', schoolId: 'school-1', requestDate: '2024-05-01' },
-        { id: 'term-2', hardwareId: 'SG-TOTEM-02', location: 'CETI Frei José - Refeitório', status: 'active', schoolId: 'school-1', requestDate: '2024-05-02' }
-      ];
+      this.data.users = [ADMIN_MOCK]; 
+      this.data.schools = [...SCHOOLS_MOCK];
+      this.data.turmas = [...TURMAS_MOCK];
+      this.data.cursos = [...CURSOS_MOCK];
+      this.data.cargos = [...CARGOS_MOCK];
+      this.data.setores = [...SETORES_MOCK];
+      this.data.terminals = [...TERMINALS_MOCK];
       this.data.systemSettings = {
-        loginMethod: 'all',
-        loginCameraSource: 'browser',
-        scanningCameraSource: 'browser',
+        studentLoginMethod: 'all',
+        adminLoginMethod: 'all',
         terminalId: 'TERM-01'
       };
       (this.data as any).resetVersion = RESET_VERSION;
@@ -649,16 +940,6 @@ export class EcosystemService {
         admin.role = 'super_admin';
         hasChanges = true;
       }
-    }
-
-    // Garante que o VISITANTE_MOCK sempre exista e seja visitor
-    const visitorExists = this.data.users.find(u => u.ra === VISITANTE_MOCK.ra);
-    if (!visitorExists) {
-      this.data.users.push(VISITANTE_MOCK);
-      hasChanges = true;
-    } else if (visitorExists.role !== 'visitor') {
-      visitorExists.role = 'visitor';
-      hasChanges = true;
     }
 
     // Garante que todos os usuários conhecidos tenham um estado inicial
@@ -689,7 +970,7 @@ export class EcosystemService {
       };
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
-    localStorage.setItem(`${this.STORAGE_PREFIX}_audit_logs`, JSON.stringify(this.auditLogsSubject.value));
+    localStorage.setItem(AUDIT_LOGS_KEY, JSON.stringify(this.auditLogsSubject.value));
   }
 
   /**
@@ -719,10 +1000,13 @@ export class EcosystemService {
   completeDailyMission(points: number) {
     const today = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
     if (this.lastMissionDateSubject.value === today) return false;
-    this.lastMissionDateSubject.next(today);
-    
     if (this.currentUserRa) {
+      const state = this.data.userStates[this.currentUserRa] || this.getDefaultState();
+      state.lastMissionDate = today;
+      this.data.userStates[this.currentUserRa] = state;
+      
       this.syncUserPoints(this.currentUserRa, points, points);
+      // O syncUserPoints já salva no Firestore o state atualizado
     }
     return true;
   }
@@ -746,7 +1030,16 @@ export class EcosystemService {
     if (newVitality === this.vitality) return false;
     
     this.vitalitySubject.next(newVitality);
-    this.syncUserPoints(this.currentUserRa, -points, 0);
+    
+    if (this.currentUserRa) {
+      const state = this.data.userStates[this.currentUserRa] || this.getDefaultState();
+      state.vitality = newVitality;
+      state.balance -= points;
+      this.data.userStates[this.currentUserRa] = state;
+      
+      this.syncUserPoints(this.currentUserRa, 0, 0); // Dispara a sincronização do estado
+    }
+    
     return true;
   }
 
@@ -813,15 +1106,20 @@ export class EcosystemService {
     let balanceAdjust = -upgrade.price;
     let pointsAdjust = 0;
 
-    // Se comprar a 'casa' (item máximo), ganha um bônus especial de pontos
-    if (item === 'casa') {
-      pointsAdjust = 5000;
-      balanceAdjust += 5000;
+    // Lógica especial para Nessie
+    if (item === 'monstro_lago') {
+      if (!this.isNessieAvailable()) return false;
       
       const state = this.data.userStates[this.currentUserRa] || this.getDefaultState();
       const today = new Date();
       state.nessiePurchaseDate = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
       this.data.userStates[this.currentUserRa] = state;
+    }
+
+    // Se comprar a 'casa' (item máximo), ganha um bônus especial de pontos
+    if (item === 'casa') {
+      pointsAdjust = 5000;
+      balanceAdjust += 5000;
     }
 
     // Sincroniza e salva
@@ -833,7 +1131,7 @@ export class EcosystemService {
    * Concede pontos a um aluno específico (Usado por Administradores).
    * Registra a ação no log de auditoria.
    */
-  async grantPoints(ra: string, points: number, sector: string, action: string, adminName: string, password?: string): Promise<boolean> {
+  async grantPoints(ra: string, points: number, sector: string, action: string, adminName: string, password?: string, terminalSchoolId?: string): Promise<boolean> {
     // 1. Verifica se a senha foi fornecida e é válida (Exigência de Segurança)
     if (password) {
       const isMatch = await this.verifyPassword(password);
@@ -865,10 +1163,16 @@ export class EcosystemService {
       sector,
       action,
       timestamp: new Date().toISOString(),
-      adminName,
-      schoolId: student.schoolId
+       adminName,
+      schoolId: terminalSchoolId || student.schoolId
     };
     this.auditLogsSubject.next([log, ...this.auditLogsSubject.value]);
+    
+    // Salva no Firestore
+    setDoc(doc(db, "auditLogs", log.id), log).catch(err => {
+        console.error("[FIREBASE] Erro ao salvar log de auditoria:", err);
+    });
+
     this.saveToStorage();
     return true;
   }
@@ -876,9 +1180,13 @@ export class EcosystemService {
   /**
    * Registra a coleta de um resíduo e atribui pontos ao aluno.
    */
-  registerWaste(ra: string, type: WasteType, weightKg: number) {
-    const student = this.data.users.find(u => u.ra === ra);
-    if (!student) return false;
+  registerWaste(ra: string, type: WasteType, weightKg: number, terminalSchoolId?: string) {
+    const cleanRa = ra.toUpperCase().trim();
+    const student = this.data.users.find(u => u.ra?.toUpperCase() === cleanRa);
+    if (!student) {
+      console.warn(`[ECOSYSTEM] Tentativa de registro de resíduo para RA não encontrado: ${cleanRa}`);
+      return false;
+    }
 
     // 1. Gera pontos baseados no mapeamento de constantes (ex: Plástico=10, Metal=15)
     // Multiplicamos pelo peso apenas se o peso for significativo (> 1kg), caso contrário assume 1 unidade
@@ -891,15 +1199,21 @@ export class EcosystemService {
       type: type,
       collected: weightKg,
       ra: ra,
-      schoolId: student.schoolId
+      schoolId: terminalSchoolId || student.schoolId
     };
 
-    console.log(`[ECOSYSTEM] Registrando coleta: ${weightKg}kg de ${type} para o aluno ${ra}. Pontos: ${points}`);
+    console.log(`[ECOSYSTEM] Registrando coleta: ${weightKg}kg de ${type} para o aluno ${cleanRa}. Pontos: ${points}`);
     
-    this.addPoints(points, ra);
+    this.addPoints(points, cleanRa);
     
     this.data.wasteEntries = [...(this.data.wasteEntries || []), newEntry];
     this.wasteEntriesSubject.next([...this.data.wasteEntries]);
+    
+    // Salva no Firestore
+    setDoc(doc(db, "wasteEntries", newEntry.id), newEntry).catch(err => {
+        console.error("[FIREBASE] Erro ao salvar coleta:", err);
+    });
+
     this.saveToStorage();
 
     return true;
@@ -976,11 +1290,29 @@ export class EcosystemService {
       }
     });
 
-    // 4. NOTIFICA E PERSISTE
+    // 4. NOTIFICA E PERSISTE NO FIRESTORE
     this.usersSubject.next([...this.data.users]);
     this.wasteEntriesSubject.next([...this.data.wasteEntries]);
     this.auditLogsSubject.next([...this.data.auditLogs]);
     
+    // Salva o snapshot no Firestore
+    setDoc(doc(db, "resetHistory", snapshot.id), snapshot);
+
+    // Atualiza todos os usuários resetados no Firestore
+    this.data.users.forEach(u => {
+        if (u.role === 'student' && (!schoolId || u.schoolId === schoolId)) {
+            setDoc(doc(db, "users", u.ra!), u);
+        }
+    });
+
+    // Limpa estados de ecossistema no Firestore
+    Object.keys(this.data.userStates).forEach(ra => {
+      const user = this.data.users.find(u => u.ra === ra);
+      if (user && (!schoolId || user.schoolId === schoolId)) {
+        setDoc(doc(db, "userStates", ra), this.data.userStates[ra]);
+      }
+    });
+
     // Se o usuário logado foi resetado, atualiza saldo local
     if (this.currentUserRa) {
       this.syncStateWithUser(this.currentUserRa);
@@ -994,7 +1326,7 @@ export class EcosystemService {
    * Adiciona pontos genéricos a um usuário.
    */
   addPoints(points: number, studentRa?: string) {
-    const targetRa = studentRa || this.currentUserRa;
+    const targetRa = (studentRa || this.currentUserRa)?.toUpperCase().trim();
     if (targetRa) {
       this.syncUserPoints(targetRa, points, points);
     }
@@ -1054,31 +1386,25 @@ export class EcosystemService {
     if (user) {
       // Exige senha apenas para perfis de gestão quando fornecida manualmente
       if (user.role === 'admin' || user.role === 'super_admin') {
-        // Se a senha NÃO foi fornecida (ex: login via QR Code ou RFID), permitimos a entrada direta
-        if (!cleanPassword) {
-            const ra = user.ra!;
-            this.currentUserRaSubject.next(ra);
-            this.syncStateWithUser(ra);
-            this.resetSecurityState(securityKey);
-            this.saveToStorage();
-            return true;
-        }
-        
-        const hashedInput = await EcosystemService.hashPassword(cleanPassword);
-        
-        // Verifica se a senha confere (tentando o hash SHA-256, o fallback ou texto plano para legados)
-        const isMatch = user.password === hashedInput || 
-                        user.password === cleanPassword ||
-                        (user.password === '46bedf6fe2d6d6bf157b58c3ddfe0ff5ec53dad2f5689c63cf0f16901049dff5' && cleanPassword === 'rizdy6-wumkyh-rEqxox');
-
-        if (!isMatch) {
-            this.handleFailedLogin(securityKey);
-            console.error(`[AUTH] Senha incorreta para o gestor: ${cleanId}`);
-            return false;
+        if (cleanPassword) {
+          try {
+            // Tenta autenticar no Firebase Auth
+            await signInWithEmailAndPassword(auth, user.email!, cleanPassword);
+          } catch (firebaseError: any) {
+            // Se falhar no Firebase, tentamos o fallback local (para facilitar a migração)
+            const hashedInput = await EcosystemService.hashPassword(cleanPassword);
+            const isMatch = user.password === hashedInput || user.password === cleanPassword;
+            
+            if (!isMatch) {
+              this.handleFailedLogin(securityKey);
+              return false;
+            }
+          }
         }
       }
       
       const ra = user.ra!;
+      this.data.currentUserRa = ra;
       this.currentUserRaSubject.next(ra);
       this.syncStateWithUser(ra);
       this.resetSecurityState(securityKey);
@@ -1086,7 +1412,6 @@ export class EcosystemService {
       return true;
     }
 
-    // Se o usuário não foi encontrado, também rastreamos como falha (proteção contra enumeração/brute force)
     this.handleFailedLogin(securityKey);
     return false;
   }
@@ -1128,9 +1453,10 @@ export class EcosystemService {
    * Identifica um usuário especificamente para o Kiosk, sem mudar o login global.
    */
   identifyKioskUser(ra: string | null) {
-    this.kioskUserRaSubject.next(ra);
-    if (ra) {
-      this.syncStateWithUser(ra);
+    const cleanRa = ra?.toUpperCase().trim() || null;
+    this.kioskUserRaSubject.next(cleanRa);
+    if (cleanRa) {
+      this.syncStateWithUser(cleanRa);
     }
   }
 
@@ -1146,13 +1472,20 @@ export class EcosystemService {
     this.purchasedItemsSubject.next([]);
     this.lastMissionDateSubject.next(null);
     this.saveToStorage();
+    
+    // Sign out from Firebase
+    signOut(auth).catch(err => console.error("[FIREBASE] Erro ao deslogar:", err));
   }
 
   // Funções de atualização em massa (usadas no painel admin)
-  updateUsers(newUsers: any[]) {
+  updateUsers(newUsers: User[]) {
     if (!this.checkAdminAuth()) return;
     this.data.users = newUsers;
     this.usersSubject.next([...newUsers]);
+    
+    // Sincroniza todos no Firestore (pode ser pesado se houver milhares, mas funciona para agora)
+    newUsers.forEach(u => setDoc(doc(db, "users", u.ra!), u));
+    
     this.saveToStorage();
   }
 
@@ -1160,6 +1493,30 @@ export class EcosystemService {
     if (!this.checkAdminAuth()) return;
     this.data.rewards = newRewards;
     this.rewardsSubject.next(newRewards);
+    
+    // Sincroniza recompensas no Firestore
+    newRewards.forEach(r => setDoc(doc(db, "rewards", r.id), r));
+    
+    this.saveToStorage();
+  }
+
+  updateUsers(newUsers: User[]) {
+    if (!this.checkAdminAuth()) return;
+    this.data.users = newUsers;
+    this.usersSubject.next([...newUsers]);
+    
+    // Sincroniza cada usuário no Firestore
+    newUsers.forEach(u => setDoc(doc(db, "users", u.ra!), u));
+    this.saveToStorage();
+  }
+
+  updateRewards(newRewards: Reward[]) {
+    if (!this.checkAdminAuth()) return;
+    this.data.rewards = newRewards;
+    this.rewardsSubject.next(newRewards);
+    
+    // Sincroniza prêmios no Firestore
+    newRewards.forEach(r => setDoc(doc(db, "rewards", r.id), r));
     this.saveToStorage();
   }
 
@@ -1167,13 +1524,23 @@ export class EcosystemService {
     if (!this.checkAdminAuth()) return;
     this.data.articles = newArticles;
     this.articlesSubject.next(newArticles);
+    
+    // Sincroniza artigos no Firestore
+    newArticles.forEach(a => setDoc(doc(db, "articles", a.id), a));
+    
     this.saveToStorage();
   }
 
-  updateQuizTopics(newTopics: string[]) {
+  updateQuizTopics(newTopics: QuizTopic[]) {
     if (!this.checkAdminAuth()) return;
     this.data.quizTopics = newTopics;
     this.quizTopicsSubject.next(newTopics);
+    
+    // Salva no Firebase
+    newTopics.forEach(topic => {
+      setDoc(doc(db, "quizTopics", topic.id), topic);
+    });
+    
     this.saveToStorage();
   }
 
@@ -1181,6 +1548,11 @@ export class EcosystemService {
     if (!this.checkAdminAuth()) return;
     this.data.participants = newParticipants;
     this.participantsSubject.next(newParticipants);
+    
+    // Sincroniza cada participante no Firestore
+    newParticipants.forEach(p => {
+        setDoc(doc(db, "participants", p.id), p);
+    });
     this.saveToStorage();
   }
 
@@ -1188,6 +1560,8 @@ export class EcosystemService {
     if (!this.checkAdminAuth()) return;
     this.data.turmas = newTurmas;
     this.turmasSubject.next([...newTurmas]);
+    
+    newTurmas.forEach(t => setDoc(doc(db, "turmas", t.id), t));
     this.saveToStorage();
   }
 
@@ -1195,6 +1569,26 @@ export class EcosystemService {
     if (!this.checkAdminAuth()) return;
     this.data.cursos = newCursos;
     this.cursosSubject.next([...newCursos]);
+    
+    newCursos.forEach(c => setDoc(doc(db, "cursos", c.id), c));
+    this.saveToStorage();
+  }
+
+  updateCargos(newCargos: Cargo[]) {
+    if (!this.checkAdminAuth()) return;
+    this.data.cargos = newCargos;
+    this.cargosSubject.next([...newCargos]);
+    
+    newCargos.forEach(c => setDoc(doc(db, "cargos", c.id), c));
+    this.saveToStorage();
+  }
+
+  updateSetores(newSetores: SetorEscolar[]) {
+    if (!this.checkAdminAuth()) return;
+    this.data.setores = newSetores;
+    this.setoresSubject.next([...newSetores]);
+    
+    newSetores.forEach(s => setDoc(doc(db, "setores", s.id), s));
     this.saveToStorage();
   }
 
@@ -1205,8 +1599,15 @@ export class EcosystemService {
     const userIndex = this.data.users.findIndex(u => u.ra === ra);
     if (userIndex !== -1) {
       const hashedPassword = await EcosystemService.hashPassword(newPassword);
-      this.data.users[userIndex].password = hashedPassword;
+      const user = this.data.users[userIndex];
+      user.password = hashedPassword;
+      user.mustChangePassword = false;
+      
       this.usersSubject.next([...this.data.users]);
+      
+      // Sincroniza no Firestore
+      setDoc(doc(db, "users", ra), user);
+      
       this.saveToStorage();
       return true;
     }
@@ -1226,7 +1627,13 @@ export class EcosystemService {
     if (!user) return false;
 
     user.password = await EcosystemService.hashPassword(newPassword);
+    user.mustChangePassword = false;
+    
     this.usersSubject.next([...this.data.users]);
+    
+    // Sincroniza no Firestore
+    setDoc(doc(db, "users", ra), user);
+    
     this.saveToStorage();
     return true;
   }
@@ -1241,11 +1648,7 @@ export class EcosystemService {
     if (!user || !user.password) return false;
 
     const hashedInput = await EcosystemService.hashPassword(password);
-    const isStoredHashed = user.password.length === 64;
-    
-    return isStoredHashed 
-      ? user.password === hashedInput 
-      : user.password === password;
+    return user.password === hashedInput;
   }
 
   /**
@@ -1279,6 +1682,10 @@ export class EcosystemService {
     this.rewardsSubject.next([...(this.data.rewards || [])]);
     this.articlesSubject.next([...(this.data.articles || [])]);
     this.systemSettingsSubject.next({...this.data.systemSettings});
+    this.turmasSubject.next([...(this.data.turmas || [])]);
+    this.cursosSubject.next([...(this.data.cursos || [])]);
+    this.cargosSubject.next([...(this.data.cargos || [])]);
+    this.setoresSubject.next([...(this.data.setores || [])]);
     
     if (this.data.currentUserRa) {
       this.syncStateWithUser(this.data.currentUserRa);
@@ -1286,66 +1693,87 @@ export class EcosystemService {
   }
 
   /**
-   * Limpa dados legados, nomes de teste e garante que apenas alunos apareçam no ranking.
+   * Remove itens duplicados de uma lista baseada no nome e ID.
    */
-  private sanitizeData() {
-    // APENAS garante que quem NÃO é aluno tenha 0 pontos no ranking
-    // Não removemos mais nenhum usuário para evitar perda de dados reais
-    // REMOVE DUPLICATAS POR ID E EMAIL (Garante integridade após atualizações)
+  private deduplicateByName<T extends { id: string; name: string }>(items: T[]): T[] {
+    const unique = new Map<string, T>();
+    items.forEach(item => {
+      // Se não tem o ID e não tem nenhum item com o mesmo nome
+      if (!unique.has(item.id) && !Array.from(unique.values()).some(existing => existing.name === item.name)) {
+        unique.set(item.id, item);
+      }
+    });
+    return Array.from(unique.values());
+  }
+
+  /**
+   * Realiza a limpeza de dados (Sanitization).
+   * Garante que o sistema não tenha duplicidades ou dados órfãos.
+   */
+  sanitizeData() {
+    // 1. Limpeza de Entidades Estruturais
+    this.data.turmas = this.deduplicateByName(this.data.turmas || []);
+    this.data.cursos = this.deduplicateByName(this.data.cursos || []);
+    this.data.cargos = this.deduplicateByName(this.data.cargos || []);
+    this.data.setores = this.deduplicateByName(this.data.setores || []);
+    
+    if (!this.data.terminals) this.data.terminals = [];
+    if (!this.data.schools) this.data.schools = [];
+    if (!this.data.articles) this.data.articles = [];
+    if (!this.data.rewards) this.data.rewards = [];
+    if (!this.data.participants) this.data.participants = [];
+    if (!this.data.quizTopics) this.data.quizTopics = QUIZ_TOPICS_MOCK;
+
+    // 3. Gestão de Usuários e Segurança
     const uniqueUsers = new Map<string, User>();
     this.data.users.forEach(u => {
-        const secondaryKey = u.email || u.ra;
-        // Prioriza manter registros que já existem sobre novas inserções
-        if (!uniqueUsers.has(u.id) && (!secondaryKey || !uniqueUsers.has(secondaryKey))) {
-            uniqueUsers.set(u.id, u);
-            if (secondaryKey) uniqueUsers.set(secondaryKey, u);
-        }
+      const secondaryKey = u.email || u.ra;
+      if (!uniqueUsers.has(u.id) && (!secondaryKey || !uniqueUsers.has(secondaryKey))) {
+        uniqueUsers.set(u.id, u);
+        if (secondaryKey) uniqueUsers.set(secondaryKey, u);
+      }
     });
     this.data.users = Array.from(new Set(uniqueUsers.values()));
 
     if (this.data.users.length < 1) {
-      this.data.users = [ADMIN_MOCK, STUDENT_MOCK, VISITANTE_MOCK];
+      this.data.users = [ADMIN_MOCK];
     }
 
-    // RESTAURA DADOS PEDAGÓGICOS SE ESTIVEREM VAZIOS OU INCOMPLETOS (FONTE DA VERDADE)
-    const currentArticles = this.data.articles || [];
-    if (currentArticles.length < ARTICLES_MOCK.length) {
-      this.data.articles = [...ARTICLES_MOCK];
-    }
-    
-    const currentQuiz = this.data.quizTopics || [];
-    if (currentQuiz.length < QUIZ_TOPICS_MOCK.length) {
-      this.data.quizTopics = [...QUIZ_TOPICS_MOCK];
-    }
-
-    const currentRewards = this.data.rewards || [];
-    if (currentRewards.length < REWARDS_MOCK.length) {
-      this.data.rewards = [...REWARDS_MOCK];
-    }
-
-    const currentParticipants = this.data.participants || [];
-    if (currentParticipants.length < PARTICIPANTS_MOCK.length) {
-      this.data.participants = [...PARTICIPANTS_MOCK];
-    }
-
-    if (!this.data.systemSettings) {
-      this.data.systemSettings = {
-        loginMethod: 'all',
-        loginCameraSource: 'browser',
-        scanningCameraSource: 'browser',
-        terminalId: 'TOTEM-01'
-      };
-    }
+    // GARANTE QUE CADA ESCOLA TENHA SEU GESTOR NO SISTEMA
+    this.data.schools.forEach(school => {
+      if (school.status === 'active' && school.managerEmail) {
+        const gestorExists = this.data.users.some(u => u.email?.toLowerCase() === school.managerEmail?.toLowerCase());
+        if (!gestorExists) {
+          const newUser: User = {
+            id: `user-admin-${school.id}`,
+            name: `Gestor ${school.name}`,
+            email: school.managerEmail,
+            password: ADMIN_MOCK.password,
+            role: 'admin',
+            schoolId: school.id,
+            ra: `G-${school.id.split('-')[1] || Date.now().toString().slice(-4)}`,
+            points: 0,
+            level: 'Semente'
+          };
+          this.data.users.push(newUser);
+        }
+      }
+    });
 
     this.data.users = this.data.users.map(u => {
-      // FORÇA A ATUALIZAÇÃO DA SENHA DO GESTOR PRINCIPAL
-      if (u.email?.toLowerCase() === 'gestor@schoolgain.com') {
-        u.password = ADMIN_MOCK.password;
-        u.ra = ADMIN_MOCK.ra;
-      }
+      // Garante que não-alunos tenham 0 pontos no ranking
       if (u.role !== 'student' && u.role !== 'visitor') u.points = 0;
       return u;
     });
+
+    // 4. Configurações de Sistema
+    if (!this.data.systemSettings) {
+      this.data.systemSettings = {
+        studentLoginMethod: 'all',
+        adminLoginMethod: 'all',
+        terminalId: 'TOTEM-01'
+      };
+    }
 
     this.saveToStorage();
     this.notifyAll();

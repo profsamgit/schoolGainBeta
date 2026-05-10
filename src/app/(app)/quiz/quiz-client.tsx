@@ -59,13 +59,14 @@ export function QuizClient() {
   const [showResults, setShowResults] = useState(false);
 
   const { toast } = useToast();
-  const { completeDailyMission, allQuizTopics } = useEcosystem();
+  const { completeDailyMission, allQuizTopics: rawTopics, currentUser } = useEcosystem();
+  const allQuizTopics = rawTopics.filter(t => !currentUser?.schoolId || t.schoolId === currentUser.schoolId);
   const searchParams = useSearchParams();
 
   const form = useForm<QuizFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      topic: searchParams.get('topic') || allQuizTopics[0] || 'Reciclagem',
+      topic: searchParams.get('topic') || allQuizTopics[0]?.name || 'Reciclagem',
       difficulty: 'medium',
       numberOfQuestions: 5,
     },
@@ -251,8 +252,8 @@ export function QuizClient() {
                     </FormControl>
                     <SelectContent>
                       {allQuizTopics.map((topic) => (
-                        <SelectItem key={topic} value={topic}>
-                          {topic}
+                        <SelectItem key={topic.id} value={topic.name}>
+                          {topic.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

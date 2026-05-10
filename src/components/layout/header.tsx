@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ADMIN_MOCK, STUDENT_MOCK } from '@/lib/data';
+import { ADMIN_MOCK } from '@/lib/data';
 import {
   Home,
   LayoutDashboard,
@@ -106,7 +106,13 @@ export function Header() {
   const isAdminView = pathname.startsWith('/admin');
   
   // Prioriza o usuário logado do contexto. Fallback apenas se deslogado.
-  const displayUser = currentUser || (isAdminView ? ADMIN_MOCK : STUDENT_MOCK);
+  const displayUser = currentUser || (isAdminView ? ADMIN_MOCK : {
+    name: 'Visitante',
+    role: 'visitor',
+    avatar: '',
+    ra: '',
+    email: ''
+  });
 
   const [hasMounted, setHasMounted] = useState(false);
 

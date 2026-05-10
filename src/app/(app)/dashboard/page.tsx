@@ -7,7 +7,6 @@
  * mostra seu nível atual, sua posição no ranking e suas missões pendentes.
  */
 
-import { STUDENT_MOCK, ADMIN_MOCK } from '@/lib/data';
 import {
   Card,
   CardContent,
@@ -48,6 +47,10 @@ import {
 import { useEcosystem } from '@/app/(app)/ecosystem-context';
 import { EcosystemService } from '@/lib/ecosystem.service';
 import { cn } from '@/lib/utils';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Camera, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 /**
  * getLevelIcon: Retorna um ícone visual que representa o crescimento do aluno.
@@ -75,6 +78,7 @@ const getLevelIcon = (level: string) => {
 };
 
 import StudentCard from '@/components/ecosystem/StudentCard';
+import PhotoCaptureDialog from '@/components/ecosystem/PhotoCaptureDialog';
 
 export default function DashboardPage() {
   /**
@@ -84,8 +88,28 @@ export default function DashboardPage() {
    * vitality: saúde do ecossistema
    * currentUser: dados do aluno logado
    */
-  const { balance, vitality, purchasedItems, isMissionDone, users, currentUser, currentUserRa, level } = useEcosystem();
+  const { balance, vitality, purchasedItems, isMissionDone, users, currentUser, currentUserRa, level, uploadUserAvatar } = useEcosystem();
   const router = useRouter();
+  const { toast } = useToast();
+  const [isUploading, setIsUploading] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement> | File) => {
+    const file = e instanceof File ? e : e.target.files?.[0];
+    if (!file || !currentUser) return;
+
+    setIsUploading(true);
+    try {
+      const url = await uploadUserAvatar(currentUser.id, file);
+      if (url) {
+        toast({ title: "Sucesso!", description: "Sua foto de perfil foi atualizada." });
+      }
+    } catch (error) {
+      toast({ title: "Erro", description: "Falha ao enviar foto.", variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   // Redireciona visitantes para o Kiosk (Visitantes não têm dashboard próprio)
   useEffect(() => {
@@ -119,12 +143,39 @@ export default function DashboardPage() {
         
         {/* CARD DE BOAS-VINDAS E RESUMO */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div className="space-y-1">
-              <CardTitle>Olá, {currentUser?.name || 'Agente'}!</CardTitle>
-              <CardDescription>
-                Bem-vindo ao seu painel pessoal de sustentabilidade.
-              </CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-6">
+              <div className="relative group/avatar">
+                <Avatar className="h-16 w-16 rounded-2xl border-4 border-white shadow-xl bg-slate-900 text-white flex items-center justify-center text-xl font-black uppercase transition-transform group-hover/avatar:scale-105">
+                   <AvatarImage src={currentUser?.avatar} className="object-cover" />
+                   <AvatarFallback className="bg-slate-900 text-white">{currentUser?.name?.charAt(0) || '?'}</AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col gap-2">
+                  <label className="flex items-center justify-center bg-black/40 opacity-0 group-hover/avatar:opacity-100 rounded-2xl cursor-pointer transition-opacity border-2 border-white/20 absolute inset-0 z-10">
+                    {isUploading ? (
+                      <Loader2 className="h-5 w-5 text-white animate-spin" />
+                    ) : (
+                      <Camera className="h-5 w-5 text-white" />
+                    )}
+                    <input type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} disabled={isUploading} />
+                  </label>
+                  <Button 
+                    variant="secondary" 
+                    size="icon" 
+                    className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full border-2 border-white shadow-lg z-20 opacity-0 group-hover/avatar:opacity-100 transition-opacity"
+                    onClick={() => setIsCameraOpen(true)}
+                    disabled={isUploading}
+                  >
+                    <Camera className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <CardTitle className="text-2xl">Olá, {currentUser?.name?.split(' ')[0] || 'Agente'}!</CardTitle>
+                <CardDescription className="font-medium text-slate-500">
+                  Seu progresso na jornada sustentável hoje.
+                </CardDescription>
+              </div>
             </div>
             <StudentCard />
           </CardHeader>
@@ -166,10 +217,8 @@ export default function DashboardPage() {
                   {(() => {
                     if (!Array.isArray(users) || !currentUser) return 0;
                     const students = users.filter((u: any) => u.role === 'student');
-                    const sorted = [...students].map((u: any) => 
-                      u.ra === currentUserRa ? { ...u, points: balance } : u
-                    ).sort((a: any, b: any) => b.points - a.points);
-                    return sorted.findIndex((u: any) => u.ra === currentUserRa) + 1;
+                    const sorted = [...students].sort((a: any, b: any) => (b.points || 0) - (a.points || 0));
+                    return sorted.findIndex((u: any) => u.ra?.toUpperCase() === currentUserRa?.toUpperCase()) + 1;
                   })()}
                 </div>
                 <p className="text-xs text-muted-foreground">de {users.filter(u => u.role === 'student').length} alunos</p>
@@ -290,7 +339,7 @@ export default function DashboardPage() {
                   
                   // Lógica para ordenar a tabela em tempo real no dashboard
                   const calculateScore = (u: any) => {
-                    const p = u.ra === currentUserRa ? balance : (u.points || 0);
+                    const p = u.points || 0;
                     const v = u.ra === currentUserRa ? vitality : (u.vitality || 0);
                     const items = u.ra === currentUserRa ? purchasedItems.length : (u.itemsCount || 0);
                     return EcosystemService.calculateTotalScore(p, v, items);
@@ -333,6 +382,12 @@ export default function DashboardPage() {
           </p>
         </div>
       </footer>
+
+      <PhotoCaptureDialog 
+        isOpen={isCameraOpen} 
+        onClose={() => setIsCameraOpen(false)} 
+        onCapture={handlePhotoUpload} 
+      />
     </div>
   );
 }

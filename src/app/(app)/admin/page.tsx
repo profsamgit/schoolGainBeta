@@ -56,7 +56,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useEcosystem } from '../ecosystem-context';
-import { User, Reward, EducationArticle, Participant, AuditLogEntry, SCHOOL_SECTORS } from '@/lib/types';
+import { User, Reward, EducationArticle, Participant, AuditLogEntry, SCHOOL_SECTORS, Turma, Curso, Cargo, SetorEscolar, Terminal, QuizTopic } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import {
   Shield,
@@ -81,8 +81,15 @@ import {
   School as SchoolIcon,
   Globe,
   Plus,
+  Database,
+  Briefcase,
+  Building2,
+  GraduationCap,
   Sparkles,
   ShieldCheck,
+  User as UserIcon,
+  Users,
+  Settings2
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -212,14 +219,19 @@ function AdminContent() {
     updateParticipants,
     allTurmas,
     allCursos,
+    allCargos,
+    allSetores,
     updateTurmas,
     updateCursos,
+    updateCargos,
+    updateSetores,
     auditLogs,
     grantPoints,
     systemSettings,
     updateSystemSettings,
     terminals,
     updateTerminalStatus,
+    updateTerminalSettings,
     deleteTerminal,
     schools,
     requestSchoolRegistration,
@@ -231,8 +243,45 @@ function AdminContent() {
 
   const { toast } = useToast();
   const [newTopic, setNewTopic] = useState('');
-  const [newTurma, setNewTurma] = useState('');
-  const [newCurso, setNewCurso] = useState('');
+  
+  // Estados para Gestão de Turmas e Cursos
+  const [isTurmaDialogOpen, setIsTurmaDialogOpen] = useState(false);
+  const [isCursoDialogOpen, setIsCursoDialogOpen] = useState(false);
+  const [isCargoDialogOpen, setIsCargoDialogOpen] = useState(false);
+  const [isSetorDialogOpen, setIsSetorDialogOpen] = useState(false);
+  const [isTerminalDialogOpen, setIsTerminalDialogOpen] = useState(false);
+  const [editingTerminal, setEditingTerminal] = useState<Terminal | null>(null);
+
+  const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
+
+  useEffect(() => {
+    async function getDevices() {
+      try {
+        // Pede permissão primeiro para garantir que os nomes (labels) apareçam
+        if (typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          await navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+              stream.getTracks().forEach(track => track.stop());
+          }).catch(() => {});
+
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const videoInputDevices = devices.filter(device => device.kind === 'videoinput');
+          setVideoDevices(videoInputDevices);
+        }
+      } catch (error) {
+        console.error("Erro ao listar dispositivos:", error);
+      }
+    }
+
+    getDevices();
+  }, []);
+  const [editingTurma, setEditingTurma] = useState<Turma | null>(null);
+  const [editingCurso, setEditingCurso] = useState<Curso | null>(null);
+  const [editingCargo, setEditingCargo] = useState<Cargo | null>(null);
+  const [editingSetor, setEditingSetor] = useState<SetorEscolar | null>(null);
+  const [turmaFormData, setTurmaFormData] = useState({ name: '', status: 'active' as 'active' | 'inactive' });
+  const [cursoFormData, setCursoFormData] = useState({ name: '', status: 'active' as 'active' | 'inactive' });
+  const [cargoFormData, setCargoFormData] = useState({ name: '', status: 'active' as 'active' | 'inactive' });
+  const [setorFormData, setSetorFormData] = useState({ name: '', status: 'active' as 'active' | 'inactive' });
 
   // Point granting state
   const [grantRa, setGrantRa] = useState('');
@@ -268,7 +317,7 @@ function AdminContent() {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   const [selectedItem, setSelectedItem] = useState<any>(null);
-  const [itemType, setItemType] = useState<'user' | 'reward' | 'article' | 'participant' | null>(null);
+  const [itemType, setItemType] = useState<'user' | 'reward' | 'article' | 'participant' | 'turma' | 'curso' | 'cargo' | 'setor' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mustChangePass, setMustChangePass] = useState(false);
 
@@ -290,18 +339,28 @@ function AdminContent() {
   }, [terminals, targetSchoolId]);
 
   const filteredRewards = useMemo(() => {
-    // Mostra recompensas da escola atual, globais da 'school-1' ou sem escola (legado)
-    const list = rewards.filter(r => !targetSchoolId || r.schoolId === targetSchoolId || r.schoolId === 'school-1' || !r.schoolId);
+    // Mostra recompensas da escola atual.
+    // Super Admin vê tudo se não houver escola selecionada.
+    const list = rewards.filter(r => {
+      if (currentUser?.role === 'super_admin' && !searchParams.has('schoolId')) return true;
+      return r.schoolId === targetSchoolId;
+    });
+
     if (!rewardSearch) return list;
     return list.filter(r => r.name.toLowerCase().includes(rewardSearch.toLowerCase()));
-  }, [rewards, targetSchoolId, rewardSearch]);
+  }, [rewards, targetSchoolId, rewardSearch, currentUser, searchParams]);
 
-  const filteredArticles = useMemo(() => {
-    // Artigos são mostrados se pertencerem à escola atual, se forem da 'school-1' ou se não tiverem escola (legado)
-    const list = articles.filter(a => !targetSchoolId || a.schoolId === targetSchoolId || a.schoolId === 'school-1' || !a.schoolId);
+   const filteredArticles = useMemo(() => {
+    // Artigos são mostrados se pertencerem à escola atual. 
+    // Super Admin vê tudo se não houver escola selecionada.
+    const list = articles.filter(a => {
+      if (currentUser?.role === 'super_admin' && !searchParams.has('schoolId')) return true;
+      return a.schoolId === targetSchoolId;
+    });
+    
     if (!articleSearch) return list;
     return list.filter(a => a.title.toLowerCase().includes(articleSearch.toLowerCase()));
-  }, [articles, targetSchoolId, articleSearch]);
+  }, [articles, targetSchoolId, articleSearch, currentUser, searchParams]);
 
   const filteredAuditLogs = useMemo(() => {
     if (!targetSchoolId) return auditLogs;
@@ -381,12 +440,34 @@ function AdminContent() {
   const filteredUsers = useMemo(() => {
     return filteredUsersForAdmin.filter(u => {
       const matchesSearch = u.name.toLowerCase().includes(userSearch.toLowerCase()) || 
-                           u.ra.toLowerCase().includes(userSearch.toLowerCase());
-      const matchesRole = u.role === userRoleFilter;
+                           u.ra?.toLowerCase().includes(userSearch.toLowerCase());
+      const matchesRole = userRoleFilter === 'admin' 
+        ? (u.role === 'admin' || u.role === 'super_admin') 
+        : u.role === userRoleFilter;
       const matchesTurma = userTurmaFilter === 'all' ? true : u.turma === userTurmaFilter;
       return matchesSearch && matchesRole && matchesTurma;
     });
   }, [filteredUsersForAdmin, userSearch, userRoleFilter, userTurmaFilter]);
+
+  const filteredTurmas = useMemo(() => {
+    return allTurmas.filter(t => !targetSchoolId || t.schoolId === targetSchoolId);
+  }, [allTurmas, targetSchoolId]);
+
+  const filteredCursos = useMemo(() => {
+    return allCursos.filter(c => !targetSchoolId || c.schoolId === targetSchoolId);
+  }, [allCursos, targetSchoolId]);
+
+  const filteredCargos = useMemo(() => {
+    return allCargos.filter(c => !targetSchoolId || c.schoolId === targetSchoolId);
+  }, [allCargos, targetSchoolId]);
+
+  const filteredSetores = useMemo(() => {
+    return allSetores.filter(s => !targetSchoolId || s.schoolId === targetSchoolId);
+  }, [allSetores, targetSchoolId]);
+
+  const filteredQuizTopics = useMemo(() => {
+    return quizTopics.filter(t => !targetSchoolId || t.schoolId === targetSchoolId);
+  }, [quizTopics, targetSchoolId]);
 
   const userForm = useForm<UserFormValues>({ 
     resolver: zodResolver(userSchema),
@@ -480,13 +561,13 @@ function AdminContent() {
     setIsNew(false);
     setViewMode('form');
     
-    if (type === 'user') userForm.reset({ ...item, email: item.email || '', password: '', confirmPassword: '' });
+    if (type === 'user') userForm.reset({ ...item, ra: item.ra.toUpperCase(), email: item.email || '', password: '', confirmPassword: '' });
     if (type === 'reward') rewardForm.reset(item);
     if (type === 'article') articleForm.reset(item);
     if (type === 'participant') participantForm.reset(item);
   };
 
-  const handleDelete = (item: any, type: 'user' | 'reward' | 'article' | 'participant') => {
+  const handleDelete = (item: any, type: 'user' | 'reward' | 'article' | 'participant' | 'turma' | 'curso' | 'cargo' | 'setor') => {
     setSelectedItem(item);
     setItemType(type);
     setIsDeleteConfirmOpen(true);
@@ -502,6 +583,10 @@ function AdminContent() {
         case 'reward': updatedList = rewards.filter((i) => i.id !== selectedItem.id); updateRewards(updatedList); break;
         case 'article': updatedList = articles.filter((i) => i.id !== selectedItem.id); updateArticles(updatedList); break;
         case 'participant': updatedList = participants.filter((i) => i.id !== selectedItem.id); updateParticipants(updatedList); break;
+        case 'turma': updatedList = allTurmas.filter((i) => i.id !== selectedItem.id); updateTurmas(updatedList); break;
+        case 'curso': updatedList = allCursos.filter((i) => i.id !== selectedItem.id); updateCursos(updatedList); break;
+        case 'cargo': updatedList = allCargos.filter((i) => i.id !== selectedItem.id); updateCargos(updatedList); break;
+        case 'setor': updatedList = allSetores.filter((i) => i.id !== selectedItem.id); updateSetores(updatedList); break;
       }
       toast({ title: 'Item Removido!', description: `${selectedItem.name || selectedItem.title} foi removido.` });
       closeAllForms();
@@ -515,7 +600,7 @@ function AdminContent() {
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      let payload = { ...values, schoolId: targetSchoolId };
+      let payload = { ...values, ra: values.ra?.toUpperCase().trim(), schoolId: targetSchoolId };
 
       // Se a senha estiver vazia em uma edição, removemos do payload para manter a atual
       if (!isNew && itemType === 'user' && !values.password) {
@@ -571,33 +656,96 @@ function AdminContent() {
     }
   };
 
-  const handleAddTopic = () => {
-    if (newTopic && !quizTopics.includes(newTopic)) {
-      updateQuizTopics([...quizTopics, newTopic]);
+   const handleAddTopic = () => {
+    if (newTopic && !quizTopics.some(t => t.name === newTopic && t.schoolId === targetSchoolId)) {
+      const newTopicObj: QuizTopic = { id: `topic-${Date.now()}`, name: newTopic, schoolId: targetSchoolId };
+      updateQuizTopics([...quizTopics, newTopicObj]);
       setNewTopic('');
       toast({ title: 'Tópico Adicionado!', description: `"${newTopic}" foi adicionado.` });
     }
   };
 
-  const handleDeleteTopic = (topic: string) => {
-    updateQuizTopics(quizTopics.filter(t => t !== topic));
-    toast({ title: 'Tópico Removido!', description: `"${topic}" foi removido.` });
+  const handleDeleteTopic = (topic: QuizTopic) => {
+    updateQuizTopics(quizTopics.filter(t => t.id !== topic.id));
+    toast({ title: 'Tópico Removido!', description: `"${topic.name}" foi removido.` });
   };
 
-  const handleAddTurma = () => {
-    if (newTurma && !allTurmas.some(t => t.name === newTurma)) {
-      updateTurmas([...allTurmas, { id: `turma-${Date.now()}`, name: newTurma, status: 'active' }]);
-      setNewTurma('');
-      toast({ title: 'Turma Adicionada!', description: `"${newTurma}" foi adicionada.` });
+  const handleSaveTurma = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    let newTurmas;
+    if (editingTurma) {
+      newTurmas = allTurmas.map(t => t.id === editingTurma.id ? { ...t, ...turmaFormData } : t);
+    } else {
+      // Evita duplicatas por nome
+      if (allTurmas.some(t => t.name.toLowerCase() === turmaFormData.name.toLowerCase())) {
+        toast({ title: "Aviso", description: "Esta turma já existe.", variant: "destructive" });
+        return;
+      }
+      newTurmas = [...allTurmas, { id: `turma-${Date.now()}`, name: turmaFormData.name, status: turmaFormData.status, schoolId: targetSchoolId }];
     }
+    updateTurmas(newTurmas);
+    setIsTurmaDialogOpen(false);
+    setEditingTurma(null);
+    setTurmaFormData({ name: '', status: 'active' });
+    toast({ title: "Sucesso", description: "Configuração de turma atualizada." });
   };
 
-  const handleAddCurso = () => {
-    if (newCurso && !allCursos.some(c => c.name === newCurso)) {
-      updateCursos([...allCursos, { id: `curso-${Date.now()}`, name: newCurso, status: 'active' }]);
-      setNewCurso('');
-      toast({ title: 'Curso Adicionado!', description: `"${newCurso}" foi adicionado.` });
+  const handleSaveCurso = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    let newCursos;
+    if (editingCurso) {
+      newCursos = allCursos.map(c => c.id === editingCurso.id ? { ...c, ...cursoFormData } : c);
+    } else {
+      // Evita duplicatas por nome
+      if (allCursos.some(c => c.name.toLowerCase() === cursoFormData.name.toLowerCase())) {
+        toast({ title: "Aviso", description: "Este curso já existe.", variant: "destructive" });
+        return;
+      }
+      newCursos = [...allCursos, { id: `curso-${Date.now()}`, name: cursoFormData.name, status: cursoFormData.status, schoolId: targetSchoolId }];
     }
+    updateCursos(newCursos);
+    setIsCursoDialogOpen(false);
+    setEditingCurso(null);
+    setCursoFormData({ name: '', status: 'active' });
+    toast({ title: "Sucesso", description: "Configuração de curso atualizada." });
+  };
+
+  const handleSaveCargo = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    let newCargos;
+    if (editingCargo) {
+      newCargos = allCargos.map(c => c.id === editingCargo.id ? { ...c, ...cargoFormData } : c);
+    } else {
+      if (allCargos.some(c => c.name.toLowerCase() === cargoFormData.name.toLowerCase())) {
+        toast({ title: "Aviso", description: "Este cargo já existe.", variant: "destructive" });
+        return;
+      }
+      newCargos = [...allCargos, { id: `cargo-${Date.now()}`, name: cargoFormData.name, status: cargoFormData.status, schoolId: targetSchoolId }];
+    }
+    updateCargos(newCargos);
+    setIsCargoDialogOpen(false);
+    setEditingCargo(null);
+    setCargoFormData({ name: '', status: 'active' });
+    toast({ title: "Sucesso", description: "Cargo administrativo atualizado." });
+  };
+
+  const handleSaveSetor = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    let newSetores;
+    if (editingSetor) {
+      newSetores = allSetores.map(s => s.id === editingSetor.id ? { ...s, ...setorFormData } : s);
+    } else {
+      if (allSetores.some(s => s.name.toLowerCase() === setorFormData.name.toLowerCase())) {
+        toast({ title: "Aviso", description: "Este setor já existe.", variant: "destructive" });
+        return;
+      }
+      newSetores = [...allSetores, { id: `setor-${Date.now()}`, name: setorFormData.name, status: setorFormData.status, schoolId: targetSchoolId }];
+    }
+    updateSetores(newSetores);
+    setIsSetorDialogOpen(false);
+    setEditingSetor(null);
+    setSetorFormData({ name: '', status: 'active' });
+    toast({ title: "Sucesso", description: "Setor operacional atualizado." });
   };
 
   // Polling para capturar RFID quando o modo de captura está ativo
@@ -623,12 +771,13 @@ function AdminContent() {
   }, [isRFIDCapturing, viewMode, itemType, systemSettings.terminalId, userForm, toast]);
 
   const handleGrantSubmit = () => {
-    if (!grantRa || grantPointsValue <= 0 || !grantAction || !grantPassword) {
+    const cleanRa = grantRa.toUpperCase().trim();
+    if (!cleanRa || grantPointsValue <= 0 || !grantAction || !grantPassword) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Preencha todos os campos, incluindo sua senha de gestor.' });
       return;
     }
-    
-    grantPoints(grantRa, grantPointsValue, grantSector, grantAction, currentUser?.name || 'Gestor', grantPassword).then(success => {
+
+    grantPoints(cleanRa, grantPointsValue, grantSector, grantAction, currentUser?.name || 'Gestor', grantPassword, targetSchoolId).then(success => {
       if (success) {
         toast({ title: 'Pontos Atribuídos!', description: `${grantPointsValue} pontos foram dados para o aluno por: ${grantAction}.` });
         setGrantRa('');
@@ -748,12 +897,12 @@ function AdminContent() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto gap-1 bg-slate-100 p-1">
-            <TabsTrigger value="infra" className="uppercase font-black text-[10px] tracking-widest py-3 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">
-              <Cpu className="mr-2 h-4 w-4"/> Infraestrutura (IoT)
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 h-auto gap-1 bg-slate-100 p-1">
+            <TabsTrigger value="povoamento" className="uppercase font-black text-[10px] tracking-widest py-3 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">
+              <Database className="mr-2 h-4 w-4"/> Povoamento
             </TabsTrigger>
             <TabsTrigger value="academic" className="uppercase font-black text-[10px] tracking-widest py-3 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">
-              <UserPlus className="mr-2 h-4 w-4"/> Setor Acadêmico
+              <Users className="mr-2 h-4 w-4"/> Setor Acadêmico
             </TabsTrigger>
             <TabsTrigger value="pedagogic" className="uppercase font-black text-[10px] tracking-widest py-3 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">
               <BookOpen className="mr-2 h-4 w-4"/> Setor Pedagógico
@@ -761,15 +910,206 @@ function AdminContent() {
             <TabsTrigger value="economic" className="uppercase font-black text-[10px] tracking-widest py-3 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">
               <Gift className="mr-2 h-4 w-4"/> Setor Econômico
             </TabsTrigger>
+            <TabsTrigger value="infra" className="uppercase font-black text-[10px] tracking-widest py-3 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">
+              <Cpu className="mr-2 h-4 w-4"/> Infraestrutura
+            </TabsTrigger>
         </TabsList>
         
+        <TabsContent value="povoamento" className="space-y-6">
+           <div className="grid gap-6 md:grid-cols-2">
+                {/* GESTÃO DE TURMAS */}
+                <Card className="border-none shadow-sm overflow-hidden bg-white">
+                  <CardHeader className="flex flex-row items-center justify-between pb-4">
+                    <div className="flex items-center gap-3">
+                      <Users className="h-5 w-5 text-indigo-600" />
+                      <CardTitle className="text-sm font-black uppercase tracking-widest">Séries e Turmas</CardTitle>
+                    </div>
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0"
+                      onClick={() => {
+                        setEditingTurma(null);
+                        setTurmaFormData({ name: '', status: 'active' });
+                        setIsTurmaDialogOpen(true);
+                      }}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {allTurmas?.map((turma, idx) => (
+                        <div key={turma.id || `turma-${idx}`} className="flex items-center justify-between p-2 bg-slate-50 border border-slate-100 rounded-lg hover:border-indigo-200 transition-all group">
+                          <div className="flex items-center gap-3">
+                            <span className={`h-1.5 w-1.5 rounded-full ${turma.status === 'active' ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
+                            <span className={`text-xs font-bold ${turma.status === 'inactive' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{turma.name}</span>
+                          </div>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-indigo-600"
+                              onClick={() => {
+                                setEditingTurma(turma);
+                                setTurmaFormData({ name: turma.name, status: turma.status });
+                                setIsTurmaDialogOpen(true);
+                              }}>
+                              <Edit className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-red-600"
+                              onClick={() => handleDelete(turma, 'turma')}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      {allTurmas?.length === 0 && <p className="text-[10px] text-muted-foreground text-center py-4">Nenhuma turma cadastrada.</p>}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* GESTÃO DE CURSOS */}
+                <Card className="border-none shadow-sm overflow-hidden bg-white">
+                  <CardHeader className="flex flex-row items-center justify-between pb-4">
+                    <div className="flex items-center gap-3">
+                      <GraduationCap className="h-5 w-5 text-amber-600" />
+                      <CardTitle className="text-sm font-black uppercase tracking-widest">Cursos Técnicos</CardTitle>
+                    </div>
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0"
+                      onClick={() => {
+                        setEditingCurso(null);
+                        setCursoFormData({ name: '', status: 'active' });
+                        setIsCursoDialogOpen(true);
+                      }}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {allCursos?.map((curso, idx) => (
+                        <div key={curso.id || `curso-${idx}`} className="flex items-center justify-between p-2 bg-slate-50 border border-slate-100 rounded-lg hover:border-indigo-200 transition-all group">
+                          <div className="flex items-center gap-3">
+                            <span className={`h-1.5 w-1.5 rounded-full ${curso.status === 'active' ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
+                            <span className={`text-xs font-bold ${curso.status === 'inactive' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{curso.name}</span>
+                          </div>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-indigo-600"
+                              onClick={() => {
+                                setEditingCurso(curso);
+                                setCursoFormData({ name: curso.name, status: curso.status });
+                                setIsCursoDialogOpen(true);
+                              }}>
+                              <Edit className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-red-600"
+                              onClick={() => handleDelete(curso, 'curso')}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      {allCursos?.length === 0 && <p className="text-[10px] text-muted-foreground text-center py-4">Nenhum curso cadastrado.</p>}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* GESTÃO DE CARGOS */}
+                <Card className="border-none shadow-sm overflow-hidden bg-white">
+                  <CardHeader className="flex flex-row items-center justify-between pb-4">
+                    <div className="flex items-center gap-3">
+                      <Briefcase className="h-5 w-5 text-rose-600" />
+                      <CardTitle className="text-sm font-black uppercase tracking-widest">Cargos Operacionais</CardTitle>
+                    </div>
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0"
+                      onClick={() => {
+                        setEditingCargo(null);
+                        setCargoFormData({ name: '', status: 'active' });
+                        setIsCargoDialogOpen(true);
+                      }}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {allCargos?.map((cargo, idx) => (
+                        <div key={cargo.id || `cargo-${idx}`} className="flex items-center justify-between p-2 bg-slate-50 border border-slate-100 rounded-lg hover:border-indigo-200 transition-all group">
+                          <div className="flex items-center gap-3">
+                            <span className={`h-1.5 w-1.5 rounded-full ${cargo.status === 'active' ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
+                            <span className={`text-xs font-bold ${cargo.status === 'inactive' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{cargo.name}</span>
+                          </div>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-indigo-600"
+                              onClick={() => {
+                                setEditingCargo(cargo);
+                                setCargoFormData({ name: cargo.name, status: cargo.status });
+                                setIsCargoDialogOpen(true);
+                              }}>
+                              <Edit className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-red-600"
+                              onClick={() => handleDelete(cargo, 'cargo')}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* GESTÃO DE SETORES */}
+                <Card className="border-none shadow-sm overflow-hidden bg-white">
+                  <CardHeader className="flex flex-row items-center justify-between pb-4">
+                    <div className="flex items-center gap-3">
+                      <Building2 className="h-5 w-5 text-emerald-600" />
+                      <CardTitle className="text-sm font-black uppercase tracking-widest">Setores / Departamentos</CardTitle>
+                    </div>
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0"
+                      onClick={() => {
+                        setEditingSetor(null);
+                        setSetorFormData({ name: '', status: 'active' });
+                        setIsSetorDialogOpen(true);
+                      }}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {allSetores?.map((setor, idx) => (
+                        <div key={setor.id || `setor-${idx}`} className="flex items-center justify-between p-2 bg-slate-50 border border-slate-100 rounded-lg hover:border-indigo-200 transition-all group">
+                          <div className="flex items-center gap-3">
+                            <span className={`h-1.5 w-1.5 rounded-full ${setor.status === 'active' ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
+                            <span className={`text-xs font-bold ${setor.status === 'inactive' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{setor.name}</span>
+                          </div>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-indigo-600"
+                              onClick={() => {
+                                setEditingSetor(setor);
+                                setSetorFormData({ name: setor.name, status: setor.status });
+                                setIsSetorDialogOpen(true);
+                              }}>
+                              <Edit className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-red-600"
+                              onClick={() => handleDelete(setor, 'setor')}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+           </div>
+        </TabsContent>
+
         <TabsContent value="academic" className="space-y-6">
           {viewMode === 'form' && itemType === 'user' ? (
             <Card className="border-primary/20 bg-primary/5">
               <CardHeader className="flex flex-row items-center justify-between border-b bg-white/50">
                 <div>
-                  <CardTitle>{isNew ? 'Cadastrar Novo Aluno' : 'Editar Dados do Aluno'}</CardTitle>
-                  <CardDescription>Preencha as informações de identificação e escolaridade.</CardDescription>
+                  <CardTitle>{isNew ? 'Cadastrar Novo Agente' : 'Editar Dados do Agente'}</CardTitle>
+                  <CardDescription>
+                    {isNew ? (
+                      allTurmas.length === 0 || allCursos.length === 0 || allCargos.length === 0 || allSetores.length === 0 ? (
+                        <span className="text-rose-500 font-bold uppercase text-[10px] animate-pulse">Atenção: Povoamento de dados incompleto para novos cadastros.</span>
+                      ) : 'Preencha as informações de identificação e escolaridade.'
+                    ) : 'Preencha as informações de identificação e escolaridade.'}
+                  </CardDescription>
                 </div>
                 <Button variant="ghost" onClick={closeAllForms}><ArrowLeft className="mr-2 h-4 w-4" />Voltar para a Lista</Button>
               </CardHeader>
@@ -847,10 +1187,10 @@ function AdminContent() {
                                   <Select onValueChange={field.onChange} value={field.value}>
                                     <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione o cargo" /></SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="Diretoria">Diretoria</SelectItem>
-                                      <SelectItem value="Coordenação">Coordenação</SelectItem>
-                                      <SelectItem value="TI">Tecnologia da Informação (TI)</SelectItem>
-                                      <SelectItem value="Financeiro">Financeiro / Administrativo</SelectItem>
+                                      {allCargos.filter(c => c.status === 'active').map(c => (
+                                        <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                                      ))}
+                                      {allCargos.length === 0 && <SelectItem value="none" disabled>Nenhum cargo cadastrado</SelectItem>}
                                     </SelectContent>
                                   </Select>
                                   <FormMessage />
@@ -866,15 +1206,9 @@ function AdminContent() {
                                           <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                           <SelectContent>
                                               {userForm.watch('role') === 'student' ? (
-                                                  allTurmas.filter(t => t.status === 'active').map(t => <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>)
+                                                  filteredTurmas.filter(t => t.status === 'active').map(t => <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>)
                                               ) : (
-                                                  <>
-                                                      <SelectItem value="Diretoria">Diretoria</SelectItem>
-                                                      <SelectItem value="Coordenação">Coordenação</SelectItem>
-                                                      <SelectItem value="Administrativo">Administrativo</SelectItem>
-                                                      <SelectItem value="TI">TI / Suporte</SelectItem>
-                                                      <SelectItem value="Operacional">Operacional</SelectItem>
-                                                  </>
+                                                  filteredSetores.filter(s => s.status === 'active').map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)
                                               )}
                                           </SelectContent>
                                       </Select>
@@ -889,7 +1223,7 @@ function AdminContent() {
                                       <Select onValueChange={field.onChange} value={field.value}>
                                           <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione o curso" /></SelectTrigger>
                                           <SelectContent>
-                                              {allCursos.filter(c => c.status === 'active' && c.name !== 'Gestão Escolar').map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                                              {filteredCursos.filter(c => c.status === 'active' && c.name !== 'Gestão Escolar').map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
                                           </SelectContent>
                                       </Select>
                                       <FormMessage />
@@ -928,23 +1262,6 @@ function AdminContent() {
             </Card>
           ) : (
             <div className="space-y-6">
-              <div className="grid gap-6 md:grid-cols-2">
-                <Card>
-                    <CardHeader><CardTitle className="text-sm font-black uppercase tracking-widest text-slate-500">Turmas</CardTitle></CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex gap-2"><Input placeholder="Ex: 1ª Série" value={newTurma} onChange={(e) => setNewTurma(e.target.value)} /><Button onClick={handleAddTurma}>+</Button></div>
-                        <div className="flex flex-wrap gap-2">{allTurmas.map(t => <Badge key={t.id} variant="outline" className={`text-[10px] ${t.status === 'inactive' ? 'opacity-40' : ''}`}>{t.name}</Badge>)}</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader><CardTitle className="text-sm font-black uppercase tracking-widest text-slate-500">Cursos</CardTitle></CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex gap-2"><Input placeholder="Ex: Técnico em TDS" value={newCurso} onChange={(e) => setNewCurso(e.target.value)} /><Button onClick={handleAddCurso}>+</Button></div>
-                        <div className="flex flex-wrap gap-2">{allCursos.map(c => <Badge key={c.id} variant="outline" className={`text-[10px] ${c.status === 'inactive' ? 'opacity-40' : ''}`}>{c.name}</Badge>)}</div>
-                    </CardContent>
-                </Card>
-              </div>
-
               <Card>
                 {/* MODAL DE CARTEIRA */}
                 <Dialog open={isBadgeOpen} onOpenChange={setIsBadgeOpen}>
@@ -1011,8 +1328,8 @@ function AdminContent() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">Todas as Turmas</SelectItem>
-                            {allTurmas.map(t => (
-                              <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>
+                            {filteredTurmas.map((t, idx) => (
+                              <SelectItem key={t.id || `filter-t-${idx}`} value={t.name}>{t.name}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -1022,9 +1339,9 @@ function AdminContent() {
                   {/* SUB-ABAS PARA SEPARAR ALUNOS E GESTORES */}
                   <Tabs value={userRoleFilter} onValueChange={(v: any) => setUserRoleFilter(v)} className="w-full">
                     <TabsList className="grid w-full grid-cols-3 mb-4">
-                      <TabsTrigger value="student" className="gap-2 uppercase font-black text-[10px] tracking-widest">Alunos ({users.filter(u => u.role === 'student').length})</TabsTrigger>
-                      <TabsTrigger value="admin" className="gap-2 uppercase font-black text-[10px] tracking-widest">Gestores ({users.filter(u => u.role === 'admin').length})</TabsTrigger>
-                      <TabsTrigger value="visitor" className="gap-2 uppercase font-black text-[10px] tracking-widest">Visitantes ({users.filter(u => u.role === 'visitor').length})</TabsTrigger>
+                      <TabsTrigger value="student" className="gap-2 uppercase font-black text-[10px] tracking-widest">Alunos ({filteredUsersForAdmin.filter(u => u.role === 'student').length})</TabsTrigger>
+                      <TabsTrigger value="admin" className="gap-2 uppercase font-black text-[10px] tracking-widest">Gestores ({filteredUsersForAdmin.filter(u => u.role === 'admin' || u.role === 'super_admin').length})</TabsTrigger>
+                      <TabsTrigger value="visitor" className="gap-2 uppercase font-black text-[10px] tracking-widest">Visitantes ({filteredUsersForAdmin.filter(u => u.role === 'visitor').length})</TabsTrigger>
                     </TabsList>
                     
                     <div className="rounded-md border bg-white overflow-hidden">
@@ -1110,24 +1427,7 @@ function AdminContent() {
                     </div>
                   </Tabs>
 
-                  {isDeleteConfirmOpen && itemType === 'user' && selectedItem && (
-                    <div className="mt-4 p-4 border-2 border-red-200 bg-red-50 rounded-xl animate-in slide-in-from-bottom duration-300">
-                      <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 shadow-sm"><Trash2 className="h-5 w-5" /></div>
-                              <div>
-                                  <p className="font-bold text-red-900">Confirmar exclusão de "{selectedItem.name}"?</p>
-                                  <p className="text-[10px] text-red-700 uppercase font-black tracking-widest">Ação irreversível no banco de dados.</p>
-                              </div>
-                          </div>
-                          <div className="flex gap-2">
-                              <Button variant="outline" size="sm" onClick={() => setIsDeleteConfirmOpen(false)} className="bg-white">Cancelar</Button>
-                              <Button variant="destructive" size="sm" onClick={onConfirmDelete} className="font-bold uppercase tracking-widest text-[10px]">Excluir Definitivamente</Button>
-                          </div>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
+                 </CardContent>
               </Card>
             </div>
           )}
@@ -1135,69 +1435,153 @@ function AdminContent() {
 
         <TabsContent value="infra" className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
+            <Card className="border-2 border-emerald-100 shadow-sm">
+              <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 uppercase tracking-tighter font-black text-sm">
-                  <Cpu className="h-5 w-5 text-primary" /> Identificação e Sensores
+                  <UserIcon className="h-5 w-5 text-emerald-600" /> Acesso do Aluno (Portal)
                 </CardTitle>
-                <CardDescription>Configure como os terminais físicos interagem com o sistema.</CardDescription>
+                <CardDescription>Configure como os alunos acessam o Portal Web.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Método de Identificação Ativo</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Método de Login Ativo</Label>
                   <Select 
-                    value={systemSettings.loginMethod} 
-                    onValueChange={(v: any) => updateSystemSettings({...systemSettings, loginMethod: v})}
+                    value={systemSettings.studentLoginMethod} 
+                    onValueChange={(v: any) => updateSystemSettings({...systemSettings, studentLoginMethod: v})}
                   >
-                    <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="bg-white font-bold"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Múltiplos (QR, RFID, Manual)</SelectItem>
+                      <SelectItem value="all">Tudo (RA e QR Code)</SelectItem>
                       <SelectItem value="manual">Apenas Manual (RA)</SelectItem>
                       <SelectItem value="qr">Apenas QR Code</SelectItem>
-                      <SelectItem value="rfid">Apenas RFID</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Fonte da Câmera (Login QR)</Label>
-                  <Select 
-                    value={systemSettings.loginCameraSource} 
-                    onValueChange={(v: any) => updateSystemSettings({...systemSettings, loginCameraSource: v})}
-                  >
-                    <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="browser">Webcam do Computador</SelectItem>
-                      <SelectItem value="esp32">ESP32-CAM (Externo)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-4 pt-2 border-t border-emerald-100">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Fonte da Câmera</Label>
+                    <Select 
+                      value={systemSettings.studentCaptureSource || 'browser'} 
+                      onValueChange={(v: any) => updateSystemSettings({...systemSettings, studentCaptureSource: v})}
+                    >
+                      <SelectTrigger className="bg-white font-bold h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="browser">Webcam do Sistema</SelectItem>
+                        <SelectItem value="esp32">ESP32-CAM (IP)</SelectItem>
+                        <SelectItem value="url">Stream Externo (URL)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {systemSettings.studentCaptureSource === 'browser' ? (
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Dispositivo de Captura</Label>
+                      <Select 
+                        value={systemSettings.studentCaptureDevice || 'default'} 
+                        onValueChange={(v: any) => updateSystemSettings({...systemSettings, studentCaptureDevice: v})}
+                      >
+                        <SelectTrigger className="bg-white font-bold h-9"><SelectValue placeholder="Selecione a câmera" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="default">Automático (Padrão)</SelectItem>
+                          {videoDevices.map(device => (
+                            <SelectItem key={device.deviceId} value={device.deviceId}>
+                              {device.label || `Câmera ${device.deviceId.slice(0, 5)}`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Endereço / URL do Stream</Label>
+                      <Input 
+                        placeholder={systemSettings.studentCaptureSource === 'esp32' ? "Ex: 192.168.1.50" : "http://server.com/stream"}
+                        value={systemSettings.studentCaptureUrl || ''}
+                        onChange={(e) => updateSystemSettings({...systemSettings, studentCaptureUrl: e.target.value})}
+                        className="bg-white font-bold h-9 text-xs"
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="p-3 bg-emerald-50 rounded-lg text-[10px] text-emerald-700 font-bold uppercase tracking-wider">
+                  Configuração aplicada ao login web do aluno.
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
+            <Card className="border-2 border-rose-100 shadow-sm">
+              <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 uppercase tracking-tighter font-black text-sm">
-                  <Monitor className="h-5 w-5 text-primary" /> Visão Computacional
+                  <ShieldCheck className="h-5 w-5 text-rose-600" /> Painel de Gestão (Admin)
                 </CardTitle>
-                <CardDescription>Fonte de captura para identificação de resíduos.</CardDescription>
+                <CardDescription>Segurança e acesso para administradores e gestores.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Fonte da Câmera (Scanner de Lixo)</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Método de Autenticação</Label>
                   <Select 
-                    value={systemSettings.scanningCameraSource} 
-                    onValueChange={(v: any) => updateSystemSettings({...systemSettings, scanningCameraSource: v})}
+                    value={systemSettings.adminLoginMethod} 
+                    onValueChange={(v: any) => updateSystemSettings({...systemSettings, adminLoginMethod: v})}
                   >
-                    <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="bg-white font-bold"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="browser">Webcam do Computador</SelectItem>
-                      <SelectItem value="esp32">ESP32-CAM (Externo)</SelectItem>
+                      <SelectItem value="all">Tudo (Senha, QR e RFID)</SelectItem>
+                      <SelectItem value="manual">Apenas Senha</SelectItem>
+                      <SelectItem value="qr">Apenas QR Code Master</SelectItem>
+                      <SelectItem value="rfid">Apenas RFID (Crachá)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="p-3 bg-slate-900 rounded-lg text-[10px] text-slate-400 font-mono">
-                  Endpoint IoT: /api/hardware/input
+
+                <div className="space-y-4 pt-2 border-t border-rose-100">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Fonte da Câmera</Label>
+                    <Select 
+                      value={systemSettings.adminCaptureSource || 'browser'} 
+                      onValueChange={(v: any) => updateSystemSettings({...systemSettings, adminCaptureSource: v})}
+                    >
+                      <SelectTrigger className="bg-white font-bold h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="browser">Webcam do Sistema</SelectItem>
+                        <SelectItem value="esp32">ESP32-CAM (IP)</SelectItem>
+                        <SelectItem value="url">Stream Externo (URL)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {systemSettings.adminCaptureSource === 'browser' ? (
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Dispositivo de Captura</Label>
+                      <Select 
+                        value={systemSettings.adminCaptureDevice || 'default'} 
+                        onValueChange={(v: any) => updateSystemSettings({...systemSettings, adminCaptureDevice: v})}
+                      >
+                        <SelectTrigger className="bg-white font-bold h-9"><SelectValue placeholder="Selecione a câmera" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="default">Automático (Padrão)</SelectItem>
+                          {videoDevices.map(device => (
+                            <SelectItem key={device.deviceId} value={device.deviceId}>
+                              {device.label || `Câmera ${device.deviceId.slice(0, 5)}`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Endereço / URL do Stream</Label>
+                      <Input 
+                        placeholder={systemSettings.adminCaptureSource === 'esp32' ? "Ex: 192.168.1.50" : "http://server.com/stream"}
+                        value={systemSettings.adminCaptureUrl || ''}
+                        onChange={(e) => updateSystemSettings({...systemSettings, adminCaptureUrl: e.target.value})}
+                        className="bg-white font-bold h-9 text-xs"
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="p-3 bg-rose-50 rounded-lg text-[10px] text-rose-700 font-bold uppercase tracking-wider">
+                  Recomendado: Híbrido para máxima redundância.
                 </div>
               </CardContent>
             </Card>
@@ -1224,19 +1608,22 @@ function AdminContent() {
                       <div className="grid gap-4">
                         {filteredTerminalsForAdmin.filter(t => t.status === 'pending').map(terminal => (
                            <div key={terminal.id} className="flex items-center justify-between p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                          <div className="flex items-center gap-4">
+                              <div className="flex items-center gap-4">
                                  <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
                                     <Monitor className="h-5 w-5" />
                                  </div>
                                  <div>
                                     <p className="font-bold text-amber-900 leading-none mb-1">{terminal.location}</p>
-                                    <p className="text-[10px] font-mono text-amber-700">Hardware ID: {terminal.hardwareId}</p>
+                                    <div className="flex flex-col gap-0.5">
+                                       <p className="text-[10px] font-black text-amber-800 uppercase">ID do Terminal: {terminal.id}</p>
+                                       <p className="text-[9px] font-mono text-amber-600/70">Hardware: {terminal.hardwareId}</p>
+                                    </div>
                                  </div>
                               </div>
                               <div className="flex gap-2">
                                  <Button size="sm" variant="outline" onClick={() => deleteTerminal(terminal.id)} className="bg-white text-red-600 border-red-200">Recusar</Button>
                                  <Button size="sm" onClick={() => {
-                                    updateTerminalStatus(terminal.id, 'active', currentUser.schoolId);
+                                    updateTerminalStatus(terminal.id, 'active', currentUser.schoolId || 'system-global');
                                     toast({ title: "Terminal Autorizado", description: `O totem em ${terminal.location} está ativo.` });
                                  }} className="bg-amber-600 hover:bg-amber-700">Autorizar Acesso</Button>
                               </div>
@@ -1253,6 +1640,7 @@ function AdminContent() {
                       <TableHeader className="bg-slate-50">
                         <TableRow>
                           <TableHead className="font-black uppercase text-[10px] tracking-wider">Localização</TableHead>
+                          <TableHead className="font-black uppercase text-[10px] tracking-wider">ID do Terminal</TableHead>
                           <TableHead className="font-black uppercase text-[10px] tracking-wider text-right">Status</TableHead>
                           <TableHead className="text-right font-black uppercase text-[10px] tracking-wider">Ações</TableHead>
                         </TableRow>
@@ -1261,12 +1649,24 @@ function AdminContent() {
                         {filteredTerminalsForAdmin.filter(t => t.status !== 'pending').length > 0 ? filteredTerminalsForAdmin.filter(t => t.status !== 'pending').map((terminal) => (
                           <TableRow key={terminal.id}>
                             <TableCell className="font-bold text-slate-900">{terminal.location}</TableCell>
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <span className="font-mono text-xs font-black text-primary">{terminal.id}</span>
+                                <span className="text-[9px] text-slate-400 font-medium">HW: {terminal.hardwareId}</span>
+                              </div>
+                            </TableCell>
                             <TableCell className="text-right">
                               <Badge variant={terminal.status === 'active' ? 'default' : 'secondary'} className={`uppercase text-[9px] font-black tracking-widest ${terminal.status === 'active' ? 'bg-emerald-500' : ''}`}>
                                 {terminal.status === 'active' ? 'Online' : 'Offline'}
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="text-right flex justify-end gap-2">
+                               <Button variant="ghost" size="sm" onClick={() => {
+                                  setEditingTerminal(terminal);
+                                  setIsTerminalDialogOpen(true);
+                               }} className="text-amber-600 h-8 w-8 p-0">
+                                  <Settings2 className="h-4 w-4" />
+                               </Button>
                                <Button variant="ghost" size="sm" onClick={() => deleteTerminal(terminal.id)} className="text-red-600 h-8 w-8 p-0">
                                   <Trash2 className="h-4 w-4" />
                                </Button>
@@ -1274,7 +1674,7 @@ function AdminContent() {
                           </TableRow>
                         )) : (
                           <TableRow>
-                            <TableCell colSpan={3} className="text-center py-12 text-muted-foreground italic text-xs uppercase tracking-widest">
+                            <TableCell colSpan={4} className="text-center py-12 text-muted-foreground italic text-xs uppercase tracking-widest">
                                Nenhum terminal cadastrado nesta unidade.
                             </TableCell>
                           </TableRow>
@@ -1294,9 +1694,9 @@ function AdminContent() {
                   <CardHeader className="pb-2">
                       <CardTitle className="text-[10px] uppercase font-black tracking-[0.2em] text-emerald-400 opacity-80">Saldo da Unidade</CardTitle>
                   </CardHeader>
-                  <CardContent>
+                   <CardContent>
                       <div className="flex items-baseline gap-2">
-                          <span className="text-4xl font-black">{users.reduce((acc, curr) => acc + (curr.points || 0), 0).toLocaleString('pt-BR')}</span>
+                          <span className="text-4xl font-black">{filteredUsersForAdmin.reduce((acc, curr) => acc + (curr.points || 0), 0).toLocaleString('pt-BR')}</span>
                           <span className="text-xs font-bold text-emerald-400">BIO-COINS</span>
                       </div>
                       <div className="absolute top-[-20px] right-[-20px] opacity-10 rotate-12"><Leaf className="h-32 w-32" /></div>
@@ -1306,9 +1706,9 @@ function AdminContent() {
                   <CardHeader className="pb-2">
                       <CardTitle className="text-[10px] uppercase font-black tracking-[0.2em] text-slate-400">Total de Prêmios</CardTitle>
                   </CardHeader>
-                  <CardContent>
+                   <CardContent>
                       <div className="flex items-baseline gap-2">
-                          <span className="text-4xl font-black">{rewards.length}</span>
+                          <span className="text-4xl font-black">{filteredRewards.length}</span>
                           <span className="text-xs font-bold text-slate-400">ATIVOS</span>
                       </div>
                   </CardContent>
@@ -1317,9 +1717,9 @@ function AdminContent() {
                   <CardHeader className="pb-2">
                       <CardTitle className="text-[10px] uppercase font-black tracking-[0.2em] text-slate-400">Transações</CardTitle>
                   </CardHeader>
-                  <CardContent>
+                   <CardContent>
                       <div className="flex items-baseline gap-2">
-                          <span className="text-4xl font-black">{auditLogs.length}</span>
+                          <span className="text-4xl font-black">{filteredAuditLogs.length}</span>
                           <span className="text-xs font-bold text-slate-400">REGISTROS</span>
                       </div>
                   </CardContent>
@@ -1463,7 +1863,44 @@ function AdminContent() {
           )}
         </TabsContent>
 
-        <TabsContent value="pedagogic" className="space-y-6">
+         <TabsContent value="pedagogic" className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-3">
+              <Card className="bg-indigo-900 text-white overflow-hidden relative">
+                  <CardHeader className="pb-2">
+                      <CardTitle className="text-[10px] uppercase font-black tracking-[0.2em] text-indigo-400 opacity-80">Conteúdo Educativo</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                      <div className="flex items-baseline gap-2">
+                          <span className="text-4xl font-black">{filteredArticles.length}</span>
+                          <span className="text-xs font-bold text-indigo-400">ARTIGOS</span>
+                      </div>
+                      <div className="absolute top-[-20px] right-[-20px] opacity-10 rotate-12"><BookOpen className="h-32 w-32" /></div>
+                  </CardContent>
+              </Card>
+              <Card className="bg-slate-900 text-white">
+                  <CardHeader className="pb-2">
+                      <CardTitle className="text-[10px] uppercase font-black tracking-[0.2em] text-slate-400">Banco de Desafios</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                      <div className="flex items-baseline gap-2">
+                          <span className="text-4xl font-black">{quizTopics.length}</span>
+                          <span className="text-xs font-bold text-slate-400">TÓPICOS</span>
+                      </div>
+                  </CardContent>
+              </Card>
+              <Card className="bg-slate-900 text-white">
+                  <CardHeader className="pb-2">
+                      <CardTitle className="text-[10px] uppercase font-black tracking-[0.2em] text-slate-400">Base de Vídeos</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                      <div className="flex items-baseline gap-2">
+                          <span className="text-4xl font-black">{filteredArticles.filter(a => a.videoUrl).length}</span>
+                          <span className="text-xs font-bold text-slate-400">MULTIMÍDIA</span>
+                      </div>
+                  </CardContent>
+              </Card>
+          </div>
+
           <Card>
               <CardHeader><CardTitle className="text-sm font-black uppercase tracking-widest text-slate-500">Tópicos de Quiz</CardTitle><CardDescription>Geração automática de desafios para os alunos.</CardDescription></CardHeader>
               <CardContent className="space-y-4">
@@ -1472,8 +1909,8 @@ function AdminContent() {
                       <Button onClick={handleAddTopic}><Plus className="h-4 w-4" /></Button>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                      {quizTopics.map((topic) => (
-                          <Badge key={topic} variant="secondary" className="pr-1 bg-white border border-slate-200 text-slate-700 font-bold">{topic}<Button size="icon" variant="ghost" className="h-4 w-4 ml-1 hover:text-red-500" onClick={() => handleDeleteTopic(topic)}><Trash2 className="h-3 w-3"/></Button></Badge>
+                      {filteredQuizTopics.map((topic, idx) => (
+                          <Badge key={`${topic.id}-${idx}`} variant="secondary" className="pr-1 bg-white border border-slate-200 text-slate-700 font-bold">{topic.name}<Button size="icon" variant="ghost" className="h-4 w-4 ml-1 hover:text-red-500" onClick={() => handleDeleteTopic(topic)}><Trash2 className="h-3 w-3"/></Button></Badge>
                       ))}
                   </div>
               </CardContent>
@@ -1720,7 +2157,7 @@ function AdminContent() {
                     <Input 
                       type="password"
                       required
-                      value={passFormData.newPass}
+                      value={passFormData.newPass || ''}
                       onChange={e => setPassFormData({...passFormData, newPass: e.target.value})}
                       placeholder="Mínimo 6 caracteres"
                       className="bg-white border-slate-300"
@@ -1731,7 +2168,7 @@ function AdminContent() {
                     <Input 
                       type="password"
                       required
-                      value={passFormData.confirmPass}
+                      value={passFormData.confirmPass || ''}
                       onChange={e => setPassFormData({...passFormData, confirmPass: e.target.value})}
                       placeholder="Repita a senha"
                       className="bg-white border-slate-300"
@@ -1746,6 +2183,295 @@ function AdminContent() {
            </form>
         </DialogContent>
       </Dialog>
+
+      {/* MODAIS DE GESTÃO ACADÊMICA */}
+      <Dialog open={isTurmaDialogOpen} onOpenChange={setIsTurmaDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-black uppercase tracking-tighter text-indigo-600">Configurar Turma</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveTurma} className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Nome da Turma</Label>
+              <Input required value={turmaFormData.name || ''} onChange={e => setTurmaFormData({...turmaFormData, name: e.target.value})} placeholder="Ex: 1ª Série A" className="bg-slate-50" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Status de Operação</Label>
+              <select 
+                className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                value={turmaFormData.status}
+                onChange={e => setTurmaFormData({...turmaFormData, status: e.target.value as any})}
+              >
+                <option value="active">Ativo (Visível para Alunos)</option>
+                <option value="inactive">Inativo (Oculto)</option>
+              </select>
+            </div>
+            <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 uppercase font-black tracking-widest text-xs h-12 shadow-lg">Salvar Configurações</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isCursoDialogOpen} onOpenChange={setIsCursoDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-black uppercase tracking-tighter text-amber-600">Configurar Curso</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveCurso} className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Nome do Curso</Label>
+              <Input required value={cursoFormData.name || ''} onChange={e => setCursoFormData({...cursoFormData, name: e.target.value})} placeholder="Ex: Técnico em Informática" className="bg-slate-50" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Status de Operação</Label>
+              <select 
+                className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm focus:ring-2 focus:ring-amber-500 outline-none"
+                value={cursoFormData.status}
+                onChange={e => setCursoFormData({...cursoFormData, status: e.target.value as any})}
+              >
+                <option value="active">Ativo (Visível para Alunos)</option>
+                <option value="inactive">Inativo (Oculto)</option>
+              </select>
+            </div>
+            <Button type="submit" className="w-full bg-amber-600 hover:bg-amber-700 uppercase font-black tracking-widest text-xs h-12 shadow-lg">Salvar Configurações</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isCargoDialogOpen} onOpenChange={setIsCargoDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-black uppercase tracking-tighter text-rose-600">Configurar Cargo</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveCargo} className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Nome do Cargo</Label>
+              <Input required value={cargoFormData.name || ''} onChange={e => setCargoFormData({...cargoFormData, name: e.target.value})} placeholder="Ex: Professor" className="bg-slate-50" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Status de Operação</Label>
+              <select 
+                className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm focus:ring-2 focus:ring-rose-500 outline-none"
+                value={cargoFormData.status}
+                onChange={e => setCargoFormData({...cargoFormData, status: e.target.value as any})}
+              >
+                <option value="active">Ativo</option>
+                <option value="inactive">Inativo</option>
+              </select>
+            </div>
+            <Button type="submit" className="w-full bg-rose-600 hover:bg-rose-700 uppercase font-black tracking-widest text-xs h-12 shadow-lg">Salvar Cargo</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isSetorDialogOpen} onOpenChange={setIsSetorDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-black uppercase tracking-tighter text-emerald-600">Configurar Setor</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveSetor} className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Nome do Setor</Label>
+              <Input required value={setorFormData.name || ''} onChange={e => setSetorFormData({...setorFormData, name: e.target.value})} placeholder="Ex: Secretaria" className="bg-slate-50" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Status de Operação</Label>
+              <select 
+                className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                value={setorFormData.status}
+                onChange={e => setSetorFormData({...setorFormData, status: e.target.value as any})}
+              >
+                <option value="active">Ativo</option>
+                <option value="inactive">Inativo</option>
+              </select>
+            </div>
+            <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 uppercase font-black tracking-widest text-xs h-12 shadow-lg">Salvar Setor</Button>
+          </form>
+        </DialogContent>
+       </Dialog>
+
+      <Dialog open={isTerminalDialogOpen} onOpenChange={setIsTerminalDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-black uppercase tracking-tighter text-amber-600">Configurar Hardware do Totem</DialogTitle>
+            <DialogDescription className="text-xs font-bold uppercase tracking-widest text-slate-400">Personalize os sensores e métodos de acesso deste terminal.</DialogDescription>
+          </DialogHeader>
+          {editingTerminal && (
+            <div className="space-y-6 pt-4">
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
+                <p className="text-[10px] font-black uppercase text-slate-400">Identificação do Terminal</p>
+                <p className="text-sm font-bold text-slate-700">{editingTerminal.location}</p>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[9px] font-black text-amber-600">{editingTerminal.id}</span>
+                  <span className="text-[8px] text-slate-400 uppercase font-black tracking-widest">HW: {editingTerminal.hardwareId}</span>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Método de Login Principal</Label>
+                  <Select 
+                    value={editingTerminal.loginMethod || 'all'} 
+                    onValueChange={(val: any) => setEditingTerminal({...editingTerminal, loginMethod: val})}
+                  >
+                    <SelectTrigger className="bg-white">
+                      <SelectValue placeholder="Selecione o método" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos (Híbrido)</SelectItem>
+                      <SelectItem value="manual">Apenas Teclado (RA)</SelectItem>
+                      <SelectItem value="qr">Apenas QR Code</SelectItem>
+                      <SelectItem value="rfid">Apenas RFID (Cartão)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* CÂMERA DE LOGIN */}
+                  <div className="space-y-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Câmera de Login</Label>
+                    
+                    <Select 
+                      value={editingTerminal.loginCameraSource || 'browser'} 
+                      onValueChange={(val: any) => setEditingTerminal({...editingTerminal, loginCameraSource: val})}
+                    >
+                      <SelectTrigger className="bg-white h-9 text-xs font-bold">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="browser">Webcam Local</SelectItem>
+                        <SelectItem value="esp32">ESP32-CAM (IP)</SelectItem>
+                        <SelectItem value="url">Stream Externo (URL)</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {editingTerminal.loginCameraSource === 'browser' ? (
+                      <div className="space-y-1 animate-in fade-in slide-in-from-top-1">
+                        <Label className="text-[9px] font-black uppercase text-slate-400">Selecionar Hardware</Label>
+                        <Select 
+                          value={editingTerminal.loginCameraDeviceId || 'default'} 
+                          onValueChange={(val: any) => setEditingTerminal({...editingTerminal, loginCameraDeviceId: val})}
+                        >
+                          <SelectTrigger className="bg-white h-8 text-[10px] font-bold">
+                            <SelectValue placeholder="Automático" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="default">Automático (Padrão)</SelectItem>
+                            {videoDevices.map(device => (
+                              <SelectItem key={device.deviceId} value={device.deviceId} className="text-[10px]">
+                                {device.label || `Câmera ${device.deviceId.slice(0, 5)}`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : (
+                      <div className="space-y-1 animate-in fade-in slide-in-from-top-1">
+                        <Label className="text-[9px] font-black uppercase text-slate-400">Endereço / URL do Stream</Label>
+                        <Input 
+                          placeholder={editingTerminal.loginCameraSource === 'esp32' ? "Ex: 192.168.1.50" : "http://server.com/stream"}
+                          value={editingTerminal.loginCameraUrl || ''}
+                          onChange={(e) => setEditingTerminal({...editingTerminal, loginCameraUrl: e.target.value})}
+                          className="bg-white h-8 text-[10px] font-bold"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* CÂMERA DE COLETA */}
+                  <div className="space-y-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Câmera de Coleta</Label>
+                    
+                    <Select 
+                      value={editingTerminal.scanningCameraSource || 'browser'} 
+                      onValueChange={(val: any) => setEditingTerminal({...editingTerminal, scanningCameraSource: val})}
+                    >
+                      <SelectTrigger className="bg-white h-9 text-xs font-bold">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="browser">Webcam Local</SelectItem>
+                        <SelectItem value="esp32">ESP32-CAM (IP)</SelectItem>
+                        <SelectItem value="url">Stream Externo (URL)</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {editingTerminal.scanningCameraSource === 'browser' ? (
+                      <div className="space-y-1 animate-in fade-in slide-in-from-top-1">
+                        <Label className="text-[9px] font-black uppercase text-slate-400">Selecionar Hardware</Label>
+                        <Select 
+                          value={editingTerminal.scanningCameraDeviceId || 'default'} 
+                          onValueChange={(val: any) => setEditingTerminal({...editingTerminal, scanningCameraDeviceId: val})}
+                        >
+                          <SelectTrigger className="bg-white h-8 text-[10px] font-bold">
+                            <SelectValue placeholder="Automático" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="default">Automático (Padrão)</SelectItem>
+                            {videoDevices.map(device => (
+                              <SelectItem key={device.deviceId} value={device.deviceId} className="text-[10px]">
+                                {device.label || `Câmera ${device.deviceId.slice(0, 5)}`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : (
+                      <div className="space-y-1 animate-in fade-in slide-in-from-top-1">
+                        <Label className="text-[9px] font-black uppercase text-slate-400">Endereço / URL do Stream</Label>
+                        <Input 
+                          placeholder={editingTerminal.scanningCameraSource === 'esp32' ? "Ex: 192.168.1.50" : "http://server.com/stream"}
+                          value={editingTerminal.scanningCameraUrl || ''}
+                          onChange={(e) => setEditingTerminal({...editingTerminal, scanningCameraUrl: e.target.value})}
+                          className="bg-white h-8 text-[10px] font-bold"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <Button 
+                onClick={() => {
+                  if (editingTerminal) {
+                    updateTerminalSettings(editingTerminal.id, {
+                      loginMethod: editingTerminal.loginMethod,
+                      loginCameraSource: editingTerminal.loginCameraSource,
+                      scanningCameraSource: editingTerminal.scanningCameraSource,
+                      loginCameraDeviceId: editingTerminal.loginCameraDeviceId,
+                      scanningCameraDeviceId: editingTerminal.scanningCameraDeviceId,
+                      loginCameraUrl: editingTerminal.loginCameraUrl,
+                      scanningCameraUrl: editingTerminal.scanningCameraUrl
+                    });
+                    setIsTerminalDialogOpen(false);
+                    toast({ title: "Configurações Salvas", description: "O totem será atualizado no próximo ciclo de sincronização." });
+                  }
+                }}
+                className="w-full bg-amber-600 hover:bg-amber-700 uppercase font-black tracking-widest text-xs h-12 shadow-lg"
+              >
+                Aplicar no Totem
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+       {isDeleteConfirmOpen && selectedItem && (
+         <div className="fixed bottom-6 right-6 z-50 w-full max-w-md p-4 border-2 border-red-200 bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl animate-in slide-in-from-bottom-10 duration-300 ring-4 ring-red-50">
+           <div className="flex items-center justify-between">
+               <div className="flex items-center gap-3">
+                   <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 shadow-inner"><Trash2 className="h-6 w-6" /></div>
+                   <div>
+                       <p className="font-black text-slate-900 uppercase tracking-tighter">Confirmar Exclusão</p>
+                       <p className="text-[11px] text-slate-500 font-bold">"{selectedItem.name || selectedItem.title}"</p>
+                   </div>
+               </div>
+               <div className="flex gap-2">
+                   <Button variant="outline" size="sm" onClick={() => setIsDeleteConfirmOpen(false)} className="bg-white border-slate-200 hover:bg-slate-50 uppercase font-black text-[10px] tracking-widest">Cancelar</Button>
+                   <Button variant="destructive" size="sm" onClick={onConfirmDelete} className="font-black uppercase tracking-widest text-[10px] bg-red-600 hover:bg-red-700 shadow-lg shadow-red-200">Excluir</Button>
+               </div>
+           </div>
+         </div>
+       )}
     </div>
   );
 }

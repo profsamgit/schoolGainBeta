@@ -28,7 +28,7 @@ import {
   Info,
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-import { ADMIN_MOCK, STUDENT_MOCK } from '@/lib/data';
+import { ADMIN_MOCK } from '@/lib/data';
 import { useEcosystem } from '@/app/(app)/ecosystem-context';
 
 const menuItems = [
@@ -53,14 +53,13 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { logout, currentUser, getGlobalLeader } = useEcosystem();
   const isAdminView = pathname.startsWith('/admin');
-  
+
   const isLeader = useMemo(() => {
     if (!currentUser) return false;
     const leader = getGlobalLeader();
     return leader?.ra === (currentUser as any)?.ra;
   }, [getGlobalLeader, currentUser]);
 
-  const displayUser = currentUser || STUDENT_MOCK;
 
   return (
     <SidebarProvider defaultOpen>
@@ -146,12 +145,12 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
               </SidebarMenuItem>
             )}
             <Link href="/" onClick={() => logout()} className="w-full">
-                <SidebarMenuItem>
+              <SidebarMenuItem>
                 <SidebarMenuButton tooltip={{ children: 'Trocar Perfil' }}>
-                    <LogOut />
-                    <span>Sair / Trocar</span>
+                  <LogOut />
+                  <span>Sair / Trocar</span>
                 </SidebarMenuButton>
-                </SidebarMenuItem>
+              </SidebarMenuItem>
             </Link>
           </SidebarMenu>
         </SidebarFooter>
