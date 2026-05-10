@@ -35,6 +35,7 @@ export default function EducationArticlePage({
           src={article.image}
           alt={article.title}
           fill
+          sizes="(max-width: 896px) 100vw, 896px"
           style={{ objectFit: 'cover' }}
           data-ai-hint={article.imageHint}
           priority

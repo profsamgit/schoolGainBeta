@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
+
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import {
@@ -51,8 +52,19 @@ const superAdminMenuItems = [
 
 export function AppSidebar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const previewId = searchParams.get('preview');
   const { logout, currentUser, getGlobalLeader } = useEcosystem();
   const isAdminView = pathname.startsWith('/admin');
+
+  // Função auxiliar para injetar o parâmetro de preview nos links
+  const getLink = (href: string) => {
+    if (previewId) {
+      return `${href}?preview=${previewId}`;
+    }
+    return href;
+  };
+
 
   const isLeader = useMemo(() => {
     if (!currentUser) return false;
@@ -81,7 +93,8 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
             <SidebarMenu>
               {adminMenuItems.map((item: any) => (
                 <SidebarMenuItem key={item.href}>
-                  <Link href={item.href}>
+                  <Link href={getLink(item.href)}>
+
                     <SidebarMenuButton
                       isActive={item.exact ? pathname === item.href : pathname.startsWith(item.href)}
                       tooltip={{ children: item.label }}
@@ -97,7 +110,8 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <Link href={item.href}>
+                  <Link href={getLink(item.href)}>
+
                     <SidebarMenuButton
                       isActive={pathname.startsWith(item.href)}
                       tooltip={{ children: item.label }}
@@ -116,7 +130,8 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
               ))}
               {currentUser?.role === 'super_admin' && superAdminMenuItems.map((item: any) => (
                 <SidebarMenuItem key={item.href}>
-                  <Link href={item.href}>
+                  <Link href={getLink(item.href)}>
+
                     <SidebarMenuButton
                       isActive={pathname.startsWith(item.href)}
                       tooltip={{ children: item.label }}
@@ -134,22 +149,14 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
         <Separator />
         <SidebarFooter>
           <SidebarMenu>
-            {isAdminView && (
-              <SidebarMenuItem>
-                <Link href="/admin?tab=hardware" className="w-full">
-                  <SidebarMenuButton tooltip={{ children: 'Configurações de Hardware' }}>
-                    <Settings />
-                    <span>Configurações</span>
-                  </SidebarMenuButton>
-                </Link>
-              </SidebarMenuItem>
-            )}
+
             <Link href="/" onClick={() => logout()} className="w-full">
               <SidebarMenuItem>
-                <SidebarMenuButton tooltip={{ children: 'Trocar Perfil' }}>
+                <SidebarMenuButton tooltip={{ children: 'Sair' }}>
                   <LogOut />
-                  <span>Sair / Trocar</span>
+                  <span>Sair</span>
                 </SidebarMenuButton>
+
               </SidebarMenuItem>
             </Link>
           </SidebarMenu>

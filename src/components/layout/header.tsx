@@ -189,38 +189,30 @@ export function Header() {
                   </p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <Link href={displayUser.role === 'super_admin' ? '/super-admin' : displayUser.role === 'admin' ? '/admin' : '/dashboard'}>
+                <Link href="/dashboard">
                   <DropdownMenuItem>
-                    <UserIcon className="mr-2 h-4 w-4" />
-                    <span>Perfil / Painel</span>
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    <span>Dashboard</span>
                   </DropdownMenuItem>
                 </Link>
-                {isAdminView && (
-                  <Link href="/admin?tab=hardware">
+
+                {(displayUser.role === 'admin' || displayUser.role === 'super_admin') && (
+                  <Link href={displayUser.role === 'super_admin' ? '/super-admin' : '/admin'}>
                     <DropdownMenuItem>
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Configurações</span>
+                      <Shield className="mr-2 h-4 w-4" />
+                      <span>Gerenciamento</span>
                     </DropdownMenuItem>
                   </Link>
                 )}
-                {displayUser.role === 'admin' && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <Link href="/admin/dashboard">
-                      <DropdownMenuItem>
-                        <LayoutDashboard className="mr-2 h-4 w-4" />
-                        <span>Painel do Gestor</span>
-                      </DropdownMenuItem>
-                    </Link>
-                  </>
-                )}
+
                 <DropdownMenuSeparator />
                 <Link href="/" onClick={() => logout()}>
                   <DropdownMenuItem>
                     <LogOut className="mr-2 h-4 w-4" />
-                    <span>Trocar Perfil</span>
+                    <span>Sair</span>
                   </DropdownMenuItem>
                 </Link>
+
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

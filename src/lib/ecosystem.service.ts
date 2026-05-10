@@ -920,13 +920,14 @@ export class EcosystemService {
   private getDefaultState(): EcosystemUserState {
     return {
       balance: 0,
-      vitality: 0,
+      vitality: 100,
       purchasedItems: [],
       lastMissionDate: null,
       curso: '',
       nessiePurchaseDate: null
     };
   }
+
 
   /**
    * Verifica se o item especial "Nessie" ainda está disponível para compra este mês.
@@ -1099,8 +1100,20 @@ export class EcosystemService {
     unitId?: string;
   }) {
     const actor = this.data?.users?.find(u => u.ra === this.currentUserRa);
+  
+    // Função auxiliar para remover campos 'undefined' recursivamente (Firestore não aceita undefined)
+    const sanitize = (obj: any): any => {
+      if (obj === null || typeof obj !== 'object') return obj;
+      if (Array.isArray(obj)) return obj.map(sanitize);
+      return Object.fromEntries(
+        Object.entries(obj)
+          .filter(([_, v]) => v !== undefined)
+          .map(([k, v]) => [k, sanitize(v)])
+      );
+    };
 
-    const log: AuditLogEntry = {
+
+    const log: AuditLogEntry = sanitize({
       id: `tele-${Date.now()}-${Math.random().toString(36).slice(-4)}`,
       action: params.action,
       category: params.category,
@@ -1112,7 +1125,8 @@ export class EcosystemService {
       metadata: params.metadata,
       targetEntity: params.targetEntity,
       targetId: params.targetId
-    };
+    });
+
 
     const newLogs = [log, ...(this.auditLogsSubject.value || [])].slice(0, 500); // Mantém últimos 500 logs localmente
     this.auditLogsSubject.next(newLogs);

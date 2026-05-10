@@ -6,7 +6,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { WasteChart } from '@/components/waste-chart';
+import { WasteChart } from '@/components/ecosystem/WasteChart';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useEcosystem } from '@/app/(app)/ecosystem-context';
 import { LayoutDashboard, Expand, Minimize, RefreshCw, Clock, MapPin, Sun, Cloudy, CloudRain } from 'lucide-react';

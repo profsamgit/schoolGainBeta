@@ -142,20 +142,26 @@ function AdminContent() {
     setHasMounted(true);
     const tab = searchParams.get('tab');
     if (tab) setActiveTab(tab);
-
-    async function getDevices() {
-      try {
-        if (typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-          await navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
-            stream.getTracks().forEach(track => track.stop());
-          }).catch(() => {});
-          const devices = await navigator.mediaDevices.enumerateDevices();
-          setVideoDevices(devices.filter(device => device.kind === 'videoinput'));
-        }
-      } catch (error) { console.error(error); }
-    }
-    getDevices();
   }, [searchParams]);
+
+  // Carregamento da Câmera: Apenas quando entrar na aba de INFRA
+  useEffect(() => {
+    if (activeTab === 'infra' && videoDevices.length === 0) {
+      async function getDevices() {
+        try {
+          if (typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            await navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+              stream.getTracks().forEach(track => track.stop());
+            }).catch(() => {});
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            setVideoDevices(devices.filter(device => device.kind === 'videoinput'));
+          }
+        } catch (error) { console.error(error); }
+      }
+      getDevices();
+    }
+  }, [activeTab, videoDevices.length]);
+
 
   // States for shared dialogs/modals
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
@@ -410,10 +416,19 @@ function AdminContent() {
 
   const handleBadgePrint = (user: User) => {
     if (!user) return;
-    const printWindow = window.open('', '_blank', 'width=850,height=600');
-    if (!printWindow) return;
+    const badgeElement = document.querySelector('#badge-container') || document.querySelector('.printable-badge');
+    if (!badgeElement) {
+      toast({ title: 'Erro', description: 'Não foi possível encontrar o crachá para impressão.', variant: 'destructive' });
+      return;
+    }
 
-    // Get all styles from current document
+    const printWindow = window.open('', '_blank', 'width=850,height=600');
+    if (!printWindow) {
+      toast({ title: 'Pop-up Bloqueado', description: 'Por favor, permita pop-ups para imprimir.' });
+      return;
+    }
+
+    // Capture all styles
     const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
       .map(node => node.outerHTML)
       .join('\n');
@@ -421,11 +436,11 @@ function AdminContent() {
     printWindow.document.write(`
       <html>
         <head>
-          <title>Crach - ${user.name}</title>
+          <title>Crachá - ${user.name}</title>
           ${styles}
           <style>
             @media print {
-              @page { size: 85mm 55mm; margin: 0; }
+              @page { size: landscape; margin: 0; }
               body { margin: 0; padding: 0; }
               .no-print { display: none; }
             }
@@ -433,31 +448,36 @@ function AdminContent() {
               display: flex; 
               justify-content: center; 
               align-items: center; 
-              height: 100vh; 
-              background: white;
+              min-height: 100vh; 
+              background: white !important;
+            }
+            .print-wrapper {
+              transform: scale(1.4);
+              transform-origin: center center;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
             }
           </style>
         </head>
         <body>
-          <div id="print-content">
-            <!-- A estrutura do PrintableBadge ser injetada aqui -->
+          <div class="print-wrapper">
+            ${badgeElement.innerHTML}
           </div>
           <script>
-            setTimeout(() => {
-              window.print();
-              setTimeout(() => window.close(), 100);
-            }, 1000);
+            window.onload = () => {
+              setTimeout(() => {
+                window.print();
+                setTimeout(() => window.close(), 500);
+              }, 1000);
+            };
           </script>
         </body>
       </html>
     `);
     
-    // Inject current badge content
-    const badgeElement = document.querySelector('#badge-container') || document.querySelector('.printable-badge');
-    if (badgeElement && printWindow.document.getElementById('print-content')) {
-      printWindow.document.getElementById('print-content')!.innerHTML = badgeElement.innerHTML;
-    }
+    printWindow.document.close();
   };
+
 
 
 

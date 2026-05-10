@@ -14,8 +14,11 @@ import {
   Sparkles, 
   Camera, 
   Loader2,
-  Search
+  Search,
+  Eye
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+
 import { 
   Card, 
   CardContent, 
@@ -65,6 +68,8 @@ import { User, Reward, EducationArticle, Turma, Curso, Cargo, SetorEscolar } fro
 import { UseFormReturn } from 'react-hook-form';
 
 const QRScanner = dynamic(() => import('@/components/ui/qr-scanner'), { ssr: false });
+import PrintableBadge from '@/components/ecosystem/PrintableBadge';
+
 
 interface AcademicSectionProps {
   users: User[];
@@ -173,6 +178,8 @@ export function AcademicSection({
   securityPassword,
   setSecurityPassword
 }: AcademicSectionProps) {
+  const router = useRouter();
+
   
   const generateRandomRA = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -200,7 +207,9 @@ export function AcademicSection({
       <Card className="border-primary/20 bg-primary/5">
         <CardHeader className="flex flex-row items-center justify-between border-b bg-white/50">
           <div>
-            <CardTitle>{isNew ? 'Cadastrar Novo Agente' : 'Editar Dados do Agente'}</CardTitle>
+            <CardTitle>{isNew ? `Cadastrar Novo ${userRoleFilter === 'student' ? 'Aluno' : userRoleFilter === 'admin' ? 'Gestor' : 'Visitante'}` : `Editar Dados do ${userRoleFilter === 'student' ? 'Aluno' : userRoleFilter === 'admin' ? 'Gestor' : 'Visitante'}`}</CardTitle>
+
+
             <CardDescription>
               {isNew ? (
                 allTurmas.length === 0 || allCursos.length === 0 || allCargos.length === 0 || allSetores.length === 0 ? (
@@ -394,8 +403,10 @@ export function AcademicSection({
              </div>
           </div>
           <Button onClick={() => handleNew('user')} className="bg-primary text-white font-black uppercase text-[10px] tracking-widest gap-2">
-            <UserPlus className="h-4 w-4" /> Novo Agente
+            <UserPlus className="h-4 w-4" /> Novo {userRoleFilter === 'student' ? 'Aluno' : userRoleFilter === 'admin' ? 'Gestor' : 'Visitante'}
           </Button>
+
+
         </CardHeader>
         
         <CardContent>
@@ -502,9 +513,13 @@ export function AcademicSection({
                     </TableCell>
                     <TableCell className="text-right px-6">
                       <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="icon" onClick={() => router.push(`/dashboard?preview=${user.id}`)} className="h-8 w-8 text-slate-400 hover:text-primary hover:bg-primary/5" title="Visualizar Perfil">
+                          <Eye className="h-4 w-4" />
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => { setBadgeUser(user as any); setIsBadgeOpen(true); }} className="h-8 w-8 text-slate-400 hover:text-primary hover:bg-primary/5" title="Ver Carteira">
                           <QrCode className="h-4 w-4" />
                         </Button>
+
                         {user.role === 'admin' && (
                           <Button 
                             variant="ghost" 
@@ -557,33 +572,33 @@ export function AcademicSection({
 
           {/* MODAL DE CARTEIRA */}
           <Dialog open={isBadgeOpen} onOpenChange={setIsBadgeOpen}>
-            <DialogContent className="max-w-xs p-0 overflow-hidden border-none bg-transparent">
+            <DialogContent className="sm:max-w-md p-0 overflow-hidden border-none bg-transparent shadow-none">
+              {/* Elementos para Acessibilidade (Screen Readers) */}
+              <div className="sr-only">
+                <DialogHeader>
+                  <DialogTitle>Visualização de Crachá Premium</DialogTitle>
+                  <DialogDescription>Carteira de identificação estudantil de {badgeUser?.name}</DialogDescription>
+                </DialogHeader>
+              </div>
+
               {badgeUser && (
-                <div className="bg-white rounded-3xl overflow-hidden shadow-2xl">
-                  <div className="h-20 bg-primary relative">
-                    <div className="absolute -bottom-10 left-1/2 -translate-x-1/2">
-                      <Avatar className="h-20 w-20 border-4 border-white shadow-lg">
-                        <AvatarImage src={badgeUser.avatar || undefined} />
-                        <AvatarFallback className="bg-slate-900 text-white font-black">{badgeUser.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                    </div>
+                <div className="space-y-6 flex flex-col items-center">
+                  <div id="badge-container" className="printable-badge">
+                    <PrintableBadge user={badgeUser} />
                   </div>
-                  <div className="pt-12 pb-6 px-6 text-center space-y-4">
-                    <div>
-                      <h3 className="font-black uppercase tracking-tighter text-xl">{badgeUser.name}</h3>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">{badgeUser.role === 'student' ? badgeUser.turma : badgeUser.position || 'Agente'}</p>
+                  
+                  <div className="bg-white/80 backdrop-blur-md p-6 rounded-3xl shadow-xl border border-white/20 w-full max-w-[320px] mx-auto space-y-4">
+                    <div className="text-center">
+                      <h3 className="font-black uppercase tracking-tighter text-lg text-slate-800">Visualização de Crachá</h3>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Design Premium Ativo</p>
                     </div>
                     
-                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center gap-2">
-                       <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-100">
-                          <QrCode className="h-32 w-32 text-slate-900" />
-                       </div>
-                       <span className="font-mono text-sm font-black text-primary tracking-widest">{badgeUser.ra}</span>
-                    </div>
-
-                    <Button onClick={() => handleBadgePrint(badgeUser)} className="w-full bg-slate-900 gap-2 font-black uppercase text-[10px] tracking-widest h-12">
-                      <Printer className="h-4 w-4" /> Imprimir Crachá
+                    <Button onClick={() => handleBadgePrint(badgeUser)} className="w-full bg-primary hover:bg-primary/90 text-white gap-2 font-black uppercase text-[10px] tracking-widest h-12 shadow-lg shadow-primary/20 transition-all">
+                      <Printer className="h-4 w-4" /> Imprimir Crachá Premium
                     </Button>
+                    <p className="text-[9px] text-center text-slate-400 font-medium px-4">
+                      O crachá será impresso com as dimensões oficiais (85mm x 55mm).
+                    </p>
                   </div>
                 </div>
               )}

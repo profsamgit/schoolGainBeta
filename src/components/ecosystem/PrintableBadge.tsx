@@ -26,7 +26,8 @@ export default function PrintableBadge({ user }: PrintableBadgeProps) {
       }}>
       
       {/* Container Interno (Efeito Glass) */}
-      <div className="bg-white/95 backdrop-blur-sm w-full h-full rounded-[14px] p-4 flex flex-col justify-between relative overflow-hidden">
+      <div className="bg-white/95 backdrop-blur-sm w-full h-full rounded-[14px] p-3 flex flex-col justify-between relative overflow-hidden">
+
         
         {/* Padrão de Fundo Tecnológico */}
         <div className="absolute inset-0 opacity-[0.05] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#64748b 0.5px, transparent 0.5px)', backgroundSize: '12px 12px' }}></div>
@@ -53,7 +54,8 @@ export default function PrintableBadge({ user }: PrintableBadgeProps) {
         </div>
 
         {/* Conteúdo Principal */}
-        <div className="flex flex-1 py-3 gap-4 items-center z-10">
+        <div className="flex flex-1 py-1 gap-4 items-center z-10">
+
           {/* FOTO COM GLOW */}
           <div className={`h-24 w-20 rounded-xl border-2 ${roleConfig.color.replace('text-', 'border-')}/30 overflow-hidden bg-slate-50 flex items-center justify-center shadow-md relative`}>
               <Avatar className="h-full w-full rounded-none">
@@ -65,7 +67,8 @@ export default function PrintableBadge({ user }: PrintableBadgeProps) {
           </div>
 
           {/* CENTRO: DADOS (GLASS CARD) */}
-          <div className="flex-1 flex flex-col justify-center space-y-2.5">
+          <div className="flex-1 flex flex-col justify-center space-y-1">
+
             <div className="min-h-[34px] flex flex-col justify-center">
               <div className="flex items-center gap-1.5 mb-0.5">
                 <span className={`w-1 h-1 rounded-full ${roleConfig.bg} animate-pulse print:animate-none`}></span>
@@ -76,16 +79,24 @@ export default function PrintableBadge({ user }: PrintableBadgeProps) {
               </p>
             </div>
             
-            <div className="grid grid-cols-2 gap-3 pt-1.5 border-t border-slate-100">
-              <div>
-                <p className="text-[7px] font-black uppercase text-slate-400 print:text-slate-600 tracking-widest mb-1">Registro</p>
-                <p className={`font-bold text-slate-700 print:text-black font-mono tracking-tighter ${roleConfig.badge.split(' ')[0]} px-1.5 py-0.5 rounded-md inline-block ${(user.ra && user.ra.length > 10) ? 'text-[7px]' : 'text-[10px]'}`}>
+            <div className="flex flex-col space-y-0.5 pt-1 border-t border-slate-100">
+
+              {/* Registro em linha única para salvar espaço vertical */}
+              <div className="flex items-center justify-between">
+                <p className="text-[7px] font-black uppercase text-slate-400 print:text-slate-600 tracking-widest">Registro</p>
+                <p className={`font-bold text-slate-700 print:text-black font-mono tracking-tighter bg-slate-50 px-1.5 py-0.5 rounded-md ${user.ra && user.ra.length > 12 ? 'text-[7px]' : 'text-[9px]'}`}>
                   {user.ra || '---'}
                 </p>
               </div>
-              <div>
-                <p className="text-[7px] font-black uppercase text-slate-400 print:text-slate-600 tracking-widest mb-1">{user.role === 'student' ? 'Turma' : 'Setor'}</p>
-                <p className="text-[9px] font-black text-slate-800 print:text-black leading-tight tracking-tighter uppercase">
+
+              {/* Turma com largura total para nomes longos */}
+              <div className="flex flex-col">
+                <p className="text-[7px] font-black uppercase text-slate-400 print:text-slate-600 tracking-widest mb-0.5">
+                  {user.role === 'student' ? 'Turma' : 'Setor'}
+                </p>
+                <p className={`font-black text-slate-800 print:text-black leading-[1.1] uppercase tracking-tighter 
+                  ${(user.turma || user.curso || '').length > 25 ? 'text-[6px]' : 
+                    (user.turma || user.curso || '').length > 15 ? 'text-[7px]' : 'text-[9px]'}`}>
                   {user.turma || user.curso || 'Escola'}
                 </p>
               </div>

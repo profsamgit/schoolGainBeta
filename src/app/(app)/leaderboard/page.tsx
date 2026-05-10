@@ -63,15 +63,17 @@ const getLevelBadge = (level: string) => {
 };
 
 export default function LeaderboardPage() {
-  const { users, currentUserRa, balance, vitality, purchasedItems, getUserState, getMonthlyLegends } = useEcosystem();
+  const { users, currentUserRa, balance, vitality, purchasedItems, getUserState, getMonthlyLegends, isPreviewMode, currentUser } = useEcosystem();
+
   const [selectedUser, setSelectedUser] = useState<any>(null);
   
   const monthlyLegends = useMemo(() => getMonthlyLegends(), [getMonthlyLegends, purchasedItems]);
 
   const calculateScore = (u: any) => {
     const p = u.points || 0;
-    const v = u.ra === currentUserRa ? vitality : (u.vitality || 0);
-    const items = u.ra === currentUserRa ? purchasedItems.length : (u.itemsCount || 0);
+    const v = u.ra === currentUser?.ra ? vitality : (u.vitality || 0);
+    const items = u.ra === currentUser?.ra ? purchasedItems.length : (u.itemsCount || 0);
+
     return EcosystemService.calculateTotalScore(p, v, items);
   };
 
@@ -82,8 +84,9 @@ export default function LeaderboardPage() {
       .map(u => ({
         ...u,
         displayPoints: u.points || 0,
-        displayVitality: u.ra === currentUserRa ? vitality : (u.vitality || 0),
-        displayItems: u.ra === currentUserRa ? purchasedItems.length : (u.itemsCount || 0),
+        displayVitality: u.ra === currentUser?.ra ? vitality : (u.vitality || 0),
+        displayItems: u.ra === currentUser?.ra ? purchasedItems.length : (u.itemsCount || 0),
+
         totalScore: calculateScore(u)
       }))
       .sort((a, b) => b.totalScore - a.totalScore);
@@ -335,8 +338,9 @@ export default function LeaderboardPage() {
                   key={user.id}
                   className={cn(
                     "group transition-all duration-300 border-b-slate-50 hover:bg-emerald-50/30",
-                    user.ra === currentUserRa && "bg-emerald-50/50 border-l-[6px] border-l-emerald-500",
+                    user.ra === currentUser?.ra && "bg-emerald-50/50 border-l-[6px] border-l-emerald-500",
                     user.level === 'Guardião da Lenda' && "bg-yellow-50/30 border-l-[6px] border-l-yellow-400 shadow-[inset_0_0_20px_rgba(250,204,21,0.1)]"
+
                   )}
                 >
                   <TableCell className="font-black text-center text-slate-300 text-2xl py-10 tabular-nums group-hover:text-emerald-500 transition-colors">
@@ -350,10 +354,11 @@ export default function LeaderboardPage() {
                         <div>
                             <span className={cn(
                                 "block text-lg uppercase tracking-tight",
-                                user.ra === currentUserRa ? "font-black text-emerald-700" : "font-bold text-slate-700"
+                                user.ra === currentUser?.ra ? "font-black text-emerald-700" : "font-bold text-slate-700"
                             )}>
                                 {user.name}
-                                {user.ra === currentUserRa && <span className="ml-2 text-[10px] bg-emerald-500 text-white px-2 py-0.5 rounded-full font-black uppercase tracking-widest">Você</span>}
+                                {user.ra === currentUser?.ra && <span className="ml-2 text-[10px] bg-emerald-500 text-white px-2 py-0.5 rounded-full font-black uppercase tracking-widest">Você</span>}
+
                                 {index + 4 === 1 && <Leaf className="ml-2 h-4 w-4 text-yellow-400 inline" fill="currentColor" />}
                             </span>
                             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest md:hidden">{user.level}</span>

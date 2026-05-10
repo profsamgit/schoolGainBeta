@@ -1,6 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+
 import { EcosystemService } from '@/lib/ecosystem.service';
 import { User, Reward, EducationArticle, Participant, AuditLogEntry, Terminal, TerminalStatus, School, WasteEntry, WasteType, CycleSnapshot, Turma, Curso, Cargo, SetorEscolar, EcosystemItem, QuizTopic } from '@/lib/types';
 
@@ -80,7 +82,10 @@ interface EcosystemContextType {
   updateMyPassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
   generateTerminalId: () => string;
   uploadUserAvatar: (userId: string, file: File) => Promise<string | null>;
+  isPreviewMode: boolean;
+  displayUser: User | null;
 }
+
 
 const EcosystemContext = createContext<EcosystemContextType | null>(null);
 
@@ -93,16 +98,48 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const [purchasedItems, setPurchasedItems] = useState<EcosystemItem[]>(service.purchasedItems);
   const [currentUserRa, setCurrentUserRa] = useState<string | null>(service.currentUserRa);
   const [users, setUsers] = useState<any[]>(service.users);
+  const [level, setLevel] = useState<string>('Iniciante');
+
   const [rewards, setRewards] = useState<any[]>(service.allRewards);
   const [articles, setArticles] = useState<any[]>(service.allArticles);
   const [quizTopics, setQuizTopics] = useState<QuizTopic[]>(service.allQuizTopics);
   const [participants, setParticipants] = useState<Participant[]>(service.allParticipants);
   const [turmas, setTurmas] = useState<Turma[]>(service.allTurmas);
+
+  // --- LÓGICA DE PREVIEW (MODO AUDITORIA) ---
+  const searchParams = useSearchParams();
+  const previewId = searchParams.get('preview');
+
+  const isPreviewMode = useMemo(() => {
+    return !!(previewId && (currentUserRa && users.find(u => u.ra === currentUserRa)?.role?.includes('admin')));
+  }, [previewId, currentUserRa, users]);
+
+  const displayUser = useMemo(() => {
+    if (isPreviewMode) {
+      return users.find(u => u.id === previewId) || null;
+    }
+    return users.find(u => u.ra === currentUserRa) || null;
+  }, [isPreviewMode, previewId, users, currentUserRa]);
+
+  const studentState = useMemo(() => {
+    if (isPreviewMode && displayUser?.ra) {
+      return service.getUserState(displayUser.ra);
+    }
+    return null;
+  }, [isPreviewMode, displayUser, users]); // users dependência para garantir re-sync
+
+  // Valores efetivos (overridden se em preview)
+  const effectiveBalance = isPreviewMode && studentState ? studentState.balance : balance;
+  const effectiveVitality = isPreviewMode && studentState ? studentState.vitality : vitality;
+  const effectiveItems = isPreviewMode && studentState ? studentState.purchasedItems : purchasedItems;
+  const effectiveLevel = isPreviewMode && studentState ? studentState.level : level;
+
+  const getUserState = (ra: string) => service.getUserState(ra);
+
   const [cursos, setCursos] = useState<Curso[]>(service.allCursos);
   const [cargos, setCargos] = useState<Cargo[]>(service.allCargos);
   const [setores, setSetores] = useState<SetorEscolar[]>(service.allSetores);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(service.auditLogs);
-  const [level, setLevel] = useState<string>('Iniciante');
   const [systemSettings, setSystemSettings] = useState(service.systemSettings);
   const [pendingHardwareLogin, setPendingHardwareLogin] = useState<{ ra: string, terminalId: string } | null>(null);
   const [terminals, setTerminals] = useState<Terminal[]>(service.terminals);
@@ -167,85 +204,127 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
     return users.find((u: User) => u.ra === currentUserRa) || null;
   }, [currentUserRa, users]);
 
-  const value: EcosystemContextType = {
-    balance,
-    vitality,
-    isMissionDone,
-    purchasedItems,
-    level,
-    completeDailyMission: (points: number) => {
-      const res = service.completeDailyMission(points);
-      if (res) {
-        setIsMissionDone(true);
-      }
-      return res;
-    },
-    deductPoints: service.deductPoints.bind(service),
-    registerAttendance: service.registerAttendance.bind(service),
-    buyUpgrade: (item: EcosystemItem) => service.buyUpgrade(item),
-    healVitality: (points: number) => service.healVitality(points),
-    allParticipants: participants,
-    updateParticipants: service.updateParticipants.bind(service),
-    users,
-    allRewards: rewards,
-    allArticles: articles,
-    allQuizTopics: quizTopics,
-    currentUserRa,
-    currentUser,
-    login: (ra: string, pass?: string) => service.login(ra, pass),
-    logout: service.logout.bind(service),
-    addPoints: service.addPoints.bind(service),
-    updateUsers: async (newUsers: User[]) => await service.updateUsers(newUsers),
-    updateRewards: async (newRewards: Reward[]) => await service.updateRewards(newRewards),
-    updateArticles: async (newArticles: EducationArticle[]) => await service.updateArticles(newArticles),
-    updateQuizTopics: async (newTopics: QuizTopic[]) => await service.updateQuizTopics(newTopics),
-    allTurmas: turmas,
-    allCursos: cursos,
-    allCargos: cargos,
-    allSetores: setores,
-    updateTurmas: service.updateTurmas.bind(service),
-    updateCursos: service.updateCursos.bind(service),
-    updateCargos: service.updateCargos.bind(service),
-    updateSetores: service.updateSetores.bind(service),
-    getUserState: service.getUserState.bind(service),
-    auditLogs,
-    grantPoints: (ra: string, pts: number, sec: string, act: string, adm: string, pass?: string, tSId?: string) => service.grantPoints(ra, pts, sec, act, adm, pass, tSId),
-    getMonthlyLegends: service.getMonthlyLegends.bind(service),
-    isNessieAvailable: service.isNessieAvailable.bind(service),
-    getGlobalLeader: service.getGlobalLeader.bind(service),
-    grantSightingBonus: service.grantSightingBonus.bind(service),
-    systemSettings,
-    updateSystemSettings: service.updateSystemSettings.bind(service),
-    pendingHardwareLogin,
-    terminals,
-    requestTerminalAuthorization: service.requestTerminalAuthorization.bind(service),
-    updateTerminalStatus: service.updateTerminalStatus.bind(service),
-    updateTerminalSettings: service.updateTerminalSettings.bind(service),
-    deleteTerminal: service.deleteTerminal.bind(service),
-    schools,
-    requestSchoolRegistration: service.requestSchoolRegistration.bind(service),
-    registerSchool: (data: any) => service.registerSchool(data),
-    updateSchoolStatus: (id: any, status: any) => service.updateSchoolStatus(id, status),
-    updateSchools: (newSchools: any) => service.updateSchools(newSchools),
-    deleteSchool: (id: any) => service.deleteSchool(id),
-    wasteEntries,
-    registerWaste: (ra: string, type: WasteType, weightKg: number, tSId?: string) => service.registerWaste(ra, type, weightKg, tSId),
-    identifyKioskUser: service.identifyKioskUser.bind(service),
-    resetHistory,
-    performCycleReset: (pass: string, sId?: string) => service.performCycleReset(pass, sId),
-    verifyPassword: (pass: string) => service.verifyPassword(pass),
-    changePassword: service.changePassword.bind(service),
-    updateMyPassword: async (current: string, newPass: string) => service.updateMyPassword(current, newPass),
-    getLockoutStatus: service.getLockoutStatus.bind(service),
-    generateTerminalId: service.generateTerminalId.bind(service),
-    uploadUserAvatar: (uId: string, f: File) => service.uploadUserAvatar(uId, f),
+  const completeDailyMission = (points: number) => {
+    const res = service.completeDailyMission(points);
+    if (res) {
+      setIsMissionDone(true);
+    }
+    return res;
   };
+  const deductPoints = service.deductPoints.bind(service);
+  const registerAttendance = service.registerAttendance.bind(service);
+  const buyUpgrade = (item: EcosystemItem) => service.buyUpgrade(item);
+  const healVitality = (points: number) => service.healVitality(points);
+  const updateParticipants = service.updateParticipants.bind(service);
+  const login = (ra: string, pass?: string) => service.login(ra, pass);
+  const logout = service.logout.bind(service);
+  const addPoints = service.addPoints.bind(service);
+  const updateUsers = async (newUsers: User[]) => await service.updateUsers(newUsers);
+  const updateRewards = async (newRewards: Reward[]) => await service.updateRewards(newRewards);
+  const updateArticles = async (newArticles: EducationArticle[]) => await service.updateArticles(newArticles);
+  const updateQuizTopics = async (newTopics: QuizTopic[]) => await service.updateQuizTopics(newTopics);
+  const updateTurmas = service.updateTurmas.bind(service);
+  const updateCursos = service.updateCursos.bind(service);
+  const updateCargos = service.updateCargos.bind(service);
+  const updateSetores = service.updateSetores.bind(service);
+  const grantPoints = (ra: string, pts: number, sec: string, act: string, adm: string, pass?: string, tSId?: string) => service.grantPoints(ra, pts, sec, act, adm, pass, tSId);
+  const getMonthlyLegends = service.getMonthlyLegends.bind(service);
+  const isNessieAvailable = service.isNessieAvailable.bind(service);
+  const getGlobalLeader = service.getGlobalLeader.bind(service);
+  const grantSightingBonus = service.grantSightingBonus.bind(service);
+  const updateSystemSettings = service.updateSystemSettings.bind(service);
+  const requestTerminalAuthorization = service.requestTerminalAuthorization.bind(service);
+  const updateTerminalStatus = service.updateTerminalStatus.bind(service);
+  const updateTerminalSettings = service.updateTerminalSettings.bind(service);
+  const deleteTerminal = service.deleteTerminal.bind(service);
+  const requestSchoolRegistration = service.requestSchoolRegistration.bind(service);
+  const registerSchool = (data: any) => service.registerSchool(data);
+  const updateSchoolStatus = (id: any, status: any) => service.updateSchoolStatus(id, status);
+  const updateSchools = (newSchools: any) => service.updateSchools(newSchools);
+  const deleteSchool = (id: any) => service.deleteSchool(id);
+  const registerWaste = (ra: string, type: WasteType, weightKg: number, tSId?: string) => service.registerWaste(ra, type, weightKg, tSId);
+  const identifyKioskUser = service.identifyKioskUser.bind(service);
+  const performCycleReset = (pass: string, sId?: string) => service.performCycleReset(pass, sId);
+  const verifyPassword = (pass: string) => service.verifyPassword(pass);
+  const changePassword = service.changePassword.bind(service);
+  const updateMyPassword = async (current: string, newPass: string) => service.updateMyPassword(current, newPass);
+  const getLockoutStatus = service.getLockoutStatus.bind(service);
+  const generateTerminalId = service.generateTerminalId.bind(service);
+  const uploadUserAvatar = (uId: string, f: File) => service.uploadUserAvatar(uId, f);
 
   // Evita problemas de renderização no servidor (Next.js)
   if (!isMounted) return null;
 
   return (
-    <EcosystemContext.Provider value={value}>
+    <EcosystemContext.Provider value={{
+      balance: effectiveBalance,
+      vitality: effectiveVitality,
+      isMissionDone,
+      purchasedItems: effectiveItems,
+      level: effectiveLevel,
+      completeDailyMission,
+      deductPoints,
+      registerAttendance,
+      buyUpgrade,
+      healVitality,
+      allParticipants: participants,
+      updateParticipants,
+      users,
+      allRewards: rewards,
+      allArticles: articles,
+      allQuizTopics: quizTopics,
+      currentUserRa,
+      currentUser: displayUser,
+      login,
+      logout,
+      addPoints,
+      updateUsers,
+      updateRewards,
+      updateArticles,
+      updateQuizTopics,
+      allTurmas: turmas,
+      allCursos: cursos,
+      allCargos: cargos,
+      allSetores: setores,
+      updateTurmas,
+      updateCursos,
+      updateCargos,
+      updateSetores,
+      getUserState,
+      auditLogs,
+      grantPoints,
+      getMonthlyLegends,
+      isNessieAvailable,
+      getGlobalLeader,
+      grantSightingBonus,
+      systemSettings,
+      updateSystemSettings,
+      pendingHardwareLogin,
+      terminals,
+      requestTerminalAuthorization,
+      updateTerminalStatus,
+      updateTerminalSettings,
+      deleteTerminal,
+      schools,
+      requestSchoolRegistration,
+      registerSchool,
+      updateSchoolStatus,
+      updateSchools,
+      deleteSchool,
+      getLockoutStatus,
+      wasteEntries,
+      registerWaste,
+      identifyKioskUser,
+      resetHistory,
+      performCycleReset,
+      verifyPassword,
+      changePassword,
+      updateMyPassword,
+      generateTerminalId,
+      uploadUserAvatar,
+      isPreviewMode,
+      displayUser
+    }}>
       {children}
     </EcosystemContext.Provider>
   );
