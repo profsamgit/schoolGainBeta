@@ -2,221 +2,117 @@
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import Link from 'next/link';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { useEcosystem } from '../ecosystem-context';
-import { User, Reward, EducationArticle, Participant, AuditLogEntry, SCHOOL_SECTORS, Turma, Curso, Cargo, SetorEscolar, Terminal, QuizTopic } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
-import {
-  Shield,
-  ShieldAlert,
-  UserPlus,
-  MoreHorizontal,
-  Edit,
-  Trash2,
-  Gift,
-  BookOpen,
-  BrainCircuit,
-  Info,
-  Lock,
-  Leaf,
-  History,
-  Cpu,
-  Monitor,
-  QrCode,
-  Rss,
-  Camera,
-  ArrowLeft,
-  School as SchoolIcon,
+import { 
+  Database, 
+  Users, 
+  BookOpen, 
+  Gift, 
+  Cpu, 
+  Shield, 
+  ShieldAlert, 
   Globe,
-  Plus,
-  Database,
-  Briefcase,
-  Building2,
-  GraduationCap,
-  Sparkles,
+  Lock,
   ShieldCheck,
-  User as UserIcon,
-  Users,
-  Settings2
+  Trash2
 } from 'lucide-react';
-import dynamic from 'next/dynamic';
+import Link from 'next/link';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 
-const QRScanner = dynamic(() => import('@/components/ui/qr-scanner'), { ssr: false });
-import PrintableBadge from '@/components/ecosystem/PrintableBadge';
-import { Printer, Download as DownloadIcon } from 'lucide-react';
-
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription, 
+  DialogFooter 
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { useEcosystem } from '@/app/(app)/ecosystem-context';
 import { EcosystemService } from '@/lib/ecosystem.service';
+import { 
+  User, 
+  Reward, 
+  EducationArticle, 
+  QuizTopic, 
+  Terminal, 
+  Turma, 
+  Curso, 
+  Cargo, 
+  SetorEscolar,
+  SCHOOL_SECTORS 
+} from '@/lib/types';
 
+// Import refactored sections
+import { PovoamentoSection } from './components/PovoamentoSection';
+import { AcademicSection } from './components/AcademicSection';
+import { PedagogicSection } from './components/PedagogicSection';
+import { EconomicSection } from './components/EconomicSection';
+import { InfraSection } from './components/InfraSection';
+
+// Schemas
 const userSchema = z.object({
-  id: z.string().optional(),
-  name: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres.').optional().or(z.literal('')),
-  email: z.string().optional().or(z.literal('')),
-  ra: z.string().min(1, 'O RA é obrigatório.'),
+  name: z.string().min(2, 'Nome muito curto'),
+  email: z.string().email('E-mail inválido').optional().or(z.literal('')),
+  ra: z.string().min(4, 'RA inválido'),
   rfid: z.string().optional(),
-  turma: z.string().optional().or(z.literal('')),
-  curso: z.string().optional().or(z.literal('')),
-  position: z.string().optional().or(z.literal('')),
-  role: z.enum(['student', 'admin', 'visitor'], { required_error: 'O cargo é obrigatório.' }),
-  password: z.string().optional().or(z.literal('')),
-  confirmPassword: z.string().optional().or(z.literal('')),
-}).superRefine((data, ctx) => {
-  // Validação simplificada: Senha apenas se for NOVO usuário e Admin
-  const isNew = !data.id;
-  
-  if (data.role === 'admin') {
-    if (!data.name || data.name.length < 3) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'O nome é obrigatório', path: ['name'] });
-    if (!data.position) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'O cargo é obrigatório', path: ['position'] });
-    if (!data.email || !data.email.includes('@')) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'E-mail inválido', path: ['email'] });
-    
-    if (isNew && (!data.password || data.password.length < 6)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Senha inicial obrigatória (mín. 6 chars)', path: ['password'] });
-    }
-  }
-
-  // Nome obrigatório para alunos
-  if (data.role === 'student' && (!data.name || data.name.length < 3)) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'O nome é obrigatório para alunos', path: ['name'] });
-  }
-
-  // Turma obrigatória para alunos e gestores (exceto visitantes)
-  if (data.role !== 'visitor' && !data.turma) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'O setor/turma é obrigatório', path: ['turma'] });
-  }
-  // Curso obrigatório para alunos
-  if (data.role === 'student' && !data.curso) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'O curso é obrigatório para alunos', path: ['curso'] });
-  }
-});
+  turma: z.string().optional(),
+  curso: z.string().optional(),
+  position: z.string().optional(),
+  role: z.enum(['student', 'admin', 'super_admin', 'visitor']),
+  password: z.string().min(6, 'Mínimo 6 caracteres').optional().or(z.literal('')),
+  confirmPassword: z.string().optional(),
+  avatar: z.string().optional(),
+}).refine((data) => {
+  if (data.password && data.password !== data.confirmPassword) return false;
+  return true;
+}, { message: "As senhas não coincidem", path: ["confirmPassword"] });
 
 const rewardSchema = z.object({
   id: z.string().optional(),
-  name: z.string().min(1, 'O nome da recompensa é obrigatório.'),
-  description: z.string().min(1, 'A descrição é obrigatória.'),
-  cost: z.coerce.number().min(0, 'O custo deve ser um número positivo.'),
-  image: z.string().url('Por favor, insira uma URL de imagem válida.'),
-  imageHint: z.string().min(1, 'Dica de imagem é obrigatória'),
+  name: z.string().min(3, 'Nome muito curto'),
+  description: z.string().min(5, 'Descrição muito curta'),
+  cost: z.coerce.number().min(1, 'Custo inválido'),
+  image: z.string().url('URL inválida').optional().or(z.literal('')),
+  imageHint: z.string().optional(),
 });
 
 const articleSchema = z.object({
   id: z.string().optional(),
-  slug: z.string().optional(),
-  title: z.string().min(1, 'O título do artigo é obrigatório.'),
-  summary: z.string().min(1, 'O resumo é obrigatório.'),
-  content: z.string().min(10, 'O conteúdo deve ter pelo menos 10 caracteres.'),
-  image: z.string().url('Por favor, insira uma URL de imagem válida.'),
-  imageHint: z.string().min(1, 'Dica de imagem é obrigatória'),
-  videoUrl: z.string().url('URL do vídeo inválida').optional().or(z.literal('')),
+  title: z.string().min(5, 'Título muito curto'),
+  summary: z.string().min(10, 'Resumo muito curto'),
+  content: z.string().min(20, 'Conteúdo muito curto'),
+  image: z.string().url('URL inválida').optional().or(z.literal('')),
+  imageHint: z.string().optional(),
+  videoUrl: z.string().url('URL inválida').optional().or(z.literal('')),
 });
 
-const participantSchema = z.object({
-  id: z.string().optional(),
-  name: z.string().min(1, 'O nome é obrigatório.'),
-  role: z.string().min(1, 'O cargo é obrigatório.'),
-  description: z.string().min(1, 'A descrição é obrigatória.'),
-  avatar: z.string().url('URL da foto inválida.'),
-  initials: z.string().min(1, 'As iniciais são obrigatórias.').max(3, 'Máximo de 3 iniciais.'),
-});
 
 type UserFormValues = z.infer<typeof userSchema>;
 type RewardFormValues = z.infer<typeof rewardSchema>;
 type ArticleFormValues = z.infer<typeof articleSchema>;
-type ParticipantFormValues = z.infer<typeof participantSchema>;
-
-  // Removido o estado de diálogos em favor da edição inline
 
 function AdminContent() {
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get('tab') || 'users';
+  const initialTab = searchParams.get('tab') || 'povoamento';
   const [activeTab, setActiveTab] = useState(initialTab);
-
-  useEffect(() => {
-    const tab = searchParams.get('tab');
-    if (tab) setActiveTab(tab);
-  }, [searchParams]);
-
-  const [hasMounted, setHasMounted] = useState(false);
-  useEffect(() => {
-    setHasMounted(true);
-    return () => {
-      document.body.style.pointerEvents = '';
-    };
-  }, []);
+  const { toast } = useToast();
 
   const { 
     users,
     allRewards: rewards,
     allArticles: articles,
     allQuizTopics: quizTopics,
-    allParticipants: participants,
     currentUser,
     updateUsers,
     updateRewards,
     updateArticles,
     updateQuizTopics,
-    updateParticipants,
     allTurmas,
     allCursos,
     allCargos,
@@ -230,69 +126,73 @@ function AdminContent() {
     systemSettings,
     updateSystemSettings,
     terminals,
-    updateTerminalStatus,
     updateTerminalSettings,
+    updateTerminalStatus,
     deleteTerminal,
     schools,
-    requestSchoolRegistration,
-    updateSchoolStatus,
-    deleteSchool,
-    changePassword,
-    updateMyPassword
+    uploadUserAvatar
   } = useEcosystem();
 
-  const { toast } = useToast();
-  const [newTopic, setNewTopic] = useState('');
-  
-  // Estados para Gestão de Turmas e Cursos
-  const [isTurmaDialogOpen, setIsTurmaDialogOpen] = useState(false);
-  const [isCursoDialogOpen, setIsCursoDialogOpen] = useState(false);
-  const [isCargoDialogOpen, setIsCargoDialogOpen] = useState(false);
-  const [isSetorDialogOpen, setIsSetorDialogOpen] = useState(false);
-  const [isTerminalDialogOpen, setIsTerminalDialogOpen] = useState(false);
-  const [editingTerminal, setEditingTerminal] = useState<Terminal | null>(null);
-
+  const [uploadingUserId, setUploadingUserId] = useState<string | null>(null);
+  const [hasMounted, setHasMounted] = useState(false);
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
 
   useEffect(() => {
+    setHasMounted(true);
+    const tab = searchParams.get('tab');
+    if (tab) setActiveTab(tab);
+
     async function getDevices() {
       try {
-        // Pede permissão primeiro para garantir que os nomes (labels) apareçam
         if (typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
           await navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
-              stream.getTracks().forEach(track => track.stop());
+            stream.getTracks().forEach(track => track.stop());
           }).catch(() => {});
-
           const devices = await navigator.mediaDevices.enumerateDevices();
-          const videoInputDevices = devices.filter(device => device.kind === 'videoinput');
-          setVideoDevices(videoInputDevices);
+          setVideoDevices(devices.filter(device => device.kind === 'videoinput'));
         }
-      } catch (error) {
-        console.error("Erro ao listar dispositivos:", error);
-      }
+      } catch (error) { console.error(error); }
     }
-
     getDevices();
-  }, []);
-  const [editingTurma, setEditingTurma] = useState<Turma | null>(null);
-  const [editingCurso, setEditingCurso] = useState<Curso | null>(null);
-  const [editingCargo, setEditingCargo] = useState<Cargo | null>(null);
-  const [editingSetor, setEditingSetor] = useState<SetorEscolar | null>(null);
-  const [turmaFormData, setTurmaFormData] = useState({ name: '', status: 'active' as 'active' | 'inactive' });
-  const [cursoFormData, setCursoFormData] = useState({ name: '', status: 'active' as 'active' | 'inactive' });
-  const [cargoFormData, setCargoFormData] = useState({ name: '', status: 'active' as 'active' | 'inactive' });
-  const [setorFormData, setSetorFormData] = useState({ name: '', status: 'active' as 'active' | 'inactive' });
+  }, [searchParams]);
 
-  // Point granting state
+  // States for shared dialogs/modals
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [mustChangePass, setMustChangePass] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isBadgeOpen, setIsBadgeOpen] = useState(false);
+
+  // States for form handling
+  const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
+  const [isNew, setIsNew] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [itemType, setItemType] = useState<'user' | 'reward' | 'article' | 'turma' | 'curso' | 'cargo' | 'setor' | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const [grantRa, setGrantRa] = useState('');
-  const [grantPointsValue, setGrantPointsValue] = useState(0);
-  const [grantSector, setGrantSector] = useState(SCHOOL_SECTORS[0] as string);
   const [grantAction, setGrantAction] = useState('');
+  const [grantPointsValue, setGrantPointsValue] = useState(0);
   const [grantPassword, setGrantPassword] = useState('');
 
-  // Estados para Busca em Recompensas e Artigos
+  const [passFormData, setPassFormData] = useState({ currentPass: '', newPass: '', confirmPass: '' });
+  const [badgeUser, setBadgeUser] = useState<User | null>(null);
+  const [newTopic, setNewTopic] = useState('');
+
+  // Search and Filters (Moved from page state but passed as props to maintain orchestration)
+  const [userSearch, setUserSearch] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState<'student' | 'admin' | 'visitor'>('student');
+  const [userTurmaFilter, setUserTurmaFilter] = useState('all');
   const [rewardSearch, setRewardSearch] = useState('');
   const [articleSearch, setArticleSearch] = useState('');
+
+  // Scanner States
+  const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
+  const [isSearchQRScannerOpen, setIsSearchQRScannerOpen] = useState(false);
+  const [isRFIDCapturing, setIsRFIDCapturing] = useState(false);
+
+  useEffect(() => {
+    if (currentUser?.mustChangePassword) setMustChangePass(true);
+  }, [currentUser]);
 
   const targetSchoolId = useMemo(() => {
     const qSchoolId = searchParams.get('schoolId');
@@ -302,206 +202,25 @@ function AdminContent() {
 
   const filteredUsersForAdmin = useMemo(() => {
     if (!targetSchoolId) return users;
-    // Filtra apenas usuários que pertencem à unidade selecionada
-    return users.filter(u => u.schoolId === targetSchoolId);
+    return users.filter((u: User) => u.schoolId === targetSchoolId);
   }, [users, targetSchoolId]);
 
-  const selectedStudent = useMemo(() => {
-    if (!grantRa) return null;
-    return filteredUsersForAdmin.find(u => u.ra === grantRa);
-  }, [grantRa, filteredUsersForAdmin]);
-
-  // Estados para Edição Inline (substitui os diálogos)
-  const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
-  const [isNew, setIsNew] = useState(false);
-  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-
-  const [selectedItem, setSelectedItem] = useState<any>(null);
-  const [itemType, setItemType] = useState<'user' | 'reward' | 'article' | 'participant' | 'turma' | 'curso' | 'cargo' | 'setor' | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [mustChangePass, setMustChangePass] = useState(false);
-
-  useEffect(() => {
-    if (currentUser?.mustChangePassword) {
-      setMustChangePass(true);
-    }
-  }, [currentUser]);
-  const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
-  const [isRFIDCapturing, setIsRFIDCapturing] = useState(false);
-
-  // Estados para Confirmação de Segurança (Ações sobre Gestores)
-  const [isSecurityOpen, setIsSecurityOpen] = useState(false);
-  const [securityPass, setSecurityPass] = useState('');
-  const [pendingAction, setPendingAction] = useState<{ type: 'save' | 'delete', data?: any }>({ type: 'save' });
   const filteredTerminalsForAdmin = useMemo(() => {
     if (!targetSchoolId) return terminals;
-    return terminals.filter(t => t.schoolId === targetSchoolId);
+    return terminals.filter((t: Terminal) => t.schoolId === targetSchoolId);
   }, [terminals, targetSchoolId]);
 
-  const filteredRewards = useMemo(() => {
-    // Mostra recompensas da escola atual.
-    // Super Admin vê tudo se não houver escola selecionada.
-    const list = rewards.filter(r => {
-      if (currentUser?.role === 'super_admin' && !searchParams.has('schoolId')) return true;
-      return r.schoolId === targetSchoolId;
-    });
+  const filteredTurmas = useMemo(() => allTurmas.filter((t: Turma) => !targetSchoolId || t.schoolId === targetSchoolId), [allTurmas, targetSchoolId]);
+  const filteredCursos = useMemo(() => allCursos.filter((c: Curso) => !targetSchoolId || c.schoolId === targetSchoolId), [allCursos, targetSchoolId]);
+  const filteredCargos = useMemo(() => allCargos.filter((c: Cargo) => !targetSchoolId || c.schoolId === targetSchoolId), [allCargos, targetSchoolId]);
+  const filteredSetores = useMemo(() => allSetores.filter((s: SetorEscolar) => !targetSchoolId || s.schoolId === targetSchoolId), [allSetores, targetSchoolId]);
 
-    if (!rewardSearch) return list;
-    return list.filter(r => r.name.toLowerCase().includes(rewardSearch.toLowerCase()));
-  }, [rewards, targetSchoolId, rewardSearch, currentUser, searchParams]);
+  // Forms
+  const userForm = useForm<UserFormValues>({ resolver: zodResolver(userSchema), defaultValues: { name: '', email: '', ra: '', rfid: '', turma: '', curso: '', role: 'student', password: '', confirmPassword: '', avatar: '' } });
+  const rewardForm = useForm<RewardFormValues>({ resolver: zodResolver(rewardSchema), defaultValues: { name: '', description: '', cost: 0, image: '', imageHint: '' } });
+  const articleForm = useForm<ArticleFormValues>({ resolver: zodResolver(articleSchema), defaultValues: { title: '', summary: '', content: '', image: '', imageHint: '', videoUrl: '' } });
 
-   const filteredArticles = useMemo(() => {
-    // Artigos são mostrados se pertencerem à escola atual. 
-    // Super Admin vê tudo se não houver escola selecionada.
-    const list = articles.filter(a => {
-      if (currentUser?.role === 'super_admin' && !searchParams.has('schoolId')) return true;
-      return a.schoolId === targetSchoolId;
-    });
-    
-    if (!articleSearch) return list;
-    return list.filter(a => a.title.toLowerCase().includes(articleSearch.toLowerCase()));
-  }, [articles, targetSchoolId, articleSearch, currentUser, searchParams]);
-
-  const filteredAuditLogs = useMemo(() => {
-    if (!targetSchoolId) return auditLogs;
-    return auditLogs.filter(log => log.schoolId === targetSchoolId);
-  }, [auditLogs, targetSchoolId]);
-
-  // Estados para Busca e Filtros de Usuários
-  const [userSearch, setUserSearch] = useState('');
-  const [userRoleFilter, setUserRoleFilter] = useState<'student' | 'admin' | 'visitor'>('student');
-  const [userTurmaFilter, setUserTurmaFilter] = useState('all');
-
-  // Estado para Geração de Crachá
-  const [isBadgeOpen, setIsBadgeOpen] = useState(false);
-  const [badgeUser, setBadgeUser] = useState<User | null>(null);
-
-  // Estados para Busca por Hardware no Admin
-  const [isSearchQRScannerOpen, setIsSearchQRScannerOpen] = useState(false);
-
-  // Garantir que apenas um scanner esteja aberto por vez
-  useEffect(() => {
-    if (isSearchQRScannerOpen) setIsQRScannerOpen(false);
-  }, [isSearchQRScannerOpen]);
-
-  useEffect(() => {
-    if (isQRScannerOpen) setIsSearchQRScannerOpen(false);
-  }, [isQRScannerOpen]);
-
-  // Password Change State
-  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
-  const [passFormData, setPassFormData] = useState({ currentPass: '', newPass: '', confirmPass: '' });
-
-  const handleUpdateUserPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const { currentPass, newPass, confirmPass } = passFormData;
-
-    if (newPass !== confirmPass) {
-      toast({ title: 'Erro', description: 'As senhas não coincidem.', variant: 'destructive' });
-      return;
-    }
-    
-    if (newPass.length < 6) {
-      toast({ title: 'Erro', description: 'Senha muito curta.', variant: 'destructive' });
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      // Se for troca obrigatória, não precisa da senha atual (porque é o primeiro acesso/reset)
-      if (!mustChangePass) {
-        const hashedAuth = await EcosystemService.hashPassword(currentPass);
-        if (currentUser?.password !== hashedAuth) {
-          toast({ title: 'Erro', description: 'Sua senha atual está incorreta.', variant: 'destructive' });
-          return;
-        }
-      }
-
-      const hashedNew = await EcosystemService.hashPassword(newPass);
-      const updatedUsers = users.map(u => u.id === (selectedItem?.id || currentUser?.id) ? { 
-        ...u, 
-        password: hashedNew,
-        mustChangePassword: false 
-      } : u);
-      
-      updateUsers(updatedUsers);
-      
-      toast({ title: 'Sucesso', description: 'Senha atualizada com sucesso!' });
-      setIsPasswordDialogOpen(false);
-      setMustChangePass(false);
-      setPassFormData({ currentPass: '', newPass: '', confirmPass: '' });
-    } catch (e) {
-      toast({ title: 'Erro', description: 'Falha ao atualizar senha.', variant: 'destructive' });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const filteredUsers = useMemo(() => {
-    return filteredUsersForAdmin.filter(u => {
-      const matchesSearch = u.name.toLowerCase().includes(userSearch.toLowerCase()) || 
-                           u.ra?.toLowerCase().includes(userSearch.toLowerCase());
-      const matchesRole = userRoleFilter === 'admin' 
-        ? (u.role === 'admin' || u.role === 'super_admin') 
-        : u.role === userRoleFilter;
-      const matchesTurma = userTurmaFilter === 'all' ? true : u.turma === userTurmaFilter;
-      return matchesSearch && matchesRole && matchesTurma;
-    });
-  }, [filteredUsersForAdmin, userSearch, userRoleFilter, userTurmaFilter]);
-
-  const filteredTurmas = useMemo(() => {
-    return allTurmas.filter(t => !targetSchoolId || t.schoolId === targetSchoolId);
-  }, [allTurmas, targetSchoolId]);
-
-  const filteredCursos = useMemo(() => {
-    return allCursos.filter(c => !targetSchoolId || c.schoolId === targetSchoolId);
-  }, [allCursos, targetSchoolId]);
-
-  const filteredCargos = useMemo(() => {
-    return allCargos.filter(c => !targetSchoolId || c.schoolId === targetSchoolId);
-  }, [allCargos, targetSchoolId]);
-
-  const filteredSetores = useMemo(() => {
-    return allSetores.filter(s => !targetSchoolId || s.schoolId === targetSchoolId);
-  }, [allSetores, targetSchoolId]);
-
-  const filteredQuizTopics = useMemo(() => {
-    return quizTopics.filter(t => !targetSchoolId || t.schoolId === targetSchoolId);
-  }, [quizTopics, targetSchoolId]);
-
-  const userForm = useForm<UserFormValues>({ 
-    resolver: zodResolver(userSchema),
-    defaultValues: { name: '', email: '', ra: '', rfid: '', turma: '', curso: '', role: 'student', password: '', confirmPassword: '' }
-  });
-  const rewardForm = useForm<RewardFormValues>({ 
-    resolver: zodResolver(rewardSchema),
-    defaultValues: { name: '', description: '', cost: 0, image: '', imageHint: '' }
-  });
-  const articleForm = useForm<ArticleFormValues>({ 
-    resolver: zodResolver(articleSchema),
-    defaultValues: { title: '', summary: '', content: '', image: '', imageHint: '', videoUrl: '' }
-  });
-  const participantForm = useForm<ParticipantFormValues>({ 
-    resolver: zodResolver(participantSchema),
-    defaultValues: { name: '', role: '', description: '', avatar: '', initials: '' }
-  });
-
-  const generateStrongPassword = () => {
-    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
-    let pass = "";
-    for (let i = 0; i < 12; i++) {
-      pass += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    userForm.setValue('password', pass, { shouldValidate: true });
-    userForm.setValue('confirmPassword', pass, { shouldValidate: true });
-    toast({ 
-      title: 'Senha Gerada!', 
-      description: `Sua nova senha é: ${pass}. POR FAVOR, ANOTE ESTA SENHA EM UM LUGAR SEGURO! Ela não será mostrada novamente.` 
-    });
-  };
-
-  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-
+  // Shared Handlers
   const closeAllForms = () => {
     setViewMode('list');
     setSelectedItem(null);
@@ -512,62 +231,52 @@ function AdminContent() {
     userForm.reset();
     rewardForm.reset();
     articleForm.reset();
-    participantForm.reset();
     setIsQRScannerOpen(false);
     setIsRFIDCapturing(false);
-    
-    // Garantia absoluta de que o body está destravado
     document.body.style.pointerEvents = 'auto';
     document.body.style.overflow = 'auto';
-  }
+  };
 
-  // Limpeza de segurança periódica para garantir pointer-events auto
-  useEffect(() => {
-    if (viewMode === 'list') {
-      document.body.style.pointerEvents = 'auto';
-      document.body.style.overflow = 'auto';
-    }
-  }, [viewMode]);
+  const handleQRDetected = (ra: string) => {
+    setUserSearch(ra);
+    setIsQRScannerOpen(false);
+    toast({ title: "Aluno Identificado", description: `RA: ${ra}` });
+  };
 
-  const handleNew = (type: 'user' | 'reward' | 'article' | 'participant') => {
+  const handleNew = (type: 'user' | 'reward' | 'article') => {
     setSelectedItem(null);
     setItemType(type);
     setIsNew(true);
     setViewMode('form');
-    
     if (type === 'user') {
       const defaultRole = userRoleFilter === 'admin' ? 'admin' : userRoleFilter === 'visitor' ? 'visitor' : 'student';
-      userForm.reset({ 
-        name: defaultRole === 'visitor' ? 'Visitante' : '', 
-        email: '', 
-        ra: '', 
-        rfid: '', 
-        turma: '', 
-        curso: '', 
-        position: '', 
-        role: defaultRole as any, 
-        password: '', 
-        confirmPassword: '' 
-      });
+      userForm.reset({ name: defaultRole === 'visitor' ? 'Visitante' : '', role: defaultRole as any, avatar: '' });
+    } else if (type === 'reward') {
+      rewardForm.reset({ id: `reward-${Date.now()}-${Math.random().toString(36).slice(-4)}`, name: '', description: '', cost: 0, image: '', imageHint: '' });
+    } else if (type === 'article') {
+      articleForm.reset({ id: `article-${Date.now()}-${Math.random().toString(36).slice(-4)}`, title: '', summary: '', content: '', image: '', imageHint: '', videoUrl: '' });
     }
-    if (type === 'reward') rewardForm.reset({ name: '', description: '', cost: 0, image: '', imageHint: '' });
-    if (type === 'article') articleForm.reset({ title: '', summary: '', content: '', image: '', imageHint: '', videoUrl: '' });
-    if (type === 'participant') participantForm.reset({ name: '', role: '', description: '', avatar: '', initials: '' });
   };
 
-  const handleEdit = (item: any, type: 'user' | 'reward' | 'article' | 'participant') => {
+  const handleEdit = (item: any, type: 'user' | 'reward' | 'article') => {
     setSelectedItem(item);
     setItemType(type);
     setIsNew(false);
     setViewMode('form');
-    
-    if (type === 'user') userForm.reset({ ...item, ra: item.ra.toUpperCase(), email: item.email || '', password: '', confirmPassword: '' });
+    if (type === 'user') userForm.reset({ 
+      ...item, 
+      ra: (item.ra || '').toUpperCase(), 
+      email: item.email || '',
+      position: item.position || '',
+      rfid: item.rfid || '',
+      password: '', 
+      confirmPassword: '' 
+    });
     if (type === 'reward') rewardForm.reset(item);
     if (type === 'article') articleForm.reset(item);
-    if (type === 'participant') participantForm.reset(item);
   };
 
-  const handleDelete = (item: any, type: 'user' | 'reward' | 'article' | 'participant' | 'turma' | 'curso' | 'cargo' | 'setor') => {
+  const handleDelete = (item: any, type: any) => {
     setSelectedItem(item);
     setItemType(type);
     setIsDeleteConfirmOpen(true);
@@ -577,21 +286,19 @@ function AdminContent() {
     if (!selectedItem || !itemType || isSubmitting) return;
     setIsSubmitting(true);
     try {
-      let updatedList: any[] = [];
-      switch (itemType) {
-        case 'user': updatedList = users.filter((i) => i.id !== selectedItem.id); updateUsers(updatedList); break;
-        case 'reward': updatedList = rewards.filter((i) => i.id !== selectedItem.id); updateRewards(updatedList); break;
-        case 'article': updatedList = articles.filter((i) => i.id !== selectedItem.id); updateArticles(updatedList); break;
-        case 'participant': updatedList = participants.filter((i) => i.id !== selectedItem.id); updateParticipants(updatedList); break;
-        case 'turma': updatedList = allTurmas.filter((i) => i.id !== selectedItem.id); updateTurmas(updatedList); break;
-        case 'curso': updatedList = allCursos.filter((i) => i.id !== selectedItem.id); updateCursos(updatedList); break;
-        case 'cargo': updatedList = allCargos.filter((i) => i.id !== selectedItem.id); updateCargos(updatedList); break;
-        case 'setor': updatedList = allSetores.filter((i) => i.id !== selectedItem.id); updateSetores(updatedList); break;
-      }
+      if (itemType === 'user') updateUsers(users.filter((i: User) => i.id !== selectedItem.id));
+      else if (itemType === 'reward') updateRewards(rewards.filter((i: Reward) => i.id !== selectedItem.id));
+      else if (itemType === 'article') updateArticles(articles.filter((i: EducationArticle) => i.id !== selectedItem.id));
+      else if (itemType === 'turma') updateTurmas(allTurmas.filter((i: Turma) => i.id !== selectedItem.id));
+      else if (itemType === 'curso') updateCursos(allCursos.filter((i: Curso) => i.id !== selectedItem.id));
+      else if (itemType === 'cargo') updateCargos(allCargos.filter((i: Cargo) => i.id !== selectedItem.id));
+      else if (itemType === 'setor') updateSetores(allSetores.filter((i: SetorEscolar) => i.id !== selectedItem.id));
+      
       toast({ title: 'Item Removido!', description: `${selectedItem.name || selectedItem.title} foi removido.` });
       closeAllForms();
     } catch (error) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível remover o item.' });
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -600,1885 +307,326 @@ function AdminContent() {
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      let payload = { ...values, ra: values.ra?.toUpperCase().trim(), schoolId: targetSchoolId };
-
-      // Se a senha estiver vazia em uma edição, removemos do payload para manter a atual
+      let payload = { ...values, ra: (values.ra || '').toUpperCase().trim(), schoolId: targetSchoolId };
       if (!isNew && itemType === 'user' && !values.password) {
         delete payload.password;
         delete payload.confirmPassword;
       }
-
-      // Criptografa a senha se estiver sendo definida para um gestor
-      if (itemType === 'user' && (values.role === 'admin' || values.role === 'super_admin') && payload.password) {
-        // Apenas faz o hash se não for já um hash (64 chars)
-        if (payload.password.length !== 64) {
-          payload.password = await EcosystemService.hashPassword(payload.password);
-          payload.confirmPassword = payload.password; 
-        }
-      }
-
-      // Se for visitante, define o nome padrão se estiver vazio
-      if (itemType === 'user' && values.role === 'visitor' && !values.name) {
-        payload.name = 'Visitante';
+      if (itemType === 'user' && (values.role === 'admin' || values.role === 'super_admin') && payload.password && payload.password.length !== 64) {
+        payload.password = await EcosystemService.hashPassword(payload.password);
+        payload.confirmPassword = payload.password;
       }
 
       if (itemType === 'user') {
-        const newUsers = isNew 
-          ? [...users, { ...payload, id: `user-${Date.now()}`, points: 0, level: 'Iniciante' } as User]
-          : users.map(u => u.id === selectedItem.id ? { ...u, ...payload } : u);
-        updateUsers(newUsers);
+        // Limpeza profunda do objeto para evitar 'undefined' no Firestore
+        const sanitizedPayload = Object.fromEntries(
+          Object.entries(payload).filter(([_, v]) => v !== undefined && v !== null)
+        );
+        await updateUsers(isNew ? [...users, { ...sanitizedPayload, id: `user-${Date.now()}-${Math.random().toString(36).slice(-4)}`, points: 0, level: 'Iniciante' } as unknown as User] : users.map(u => u.id === selectedItem.id ? { ...u, ...sanitizedPayload } as User : u));
       } else if (itemType === 'reward') {
-        const newRewards = isNew 
-          ? [...rewards, { ...payload, id: `reward-${Date.now()}` } as Reward]
-          : rewards.map(r => r.id === selectedItem.id ? { ...r, ...payload } : r);
-        updateRewards(newRewards);
+        const sanitizedPayload = Object.fromEntries(
+          Object.entries(payload).filter(([_, v]) => v !== undefined && v !== null)
+        );
+        await updateRewards(isNew ? [...rewards, { ...sanitizedPayload, id: `reward-${Date.now()}` } as unknown as Reward] : rewards.map(r => r.id === selectedItem.id ? { ...r, ...sanitizedPayload } as Reward : r));
       } else if (itemType === 'article') {
-        const newArticles = isNew 
-          ? [...articles, { ...payload, id: `article-${Date.now()}`, slug: values.title.toLowerCase().replace(/ /g, '-') } as EducationArticle]
-          : articles.map(a => a.id === selectedItem.id ? { ...a, ...payload } : a);
-        updateArticles(newArticles);
-      } else if (itemType === 'participant') {
-        const newParticipants = isNew 
-          ? [...participants, { ...payload, id: `participant-${Date.now()}` }]
-          : participants.map(p => p.id === selectedItem.id ? { ...p, ...payload } : p);
-        updateParticipants(newParticipants);
+        const sanitizedPayload = Object.fromEntries(
+          Object.entries(payload).filter(([_, v]) => v !== undefined && v !== null)
+        );
+        await updateArticles(isNew ? [...articles, { ...sanitizedPayload, id: `article-${Date.now()}`, slug: values.title.toLowerCase().replace(/ /g, '-') } as unknown as EducationArticle] : articles.map(a => a.id === selectedItem.id ? { ...a, ...sanitizedPayload } as EducationArticle : a));
       }
 
-      toast({ 
-        title: isNew ? 'Item Adicionado!' : 'Item Atualizado!', 
-        description: `${values.name || values.title} foi processado com sucesso.` 
-      });
+      toast({ title: isNew ? 'Item Adicionado!' : 'Item Atualizado!', description: `${values.name || values.title} foi processado.` });
       closeAllForms();
     } catch (error) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível salvar as alterações.' });
+      toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao salvar.' });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-   const handleAddTopic = () => {
-    if (newTopic && !quizTopics.some(t => t.name === newTopic && t.schoolId === targetSchoolId)) {
-      const newTopicObj: QuizTopic = { id: `topic-${Date.now()}`, name: newTopic, schoolId: targetSchoolId };
-      updateQuizTopics([...quizTopics, newTopicObj]);
-      setNewTopic('');
-      toast({ title: 'Tópico Adicionado!', description: `"${newTopic}" foi adicionado.` });
-    }
+  const handleUpdateUserPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const { currentPass, newPass, confirmPass } = passFormData;
+    if (newPass !== confirmPass) return toast({ title: 'Erro', description: 'Senhas não coincidem.', variant: 'destructive' });
+    setIsSubmitting(true);
+    try {
+      const hashedNew = await EcosystemService.hashPassword(newPass);
+      updateUsers(users.map(u => u.id === (selectedItem?.id || currentUser?.id) ? { ...u, password: hashedNew, mustChangePassword: false } : u));
+      toast({ title: 'Sucesso', description: 'Senha atualizada!' });
+      setIsPasswordDialogOpen(false);
+      setMustChangePass(false);
+      setPassFormData({ currentPass: '', newPass: '', confirmPass: '' });
+    } catch (e) {
+      toast({ title: 'Erro', description: 'Falha ao atualizar senha.', variant: 'destructive' });
+    } finally { setIsSubmitting(false); }
   };
 
-  const handleDeleteTopic = (topic: QuizTopic) => {
-    updateQuizTopics(quizTopics.filter(t => t.id !== topic.id));
-    toast({ title: 'Tópico Removido!', description: `"${topic.name}" foi removido.` });
+  const generateStrongPassword = () => {
+    const pass = Math.random().toString(36).slice(-10) + "!";
+    userForm.setValue('password', pass, { shouldValidate: true });
+    userForm.setValue('confirmPassword', pass, { shouldValidate: true });
+    toast({ title: 'Senha Gerada!', description: `Senha: ${pass}. ANOTE AGORA!` });
   };
 
-  const handleSaveTurma = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    let newTurmas;
-    if (editingTurma) {
-      newTurmas = allTurmas.map(t => t.id === editingTurma.id ? { ...t, ...turmaFormData } : t);
-    } else {
-      // Evita duplicatas por nome
-      if (allTurmas.some(t => t.name.toLowerCase() === turmaFormData.name.toLowerCase())) {
-        toast({ title: "Aviso", description: "Esta turma já existe.", variant: "destructive" });
-        return;
-      }
-      newTurmas = [...allTurmas, { id: `turma-${Date.now()}`, name: turmaFormData.name, status: turmaFormData.status, schoolId: targetSchoolId }];
-    }
-    updateTurmas(newTurmas);
-    setIsTurmaDialogOpen(false);
-    setEditingTurma(null);
-    setTurmaFormData({ name: '', status: 'active' });
-    toast({ title: "Sucesso", description: "Configuração de turma atualizada." });
-  };
-
-  const handleSaveCurso = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    let newCursos;
-    if (editingCurso) {
-      newCursos = allCursos.map(c => c.id === editingCurso.id ? { ...c, ...cursoFormData } : c);
-    } else {
-      // Evita duplicatas por nome
-      if (allCursos.some(c => c.name.toLowerCase() === cursoFormData.name.toLowerCase())) {
-        toast({ title: "Aviso", description: "Este curso já existe.", variant: "destructive" });
-        return;
-      }
-      newCursos = [...allCursos, { id: `curso-${Date.now()}`, name: cursoFormData.name, status: cursoFormData.status, schoolId: targetSchoolId }];
-    }
-    updateCursos(newCursos);
-    setIsCursoDialogOpen(false);
-    setEditingCurso(null);
-    setCursoFormData({ name: '', status: 'active' });
-    toast({ title: "Sucesso", description: "Configuração de curso atualizada." });
-  };
-
-  const handleSaveCargo = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    let newCargos;
-    if (editingCargo) {
-      newCargos = allCargos.map(c => c.id === editingCargo.id ? { ...c, ...cargoFormData } : c);
-    } else {
-      if (allCargos.some(c => c.name.toLowerCase() === cargoFormData.name.toLowerCase())) {
-        toast({ title: "Aviso", description: "Este cargo já existe.", variant: "destructive" });
-        return;
-      }
-      newCargos = [...allCargos, { id: `cargo-${Date.now()}`, name: cargoFormData.name, status: cargoFormData.status, schoolId: targetSchoolId }];
-    }
-    updateCargos(newCargos);
-    setIsCargoDialogOpen(false);
-    setEditingCargo(null);
-    setCargoFormData({ name: '', status: 'active' });
-    toast({ title: "Sucesso", description: "Cargo administrativo atualizado." });
-  };
-
-  const handleSaveSetor = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    let newSetores;
-    if (editingSetor) {
-      newSetores = allSetores.map(s => s.id === editingSetor.id ? { ...s, ...setorFormData } : s);
-    } else {
-      if (allSetores.some(s => s.name.toLowerCase() === setorFormData.name.toLowerCase())) {
-        toast({ title: "Aviso", description: "Este setor já existe.", variant: "destructive" });
-        return;
-      }
-      newSetores = [...allSetores, { id: `setor-${Date.now()}`, name: setorFormData.name, status: setorFormData.status, schoolId: targetSchoolId }];
-    }
-    updateSetores(newSetores);
-    setIsSetorDialogOpen(false);
-    setEditingSetor(null);
-    setSetorFormData({ name: '', status: 'active' });
-    toast({ title: "Sucesso", description: "Setor operacional atualizado." });
-  };
-
-  // Polling para capturar RFID quando o modo de captura está ativo
-  useEffect(() => {
-    if (!isRFIDCapturing || viewMode !== 'form') return;
-
-    const pollRFID = async () => {
-      try {
-        const res = await fetch(`/api/hardware/input?terminalId=${systemSettings.terminalId}`);
-        const data = await res.json();
-        if (data.ra) { // O hardware envia o código no campo 'ra'
-          userForm.setValue('rfid', data.ra);
-          setIsRFIDCapturing(false);
-          toast({ title: 'RFID Capturado!', description: `Código ${data.ra} detectado.` });
-        }
-      } catch (e) {
-        console.error("Erro no polling de RFID:", e);
-      }
-    };
-
-    const interval = setInterval(pollRFID, 2000);
-    return () => clearInterval(interval);
-  }, [isRFIDCapturing, viewMode, itemType, systemSettings.terminalId, userForm, toast]);
-
-  const handleGrantSubmit = () => {
-    const cleanRa = grantRa.toUpperCase().trim();
-    if (!cleanRa || grantPointsValue <= 0 || !grantAction || !grantPassword) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Preencha todos os campos, incluindo sua senha de gestor.' });
-      return;
-    }
-
-    grantPoints(cleanRa, grantPointsValue, grantSector, grantAction, currentUser?.name || 'Gestor', grantPassword, targetSchoolId).then(success => {
-      if (success) {
-        toast({ title: 'Pontos Atribuídos!', description: `${grantPointsValue} pontos foram dados para o aluno por: ${grantAction}.` });
-        setGrantRa('');
-        setGrantPointsValue(0);
-        setGrantAction('');
-        setGrantPassword('');
-      } else {
-        toast({ variant: 'destructive', title: 'Erro', description: 'Senha incorreta ou falha no sistema.' });
-      }
-    });
-  };
-
-  const handleBadgePrint = (userToPrint: any) => {
-    const badgeElement = document.getElementById(`badge-${userToPrint.id}`);
-    if (!badgeElement) return;
-
+  const handleBadgePrint = (user: User) => {
+    if (!user) return;
     const printWindow = window.open('', '_blank', 'width=850,height=600');
-    if (!printWindow) {
-      alert('Por favor, permita pop-ups para imprimir a carteira.');
-      return;
-    }
+    if (!printWindow) return;
 
-    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
-      .map(style => style.outerHTML)
-      .join('');
+    // Get all styles from current document
+    const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+      .map(node => node.outerHTML)
+      .join('\n');
 
     printWindow.document.write(`
       <html>
         <head>
-          <title>Imprimir Carteira</title>
+          <title>Crach - ${user.name}</title>
           ${styles}
           <style>
             @media print {
-              @page { size: landscape; margin: 0; }
+              @page { size: 85mm 55mm; margin: 0; }
               body { margin: 0; padding: 0; }
+              .no-print { display: none; }
             }
-            body {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              min-height: 100vh;
-              background-color: white !important;
-            }
-            .print-container {
-              transform: scale(1.5);
-              transform-origin: center center;
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
+            body { 
+              display: flex; 
+              justify-content: center; 
+              align-items: center; 
+              height: 100vh; 
+              background: white;
             }
           </style>
         </head>
         <body>
-          <div class="print-container">
-            ${badgeElement.outerHTML}
+          <div id="print-content">
+            <!-- A estrutura do PrintableBadge ser injetada aqui -->
           </div>
           <script>
-            window.onload = () => {
-              setTimeout(() => {
-                window.print();
-                setTimeout(() => window.close(), 500);
-              }, 800);
-            };
+            setTimeout(() => {
+              window.print();
+              setTimeout(() => window.close(), 100);
+            }, 1000);
           </script>
         </body>
       </html>
     `);
-    printWindow.document.close();
+    
+    // Inject current badge content
+    const badgeElement = document.querySelector('#badge-container') || document.querySelector('.printable-badge');
+    if (badgeElement && printWindow.document.getElementById('print-content')) {
+      printWindow.document.getElementById('print-content')!.innerHTML = badgeElement.innerHTML;
+    }
   };
+
+
+
+
 
   if (!hasMounted) return null;
   if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'super_admin')) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6 max-w-md mx-auto">
-        <div className="h-24 w-24 rounded-full bg-red-100 flex items-center justify-center text-red-600 animate-pulse">
-          <ShieldAlert className="h-12 w-12" />
-        </div>
-        <div className="space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight">Acesso Restrito</h2>
-          <p className="text-muted-foreground">Área exclusiva para gestores e administradores.</p>
-        </div>
-        <Button asChild size="lg"><Link href="/dashboard">Voltar para o Painel</Link></Button>
+        <ShieldAlert className="h-24 w-24 text-red-100" />
+        <h2 className="text-3xl font-bold">Acesso Restrito</h2>
+        <Button asChild><Link href="/dashboard">Voltar</Link></Button>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* BANNER DE CONTEXTO DO SUPER ADMIN */}
       {currentUser?.role === 'super_admin' && searchParams.has('schoolId') && (
-        <div className="bg-slate-900 text-white px-6 py-2 flex justify-between items-center sticky top-0 z-50 shadow-xl border-b border-white/10 animate-in slide-in-from-top duration-500">
-           <div className="flex items-center gap-3">
-              <div className="h-6 w-6 rounded-full bg-red-600 flex items-center justify-center animate-pulse">
-                 <Shield className="h-3 w-3 text-white" />
-              </div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em]">
-                 Modo de Gestão: <span className="text-red-500">{schools.find(s => s.id === targetSchoolId)?.name}</span>
-              </p>
-           </div>
+        <div className="bg-slate-900 text-white px-6 py-2 flex justify-between items-center sticky top-0 z-50">
+          <p className="text-[10px] font-black uppercase tracking-widest">Modo Super Admin: <span className="text-red-500">{schools.find(s => s.id === targetSchoolId)?.name}</span></p>
         </div>
       )}
 
       <div className="p-6 space-y-8 max-w-7xl mx-auto">
-      <div className="space-y-2">
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-black uppercase tracking-tighter flex items-center gap-2">
-              <Shield className="h-8 w-8 text-primary" /> Painel do Gestor
-            </h1>
-            <p className="text-muted-foreground font-medium">Gestão Operacional: {schools.find(s => s.id === currentUser.schoolId)?.name || 'Unidade SchoolGain'}</p>
+            <h1 className="text-3xl font-black uppercase tracking-tighter flex items-center gap-2"><Shield className="h-8 w-8 text-primary" /> Painel do Gestor</h1>
+            <p className="text-muted-foreground font-medium">{schools.find(s => s.id === currentUser.schoolId)?.name || 'Unidade SchoolGain'}</p>
           </div>
           {currentUser.role === 'super_admin' && (
-            <Button asChild variant="outline" size="sm" className="bg-slate-900 text-white hover:bg-black hover:text-white gap-2">
-              <Link href="/super-admin"><Globe className="h-4 w-4" /> Central de Rede</Link>
-            </Button>
+            <Button asChild variant="outline" size="sm" className="bg-slate-900 text-white"><Link href="/super-admin" className="flex gap-2 items-center"><Globe className="h-4 w-4" /> Rede</Link></Button>
           )}
         </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 h-auto gap-1 bg-slate-100 p-1">
+            <TabsTrigger value="povoamento" className="uppercase font-black text-[10px] py-3"><Database className="mr-2 h-4 w-4"/> Povoamento</TabsTrigger>
+            <TabsTrigger value="academic" className="uppercase font-black text-[10px] py-3"><Users className="mr-2 h-4 w-4"/> Acadêmico</TabsTrigger>
+            <TabsTrigger value="pedagogic" className="uppercase font-black text-[10px] py-3"><BookOpen className="mr-2 h-4 w-4"/> Pedagógico</TabsTrigger>
+            <TabsTrigger value="economic" className="uppercase font-black text-[10px] py-3"><Gift className="mr-2 h-4 w-4"/> Econômico</TabsTrigger>
+            <TabsTrigger value="infra" className="uppercase font-black text-[10px] py-3"><Cpu className="mr-2 h-4 w-4"/> Infra</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="povoamento">
+            <PovoamentoSection 
+              allTurmas={allTurmas} 
+              allCursos={allCursos} 
+              allCargos={allCargos} 
+              allSetores={allSetores}
+              targetSchoolId={targetSchoolId}
+              updateTurmas={updateTurmas}
+              updateCursos={updateCursos}
+              updateCargos={updateCargos}
+              updateSetores={updateSetores}
+              handleDelete={handleDelete}
+            />
+          </TabsContent>
+
+          <TabsContent value="academic">
+            <AcademicSection 
+              users={users} filteredUsersForAdmin={filteredUsersForAdmin} allTurmas={allTurmas} allCursos={allCursos} allCargos={allCargos} allSetores={allSetores}
+              filteredTurmas={filteredTurmas} filteredSetores={filteredSetores} filteredCursos={filteredCursos}
+              viewMode={viewMode} itemType={itemType} isNew={isNew} isSubmitting={isSubmitting} userForm={userForm}
+              onSubmit={onSubmit} handleEdit={handleEdit} handleDelete={handleDelete} handleNew={handleNew} closeAllForms={closeAllForms}
+              isBadgeOpen={isBadgeOpen} setIsBadgeOpen={setIsBadgeOpen} badgeUser={badgeUser} setBadgeUser={setBadgeUser}
+              handleBadgePrint={handleBadgePrint}
+              userSearch={userSearch}
+              setUserSearch={setUserSearch}
+              userRoleFilter={userRoleFilter}
+              setUserRoleFilter={setUserRoleFilter}
+              userTurmaFilter={userTurmaFilter}
+              setUserTurmaFilter={setUserTurmaFilter}
+              isQRScannerOpen={isQRScannerOpen}
+              setIsQRScannerOpen={setIsQRScannerOpen}
+              isRFIDCapturing={isRFIDCapturing} setIsRFIDCapturing={setIsRFIDCapturing} isSearchQRScannerOpen={isSearchQRScannerOpen} setIsSearchQRScannerOpen={setIsSearchQRScannerOpen}
+              generateStrongPassword={generateStrongPassword} isPasswordDialogOpen={isPasswordDialogOpen} setIsPasswordDialogOpen={setIsPasswordDialogOpen}
+              targetSchoolId={targetSchoolId} isDeleteConfirmOpen={isDeleteConfirmOpen} selectedItem={selectedItem}
+              setSelectedItem={setSelectedItem}
+              uploadUserAvatar={uploadUserAvatar}
+              uploadingUserId={uploadingUserId}
+              setUploadingUserId={setUploadingUserId}
+              handleQRDetected={handleQRDetected}
+              confirmDelete={onConfirmDelete}
+              setIsDeleteConfirmOpen={setIsDeleteConfirmOpen}
+            />
+          </TabsContent>
+
+          <TabsContent value="pedagogic">
+            <PedagogicSection 
+              articles={articles} quizTopics={quizTopics} viewMode={viewMode} itemType={itemType} isNew={isNew} isSubmitting={isSubmitting}
+              articleForm={articleForm} onSubmit={onSubmit} handleEdit={handleEdit} handleDelete={handleDelete} handleNew={handleNew}
+              closeAllForms={closeAllForms} articleSearch={articleSearch} setArticleSearch={setArticleSearch} newTopic={newTopic} setNewTopic={setNewTopic}
+              handleAddTopic={() => {
+                if (newTopic) {
+                  updateQuizTopics([...quizTopics, { id: `topic-${Date.now()}`, name: newTopic, schoolId: targetSchoolId }]);
+                  setNewTopic('');
+                }
+              }}
+              handleDeleteTopic={(topic) => updateQuizTopics(quizTopics.filter(t => t.id !== topic.id))}
+              isDeleteConfirmOpen={isDeleteConfirmOpen} setIsDeleteConfirmOpen={setIsDeleteConfirmOpen} selectedItem={selectedItem} onConfirmDelete={onConfirmDelete}
+              uploadUserAvatar={uploadUserAvatar}
+              uploadingUserId={uploadingUserId}
+              setUploadingUserId={setUploadingUserId}
+            />
+          </TabsContent>
+
+          <TabsContent value="economic">
+            <EconomicSection 
+              rewards={rewards} auditLogs={auditLogs} filteredUsersForAdmin={filteredUsersForAdmin}
+              viewMode={viewMode} itemType={itemType} isNew={isNew} isSubmitting={isSubmitting} rewardForm={rewardForm}
+              onSubmit={onSubmit} handleEdit={handleEdit} handleDelete={handleDelete} handleNew={handleNew} closeAllForms={closeAllForms}
+              rewardSearch={rewardSearch} setRewardSearch={setRewardSearch}
+              grantRa={grantRa} setGrantRa={setGrantRa}
+              grantAction={grantAction} setGrantAction={setGrantAction}
+              grantPointsValue={grantPointsValue} setGrantPointsValue={setGrantPointsValue}
+              grantPassword={grantPassword} setGrantPassword={setGrantPassword}
+              handleGrantSubmit={() => {
+                grantPoints(grantRa, grantPointsValue, 'Geral', grantAction, currentUser?.name || 'Gestor', grantPassword, targetSchoolId).then(success => {
+                  if (success) {
+                    toast({ title: 'Pontos Atribuídos!' });
+                    setGrantRa(''); setGrantAction(''); setGrantPointsValue(0); setGrantPassword('');
+                  } else toast({ variant: 'destructive', title: 'Erro' });
+                });
+              }}
+              isDeleteConfirmOpen={isDeleteConfirmOpen} setIsDeleteConfirmOpen={setIsDeleteConfirmOpen} selectedItem={selectedItem} onConfirmDelete={onConfirmDelete}
+              uploadUserAvatar={uploadUserAvatar}
+              uploadingUserId={uploadingUserId}
+              setUploadingUserId={setUploadingUserId}
+            />
+          </TabsContent>
+
+          <TabsContent value="infra">
+            <InfraSection 
+              systemSettings={systemSettings} 
+              updateSystemSettings={updateSystemSettings} 
+              videoDevices={videoDevices}
+              filteredTerminalsForAdmin={filteredTerminalsForAdmin}
+              deleteTerminal={deleteTerminal}
+              updateTerminalStatus={updateTerminalStatus}
+              updateTerminalSettings={updateTerminalSettings}
+              currentUser={currentUser}
+              toast={toast}
+            />
+          </TabsContent>
+
+        </Tabs>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 h-auto gap-1 bg-slate-100 p-1">
-            <TabsTrigger value="povoamento" className="uppercase font-black text-[10px] tracking-widest py-3 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">
-              <Database className="mr-2 h-4 w-4"/> Povoamento
-            </TabsTrigger>
-            <TabsTrigger value="academic" className="uppercase font-black text-[10px] tracking-widest py-3 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">
-              <Users className="mr-2 h-4 w-4"/> Setor Acadêmico
-            </TabsTrigger>
-            <TabsTrigger value="pedagogic" className="uppercase font-black text-[10px] tracking-widest py-3 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">
-              <BookOpen className="mr-2 h-4 w-4"/> Setor Pedagógico
-            </TabsTrigger>
-            <TabsTrigger value="economic" className="uppercase font-black text-[10px] tracking-widest py-3 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">
-              <Gift className="mr-2 h-4 w-4"/> Setor Econômico
-            </TabsTrigger>
-            <TabsTrigger value="infra" className="uppercase font-black text-[10px] tracking-widest py-3 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">
-              <Cpu className="mr-2 h-4 w-4"/> Infraestrutura
-            </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="povoamento" className="space-y-6">
-           <div className="grid gap-6 md:grid-cols-2">
-                {/* GESTÃO DE TURMAS */}
-                <Card className="border-none shadow-sm overflow-hidden bg-white">
-                  <CardHeader className="flex flex-row items-center justify-between pb-4">
-                    <div className="flex items-center gap-3">
-                      <Users className="h-5 w-5 text-indigo-600" />
-                      <CardTitle className="text-sm font-black uppercase tracking-widest">Séries e Turmas</CardTitle>
-                    </div>
-                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0"
-                      onClick={() => {
-                        setEditingTurma(null);
-                        setTurmaFormData({ name: '', status: 'active' });
-                        setIsTurmaDialogOpen(true);
-                      }}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {allTurmas?.map((turma, idx) => (
-                        <div key={turma.id || `turma-${idx}`} className="flex items-center justify-between p-2 bg-slate-50 border border-slate-100 rounded-lg hover:border-indigo-200 transition-all group">
-                          <div className="flex items-center gap-3">
-                            <span className={`h-1.5 w-1.5 rounded-full ${turma.status === 'active' ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
-                            <span className={`text-xs font-bold ${turma.status === 'inactive' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{turma.name}</span>
-                          </div>
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-indigo-600"
-                              onClick={() => {
-                                setEditingTurma(turma);
-                                setTurmaFormData({ name: turma.name, status: turma.status });
-                                setIsTurmaDialogOpen(true);
-                              }}>
-                              <Edit className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-red-600"
-                              onClick={() => handleDelete(turma, 'turma')}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                      {allTurmas?.length === 0 && <p className="text-[10px] text-muted-foreground text-center py-4">Nenhuma turma cadastrada.</p>}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* GESTÃO DE CURSOS */}
-                <Card className="border-none shadow-sm overflow-hidden bg-white">
-                  <CardHeader className="flex flex-row items-center justify-between pb-4">
-                    <div className="flex items-center gap-3">
-                      <GraduationCap className="h-5 w-5 text-amber-600" />
-                      <CardTitle className="text-sm font-black uppercase tracking-widest">Cursos Técnicos</CardTitle>
-                    </div>
-                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0"
-                      onClick={() => {
-                        setEditingCurso(null);
-                        setCursoFormData({ name: '', status: 'active' });
-                        setIsCursoDialogOpen(true);
-                      }}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {allCursos?.map((curso, idx) => (
-                        <div key={curso.id || `curso-${idx}`} className="flex items-center justify-between p-2 bg-slate-50 border border-slate-100 rounded-lg hover:border-indigo-200 transition-all group">
-                          <div className="flex items-center gap-3">
-                            <span className={`h-1.5 w-1.5 rounded-full ${curso.status === 'active' ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
-                            <span className={`text-xs font-bold ${curso.status === 'inactive' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{curso.name}</span>
-                          </div>
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-indigo-600"
-                              onClick={() => {
-                                setEditingCurso(curso);
-                                setCursoFormData({ name: curso.name, status: curso.status });
-                                setIsCursoDialogOpen(true);
-                              }}>
-                              <Edit className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-red-600"
-                              onClick={() => handleDelete(curso, 'curso')}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                      {allCursos?.length === 0 && <p className="text-[10px] text-muted-foreground text-center py-4">Nenhum curso cadastrado.</p>}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* GESTÃO DE CARGOS */}
-                <Card className="border-none shadow-sm overflow-hidden bg-white">
-                  <CardHeader className="flex flex-row items-center justify-between pb-4">
-                    <div className="flex items-center gap-3">
-                      <Briefcase className="h-5 w-5 text-rose-600" />
-                      <CardTitle className="text-sm font-black uppercase tracking-widest">Cargos Operacionais</CardTitle>
-                    </div>
-                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0"
-                      onClick={() => {
-                        setEditingCargo(null);
-                        setCargoFormData({ name: '', status: 'active' });
-                        setIsCargoDialogOpen(true);
-                      }}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {allCargos?.map((cargo, idx) => (
-                        <div key={cargo.id || `cargo-${idx}`} className="flex items-center justify-between p-2 bg-slate-50 border border-slate-100 rounded-lg hover:border-indigo-200 transition-all group">
-                          <div className="flex items-center gap-3">
-                            <span className={`h-1.5 w-1.5 rounded-full ${cargo.status === 'active' ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
-                            <span className={`text-xs font-bold ${cargo.status === 'inactive' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{cargo.name}</span>
-                          </div>
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-indigo-600"
-                              onClick={() => {
-                                setEditingCargo(cargo);
-                                setCargoFormData({ name: cargo.name, status: cargo.status });
-                                setIsCargoDialogOpen(true);
-                              }}>
-                              <Edit className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-red-600"
-                              onClick={() => handleDelete(cargo, 'cargo')}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* GESTÃO DE SETORES */}
-                <Card className="border-none shadow-sm overflow-hidden bg-white">
-                  <CardHeader className="flex flex-row items-center justify-between pb-4">
-                    <div className="flex items-center gap-3">
-                      <Building2 className="h-5 w-5 text-emerald-600" />
-                      <CardTitle className="text-sm font-black uppercase tracking-widest">Setores / Departamentos</CardTitle>
-                    </div>
-                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0"
-                      onClick={() => {
-                        setEditingSetor(null);
-                        setSetorFormData({ name: '', status: 'active' });
-                        setIsSetorDialogOpen(true);
-                      }}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {allSetores?.map((setor, idx) => (
-                        <div key={setor.id || `setor-${idx}`} className="flex items-center justify-between p-2 bg-slate-50 border border-slate-100 rounded-lg hover:border-indigo-200 transition-all group">
-                          <div className="flex items-center gap-3">
-                            <span className={`h-1.5 w-1.5 rounded-full ${setor.status === 'active' ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
-                            <span className={`text-xs font-bold ${setor.status === 'inactive' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{setor.name}</span>
-                          </div>
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-indigo-600"
-                              onClick={() => {
-                                setEditingSetor(setor);
-                                setSetorFormData({ name: setor.name, status: setor.status });
-                                setIsSetorDialogOpen(true);
-                              }}>
-                              <Edit className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-red-600"
-                              onClick={() => handleDelete(setor, 'setor')}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-           </div>
-        </TabsContent>
-
-        <TabsContent value="academic" className="space-y-6">
-          {viewMode === 'form' && itemType === 'user' ? (
-            <Card className="border-primary/20 bg-primary/5">
-              <CardHeader className="flex flex-row items-center justify-between border-b bg-white/50">
-                <div>
-                  <CardTitle>{isNew ? 'Cadastrar Novo Agente' : 'Editar Dados do Agente'}</CardTitle>
-                  <CardDescription>
-                    {isNew ? (
-                      allTurmas.length === 0 || allCursos.length === 0 || allCargos.length === 0 || allSetores.length === 0 ? (
-                        <span className="text-rose-500 font-bold uppercase text-[10px] animate-pulse">Atenção: Povoamento de dados incompleto para novos cadastros.</span>
-                      ) : 'Preencha as informações de identificação e escolaridade.'
-                    ) : 'Preencha as informações de identificação e escolaridade.'}
-                  </CardDescription>
-                </div>
-                <Button variant="ghost" onClick={closeAllForms}><ArrowLeft className="mr-2 h-4 w-4" />Voltar para a Lista</Button>
-              </CardHeader>
-              <CardContent className="pt-6 bg-white/30">
-                <Form {...userForm}>
-                  <form onSubmit={userForm.handleSubmit(onSubmit)} className="space-y-4 max-w-2xl mx-auto">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {userForm.watch('role') !== 'visitor' ? (
-                        <FormField control={userForm.control} name="name" render={({ field }) => (
-                          <FormItem><FormLabel>Nome Completo</FormLabel><FormControl><Input {...field} placeholder="Ex: João Silva" className="bg-white" /></FormControl><FormMessage /></FormItem>
-                        )} />
-                      ) : (
-                        <div className="space-y-2">
-                          <Label>Perfil de Visitante</Label>
-                          <Input value="Visitante (Padrão)" disabled className="bg-slate-50 text-muted-foreground" />
-                        </div>
-                      )}
-                      {userForm.watch('role') === 'admin' && (
-                        <FormField control={userForm.control} name="email" render={({ field }) => (
-                          <FormItem><FormLabel>E-mail de Acesso</FormLabel><FormControl><Input {...field} type="email" placeholder="gestor@escola.com" className="bg-white" /></FormControl><FormMessage /></FormItem>
-                        )} />
-                      )}
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                            <div className="flex gap-4 items-end">
-                                <FormField control={userForm.control} name="ra" render={({ field }) => (
-                                <FormItem className="flex-1">
-                                    <FormLabel>RA (Identificação QR)</FormLabel>
-                                    <FormControl><Input {...field} className="bg-white font-mono" /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )} />
-                                <Button type="button" variant="outline" size="icon" className={`mb-[2px] ${isQRScannerOpen ? 'bg-primary text-white' : 'bg-white'}`} onClick={() => setIsQRScannerOpen(!isQRScannerOpen)}>
-                                    <QrCode className="h-4 w-4" />
-                                </Button>
-                            </div>
-
-                            {isQRScannerOpen && (
-                                <div className="border-2 border-primary rounded-lg p-2 bg-black space-y-2 overflow-hidden animate-in fade-in zoom-in duration-200">
-                                    <div className="flex justify-between items-center px-2">
-                                        <span className="text-[10px] text-white font-bold uppercase tracking-widest">Câmera Ativa: Aponte o QR Code</span>
-                                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-white hover:text-red-400" onClick={() => setIsQRScannerOpen(false)}>×</Button>
-                                    </div>
-                                    <QRScanner onScan={(text) => {
-                                        userForm.setValue('ra', text);
-                                        setIsQRScannerOpen(false);
-                                        toast({ title: 'RA Capturado!', description: `Código: ${text}` });
-                                    }} />
-                                </div>
-                            )}
-
-                            {userForm.watch('role') !== 'visitor' && (
-                                <div className="flex gap-4 items-end">
-                                    <FormField control={userForm.control} name="rfid" render={({ field }) => (
-                                    <FormItem className="flex-1">
-                                        <FormLabel>ID do Cartão (RFID)</FormLabel>
-                                        <FormControl><Input {...field} placeholder="Aguardando aproximação..." className="bg-white font-mono" /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                    )} />
-                                    <Button type="button" variant={isRFIDCapturing ? 'destructive' : 'outline'} size="icon" className={`mb-[2px] ${isRFIDCapturing ? 'animate-pulse' : 'bg-white'}`} onClick={() => setIsRFIDCapturing(!isRFIDCapturing)}>
-                                        <Rss className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="space-y-4">
-                            {userForm.watch('role') === 'admin' && (
-                              <FormField control={userForm.control} name="position" render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Cargo Administrativo</FormLabel>
-                                  <Select onValueChange={field.onChange} value={field.value}>
-                                    <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione o cargo" /></SelectTrigger>
-                                    <SelectContent>
-                                      {allCargos.filter(c => c.status === 'active').map(c => (
-                                        <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
-                                      ))}
-                                      {allCargos.length === 0 && <SelectItem value="none" disabled>Nenhum cargo cadastrado</SelectItem>}
-                                    </SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )} />
-                            )}
-
-                            {userForm.watch('role') !== 'visitor' && (
-                              <FormField control={userForm.control} name="turma" render={({ field }) => (
-                                  <FormItem>
-                                      <FormLabel>{userForm.watch('role') === 'student' ? 'Turma' : 'Setor / Departamento'}</FormLabel>
-                                      <Select onValueChange={field.onChange} value={field.value}>
-                                          <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                          <SelectContent>
-                                              {userForm.watch('role') === 'student' ? (
-                                                  filteredTurmas.filter(t => t.status === 'active').map(t => <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>)
-                                              ) : (
-                                                  filteredSetores.filter(s => s.status === 'active').map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)
-                                              )}
-                                          </SelectContent>
-                                      </Select>
-                                      <FormMessage />
-                                  </FormItem>
-                              )} />
-                            )}
-                            {userForm.watch('role') === 'student' && (
-                              <FormField control={userForm.control} name="curso" render={({ field }) => (
-                                  <FormItem>
-                                      <FormLabel>Curso</FormLabel>
-                                      <Select onValueChange={field.onChange} value={field.value}>
-                                          <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione o curso" /></SelectTrigger>
-                                          <SelectContent>
-                                              {filteredCursos.filter(c => c.status === 'active' && c.name !== 'Gestão Escolar').map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
-                                          </SelectContent>
-                                      </Select>
-                                      <FormMessage />
-                                  </FormItem>
-                              )} />
-                            )}
-                            {/* Cargo no Sistema unificado com Cargo Administrativo e oculto para visitantes */}
-                            {userForm.watch('role') === 'admin' && isNew && (
-                              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-4">
-                                <div className="flex justify-between items-center">
-                                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Senha Inicial</Label>
-                                  <Button type="button" variant="ghost" size="sm" onClick={generateStrongPassword} className="h-7 text-[10px] font-bold uppercase tracking-tighter text-primary">
-                                    <Sparkles className="h-3 w-3 mr-1" /> Gerar Forte
-                                  </Button>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  <FormField control={userForm.control} name="password" render={({ field }) => (
-                                    <FormItem><FormLabel>Definir Senha</FormLabel><FormControl><Input {...field} type="password" placeholder="Mínimo 6 caracteres" className="bg-white" /></FormControl><FormMessage /></FormItem>
-                                  )} />
-                                  <FormField control={userForm.control} name="confirmPassword" render={({ field }) => (
-                                    <FormItem><FormLabel>Confirmar</FormLabel><FormControl><Input {...field} type="password" placeholder="Repita a senha" className="bg-white" /></FormControl><FormMessage /></FormItem>
-                                  )} />
-                                </div>
-                              </div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="flex justify-end gap-4 pt-6 border-t mt-6">
-                        <Button type="button" variant="ghost" onClick={closeAllForms} disabled={isSubmitting}>Cancelar</Button>
-                        <Button type="submit" size="lg" disabled={isSubmitting} className="px-8">{isSubmitting ? 'Salvando...' : 'Confirmar e Salvar'}</Button>
-                    </div>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-6">
-              <Card>
-                {/* MODAL DE CARTEIRA */}
-                <Dialog open={isBadgeOpen} onOpenChange={setIsBadgeOpen}>
-                  <DialogContent className="max-w-[400px]">
-                    <DialogHeader>
-                      <DialogTitle>Gerar Identificador</DialogTitle>
-                      <CardDescription>Visualize e imprima a Carteira do sistema.</CardDescription>
-                    </DialogHeader>
-                    <div className="py-4">
-                      {badgeUser && <PrintableBadge user={badgeUser} />}
-                    </div>
-                    <DialogFooter className="flex gap-2 sm:justify-center">
-                      <Button variant="outline" onClick={() => setIsBadgeOpen(false)}>Fechar</Button>
-                      <Button onClick={() => handleBadgePrint(badgeUser)} className="gap-2">
-                        <Printer className="h-4 w-4" /> Imprimir / Salvar PDF
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-                <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div>
-                    <CardTitle>Usuários</CardTitle>
-                    <CardDescription>Gestão de alunos e equipe escolar.</CardDescription>
-                  </div>
-                  {targetSchoolId && (
-                    <Button onClick={() => handleNew('user')} className="bg-primary hover:bg-primary/90 shadow-md transition-all">
-                      <UserPlus className="mr-2 h-4 w-4" />Novo {userRoleFilter === 'admin' ? 'Gestor' : userRoleFilter === 'visitor' ? 'Visitante' : 'Aluno'}
-                    </Button>
-                  )}
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* BARRA DE FERRAMENTAS DE BUSCA E FILTRO */}
-                  <div className="flex flex-col md:flex-row gap-4 p-4 bg-muted/30 rounded-xl border border-muted-foreground/10">
-                    <div className="flex-1">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1 block">Pesquisar</Label>
-                        <div className="flex gap-2">
-                          <div className="relative flex-1">
-                            <Input 
-                              placeholder="Buscar por nome ou RA..." 
-                              value={userSearch} 
-                              onChange={(e) => setUserSearch(e.target.value)}
-                              className="bg-white pr-10"
-                            />
-                            {userSearch && (
-                              <button onClick={() => setUserSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 font-bold">×</button>
-                            )}
-                          </div>
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            className={`bg-white shrink-0 ${isSearchQRScannerOpen ? 'border-primary text-primary' : ''}`}
-                            onClick={() => setIsSearchQRScannerOpen(!isSearchQRScannerOpen)}
-                          >
-                            <QrCode className="h-4 w-4" />
-                          </Button>
-                        </div>
-                    </div>
-                    
-                    <div className="w-full md:w-64">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1 block">Filtrar por Turma</Label>
-                        <Select value={userTurmaFilter} onValueChange={setUserTurmaFilter}>
-                          <SelectTrigger className="bg-white">
-                            <SelectValue placeholder="Todas as Turmas" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">Todas as Turmas</SelectItem>
-                            {filteredTurmas.map((t, idx) => (
-                              <SelectItem key={t.id || `filter-t-${idx}`} value={t.name}>{t.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                    </div>
-                  </div>
-
-                  {/* SUB-ABAS PARA SEPARAR ALUNOS E GESTORES */}
-                  <Tabs value={userRoleFilter} onValueChange={(v: any) => setUserRoleFilter(v)} className="w-full">
-                    <TabsList className="grid w-full grid-cols-3 mb-4">
-                      <TabsTrigger value="student" className="gap-2 uppercase font-black text-[10px] tracking-widest">Alunos ({filteredUsersForAdmin.filter(u => u.role === 'student').length})</TabsTrigger>
-                      <TabsTrigger value="admin" className="gap-2 uppercase font-black text-[10px] tracking-widest">Gestores ({filteredUsersForAdmin.filter(u => u.role === 'admin' || u.role === 'super_admin').length})</TabsTrigger>
-                      <TabsTrigger value="visitor" className="gap-2 uppercase font-black text-[10px] tracking-widest">Visitantes ({filteredUsersForAdmin.filter(u => u.role === 'visitor').length})</TabsTrigger>
-                    </TabsList>
-                    
-                    <div className="rounded-md border bg-white overflow-hidden">
-                      <Table>
-                        <TableHeader className="bg-slate-50">
-                          <TableRow>
-                            <TableHead className="font-black uppercase text-[10px] tracking-wider">Nome</TableHead>
-                            <TableHead className="font-black uppercase text-[10px] tracking-wider">RA / ID</TableHead>
-                            <TableHead className="font-black uppercase text-[10px] tracking-wider">Turma / Setor</TableHead>
-                            <TableHead className="font-black uppercase text-[10px] tracking-wider">Status</TableHead>
-                            <TableHead className="text-right font-black uppercase text-[10px] tracking-wider">Ações</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredUsers.length > 0 ? filteredUsers.map((user) => (
-                            <TableRow key={user.id} className={isDeleteConfirmOpen && selectedItem?.id === user.id ? 'bg-red-50' : 'hover:bg-slate-50 transition-colors'}>
-                              <TableCell className="font-semibold text-slate-900">{user.name}</TableCell>
-                              <TableCell className="font-mono text-xs">{user.ra}</TableCell>
-                              <TableCell className="text-slate-600">
-                                {user.position ? (
-                                  <div className="flex flex-col">
-                                    <span className="font-bold text-primary text-[10px] uppercase">{user.position}</span>
-                                    <span className="text-[11px]">{user.turma}</span>
-                                  </div>
-                                ) : user.turma}
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className="uppercase text-[9px] font-black tracking-widest">
-                                  {user.role === 'super_admin' ? 'Rede' : user.role === 'admin' ? 'Gestor' : user.role === 'visitor' ? 'Visitante' : 'Aluno'}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex justify-end gap-2">
-                                  <Button variant="outline" size="sm" onClick={() => { setBadgeUser(user as any); setIsBadgeOpen(true); }} className="h-8 px-2 gap-1 text-[10px] uppercase font-black tracking-tighter">
-                                    <QrCode className="h-3 w-3" /> Carteira
-                                  </Button>
-                                  <div className="flex justify-end gap-2">
-                                     {user.role === 'admin' && (
-                                       <Button 
-                                         variant="ghost" 
-                                         size="icon" 
-                                         title="Trocar Senha"
-                                         className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-50"
-                                         onClick={() => {
-                                           setSelectedItem(user);
-                                           setIsPasswordDialogOpen(true);
-                                         }}
-                                       >
-                                          <Lock className="h-4 w-4" />
-                                       </Button>
-                                     )}
-                                     <Button 
-                                       variant="ghost" 
-                                       size="icon" 
-                                       title="Editar"
-                                       className="h-8 w-8 text-slate-400 hover:text-slate-900"
-                                       onClick={() => handleEdit(user, 'user')}
-                                     >
-                                        <Edit className="h-4 w-4" />
-                                     </Button>
-                                     <Button 
-                                       variant="ghost" 
-                                       size="icon" 
-                                       title="Excluir"
-                                       className="h-8 w-8 text-slate-400 hover:text-red-600"
-                                       onClick={() => handleDelete(user, 'user')}
-                                     >
-                                        <Trash2 className="h-4 w-4" />
-                                     </Button>
-                                  </div>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          )) : (
-                            <TableRow>
-                              <TableCell colSpan={5} className="text-center py-12 text-muted-foreground italic uppercase text-xs tracking-widest">
-                                Nenhum {userRoleFilter === 'admin' ? 'gestor' : 'aluno'} encontrado para os filtros atuais.
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </Tabs>
-
-                 </CardContent>
-              </Card>
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="infra" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card className="border-2 border-emerald-100 shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 uppercase tracking-tighter font-black text-sm">
-                  <UserIcon className="h-5 w-5 text-emerald-600" /> Acesso do Aluno (Portal)
-                </CardTitle>
-                <CardDescription>Configure como os alunos acessam o Portal Web.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Método de Login Ativo</Label>
-                  <Select 
-                    value={systemSettings.studentLoginMethod} 
-                    onValueChange={(v: any) => updateSystemSettings({...systemSettings, studentLoginMethod: v})}
-                  >
-                    <SelectTrigger className="bg-white font-bold"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Tudo (RA e QR Code)</SelectItem>
-                      <SelectItem value="manual">Apenas Manual (RA)</SelectItem>
-                      <SelectItem value="qr">Apenas QR Code</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-4 pt-2 border-t border-emerald-100">
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Fonte da Câmera</Label>
-                    <Select 
-                      value={systemSettings.studentCaptureSource || 'browser'} 
-                      onValueChange={(v: any) => updateSystemSettings({...systemSettings, studentCaptureSource: v})}
-                    >
-                      <SelectTrigger className="bg-white font-bold h-9"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="browser">Webcam do Sistema</SelectItem>
-                        <SelectItem value="esp32">ESP32-CAM (IP)</SelectItem>
-                        <SelectItem value="url">Stream Externo (URL)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {systemSettings.studentCaptureSource === 'browser' ? (
-                    <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Dispositivo de Captura</Label>
-                      <Select 
-                        value={systemSettings.studentCaptureDevice || 'default'} 
-                        onValueChange={(v: any) => updateSystemSettings({...systemSettings, studentCaptureDevice: v})}
-                      >
-                        <SelectTrigger className="bg-white font-bold h-9"><SelectValue placeholder="Selecione a câmera" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="default">Automático (Padrão)</SelectItem>
-                          {videoDevices.map(device => (
-                            <SelectItem key={device.deviceId} value={device.deviceId}>
-                              {device.label || `Câmera ${device.deviceId.slice(0, 5)}`}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  ) : (
-                    <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Endereço / URL do Stream</Label>
-                      <Input 
-                        placeholder={systemSettings.studentCaptureSource === 'esp32' ? "Ex: 192.168.1.50" : "http://server.com/stream"}
-                        value={systemSettings.studentCaptureUrl || ''}
-                        onChange={(e) => updateSystemSettings({...systemSettings, studentCaptureUrl: e.target.value})}
-                        className="bg-white font-bold h-9 text-xs"
-                      />
-                    </div>
-                  )}
-                </div>
-                <div className="p-3 bg-emerald-50 rounded-lg text-[10px] text-emerald-700 font-bold uppercase tracking-wider">
-                  Configuração aplicada ao login web do aluno.
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-2 border-rose-100 shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 uppercase tracking-tighter font-black text-sm">
-                  <ShieldCheck className="h-5 w-5 text-rose-600" /> Painel de Gestão (Admin)
-                </CardTitle>
-                <CardDescription>Segurança e acesso para administradores e gestores.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Método de Autenticação</Label>
-                  <Select 
-                    value={systemSettings.adminLoginMethod} 
-                    onValueChange={(v: any) => updateSystemSettings({...systemSettings, adminLoginMethod: v})}
-                  >
-                    <SelectTrigger className="bg-white font-bold"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Tudo (Senha, QR e RFID)</SelectItem>
-                      <SelectItem value="manual">Apenas Senha</SelectItem>
-                      <SelectItem value="qr">Apenas QR Code Master</SelectItem>
-                      <SelectItem value="rfid">Apenas RFID (Crachá)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-4 pt-2 border-t border-rose-100">
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Fonte da Câmera</Label>
-                    <Select 
-                      value={systemSettings.adminCaptureSource || 'browser'} 
-                      onValueChange={(v: any) => updateSystemSettings({...systemSettings, adminCaptureSource: v})}
-                    >
-                      <SelectTrigger className="bg-white font-bold h-9"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="browser">Webcam do Sistema</SelectItem>
-                        <SelectItem value="esp32">ESP32-CAM (IP)</SelectItem>
-                        <SelectItem value="url">Stream Externo (URL)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {systemSettings.adminCaptureSource === 'browser' ? (
-                    <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Dispositivo de Captura</Label>
-                      <Select 
-                        value={systemSettings.adminCaptureDevice || 'default'} 
-                        onValueChange={(v: any) => updateSystemSettings({...systemSettings, adminCaptureDevice: v})}
-                      >
-                        <SelectTrigger className="bg-white font-bold h-9"><SelectValue placeholder="Selecione a câmera" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="default">Automático (Padrão)</SelectItem>
-                          {videoDevices.map(device => (
-                            <SelectItem key={device.deviceId} value={device.deviceId}>
-                              {device.label || `Câmera ${device.deviceId.slice(0, 5)}`}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  ) : (
-                    <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Endereço / URL do Stream</Label>
-                      <Input 
-                        placeholder={systemSettings.adminCaptureSource === 'esp32' ? "Ex: 192.168.1.50" : "http://server.com/stream"}
-                        value={systemSettings.adminCaptureUrl || ''}
-                        onChange={(e) => updateSystemSettings({...systemSettings, adminCaptureUrl: e.target.value})}
-                        className="bg-white font-bold h-9 text-xs"
-                      />
-                    </div>
-                  )}
-                </div>
-                <div className="p-3 bg-rose-50 rounded-lg text-[10px] text-rose-700 font-bold uppercase tracking-wider">
-                  Recomendado: Híbrido para máxima redundância.
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2 uppercase tracking-tighter font-black text-sm"><Monitor className="h-5 w-5 text-primary" /> Gestão de Totens</CardTitle>
-                  <CardDescription>Gerencie terminais físicos e solicitações de acesso da sua unidade.</CardDescription>
-                </div>
-                <Badge variant="outline" className="gap-2 bg-emerald-50 text-emerald-700 border-emerald-200">
-                  <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                  Rede Conectada
-                </Badge>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* SOLICITAÇÕES PENDENTES */}
-                {filteredTerminalsForAdmin.filter(t => t.status === 'pending').length > 0 && (
-                   <div className="space-y-4">
-                      <h3 className="text-xs font-black uppercase tracking-widest text-amber-600 flex items-center gap-2">
-                         <ShieldAlert className="h-4 w-4" /> Solicitações Pendentes
-                      </h3>
-                      <div className="grid gap-4">
-                        {filteredTerminalsForAdmin.filter(t => t.status === 'pending').map(terminal => (
-                           <div key={terminal.id} className="flex items-center justify-between p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                              <div className="flex items-center gap-4">
-                                 <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
-                                    <Monitor className="h-5 w-5" />
-                                 </div>
-                                 <div>
-                                    <p className="font-bold text-amber-900 leading-none mb-1">{terminal.location}</p>
-                                    <div className="flex flex-col gap-0.5">
-                                       <p className="text-[10px] font-black text-amber-800 uppercase">ID do Terminal: {terminal.id}</p>
-                                       <p className="text-[9px] font-mono text-amber-600/70">Hardware: {terminal.hardwareId}</p>
-                                    </div>
-                                 </div>
-                              </div>
-                              <div className="flex gap-2">
-                                 <Button size="sm" variant="outline" onClick={() => deleteTerminal(terminal.id)} className="bg-white text-red-600 border-red-200">Recusar</Button>
-                                 <Button size="sm" onClick={() => {
-                                    updateTerminalStatus(terminal.id, 'active', currentUser.schoolId || 'system-global');
-                                    toast({ title: "Terminal Autorizado", description: `O totem em ${terminal.location} está ativo.` });
-                                 }} className="bg-amber-600 hover:bg-amber-700">Autorizar Acesso</Button>
-                              </div>
-                           </div>
-                        ))}
-                      </div>
-                   </div>
-                )}
-
-                {/* TABELA DE TERMINAIS ATIVOS */}
-                <div className="space-y-4">
-                  <div className="rounded-md border bg-white overflow-hidden">
-                    <Table>
-                      <TableHeader className="bg-slate-50">
-                        <TableRow>
-                          <TableHead className="font-black uppercase text-[10px] tracking-wider">Localização</TableHead>
-                          <TableHead className="font-black uppercase text-[10px] tracking-wider">ID do Terminal</TableHead>
-                          <TableHead className="font-black uppercase text-[10px] tracking-wider text-right">Status</TableHead>
-                          <TableHead className="text-right font-black uppercase text-[10px] tracking-wider">Ações</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredTerminalsForAdmin.filter(t => t.status !== 'pending').length > 0 ? filteredTerminalsForAdmin.filter(t => t.status !== 'pending').map((terminal) => (
-                          <TableRow key={terminal.id}>
-                            <TableCell className="font-bold text-slate-900">{terminal.location}</TableCell>
-                            <TableCell>
-                              <div className="flex flex-col">
-                                <span className="font-mono text-xs font-black text-primary">{terminal.id}</span>
-                                <span className="text-[9px] text-slate-400 font-medium">HW: {terminal.hardwareId}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Badge variant={terminal.status === 'active' ? 'default' : 'secondary'} className={`uppercase text-[9px] font-black tracking-widest ${terminal.status === 'active' ? 'bg-emerald-500' : ''}`}>
-                                {terminal.status === 'active' ? 'Online' : 'Offline'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right flex justify-end gap-2">
-                               <Button variant="ghost" size="sm" onClick={() => {
-                                  setEditingTerminal(terminal);
-                                  setIsTerminalDialogOpen(true);
-                               }} className="text-amber-600 h-8 w-8 p-0">
-                                  <Settings2 className="h-4 w-4" />
-                               </Button>
-                               <Button variant="ghost" size="sm" onClick={() => deleteTerminal(terminal.id)} className="text-red-600 h-8 w-8 p-0">
-                                  <Trash2 className="h-4 w-4" />
-                               </Button>
-                            </TableCell>
-                          </TableRow>
-                        )) : (
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-center py-12 text-muted-foreground italic text-xs uppercase tracking-widest">
-                               Nenhum terminal cadastrado nesta unidade.
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-              </CardContent>
-           </Card>
-        </TabsContent>
-
-
-        <TabsContent value="economic" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-3">
-              <Card className="bg-emerald-900 text-white overflow-hidden relative">
-                  <CardHeader className="pb-2">
-                      <CardTitle className="text-[10px] uppercase font-black tracking-[0.2em] text-emerald-400 opacity-80">Saldo da Unidade</CardTitle>
-                  </CardHeader>
-                   <CardContent>
-                      <div className="flex items-baseline gap-2">
-                          <span className="text-4xl font-black">{filteredUsersForAdmin.reduce((acc, curr) => acc + (curr.points || 0), 0).toLocaleString('pt-BR')}</span>
-                          <span className="text-xs font-bold text-emerald-400">BIO-COINS</span>
-                      </div>
-                      <div className="absolute top-[-20px] right-[-20px] opacity-10 rotate-12"><Leaf className="h-32 w-32" /></div>
-                  </CardContent>
-              </Card>
-              <Card className="bg-slate-900 text-white">
-                  <CardHeader className="pb-2">
-                      <CardTitle className="text-[10px] uppercase font-black tracking-[0.2em] text-slate-400">Total de Prêmios</CardTitle>
-                  </CardHeader>
-                   <CardContent>
-                      <div className="flex items-baseline gap-2">
-                          <span className="text-4xl font-black">{filteredRewards.length}</span>
-                          <span className="text-xs font-bold text-slate-400">ATIVOS</span>
-                      </div>
-                  </CardContent>
-              </Card>
-              <Card className="bg-slate-900 text-white">
-                  <CardHeader className="pb-2">
-                      <CardTitle className="text-[10px] uppercase font-black tracking-[0.2em] text-slate-400">Transações</CardTitle>
-                  </CardHeader>
-                   <CardContent>
-                      <div className="flex items-baseline gap-2">
-                          <span className="text-4xl font-black">{filteredAuditLogs.length}</span>
-                          <span className="text-xs font-bold text-slate-400">REGISTROS</span>
-                      </div>
-                  </CardContent>
-              </Card>
-          </div>
-
-          {viewMode === 'form' && itemType === 'reward' ? (
-            <Card className="border-primary/20 bg-primary/5">
-              <CardHeader className="flex flex-row items-center justify-between border-b bg-white/50">
-                <div><CardTitle>{isNew ? 'Nova Recompensa' : 'Editar Recompensa'}</CardTitle><CardDescription>Defina o prêmio e o custo em Bio-Coins.</CardDescription></div>
-                <Button variant="ghost" onClick={closeAllForms}><ArrowLeft className="mr-2 h-4 w-4" />Voltar</Button>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <Form {...rewardForm}><form onSubmit={rewardForm.handleSubmit(onSubmit)} className="space-y-4 max-w-2xl mx-auto">
-                  <FormField control={rewardForm.control} name="name" render={({ field }) => (
-                    <FormItem><FormLabel>Nome do Prêmio</FormLabel><FormControl><Input {...field} className="bg-white" /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <FormField control={rewardForm.control} name="description" render={({ field }) => (
-                    <FormItem><FormLabel>Descrição Detalhada</FormLabel><FormControl><Textarea {...field} className="bg-white" /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField control={rewardForm.control} name="cost" render={({ field }) => (
-                      <FormItem><FormLabel>Custo (Bio-Coins)</FormLabel><FormControl><Input type="number" {...field} className="bg-white" /></FormControl><FormMessage /></FormItem>
-                    )} />
-                    <FormField control={rewardForm.control} name="imageHint" render={({ field }) => (
-                      <FormItem><FormLabel>Dica Visual (Emoji/Icon)</FormLabel><FormControl><Input {...field} placeholder="Ex: 🎁" className="bg-white" /></FormControl><FormMessage /></FormItem>
-                    )} />
-                  </div>
-                  <FormField control={rewardForm.control} name="image" render={({ field }) => (
-                    <FormItem><FormLabel>URL da Imagem Ilustrativa</FormLabel><FormControl><Input {...field} className="bg-white" /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <div className="flex justify-end gap-4 pt-4 border-t mt-6">
-                    <Button type="button" variant="ghost" onClick={closeAllForms}>Cancelar</Button>
-                    <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Salvando...' : 'Salvar Recompensa'}</Button>
-                  </div>
-                </form></Form>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-6">
-                {/* RECONHECIMENTO DE MÉRITO (NOVO POSITION) */}
-                <Card className="border-emerald-100 shadow-sm bg-emerald-50/20">
-                  <CardHeader className="pb-4"><CardTitle className="flex items-center gap-2 uppercase tracking-tighter text-emerald-700 font-black text-sm"><Leaf className="h-5 w-5" /> Reconhecimento de Mérito</CardTitle></CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="md:col-span-1 space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Identificar Aluno (RA)</Label>
-                        <Select onValueChange={setGrantRa} value={grantRa}>
-                          <SelectTrigger className="bg-white border-emerald-200"><SelectValue placeholder="Selecione o aluno..." /></SelectTrigger>
-                          <SelectContent>{filteredUsersForAdmin.filter(u => u.role === 'student').map(u => <SelectItem key={u.id} value={u.ra || ''}>{u.name} ({u.ra})</SelectItem>)}</SelectContent>
-                        </Select>
-                      </div>
-                      <div className="md:col-span-1 space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Descrição da Ação</Label>
-                        <Input placeholder="Ex: Ajudou na horta..." value={grantAction} onChange={(e) => setGrantAction(e.target.value)} className="bg-white border-emerald-200" />
-                      </div>
-                      <div className="md:col-span-1 flex gap-2 items-end">
-                        <div className="flex-1 space-y-2">
-                          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">PTS</Label>
-                          <Input type="number" value={grantPointsValue} onChange={(e) => setGrantPointsValue(Number(e.target.value))} className="bg-white border-emerald-200" />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Sua Senha (Gestor)</Label>
-                          <Input type="password" value={grantPassword} onChange={(e) => setGrantPassword(e.target.value)} placeholder="Confirme para autorizar" className="bg-white border-emerald-200" />
-                        </div>
-                        <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={handleGrantSubmit}><Plus className="h-4 w-4" /></Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <div><CardTitle>Recompensas</CardTitle><CardDescription>Catálogo de prêmios por pontos.</CardDescription></div>
-                    <Button onClick={() => handleNew('reward')}><Gift className="mr-2 h-4 w-4" />Nova Recompensa</Button>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="p-4 bg-muted/30 rounded-xl border border-muted-foreground/10">
-                       <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1 block">Pesquisar Prêmio</Label>
-                       <Input placeholder="Buscar por nome..." value={rewardSearch} onChange={(e) => setRewardSearch(e.target.value)} className="bg-white" />
-                    </div>
-                    
-                    {isDeleteConfirmOpen && itemType === 'reward' && selectedItem && (
-                      <div className="mb-6 p-4 border-2 border-red-200 bg-red-50 rounded-lg">
-                        <div className="flex items-center justify-between">
-                            <p className="font-bold text-red-900">Excluir "{selectedItem.name}"?</p>
-                            <div className="flex gap-2">
-                                <Button variant="outline" size="sm" onClick={() => setIsDeleteConfirmOpen(false)}>Não</Button>
-                                <Button variant="destructive" size="sm" onClick={onConfirmDelete}>Sim, Excluir</Button>
-                            </div>
-                        </div>
-                      </div>
-                    )}
-                    <Table>
-                      <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Custo</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
-                      <TableBody>
-                        {filteredRewards.length > 0 ? filteredRewards.map((reward) => (
-                          <TableRow key={reward.id} className={isDeleteConfirmOpen && selectedItem?.id === reward.id ? 'bg-red-50' : ''}>
-                            <TableCell className="font-medium">{reward.name}</TableCell>
-                            <TableCell>{reward.cost} Bio-Coins</TableCell>
-                            <TableCell className="text-right">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild><Button variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => handleEdit(reward, 'reward')}><Edit className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleDelete(reward, 'reward')} className="text-red-600"><Trash2 className="mr-2 h-4 w-4" />Excluir</DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                        )) : (
-                          <TableRow><TableCell colSpan={3} className="text-center py-12 text-muted-foreground italic">Nenhuma recompensa encontrada.</TableCell></TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader><CardTitle className="flex items-center gap-2 uppercase tracking-tighter"><History className="h-6 w-6 text-primary" /> Histórico de Transações</CardTitle><CardDescription>Auditoria completa de atribuição de pontos na unidade.</CardDescription></CardHeader>
-                    <CardContent>
-                    <Table>
-                        <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Aluno</TableHead><TableHead>Ação Realizada</TableHead><TableHead>Setor</TableHead><TableHead>Gestor</TableHead><TableHead className="text-right">Bônus</TableHead></TableRow></TableHeader>
-                        <TableBody>
-                        {filteredAuditLogs.map((log) => (
-                            <TableRow key={log.id}>
-                            <TableCell className="text-[10px] text-slate-500">{new Date(log.timestamp).toLocaleString('pt-BR')}</TableCell>
-                            <TableCell className="font-bold">{log.studentName}</TableCell>
-                            <TableCell className="text-xs italic text-slate-600">{log.action}</TableCell>
-                            <TableCell><Badge variant="outline" className="text-[10px] uppercase font-black tracking-tighter">{log.sector}</Badge></TableCell>
-                            <TableCell className="italic text-slate-400 text-xs">{log.adminName}</TableCell>
-                            <TableCell className="text-right font-black text-emerald-600">+{log.points} PTS</TableCell>
-                            </TableRow>
-                        ))}
-                        {filteredAuditLogs.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-12 text-slate-400 uppercase text-[10px] font-black tracking-widest">Sem transações registradas nesta unidade.</TableCell></TableRow>}
-                        </TableBody>
-                    </Table>
-                    </CardContent>
-                </Card>
-            </div>
-          )}
-        </TabsContent>
-
-         <TabsContent value="pedagogic" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-3">
-              <Card className="bg-indigo-900 text-white overflow-hidden relative">
-                  <CardHeader className="pb-2">
-                      <CardTitle className="text-[10px] uppercase font-black tracking-[0.2em] text-indigo-400 opacity-80">Conteúdo Educativo</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                      <div className="flex items-baseline gap-2">
-                          <span className="text-4xl font-black">{filteredArticles.length}</span>
-                          <span className="text-xs font-bold text-indigo-400">ARTIGOS</span>
-                      </div>
-                      <div className="absolute top-[-20px] right-[-20px] opacity-10 rotate-12"><BookOpen className="h-32 w-32" /></div>
-                  </CardContent>
-              </Card>
-              <Card className="bg-slate-900 text-white">
-                  <CardHeader className="pb-2">
-                      <CardTitle className="text-[10px] uppercase font-black tracking-[0.2em] text-slate-400">Banco de Desafios</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                      <div className="flex items-baseline gap-2">
-                          <span className="text-4xl font-black">{quizTopics.length}</span>
-                          <span className="text-xs font-bold text-slate-400">TÓPICOS</span>
-                      </div>
-                  </CardContent>
-              </Card>
-              <Card className="bg-slate-900 text-white">
-                  <CardHeader className="pb-2">
-                      <CardTitle className="text-[10px] uppercase font-black tracking-[0.2em] text-slate-400">Base de Vídeos</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                      <div className="flex items-baseline gap-2">
-                          <span className="text-4xl font-black">{filteredArticles.filter(a => a.videoUrl).length}</span>
-                          <span className="text-xs font-bold text-slate-400">MULTIMÍDIA</span>
-                      </div>
-                  </CardContent>
-              </Card>
-          </div>
-
-          <Card>
-              <CardHeader><CardTitle className="text-sm font-black uppercase tracking-widest text-slate-500">Tópicos de Quiz</CardTitle><CardDescription>Geração automática de desafios para os alunos.</CardDescription></CardHeader>
-              <CardContent className="space-y-4">
-                  <div className="flex gap-2">
-                      <Input placeholder="Novo tópico (ex: Reciclagem)" value={newTopic} onChange={(e) => setNewTopic(e.target.value)} className="bg-white" />
-                      <Button onClick={handleAddTopic}><Plus className="h-4 w-4" /></Button>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                      {filteredQuizTopics.map((topic, idx) => (
-                          <Badge key={`${topic.id}-${idx}`} variant="secondary" className="pr-1 bg-white border border-slate-200 text-slate-700 font-bold">{topic.name}<Button size="icon" variant="ghost" className="h-4 w-4 ml-1 hover:text-red-500" onClick={() => handleDeleteTopic(topic)}><Trash2 className="h-3 w-3"/></Button></Badge>
-                      ))}
-                  </div>
-              </CardContent>
-          </Card>
-
-          {viewMode === 'form' && itemType === 'article' ? (
-            <Card className="border-primary/20 bg-primary/5">
-              <CardHeader className="flex flex-row items-center justify-between border-b bg-white/50">
-                <div><CardTitle>{isNew ? 'Novo Artigo' : 'Editar Artigo'}</CardTitle><CardDescription>Conteúdo educativo para os alunos.</CardDescription></div>
-                <Button variant="ghost" onClick={closeAllForms}><ArrowLeft className="mr-2 h-4 w-4" />Voltar</Button>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <Form {...articleForm}><form onSubmit={articleForm.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField control={articleForm.control} name="title" render={({ field }) => (
-                    <FormItem><FormLabel>Título</FormLabel><FormControl><Input {...field} className="bg-white text-lg font-bold" /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <FormField control={articleForm.control} name="summary" render={({ field }) => (
-                    <FormItem><FormLabel>Resumo (aparece no card)</FormLabel><FormControl><Textarea {...field} className="bg-white" /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <FormField control={articleForm.control} name="content" render={({ field }) => (
-                    <FormItem><FormLabel>Conteúdo do Artigo</FormLabel><FormControl><Textarea {...field} className="min-h-[200px] bg-white" /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField control={articleForm.control} name="image" render={({ field }) => (
-                      <FormItem><FormLabel>URL da Imagem</FormLabel><FormControl><Input {...field} className="bg-white" /></FormControl><FormMessage /></FormItem>
-                    )} />
-                    <FormField control={articleForm.control} name="imageHint" render={({ field }) => (
-                      <FormItem><FormLabel>Emoji/Dica</FormLabel><FormControl><Input {...field} className="bg-white" /></FormControl><FormMessage /></FormItem>
-                    )} />
-                  </div>
-                  <FormField control={articleForm.control} name="videoUrl" render={({ field }) => (
-                    <FormItem><FormLabel>URL do Vídeo (Opcional)</FormLabel><FormControl><Input {...field} className="bg-white" /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <div className="flex justify-end gap-4 pt-4 border-t mt-6">
-                    <Button type="button" variant="ghost" onClick={closeAllForms}>Cancelar</Button>
-                    <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Salvando...' : 'Publicar Artigo'}</Button>
-                  </div>
-                </form></Form>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div><CardTitle>Conteúdo</CardTitle><CardDescription>Artigos pedagógicos e vídeos.</CardDescription></div>
-                <Button onClick={() => handleNew('article')}><BookOpen className="mr-2 h-4 w-4" />Novo Artigo</Button>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="p-4 bg-muted/30 rounded-xl border border-muted-foreground/10">
-                   <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1 block">Pesquisar Artigo</Label>
-                   <Input placeholder="Buscar por título..." value={articleSearch} onChange={(e) => setArticleSearch(e.target.value)} className="bg-white" />
-                </div>
-
-                {isDeleteConfirmOpen && itemType === 'article' && selectedItem && (
-                  <div className="mb-6 p-4 border-2 border-red-200 bg-red-50 rounded-lg flex items-center justify-between">
-                    <p className="font-bold text-red-900">Remover artigo "{selectedItem.title}"?</p>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => setIsDeleteConfirmOpen(false)}>Não</Button>
-                      <Button variant="destructive" size="sm" onClick={onConfirmDelete}>Sim, Remover</Button>
-                    </div>
-                  </div>
-                )}
-                <Table>
-                  <TableHeader><TableRow><TableHead>Título</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
-                  <TableBody>
-                    {filteredArticles.length > 0 ? filteredArticles.map((article) => (
-                      <TableRow key={article.id} className={isDeleteConfirmOpen && selectedItem?.id === article.id ? 'bg-red-50' : ''}>
-                        <TableCell className="font-medium">{article.title}</TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild><Button variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleEdit(article, 'article')}><Edit className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDelete(article, 'article')} className="text-red-600"><Trash2 className="mr-2 h-4 w-4" />Excluir</DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    )) : (
-                      <TableRow><TableCell colSpan={2} className="text-center py-12 text-muted-foreground italic">Nenhum artigo encontrado.</TableCell></TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-
-
-
-
-        <TabsContent value="about">
-          {viewMode === 'form' && itemType === 'participant' ? (
-            <Card className="border-primary/20 bg-primary/5">
-              <CardHeader className="flex flex-row items-center justify-between border-b bg-white/50">
-                <div><CardTitle>{isNew ? 'Novo Membro' : 'Editar Membro'}</CardTitle><CardDescription>Dados da equipe de desenvolvimento.</CardDescription></div>
-                <Button variant="ghost" onClick={closeAllForms}><ArrowLeft className="mr-2 h-4 w-4" />Voltar</Button>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <Form {...participantForm}><form onSubmit={participantForm.handleSubmit(onSubmit)} className="space-y-4 max-w-2xl mx-auto">
-                  <FormField control={participantForm.control} name="name" render={({ field }) => (
-                    <FormItem><FormLabel>Nome Completo</FormLabel><FormControl><Input {...field} className="bg-white" /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField control={participantForm.control} name="role" render={({ field }) => (
-                      <FormItem><FormLabel>Cargo/Função</FormLabel><FormControl><Input {...field} className="bg-white" /></FormControl><FormMessage /></FormItem>
-                    )} />
-                    <FormField control={participantForm.control} name="initials" render={({ field }) => (
-                      <FormItem><FormLabel>Iniciais (2-3 letras)</FormLabel><FormControl><Input {...field} maxLength={3} className="bg-white uppercase" /></FormControl><FormMessage /></FormItem>
-                    )} />
-                  </div>
-                  <FormField control={participantForm.control} name="description" render={({ field }) => (
-                    <FormItem><FormLabel>Bio/Descrição</FormLabel><FormControl><Textarea {...field} className="bg-white" /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <FormField control={participantForm.control} name="avatar" render={({ field }) => (
-                    <FormItem><FormLabel>URL da Foto</FormLabel><FormControl><Input {...field} className="bg-white" /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <div className="flex justify-end gap-4 pt-4 border-t mt-6">
-                    <Button type="button" variant="ghost" onClick={closeAllForms}>Cancelar</Button>
-                    <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Salvando...' : 'Salvar Membro'}</Button>
-                  </div>
-                </form></Form>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div><CardTitle>Equipe do Projeto</CardTitle><CardDescription>Membros responsáveis pelo software.</CardDescription></div>
-                <Button onClick={() => handleNew('participant')}><UserPlus className="mr-2 h-4 w-4" />Novo Membro</Button>
-              </CardHeader>
-              <CardContent>
-                {isDeleteConfirmOpen && itemType === 'participant' && selectedItem && (
-                  <div className="mb-6 p-4 border-2 border-red-200 bg-red-50 rounded-lg flex items-center justify-between">
-                    <p className="font-bold text-red-900">Remover "{selectedItem.name}" da equipe?</p>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => setIsDeleteConfirmOpen(false)}>Não</Button>
-                      <Button variant="destructive" size="sm" onClick={onConfirmDelete}>Sim, Remover</Button>
-                    </div>
-                  </div>
-                )}
-                <Table>
-                  <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Cargo</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
-                  <TableBody>
-                    {participants.map((person) => (
-                      <TableRow key={person.id} className={isDeleteConfirmOpen && selectedItem?.id === person.id ? 'bg-red-50' : ''}>
-                        <TableCell className="font-medium">{person.name}</TableCell>
-                        <TableCell>{person.role}</TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild><Button variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleEdit(person, 'participant')}><Edit className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDelete(person, 'participant')} className="text-red-600"><Trash2 className="mr-2 h-4 w-4" />Excluir</DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-      </Tabs>
-      </div>
-      <Dialog open={isPasswordDialogOpen} onOpenChange={(open) => {
-        setIsPasswordDialogOpen(open);
-        if (!open) {
-          setSelectedItem(null);
-          setPassFormData({ currentPass: '', newPass: '', confirmPass: '' });
-        }
-      }}>
+      {/* Shared Dialogs */}
+      <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
         <DialogContent>
-           <DialogHeader>
-              <DialogTitle className="text-xl font-black uppercase tracking-tighter flex items-center gap-2">
-                <Lock className="h-5 w-5 text-primary" /> Alterar Senha: {selectedItem?.name}
-              </DialogTitle>
-              <DialogDescription>
-                {selectedItem?.id === currentUser?.id 
-                  ? 'Confirme sua senha atual para definir uma nova.' 
-                  : 'Digite SUA SENHA de Gestor para autorizar o reset.'}
-              </DialogDescription>
-           </DialogHeader>
-           <form onSubmit={handleUpdateUserPassword} className="space-y-4 pt-4">
-              <div className="space-y-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                 <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Sua Senha de Gestor (Autorização)</Label>
-                 <Input 
-                   type="password"
-                   required 
-                   value={passFormData.currentPass}
-                   onChange={e => setPassFormData({...passFormData, currentPass: e.target.value})}
-                   placeholder="Digite sua senha"
-                 />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Nova Senha</Label>
-                    <Input 
-                      type="password"
-                      required
-                      value={passFormData.newPass}
-                      onChange={e => setPassFormData({...passFormData, newPass: e.target.value})}
-                      placeholder="Mínimo 6 chars"
-                    />
-                 </div>
-                 <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Confirmar</Label>
-                    <Input 
-                      type="password"
-                      required
-                      value={passFormData.confirmPass}
-                      onChange={e => setPassFormData({...passFormData, confirmPass: e.target.value})}
-                      placeholder="Repita a senha"
-                    />
-                 </div>
-              </div>
-              <DialogFooter className="pt-4">
-                 <Button type="submit" disabled={isSubmitting} className="w-full bg-primary font-black uppercase text-xs tracking-widest">
-                    {isSubmitting ? 'Atualizando...' : 'Confirmar Nova Senha'}
-                 </Button>
-              </DialogFooter>
-           </form>
+          <DialogHeader>
+            <DialogTitle>Alterar Senha: {selectedItem?.name}</DialogTitle>
+            <DialogDescription>
+              Defina uma nova senha para este usuário. Ele será notificado na próxima tentativa de acesso.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdateUserPassword} className="space-y-4 pt-4">
+            <Input type="password" required value={passFormData.currentPass} onChange={e => setPassFormData({...passFormData, currentPass: e.target.value})} placeholder="Sua senha de Gestor" />
+            <div className="grid grid-cols-2 gap-4">
+              <Input type="password" required value={passFormData.newPass} onChange={e => setPassFormData({...passFormData, newPass: e.target.value})} placeholder="Nova Senha" />
+              <Input type="password" required value={passFormData.confirmPass} onChange={e => setPassFormData({...passFormData, confirmPass: e.target.value})} placeholder="Confirmar" />
+            </div>
+            <Button type="submit" disabled={isSubmitting} className="w-full">Confirmar</Button>
+          </form>
         </DialogContent>
       </Dialog>
 
-      {/* BLOQUEIO DE SEGURANÇA: TROCA OBRIGATÓRIA DE SENHA */}
       <Dialog open={mustChangePass} onOpenChange={() => {}}>
-        <DialogContent className="sm:max-w-md border-2 border-primary bg-slate-50">
-           <DialogHeader>
-              <DialogTitle className="text-2xl font-black uppercase tracking-tighter flex items-center gap-2 text-primary">
-                <ShieldCheck className="h-6 w-6" /> Segurança: Primeiro Acesso
-              </DialogTitle>
-              <DialogDescription className="text-slate-700 font-medium">
-                Sua conta passou por um reset administrativo ou é um novo cadastro. 
-                <strong> Defina sua senha pessoal agora para continuar.</strong>
-              </DialogDescription>
-           </DialogHeader>
-           
-           <form onSubmit={handleUpdateUserPassword} className="space-y-4 pt-2">
-              <div className="grid grid-cols-1 gap-4">
-                 <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Nova Senha Pessoal</Label>
-                    <Input 
-                      type="password"
-                      required
-                      value={passFormData.newPass || ''}
-                      onChange={e => setPassFormData({...passFormData, newPass: e.target.value})}
-                      placeholder="Mínimo 6 caracteres"
-                      className="bg-white border-slate-300"
-                    />
-                 </div>
-                 <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Confirmar Nova Senha</Label>
-                    <Input 
-                      type="password"
-                      required
-                      value={passFormData.confirmPass || ''}
-                      onChange={e => setPassFormData({...passFormData, confirmPass: e.target.value})}
-                      placeholder="Repita a senha"
-                      className="bg-white border-slate-300"
-                    />
-                 </div>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Segurança: Primeiro Acesso</DialogTitle>
+            <DialogDescription>
+              Para sua segurança, você deve definir uma senha pessoal antes de continuar.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdateUserPassword} className="space-y-4 pt-2">
+            <Input type="password" required value={passFormData.newPass} onChange={e => setPassFormData({...passFormData, newPass: e.target.value})} placeholder="Nova Senha Pessoal" />
+            <Input type="password" required value={passFormData.confirmPass} onChange={e => setPassFormData({...passFormData, confirmPass: e.target.value})} placeholder="Confirmar Nova Senha" />
+            <Button type="submit" disabled={isSubmitting} className="w-full h-12">Definir e Acessar</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {isDeleteConfirmOpen && selectedItem && (
+        <div className="fixed bottom-6 right-6 z-50 w-full max-w-md p-4 border-2 border-red-200 bg-white rounded-2xl shadow-2xl animate-in slide-in-from-bottom-10">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Trash2 className="h-6 w-6 text-red-600" />
+              <div>
+                <p className="font-black uppercase">Excluir?</p>
+                <p className="text-[11px] font-bold">"{selectedItem.name || selectedItem.title}"</p>
               </div>
-              <DialogFooter className="pt-4">
-                 <Button type="submit" disabled={isSubmitting} className="w-full bg-primary font-black uppercase text-xs tracking-widest h-12">
-                    {isSubmitting ? 'Salvando...' : 'Definir Senha e Acessar Painel'}
-                 </Button>
-              </DialogFooter>
-           </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* MODAIS DE GESTÃO ACADÊMICA */}
-      <Dialog open={isTurmaDialogOpen} onOpenChange={setIsTurmaDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-black uppercase tracking-tighter text-indigo-600">Configurar Turma</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSaveTurma} className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Nome da Turma</Label>
-              <Input required value={turmaFormData.name || ''} onChange={e => setTurmaFormData({...turmaFormData, name: e.target.value})} placeholder="Ex: 1ª Série A" className="bg-slate-50" />
             </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Status de Operação</Label>
-              <select 
-                className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                value={turmaFormData.status}
-                onChange={e => setTurmaFormData({...turmaFormData, status: e.target.value as any})}
-              >
-                <option value="active">Ativo (Visível para Alunos)</option>
-                <option value="inactive">Inativo (Oculto)</option>
-              </select>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setIsDeleteConfirmOpen(false)}>Cancelar</Button>
+              <Button variant="destructive" size="sm" onClick={onConfirmDelete}>Excluir</Button>
             </div>
-            <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 uppercase font-black tracking-widest text-xs h-12 shadow-lg">Salvar Configurações</Button>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isCursoDialogOpen} onOpenChange={setIsCursoDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-black uppercase tracking-tighter text-amber-600">Configurar Curso</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSaveCurso} className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Nome do Curso</Label>
-              <Input required value={cursoFormData.name || ''} onChange={e => setCursoFormData({...cursoFormData, name: e.target.value})} placeholder="Ex: Técnico em Informática" className="bg-slate-50" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Status de Operação</Label>
-              <select 
-                className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm focus:ring-2 focus:ring-amber-500 outline-none"
-                value={cursoFormData.status}
-                onChange={e => setCursoFormData({...cursoFormData, status: e.target.value as any})}
-              >
-                <option value="active">Ativo (Visível para Alunos)</option>
-                <option value="inactive">Inativo (Oculto)</option>
-              </select>
-            </div>
-            <Button type="submit" className="w-full bg-amber-600 hover:bg-amber-700 uppercase font-black tracking-widest text-xs h-12 shadow-lg">Salvar Configurações</Button>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isCargoDialogOpen} onOpenChange={setIsCargoDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-black uppercase tracking-tighter text-rose-600">Configurar Cargo</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSaveCargo} className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Nome do Cargo</Label>
-              <Input required value={cargoFormData.name || ''} onChange={e => setCargoFormData({...cargoFormData, name: e.target.value})} placeholder="Ex: Professor" className="bg-slate-50" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Status de Operação</Label>
-              <select 
-                className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm focus:ring-2 focus:ring-rose-500 outline-none"
-                value={cargoFormData.status}
-                onChange={e => setCargoFormData({...cargoFormData, status: e.target.value as any})}
-              >
-                <option value="active">Ativo</option>
-                <option value="inactive">Inativo</option>
-              </select>
-            </div>
-            <Button type="submit" className="w-full bg-rose-600 hover:bg-rose-700 uppercase font-black tracking-widest text-xs h-12 shadow-lg">Salvar Cargo</Button>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isSetorDialogOpen} onOpenChange={setIsSetorDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-black uppercase tracking-tighter text-emerald-600">Configurar Setor</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSaveSetor} className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Nome do Setor</Label>
-              <Input required value={setorFormData.name || ''} onChange={e => setSetorFormData({...setorFormData, name: e.target.value})} placeholder="Ex: Secretaria" className="bg-slate-50" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Status de Operação</Label>
-              <select 
-                className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                value={setorFormData.status}
-                onChange={e => setSetorFormData({...setorFormData, status: e.target.value as any})}
-              >
-                <option value="active">Ativo</option>
-                <option value="inactive">Inativo</option>
-              </select>
-            </div>
-            <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 uppercase font-black tracking-widest text-xs h-12 shadow-lg">Salvar Setor</Button>
-          </form>
-        </DialogContent>
-       </Dialog>
-
-      <Dialog open={isTerminalDialogOpen} onOpenChange={setIsTerminalDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-black uppercase tracking-tighter text-amber-600">Configurar Hardware do Totem</DialogTitle>
-            <DialogDescription className="text-xs font-bold uppercase tracking-widest text-slate-400">Personalize os sensores e métodos de acesso deste terminal.</DialogDescription>
-          </DialogHeader>
-          {editingTerminal && (
-            <div className="space-y-6 pt-4">
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
-                <p className="text-[10px] font-black uppercase text-slate-400">Identificação do Terminal</p>
-                <p className="text-sm font-bold text-slate-700">{editingTerminal.location}</p>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-[9px] font-black text-amber-600">{editingTerminal.id}</span>
-                  <span className="text-[8px] text-slate-400 uppercase font-black tracking-widest">HW: {editingTerminal.hardwareId}</span>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Método de Login Principal</Label>
-                  <Select 
-                    value={editingTerminal.loginMethod || 'all'} 
-                    onValueChange={(val: any) => setEditingTerminal({...editingTerminal, loginMethod: val})}
-                  >
-                    <SelectTrigger className="bg-white">
-                      <SelectValue placeholder="Selecione o método" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos (Híbrido)</SelectItem>
-                      <SelectItem value="manual">Apenas Teclado (RA)</SelectItem>
-                      <SelectItem value="qr">Apenas QR Code</SelectItem>
-                      <SelectItem value="rfid">Apenas RFID (Cartão)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  {/* CÂMERA DE LOGIN */}
-                  <div className="space-y-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Câmera de Login</Label>
-                    
-                    <Select 
-                      value={editingTerminal.loginCameraSource || 'browser'} 
-                      onValueChange={(val: any) => setEditingTerminal({...editingTerminal, loginCameraSource: val})}
-                    >
-                      <SelectTrigger className="bg-white h-9 text-xs font-bold">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="browser">Webcam Local</SelectItem>
-                        <SelectItem value="esp32">ESP32-CAM (IP)</SelectItem>
-                        <SelectItem value="url">Stream Externo (URL)</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    {editingTerminal.loginCameraSource === 'browser' ? (
-                      <div className="space-y-1 animate-in fade-in slide-in-from-top-1">
-                        <Label className="text-[9px] font-black uppercase text-slate-400">Selecionar Hardware</Label>
-                        <Select 
-                          value={editingTerminal.loginCameraDeviceId || 'default'} 
-                          onValueChange={(val: any) => setEditingTerminal({...editingTerminal, loginCameraDeviceId: val})}
-                        >
-                          <SelectTrigger className="bg-white h-8 text-[10px] font-bold">
-                            <SelectValue placeholder="Automático" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="default">Automático (Padrão)</SelectItem>
-                            {videoDevices.map(device => (
-                              <SelectItem key={device.deviceId} value={device.deviceId} className="text-[10px]">
-                                {device.label || `Câmera ${device.deviceId.slice(0, 5)}`}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    ) : (
-                      <div className="space-y-1 animate-in fade-in slide-in-from-top-1">
-                        <Label className="text-[9px] font-black uppercase text-slate-400">Endereço / URL do Stream</Label>
-                        <Input 
-                          placeholder={editingTerminal.loginCameraSource === 'esp32' ? "Ex: 192.168.1.50" : "http://server.com/stream"}
-                          value={editingTerminal.loginCameraUrl || ''}
-                          onChange={(e) => setEditingTerminal({...editingTerminal, loginCameraUrl: e.target.value})}
-                          className="bg-white h-8 text-[10px] font-bold"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* CÂMERA DE COLETA */}
-                  <div className="space-y-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Câmera de Coleta</Label>
-                    
-                    <Select 
-                      value={editingTerminal.scanningCameraSource || 'browser'} 
-                      onValueChange={(val: any) => setEditingTerminal({...editingTerminal, scanningCameraSource: val})}
-                    >
-                      <SelectTrigger className="bg-white h-9 text-xs font-bold">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="browser">Webcam Local</SelectItem>
-                        <SelectItem value="esp32">ESP32-CAM (IP)</SelectItem>
-                        <SelectItem value="url">Stream Externo (URL)</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    {editingTerminal.scanningCameraSource === 'browser' ? (
-                      <div className="space-y-1 animate-in fade-in slide-in-from-top-1">
-                        <Label className="text-[9px] font-black uppercase text-slate-400">Selecionar Hardware</Label>
-                        <Select 
-                          value={editingTerminal.scanningCameraDeviceId || 'default'} 
-                          onValueChange={(val: any) => setEditingTerminal({...editingTerminal, scanningCameraDeviceId: val})}
-                        >
-                          <SelectTrigger className="bg-white h-8 text-[10px] font-bold">
-                            <SelectValue placeholder="Automático" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="default">Automático (Padrão)</SelectItem>
-                            {videoDevices.map(device => (
-                              <SelectItem key={device.deviceId} value={device.deviceId} className="text-[10px]">
-                                {device.label || `Câmera ${device.deviceId.slice(0, 5)}`}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    ) : (
-                      <div className="space-y-1 animate-in fade-in slide-in-from-top-1">
-                        <Label className="text-[9px] font-black uppercase text-slate-400">Endereço / URL do Stream</Label>
-                        <Input 
-                          placeholder={editingTerminal.scanningCameraSource === 'esp32' ? "Ex: 192.168.1.50" : "http://server.com/stream"}
-                          value={editingTerminal.scanningCameraUrl || ''}
-                          onChange={(e) => setEditingTerminal({...editingTerminal, scanningCameraUrl: e.target.value})}
-                          className="bg-white h-8 text-[10px] font-bold"
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <Button 
-                onClick={() => {
-                  if (editingTerminal) {
-                    updateTerminalSettings(editingTerminal.id, {
-                      loginMethod: editingTerminal.loginMethod,
-                      loginCameraSource: editingTerminal.loginCameraSource,
-                      scanningCameraSource: editingTerminal.scanningCameraSource,
-                      loginCameraDeviceId: editingTerminal.loginCameraDeviceId,
-                      scanningCameraDeviceId: editingTerminal.scanningCameraDeviceId,
-                      loginCameraUrl: editingTerminal.loginCameraUrl,
-                      scanningCameraUrl: editingTerminal.scanningCameraUrl
-                    });
-                    setIsTerminalDialogOpen(false);
-                    toast({ title: "Configurações Salvas", description: "O totem será atualizado no próximo ciclo de sincronização." });
-                  }
-                }}
-                className="w-full bg-amber-600 hover:bg-amber-700 uppercase font-black tracking-widest text-xs h-12 shadow-lg"
-              >
-                Aplicar no Totem
-              </Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-       {isDeleteConfirmOpen && selectedItem && (
-         <div className="fixed bottom-6 right-6 z-50 w-full max-w-md p-4 border-2 border-red-200 bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl animate-in slide-in-from-bottom-10 duration-300 ring-4 ring-red-50">
-           <div className="flex items-center justify-between">
-               <div className="flex items-center gap-3">
-                   <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 shadow-inner"><Trash2 className="h-6 w-6" /></div>
-                   <div>
-                       <p className="font-black text-slate-900 uppercase tracking-tighter">Confirmar Exclusão</p>
-                       <p className="text-[11px] text-slate-500 font-bold">"{selectedItem.name || selectedItem.title}"</p>
-                   </div>
-               </div>
-               <div className="flex gap-2">
-                   <Button variant="outline" size="sm" onClick={() => setIsDeleteConfirmOpen(false)} className="bg-white border-slate-200 hover:bg-slate-50 uppercase font-black text-[10px] tracking-widest">Cancelar</Button>
-                   <Button variant="destructive" size="sm" onClick={onConfirmDelete} className="font-black uppercase tracking-widest text-[10px] bg-red-600 hover:bg-red-700 shadow-lg shadow-red-200">Excluir</Button>
-               </div>
-           </div>
-         </div>
-       )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 export default function AdminPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Carregando gerenciamento...</div>}>
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Carregando...</div>}>
       <AdminContent />
     </Suspense>
   );

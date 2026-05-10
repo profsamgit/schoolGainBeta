@@ -33,10 +33,10 @@ interface EcosystemContextType {
   login: (ra: string, password?: string) => Promise<boolean>; // Entrar no sistema
   logout: () => void;             // Sair do sistema
   addPoints: (points: number, studentRa?: string) => void; // Dar pontos
-  updateUsers: (newUsers: User[]) => void;
-  updateRewards: (newRewards: Reward[]) => void;
-  updateArticles: (newArticles: EducationArticle[]) => void;
-  updateQuizTopics: (newTopics: QuizTopic[]) => void;
+  updateUsers: (newUsers: User[]) => Promise<void>;
+  updateRewards: (newRewards: Reward[]) => Promise<void>;
+  updateArticles: (newArticles: EducationArticle[]) => Promise<void>;
+  updateQuizTopics: (newTopics: QuizTopic[]) => Promise<void>;
   allTurmas: Turma[];
   allCursos: Curso[];
   allCargos: Cargo[];
@@ -192,10 +192,10 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
     login: (ra: string, pass?: string) => service.login(ra, pass),
     logout: service.logout.bind(service),
     addPoints: service.addPoints.bind(service),
-    updateUsers: service.updateUsers.bind(service),
-    updateRewards: service.updateRewards.bind(service),
-    updateArticles: service.updateArticles.bind(service),
-    updateQuizTopics: service.updateQuizTopics.bind(service),
+    updateUsers: async (newUsers: User[]) => await service.updateUsers(newUsers),
+    updateRewards: async (newRewards: Reward[]) => await service.updateRewards(newRewards),
+    updateArticles: async (newArticles: EducationArticle[]) => await service.updateArticles(newArticles),
+    updateQuizTopics: async (newTopics: QuizTopic[]) => await service.updateQuizTopics(newTopics),
     allTurmas: turmas,
     allCursos: cursos,
     allCargos: cargos,

@@ -9,9 +9,9 @@ export type User = {
   level: 'Semente' | 'Broto' | 'Folha' | 'Árvore' | 'Floresta' | 'Guardião da Biosfera' | 'Guardião da Lenda';
   ra?: string;
   rfid?: string;
-  turma?: string;
-  curso?: string;
-  position?: 'Diretoria' | 'Coordenação' | 'TI' | string;
+  turma?: string;  // Referência ao ID ou Nome da Turma
+  curso?: string;  // Referência ao ID ou Nome do Curso
+  position?: string; // Cargo administrativo (referência ao Nome do Cargo)
   vitality?: number;
   itemsCount?: number;
   schoolId?: string;
@@ -86,14 +86,13 @@ export type Terminal = {
   requestDate: string;
   lastSeen?: string;
   schoolId?: string; // Escola onde o terminal está fisicamente
-  // Configurações específicas do Totem
-  loginMethod?: 'manual' | 'qr' | 'rfid' | 'all';
-  loginCameraSource?: 'browser' | 'esp32' | 'url';
-  scanningCameraSource?: 'browser' | 'esp32' | 'url';
-  loginCameraDeviceId?: string;
-  scanningCameraDeviceId?: string;
-  loginCameraUrl?: string;
-  scanningCameraUrl?: string;
+  settings?: {
+    preferredCamera?: string;
+    loginMethod?: 'manual' | 'qr' | 'rfid' | 'all';
+    loginCameraSource?: 'browser' | 'esp32' | 'url';
+    scanningCameraSource?: 'browser' | 'esp32' | 'url';
+    cameraUrl?: string;
+  };
 };
 
 export type School = {

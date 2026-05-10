@@ -28,7 +28,7 @@ export default function AboutPage() {
                             {allParticipants.map((person) => (
                                 <div key={person.id} className="flex flex-col items-center text-center p-2">
                                 <Avatar className="h-32 w-32 border-4 border-primary/50">
-                                    <AvatarImage src={person.avatar} alt={`Foto de ${person.name}`} />
+                                    <AvatarImage src={person.avatar || undefined} alt={`Foto de ${person.name}`} />
                                     <AvatarFallback className="text-4xl">{person.initials}</AvatarFallback>
                                 </Avatar>
                                 <h3 className="mt-4 text-xl font-bold">{person.name}</h3>

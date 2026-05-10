@@ -147,7 +147,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-6">
               <div className="relative group/avatar">
                 <Avatar className="h-16 w-16 rounded-2xl border-4 border-white shadow-xl bg-slate-900 text-white flex items-center justify-center text-xl font-black uppercase transition-transform group-hover/avatar:scale-105">
-                   <AvatarImage src={currentUser?.avatar} className="object-cover" />
+                   <AvatarImage src={currentUser?.avatar || undefined} className="object-cover" />
                    <AvatarFallback className="bg-slate-900 text-white">{currentUser?.name?.charAt(0) || '?'}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col gap-2">

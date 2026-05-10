@@ -23,7 +23,8 @@ import {
   EcosystemUserState,
   SecurityState,
   SystemSettings,
-  EcosystemData
+  EcosystemData,
+  QuizTopic
 } from './types';
 
 
@@ -202,8 +203,14 @@ export class EcosystemService {
 
     // 1. Sincronização de Usuários
     onSnapshot(collection(db, "users"), (snapshot) => {
-      const users: User[] = [];
-      snapshot.forEach(doc => users.push(doc.data() as User));
+      const usersMap = new Map<string, User>();
+      snapshot.forEach(doc => {
+        const u = doc.data() as User;
+        // Usa o ID como chave única para evitar duplicatas na lista
+        if (u.id) usersMap.set(u.id, u);
+      });
+      
+      const users = Array.from(usersMap.values());
       if (users.length > 0) {
         this.data.users = users;
         this.usersSubject.next(users);
@@ -508,28 +515,92 @@ export class EcosystemService {
    */
   async uploadUserAvatar(userId: string, file: File): Promise<string | null> {
     try {
-      // 1. Caminho no Storage: avatars/id-do-usuario
-      const storageRef = ref(storage, `avatars/${userId}`);
+      let downloadURL = '';
+
+      console.log(`[ECOSYSTEM] Iniciando processamento de foto: ${userId}`);
+
+      // Geramos o Base64 IMEDIATAMENTE. Como o Storage é restrito no plano, 
+      // usamos o Firestore (Base64) como método principal e único para máxima velocidade.
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const targetSize = 200;
+            canvas.width = targetSize;
+            canvas.height = targetSize;
+            const ctx = canvas.getContext('2d');
+            
+            // Lógica de Corte Inteligente (Centralizado)
+            const sourceSize = Math.min(img.width, img.height);
+            const sourceX = (img.width - sourceSize) / 2;
+            const sourceY = (img.height - sourceSize) / 2;
+            
+            ctx?.drawImage(
+              img, 
+              sourceX, sourceY, sourceSize, sourceSize, // Área de origem (quadrado central)
+              0, 0, targetSize, targetSize             // Área de destino (200x200)
+            );
+            
+            resolve(canvas.toDataURL('image/jpeg', 0.7)); 
+          };
+          img.onerror = () => reject(new Error("Erro ao processar imagem"));
+          img.src = e.target?.result as string;
+        };
+        reader.onerror = () => reject(new Error("Erro ao ler arquivo"));
+        reader.readAsDataURL(file);
+      });
+
+      downloadURL = base64Data;
+      console.log("[ECOSYSTEM] Foto processada localmente com sucesso.");
       
-      // 2. Upload do arquivo
-      const snapshot = await uploadBytes(storageRef, file);
+      // 4. Determina a coleção (users, participants, rewards, articles)
+      let collectionName = "users";
+      let isUserType = true;
+
+      if (userId.startsWith('participant-') || userId.startsWith('dev-')) {
+        collectionName = "participants";
+        isUserType = false;
+      } else if (userId.startsWith('reward-')) {
+        collectionName = "rewards";
+        isUserType = false;
+      } else if (userId.startsWith('article-')) {
+        collectionName = "articles";
+        isUserType = false;
+      }
       
-      // 3. Pega a URL pública
-      const downloadURL = await getDownloadURL(snapshot.ref);
+      // Encontra o identificador correto para o Firestore (Prioridade: RA, depois E-mail, depois ID)
+      let dbId = userId;
+      if (collectionName === "users") {
+        const user = this.data.users.find(u => u.id === userId || u.ra === userId || u.email === userId);
+        if (user) {
+          dbId = user.ra || user.email || user.id;
+        }
+      }
       
-      // 4. Atualiza o Firestore
-      const userRef = doc(db, "users", userId);
-      await setDoc(userRef, { avatar: downloadURL }, { merge: true });
+      // 5. Atualiza o Firestore
+      const docRef = doc(db, collectionName, dbId);
+      await setDoc(docRef, { image: downloadURL, avatar: downloadURL }, { merge: true });
       
-      // 5. Atualiza o estado local
-      this.data.users = this.data.users.map(u => 
-        u.id === userId ? { ...u, avatar: downloadURL } : u
-      );
-      this.usersSubject.next(this.data.users);
+      // 6. Atualiza o estado local
+      if (collectionName === "participants") {
+        this.data.participants = this.data.participants.map(p => p.id === userId ? { ...p, avatar: downloadURL } : p);
+        this.participantsSubject.next(this.data.participants);
+      } else if (collectionName === "rewards") {
+        this.data.rewards = this.data.rewards.map(r => r.id === userId ? { ...r, image: downloadURL } : r);
+        this.rewardsSubject.next(this.data.rewards);
+      } else if (collectionName === "articles") {
+        this.data.articles = this.data.articles.map(a => a.id === userId ? { ...a, image: downloadURL } : a);
+        this.articlesSubject.next(this.data.articles);
+      } else {
+        this.data.users = this.data.users.map(u => (u.id === userId || u.ra === userId || u.email === userId) ? { ...u, avatar: downloadURL } : u);
+        this.usersSubject.next(this.data.users);
+      }
       
       return downloadURL;
     } catch (error) {
-      console.error("[STORAGE] Erro no upload do avatar:", error);
+      console.error("[STORAGE] Erro crítico no upload do avatar:", error);
       return null;
     }
   }
@@ -596,7 +667,9 @@ export class EcosystemService {
       status: 'pending',
       schoolId,
       requestDate: new Date().toISOString(),
-      loginMethod: 'all',
+      settings: {
+        loginMethod: 'all',
+      }
     };
 
     this.data.terminals.push(newTerminal);
@@ -682,7 +755,7 @@ export class EcosystemService {
     // Cria o usuário gestor imediatamente
     if (newSchool.managerEmail) {
       const newUser: User = {
-        id: `user-admin-${Date.now()}`,
+        id: `user-admin-${Date.now()}-${Math.random().toString(36).slice(-4)}`,
         name: `Gestor ${newSchool.name}`,
         email: newSchool.managerEmail,
         password: await EcosystemService.hashPassword(newSchool.managerPassword!),
@@ -1384,21 +1457,25 @@ export class EcosystemService {
     );
 
     if (user) {
-      // Exige senha apenas para perfis de gestão quando fornecida manualmente
-      if (user.role === 'admin' || user.role === 'super_admin') {
-        if (cleanPassword) {
+      // Lógica diferenciada por cargo
+      if (cleanPassword) {
+        if (user.role === 'super_admin') {
+          // Super Admins continuam usando a segurança nativa do Firebase Auth
           try {
-            // Tenta autenticar no Firebase Auth
             await signInWithEmailAndPassword(auth, user.email!, cleanPassword);
           } catch (firebaseError: any) {
-            // Se falhar no Firebase, tentamos o fallback local (para facilitar a migração)
-            const hashedInput = await EcosystemService.hashPassword(cleanPassword);
-            const isMatch = user.password === hashedInput || user.password === cleanPassword;
-            
-            if (!isMatch) {
-              this.handleFailedLogin(securityKey);
-              return false;
-            }
+            console.error("[FIREBASE] Falha no login do Super Admin:", firebaseError);
+            this.handleFailedLogin(securityKey);
+            return false;
+          }
+        } else {
+          // Gestores e Alunos usam nossa lógica SHA-256 customizada
+          const hashedInput = await EcosystemService.hashPassword(cleanPassword);
+          const isMatch = user.password === hashedInput || user.password === cleanPassword;
+          
+          if (!isMatch) {
+            this.handleFailedLogin(securityKey);
+            return false;
           }
         }
       }
@@ -1478,68 +1555,104 @@ export class EcosystemService {
   }
 
   // Funções de atualização em massa (usadas no painel admin)
-  updateUsers(newUsers: User[]) {
+  async updateUsers(newUsers: User[]) {
     if (!this.checkAdminAuth()) return;
-    this.data.users = newUsers;
-    this.usersSubject.next([...newUsers]);
     
-    // Sincroniza todos no Firestore (pode ser pesado se houver milhares, mas funciona para agora)
-    newUsers.forEach(u => setDoc(doc(db, "users", u.ra!), u));
+    // 1. Identifica usuários removidos (estavam na lista antiga mas não na nova)
+    const removedUsers = this.data.users.filter(oldU => !newUsers.find(newU => newU.id === oldU.id));
+
+    // 2. Remove duplicatas por ID antes de processar
+    const uniqueUsers = Array.from(new Map(newUsers.map(u => [u.id, u])).values());
+
+    // 3. Identifica quais usuários mudaram para salvar apenas o necessário
+    const changedUsers = uniqueUsers.filter(newUser => {
+      const oldUser = this.data.users.find(u => u.id === newUser.id);
+      return !oldUser || JSON.stringify(oldUser) !== JSON.stringify(newUser);
+    });
+
+    const oldData = [...this.data.users];
+    this.data.users = uniqueUsers;
+    this.usersSubject.next([...uniqueUsers]);
+    
+    // Sincroniza apenas os alterados no Firestore
+    await Promise.all([
+      // Deleta os removidos
+      ...removedUsers.map(u => deleteDoc(doc(db, "users", u.ra || u.id))),
+      
+      // Salva/Atualiza os novos ou modificados
+      ...changedUsers.map(u => {
+        const oldUser = oldData.find(old => old.id === u.id);
+        
+        // Se o RA mudou, precisamos apagar o documento antigo (que usava o RA como ID)
+        if (oldUser && oldUser.ra && oldUser.ra !== u.ra) {
+          deleteDoc(doc(db, "users", oldUser.ra)).catch(e => console.error("Erro ao limpar RA antigo:", e));
+        }
+        
+        // Agora sempre usamos o u.id como ID do documento para ser estável
+        return setDoc(doc(db, "users", u.id), u);
+      })
+    ]);
     
     this.saveToStorage();
   }
 
-  updateRewards(newRewards: Reward[]) {
+  async updateRewards(newRewards: Reward[]) {
     if (!this.checkAdminAuth()) return;
+
+    const removedItems = this.data.rewards.filter(oldI => !newRewards.find(newI => newI.id === oldI.id));
+    
+    const changedRewards = newRewards.filter(newR => {
+      const oldR = this.data.rewards.find(r => r.id === newR.id);
+      return !oldR || JSON.stringify(oldR) !== JSON.stringify(newR);
+    });
+
     this.data.rewards = newRewards;
     this.rewardsSubject.next(newRewards);
     
-    // Sincroniza recompensas no Firestore
-    newRewards.forEach(r => setDoc(doc(db, "rewards", r.id), r));
+    // Sincroniza alterados e deleta removidos
+    await Promise.all([
+      ...removedItems.map(i => deleteDoc(doc(db, "rewards", i.id))),
+      ...changedRewards.map(r => setDoc(doc(db, "rewards", r.id), r))
+    ]);
     
     this.saveToStorage();
   }
 
-  updateUsers(newUsers: User[]) {
+  async updateArticles(newArticles: EducationArticle[]) {
     if (!this.checkAdminAuth()) return;
-    this.data.users = newUsers;
-    this.usersSubject.next([...newUsers]);
-    
-    // Sincroniza cada usuário no Firestore
-    newUsers.forEach(u => setDoc(doc(db, "users", u.ra!), u));
-    this.saveToStorage();
-  }
 
-  updateRewards(newRewards: Reward[]) {
-    if (!this.checkAdminAuth()) return;
-    this.data.rewards = newRewards;
-    this.rewardsSubject.next(newRewards);
-    
-    // Sincroniza prêmios no Firestore
-    newRewards.forEach(r => setDoc(doc(db, "rewards", r.id), r));
-    this.saveToStorage();
-  }
+    const removedItems = this.data.articles.filter(oldI => !newArticles.find(newI => newI.id === oldI.id));
 
-  updateArticles(newArticles: EducationArticle[]) {
-    if (!this.checkAdminAuth()) return;
+    const changedArticles = newArticles.filter(newA => {
+      const oldA = this.data.articles.find(a => a.id === newA.id);
+      return !oldA || JSON.stringify(oldA) !== JSON.stringify(newA);
+    });
+
     this.data.articles = newArticles;
     this.articlesSubject.next(newArticles);
     
-    // Sincroniza artigos no Firestore
-    newArticles.forEach(a => setDoc(doc(db, "articles", a.id), a));
+    // Sincroniza alterados e deleta removidos
+    await Promise.all([
+      ...removedItems.map(i => deleteDoc(doc(db, "articles", i.id))),
+      ...changedArticles.map(a => setDoc(doc(db, "articles", a.id), a))
+    ]);
     
     this.saveToStorage();
   }
 
-  updateQuizTopics(newTopics: QuizTopic[]) {
+  async updateQuizTopics(newTopics: QuizTopic[]) {
     if (!this.checkAdminAuth()) return;
+    
+    const removedItems = this.data.quizTopics.filter(oldI => !newTopics.find(newI => newI.id === oldI.id));
+
     this.data.quizTopics = newTopics;
     this.quizTopicsSubject.next(newTopics);
     
-    // Salva no Firebase
-    newTopics.forEach(topic => {
-      setDoc(doc(db, "quizTopics", topic.id), topic);
-    });
+    // Sincroniza alterados e deleta removidos
+    await Promise.all([
+      ...removedItems.map(i => deleteDoc(doc(db, "quizTopics", i.id))),
+      ...newTopics.map(topic => setDoc(doc(db, "quizTopics", topic.id), topic))
+    ]);
     
     this.saveToStorage();
   }
@@ -1556,39 +1669,63 @@ export class EcosystemService {
     this.saveToStorage();
   }
 
-  updateTurmas(newTurmas: Turma[]) {
+  async updateTurmas(newTurmas: Turma[]) {
     if (!this.checkAdminAuth()) return;
+    
+    const removedItems = this.data.turmas.filter(oldI => !newTurmas.find(newI => newI.id === oldI.id));
+    
     this.data.turmas = newTurmas;
     this.turmasSubject.next([...newTurmas]);
     
-    newTurmas.forEach(t => setDoc(doc(db, "turmas", t.id), t));
+    await Promise.all([
+        ...removedItems.map(i => deleteDoc(doc(db, "turmas", i.id))),
+        ...newTurmas.map(t => setDoc(doc(db, "turmas", t.id), t))
+    ]);
     this.saveToStorage();
   }
 
-  updateCursos(newCursos: Curso[]) {
+  async updateCursos(newCursos: Curso[]) {
     if (!this.checkAdminAuth()) return;
+    
+    const removedItems = this.data.cursos.filter(oldI => !newCursos.find(newI => newI.id === oldI.id));
+    
     this.data.cursos = newCursos;
     this.cursosSubject.next([...newCursos]);
     
-    newCursos.forEach(c => setDoc(doc(db, "cursos", c.id), c));
+    await Promise.all([
+        ...removedItems.map(i => deleteDoc(doc(db, "cursos", i.id))),
+        ...newCursos.map(c => setDoc(doc(db, "cursos", c.id), c))
+    ]);
     this.saveToStorage();
   }
 
-  updateCargos(newCargos: Cargo[]) {
+  async updateCargos(newCargos: Cargo[]) {
     if (!this.checkAdminAuth()) return;
+    
+    const removedItems = this.data.cargos.filter(oldI => !newCargos.find(newI => newI.id === oldI.id));
+    
     this.data.cargos = newCargos;
     this.cargosSubject.next([...newCargos]);
     
-    newCargos.forEach(c => setDoc(doc(db, "cargos", c.id), c));
+    await Promise.all([
+        ...removedItems.map(i => deleteDoc(doc(db, "cargos", i.id))),
+        ...newCargos.map(c => setDoc(doc(db, "cargos", c.id), c))
+    ]);
     this.saveToStorage();
   }
 
-  updateSetores(newSetores: SetorEscolar[]) {
+  async updateSetores(newSetores: SetorEscolar[]) {
     if (!this.checkAdminAuth()) return;
+    
+    const removedItems = this.data.setores.filter(oldI => !newSetores.find(newI => newI.id === oldI.id));
+    
     this.data.setores = newSetores;
     this.setoresSubject.next([...newSetores]);
     
-    newSetores.forEach(s => setDoc(doc(db, "setores", s.id), s));
+    await Promise.all([
+        ...removedItems.map(i => deleteDoc(doc(db, "setores", i.id))),
+        ...newSetores.map(s => setDoc(doc(db, "setores", s.id), s))
+    ]);
     this.saveToStorage();
   }
 
