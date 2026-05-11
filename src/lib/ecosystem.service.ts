@@ -1785,8 +1785,8 @@ export class EcosystemService {
   }
 
   // Funções de atualização em massa (usadas no painel admin)
-  async updateUsers(newUsers: User[]): Promise<boolean> {
-    if (!this.checkAdminAuth()) return false;
+  async updateUsers(newUsers: User[]): Promise<{ success: boolean, error?: string }> {
+    if (!this.checkAdminAuth()) return { success: false, error: 'Não autorizado' };
 
     // Validação Global de Dados Críticos Duplicados (Email, RA, RFID)
     const emails = new Map<string, string>();
@@ -1798,8 +1798,7 @@ export class EcosystemService {
       if (u.email) {
         u.email = u.email.toLowerCase().trim();
         if (emails.has(u.email)) {
-          console.error(`[VALIDATION] Conflito de e-mail: ${u.email}. Usuários: ${emails.get(u.email)} e ${u.name}`);
-          return false;
+          return { success: false, error: `Conflito de e-mail: ${u.email}. Já em uso por ${emails.get(u.email)}` };
         }
         emails.set(u.email, u.name);
       }
@@ -1808,8 +1807,8 @@ export class EcosystemService {
       if (u.ra) {
         u.ra = u.ra.toUpperCase().trim();
         if (ras.has(u.ra)) {
-          console.error(`[VALIDATION] Conflito de RA: ${u.ra}. Usuários: ${ras.get(u.ra)} e ${u.name}`);
-          return false;
+          const conflictMsg = `Conflito de RA: ${u.ra}. O aluno ${ras.get(u.ra)} já utiliza este código.`;
+          return { success: false, error: conflictMsg };
         }
         ras.set(u.ra, u.name);
       }
@@ -1818,8 +1817,8 @@ export class EcosystemService {
       if (u.rfid) {
         u.rfid = u.rfid.toUpperCase().trim();
         if (rfids.has(u.rfid)) {
-          console.error(`[VALIDATION] Conflito de RFID: ${u.rfid}. Usuários: ${rfids.get(u.rfid)} e ${u.name}`);
-          return false;
+          const conflictMsg = `Conflito de RFID: ${u.rfid}. Já em uso por ${rfids.get(u.rfid)}.`;
+          return { success: false, error: conflictMsg };
         }
         rfids.set(u.rfid, u.name);
       }
@@ -1897,11 +1896,63 @@ export class EcosystemService {
     }
 
     this.saveToStorage();
-    return true;
+    return { success: true };
   }
 
-  async updateRewards(newRewards: Reward[]) {
-    if (!this.checkAdminAuth()) return;
+  async deleteUser(userId: string): Promise<boolean> {
+    if (!this.checkAdminAuth()) return false;
+    const user = this.data.users.find(u => u.id === userId);
+    if (!user) return false;
+    
+    this.data.users = this.data.users.filter(u => u.id !== userId);
+    this.usersSubject.next([...this.data.users]);
+    
+    // 2. Remove do Firestore
+    try {
+      await deleteDoc(doc(db, "users", userId));
+      if (user.ra) {
+          await deleteDoc(doc(db, "users", user.ra));
+          await deleteDoc(doc(db, "userStates", user.ra));
+      }
+      
+      // Limpeza de cache local do userStates
+      if (user.ra && this.data.userStates) {
+          delete this.data.userStates[user.ra];
+          this.userStatesSubject.next({ ...this.data.userStates });
+      }
+
+      this.saveToStorage();
+      return true;
+    } catch (error) { 
+      console.error("Erro ao deletar usuário:", error);
+      return false; 
+    }
+  }
+
+  async deleteReward(id: string): Promise<boolean> {
+    if (!this.checkAdminAuth()) return false;
+    this.data.rewards = this.data.rewards.filter(r => r.id !== id);
+    this.rewardsSubject.next([...this.data.rewards]);
+    try {
+      await deleteDoc(doc(db, "rewards", id));
+      this.saveToStorage();
+      return true;
+    } catch (error) { return false; }
+  }
+
+  async deleteArticle(id: string): Promise<boolean> {
+    if (!this.checkAdminAuth()) return false;
+    this.data.articles = this.data.articles.filter(a => a.id !== id);
+    this.articlesSubject.next([...this.data.articles]);
+    try {
+      await deleteDoc(doc(db, "articles", id));
+      this.saveToStorage();
+      return true;
+    } catch (error) { return false; }
+  }
+
+  async updateRewards(newRewards: Reward[]): Promise<boolean> {
+    if (!this.checkAdminAuth()) return false;
 
     const removedItems = this.data.rewards.filter(oldI => !newRewards.find(newI => newI.id === oldI.id));
 
@@ -1943,10 +1994,11 @@ export class EcosystemService {
     ]);
 
     this.saveToStorage();
+    return true;
   }
 
-  async updateArticles(newArticles: EducationArticle[]) {
-    if (!this.checkAdminAuth()) return;
+  async updateArticles(newArticles: EducationArticle[]): Promise<boolean> {
+    if (!this.checkAdminAuth()) return false;
 
     const removedItems = this.data.articles.filter(oldI => !newArticles.find(newI => newI.id === oldI.id));
 
@@ -1988,10 +2040,11 @@ export class EcosystemService {
     ]);
 
     this.saveToStorage();
+    return true;
   }
 
-  async updateQuizTopics(newTopics: QuizTopic[]) {
-    if (!this.checkAdminAuth()) return;
+  async updateQuizTopics(newTopics: QuizTopic[]): Promise<boolean> {
+    if (!this.checkAdminAuth()) return false;
 
     const removedItems = this.data.quizTopics.filter(oldI => !newTopics.find(newI => newI.id === oldI.id));
 
@@ -2005,6 +2058,7 @@ export class EcosystemService {
     ]);
 
     this.saveToStorage();
+    return true;
   }
 
   updateParticipants(newParticipants: Participant[]) {
@@ -2185,7 +2239,9 @@ export class EcosystemService {
    * Considera Bio-Coins, Vitalidade e Itens.
    */
   static calculateTotalScore(points: number, vitality: number, itemsCount: number): number {
-    return Math.floor(points + (vitality * 100) + (itemsCount * 500));
+    // Prioriza Bio-Coins de coleta e Itens conquistados. 
+    // Vitalidade entra como bônus direto (sem multiplicador de 100) para evitar base de 10k.
+    return Math.floor(points + (itemsCount * 250) + vitality);
   }
 
   /**

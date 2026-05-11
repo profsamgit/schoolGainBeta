@@ -34,6 +34,8 @@ interface InfraSectionProps {
   deleteTerminal: (id: string) => void;
   updateTerminalStatus: (id: string, status: any, schoolId: string) => void;
   updateTerminalSettings: (id: string, settings: Partial<Terminal>) => void;
+  approveTerminal: (terminal: Terminal) => void;
+  approveSchool: (school: any) => void;
   currentUser: any;
   targetSchoolId?: string;
   toast: any;
@@ -47,6 +49,8 @@ export function InfraSection({
   deleteTerminal,
   updateTerminalStatus,
   updateTerminalSettings,
+  approveTerminal,
+  approveSchool,
   currentUser,
   targetSchoolId,
   toast
@@ -251,10 +255,7 @@ export function InfraSection({
                           </div>
                           <div className="flex gap-2">
                              <Button size="sm" variant="outline" onClick={() => deleteTerminal(terminal.id)} className="bg-white text-red-600 border-red-200">Recusar</Button>
-                             <Button size="sm" onClick={() => {
-                                updateTerminalStatus(terminal.id, 'active', targetSchoolId || currentUser.schoolId || 'system-global');
-                                toast({ title: "Terminal Autorizado", description: `O totem em ${terminal.location} está ativo.` });
-                             }} className="bg-amber-600 hover:bg-amber-700">Autorizar Acesso</Button>
+                             <Button size="sm" onClick={() => approveTerminal(terminal)} className="bg-amber-600 hover:bg-amber-700">Autorizar Acesso</Button>
                           </div>
                        </div>
                     ))}
@@ -290,20 +291,29 @@ export function InfraSection({
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right flex justify-end gap-2">
-                           <Button variant="ghost" size="sm" onClick={() => {
-                              setEditingTerminal(terminal);
-                              setTerminalLocation(terminal.location);
-                              setPreferredCamera(terminal.settings?.preferredCamera || 'default');
-                              setTerminalLoginMethod(terminal.settings?.loginMethod || 'all');
-                              setTerminalCameraSource(terminal.settings?.loginCameraSource || 'browser');
-                              setTerminalCameraUrl(terminal.settings?.cameraUrl || '');
-                              setIsTerminalDialogOpen(true);
-                           }} className="text-amber-600 h-8 w-8 p-0">
-                              <Settings2 className="h-4 w-4" />
-                           </Button>
-                           <Button variant="ghost" size="sm" onClick={() => deleteTerminal(terminal.id)} className="text-red-600 h-8 w-8 p-0">
-                              <Trash2 className="h-4 w-4" />
-                           </Button>
+                            {terminal.status === 'pending' && (
+                              <Button 
+                                size="sm" 
+                                className="bg-green-600 hover:bg-green-700 text-white font-black uppercase text-[9px] tracking-widest gap-1 h-8"
+                                onClick={() => approveTerminal(terminal)}
+                              >
+                                <ShieldCheck className="h-3 w-3" /> Ativar
+                              </Button>
+                            )}
+                            <Button variant="ghost" size="sm" onClick={() => {
+                               setEditingTerminal(terminal);
+                               setTerminalLocation(terminal.location);
+                               setPreferredCamera(terminal.settings?.preferredCamera || 'default');
+                               setTerminalLoginMethod(terminal.settings?.loginMethod || 'all');
+                               setTerminalCameraSource(terminal.settings?.loginCameraSource || 'browser');
+                               setTerminalCameraUrl(terminal.settings?.cameraUrl || '');
+                               setIsTerminalDialogOpen(true);
+                            }} className="text-amber-600 h-8 w-8 p-0">
+                               <Settings2 className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => deleteTerminal(terminal.id)} className="text-red-600 h-8 w-8 p-0">
+                               <Trash2 className="h-4 w-4" />
+                            </Button>
                         </TableCell>
                       </TableRow>
                     )) : (

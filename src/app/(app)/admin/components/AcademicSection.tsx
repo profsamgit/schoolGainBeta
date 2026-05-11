@@ -16,6 +16,7 @@ import {
   Search,
   Eye,
   Check,
+  CheckCircle2,
   X,
   Clock,
   Wand2,
@@ -130,7 +131,7 @@ interface AcademicSectionProps {
   securityPassword: string;
   setSecurityPassword: (val: string) => void;
   registrationRequests: RegistrationRequest[];
-  approveRegistration: (id: string) => Promise<boolean>;
+  approveRegistration: (item: RegistrationRequest) => void;
   rejectRegistration: (id: string) => Promise<boolean>;
   updateUserStatus: (userId: string, status: 'active' | 'inactive') => Promise<boolean>;
 }
@@ -581,32 +582,30 @@ export function AcademicSection({
         </CardHeader>
         
         <CardContent>
-          <div className="flex flex-col md:flex-row gap-4 mb-8">
-            <div className="flex-1 relative">
+          <div className="flex flex-col md:flex-row gap-4 mb-6 items-end">
+            <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input 
                   placeholder="Pesquisar por nome ou RA..." 
-                  className="pl-10 bg-white border-slate-200"
+                  className="pl-10 h-12 bg-white"
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
                 />
             </div>
             
-            <div className="flex gap-2">
-                <div className="w-full md:w-64">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1 block">Filtrar por Turma</Label>
-                    <Select value={userTurmaFilter} onValueChange={setUserTurmaFilter}>
-                      <SelectTrigger className="bg-white">
-                        <SelectValue placeholder="Todas as Turmas" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todas as Turmas</SelectItem>
-                        {filteredTurmas.map((t, idx) => (
-                          <SelectItem key={t.id || `filter-t-${idx}`} value={t.name}>{t.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                </div>
+            <div className="w-full md:w-64 space-y-1">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Filtrar por Turma</Label>
+                <Select value={userTurmaFilter} onValueChange={setUserTurmaFilter}>
+                  <SelectTrigger className="h-12 bg-white">
+                    <SelectValue placeholder="Todas as Turmas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as Turmas</SelectItem>
+                    {filteredTurmas.map((t, idx) => (
+                      <SelectItem key={t.id || `filter-t-${idx}`} value={t.name}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
             </div>
           </div>
 
@@ -669,13 +668,12 @@ export function AcademicSection({
                         <TableCell className="text-right px-6">
                           <div className="flex justify-end gap-2">
                             <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="h-8 border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 gap-1 font-bold text-[10px] uppercase"
-                              onClick={() => approveRegistration(req.id)}
-                            >
-                              <Check className="h-3 w-3" /> Aprovar
-                            </Button>
+                                size="sm" 
+                                className="bg-green-600 hover:bg-green-700 text-white font-black uppercase text-[10px] tracking-widest gap-2"
+                                onClick={() => approveRegistration(req)}
+                              >
+                                <CheckCircle2 className="h-4 w-4" /> Aprovar
+                              </Button>
                             <Button 
                               size="sm" 
                               variant="outline" 

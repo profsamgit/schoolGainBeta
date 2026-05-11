@@ -13,7 +13,8 @@ import {
   Globe,
   Lock,
   ShieldCheck,
-  Trash2
+  Trash2,
+  CheckCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
@@ -130,12 +131,16 @@ function AdminContent() {
     updateTerminalSettings,
     updateTerminalStatus,
     deleteTerminal,
+    registerSchool,
     schools,
     uploadUserAvatar,
     registrationRequests,
     approveRegistration,
     rejectRegistration,
-    updateUserStatus
+    updateUserStatus,
+    deleteUser,
+    deleteReward,
+    deleteArticle
   } = useEcosystem();
 
   const [uploadingUserId, setUploadingUserId] = useState<string | null>(null);
@@ -172,6 +177,9 @@ function AdminContent() {
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [mustChangePass, setMustChangePass] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isApproveConfirmOpen, setIsApproveConfirmOpen] = useState(false);
+  const [pendingApprovalItem, setPendingApprovalItem] = useState<any>(null);
+  const [pendingApprovalType, setPendingApprovalType] = useState<'student' | 'terminal' | 'school' | null>(null);
   const [isBadgeOpen, setIsBadgeOpen] = useState(false);
 
   // States for form handling
@@ -241,6 +249,7 @@ function AdminContent() {
     setIsSubmitting(false);
     setIsNew(false);
     setIsDeleteConfirmOpen(false);
+    setIsApproveConfirmOpen(false);
     userForm.reset();
     rewardForm.reset();
     articleForm.reset();
@@ -295,6 +304,13 @@ function AdminContent() {
     setIsDeleteConfirmOpen(true);
   };
 
+  const handleApproveRequest = (item: any, type: 'student' | 'terminal' | 'school') => {
+    setPendingApprovalItem(item);
+    setPendingApprovalType(type);
+    setIsApproveConfirmOpen(true);
+    setSecurityPassword('');
+  };
+
   const confirmDelete = async () => {
     if (!selectedItem || !itemType) return;
     
@@ -307,22 +323,62 @@ function AdminContent() {
 
     setIsSubmitting(true);
     try {
-      if (itemType === 'user') await updateUsers(users.filter((i: User) => i.id !== selectedItem.id));
-      else if (itemType === 'reward') updateRewards(rewards.filter((i: Reward) => i.id !== selectedItem.id));
-      else if (itemType === 'article') updateArticles(articles.filter((i: EducationArticle) => i.id !== selectedItem.id));
-      else if (itemType === 'turma') updateTurmas(allTurmas.filter((i: Turma) => i.id !== selectedItem.id));
-      else if (itemType === 'curso') updateCursos(allCursos.filter((i: Curso) => i.id !== selectedItem.id));
-      else if (itemType === 'cargo') updateCargos(allCargos.filter((i: Cargo) => i.id !== selectedItem.id));
-      else if (itemType === 'setor') updateSetores(allSetores.filter((i: SetorEscolar) => i.id !== selectedItem.id));
+      let success = false;
+      if (itemType === 'user') success = await deleteUser(selectedItem.id);
+      else if (itemType === 'reward') success = await deleteReward(selectedItem.id);
+      else if (itemType === 'article') success = await deleteArticle(selectedItem.id);
+      else if (itemType === 'turma') await updateTurmas(allTurmas.filter((i: Turma) => i.id !== selectedItem.id));
+      else if (itemType === 'curso') await updateCursos(allCursos.filter((i: Curso) => i.id !== selectedItem.id));
+      else if (itemType === 'cargo') await updateCargos(allCargos.filter((i: Cargo) => i.id !== selectedItem.id));
+      else if (itemType === 'setor') await updateSetores(allSetores.filter((i: SetorEscolar) => i.id !== selectedItem.id));
       
-      toast({ title: 'Item Removido!', description: `${selectedItem.name || selectedItem.title} foi removido.` });
-      closeAllForms();
+      if (success || itemType !== 'user' && itemType !== 'reward' && itemType !== 'article') {
+          toast({ title: 'Item Removido!', description: `${selectedItem.name || selectedItem.title} foi removido.` });
+          closeAllForms();
+      } else {
+          toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível remover o item.' });
+      }
     } catch (error) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível remover o item.' });
     } finally {
       setIsSubmitting(false);
       setSecurityPassword('');
       setIsDeleteConfirmOpen(false);
+    }
+  };
+
+  const confirmApproval = async () => {
+    const isAuthorized = await EcosystemService.verifyUniversalPassword(securityPassword, currentUser, users);
+    if (!isAuthorized) {
+      toast({ variant: 'destructive', title: 'Senha Incorreta', description: 'Ação não autorizada.' });
+      return;
+    }
+
+    if (!pendingApprovalItem || !pendingApprovalType) return;
+
+    let success = false;
+    try {
+      if (pendingApprovalType === 'student') {
+        success = await approveRegistration(pendingApprovalItem.id);
+      } else if (pendingApprovalType === 'terminal') {
+        await updateTerminalStatus(pendingApprovalItem.id, 'active', targetSchoolId || currentUser?.schoolId || 'system-global');
+        success = true;
+      } else if (pendingApprovalType === 'school') {
+        success = await registerSchool(pendingApprovalItem);
+      }
+
+      if (success) {
+        toast({ title: 'Sucesso', description: 'Aprovação realizada com sucesso.' });
+        setIsApproveConfirmOpen(false);
+        setPendingApprovalItem(null);
+        setPendingApprovalType(null);
+        setSecurityPassword('');
+      } else {
+        toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível concluir a aprovação.' });
+      }
+    } catch (error) {
+      console.error("Erro na aprovação:", error);
+      toast({ variant: 'destructive', title: 'Erro Crítico', description: 'Ocorreu um erro ao processar a aprovação.' });
     }
   };
 
@@ -378,21 +434,42 @@ function AdminContent() {
         else if (sanitizedPayload.role === 'admin') prefix = 'admin';
 
         const newId = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(-4)}`;
-        await updateUsers(isNew ? [...users, { ...sanitizedPayload, id: newId, points: 0, level: 'Semente' } as unknown as User] : users.map(u => u.id === selectedItem.id ? { ...u, ...sanitizedPayload } as User : u));
+        const finalUsers = isNew ? [...users, { ...sanitizedPayload, id: newId, points: 0, level: 'Semente' } as unknown as User] : users.map(u => u.id === selectedItem.id ? { ...u, ...sanitizedPayload } as User : u);
+        const result = await updateUsers(finalUsers);
+        
+        if (!result.success) {
+            toast({ variant: 'destructive', title: 'Erro de Validação', description: result.error || 'Não foi possível salvar. Verifique os dados.' });
+            setIsSubmitting(false);
+            return;
+        }
+
+        toast({ title: isNew ? 'Aluno Cadastrado!' : 'Dados Atualizados!', description: `${sanitizedPayload.name} foi salvo com sucesso.` });
+        closeAllForms();
       } else if (itemType === 'reward') {
         const sanitizedPayload = Object.fromEntries(
           Object.entries(payload).filter(([_, v]) => v !== undefined && v !== null && _ !== 'confirmPassword')
         );
-        await updateRewards(isNew ? [...rewards, { ...sanitizedPayload, id: `reward-${Date.now()}` } as unknown as Reward] : rewards.map(r => r.id === selectedItem.id ? { ...r, ...sanitizedPayload } as Reward : r));
+        const success = await updateRewards(isNew ? [...rewards, { ...sanitizedPayload, id: `reward-${Date.now()}` } as unknown as Reward] : rewards.map(r => r.id === selectedItem.id ? { ...r, ...sanitizedPayload } as Reward : r));
+        if (!success) {
+            toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao salvar recompensa.' });
+            setIsSubmitting(false);
+            return;
+        }
+        toast({ title: isNew ? 'Item Adicionado!' : 'Item Atualizado!', description: `${values.name} foi processado.` });
+        closeAllForms();
       } else if (itemType === 'article') {
         const sanitizedPayload = Object.fromEntries(
           Object.entries(payload).filter(([_, v]) => v !== undefined && v !== null && _ !== 'confirmPassword')
         );
-        await updateArticles(isNew ? [...articles, { ...sanitizedPayload, id: `article-${Date.now()}`, slug: values.title.toLowerCase().replace(/ /g, '-') } as unknown as EducationArticle] : articles.map(a => a.id === selectedItem.id ? { ...a, ...sanitizedPayload } as EducationArticle : a));
+        const success = await updateArticles(isNew ? [...articles, { ...sanitizedPayload, id: `article-${Date.now()}`, slug: values.title.toLowerCase().replace(/ /g, '-') } as unknown as EducationArticle] : articles.map(a => a.id === selectedItem.id ? { ...a, ...sanitizedPayload } as EducationArticle : a));
+        if (!success) {
+            toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao salvar artigo.' });
+            setIsSubmitting(false);
+            return;
+        }
+        toast({ title: isNew ? 'Item Adicionado!' : 'Item Atualizado!', description: `${values.title} foi processado.` });
+        closeAllForms();
       }
-
-      toast({ title: isNew ? 'Item Adicionado!' : 'Item Atualizado!', description: `${values.name || values.title} foi processado.` });
-      closeAllForms();
     } catch (error) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao salvar.' });
     } finally {
@@ -613,7 +690,7 @@ function AdminContent() {
               securityPassword={securityPassword}
               setSecurityPassword={setSecurityPassword}
               registrationRequests={registrationRequests}
-              approveRegistration={approveRegistration}
+              approveRegistration={(item) => handleApproveRequest(item, 'student')}
               rejectRegistration={rejectRegistration}
               updateUserStatus={updateUserStatus}
             />
@@ -674,6 +751,8 @@ function AdminContent() {
               deleteTerminal={deleteTerminal}
               updateTerminalStatus={updateTerminalStatus}
               updateTerminalSettings={updateTerminalSettings}
+              approveTerminal={(t) => handleApproveRequest(t, 'terminal')}
+              approveSchool={(s) => handleApproveRequest(s, 'school')}
               currentUser={currentUser}
               targetSchoolId={targetSchoolId}
               toast={toast}
@@ -719,6 +798,22 @@ function AdminContent() {
         </DialogContent>
       </Dialog>
 
+      {/* Approval Confirm Dialog */}
+      <Dialog open={isApproveConfirmOpen} onOpenChange={closeAllForms}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><CheckCircle className="text-green-500" /> Confirmar Aprovação</DialogTitle>
+            <DialogDescription>
+              Você está prestes a aprovar uma requisição de {pendingApprovalType}. Digite sua senha de segurança para confirmar.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={(e) => { e.preventDefault(); confirmApproval(); }} className="space-y-4">
+            <Input type="password" placeholder="Senha de Segurança" value={securityPassword} onChange={e => setSecurityPassword(e.target.value)} />
+            <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">Confirmar Aprovação</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {isDeleteConfirmOpen && selectedItem && (
         <div className="fixed bottom-6 right-6 z-50 w-full max-w-sm p-6 border-2 border-red-500 bg-white rounded-2xl shadow-2xl animate-in slide-in-from-bottom-10 space-y-4">
           <div className="flex items-center gap-3">
@@ -731,23 +826,32 @@ function AdminContent() {
             </div>
           </div>
           
-          <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Senha de Segurança</Label>
-            <Input 
-              type="password" 
-              value={securityPassword} 
-              onChange={e => setSecurityPassword(e.target.value)} 
-              placeholder="Sua senha ou Master" 
-              className="border-red-200"
-            />
-          </div>
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              confirmDelete();
+            }} 
+            className="space-y-4"
+          >
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Senha de Segurança</Label>
+              <Input 
+                type="password" 
+                value={securityPassword} 
+                onChange={e => setSecurityPassword(e.target.value)} 
+                placeholder="Sua senha ou Master" 
+                className="border-red-200"
+                autoFocus
+              />
+            </div>
 
-          <div className="flex gap-2">
-            <Button variant="outline" className="flex-1" onClick={() => { setIsDeleteConfirmOpen(false); setSecurityPassword(''); }}>Cancelar</Button>
-            <Button variant="destructive" className="flex-1" onClick={confirmDelete} disabled={!securityPassword || isSubmitting}>
-              {isSubmitting ? '...' : 'Sim, Excluir'}
-            </Button>
-          </div>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" className="flex-1" onClick={() => { setIsDeleteConfirmOpen(false); setSecurityPassword(''); }}>Cancelar</Button>
+              <Button type="submit" variant="destructive" className="flex-1" disabled={!securityPassword || isSubmitting}>
+                {isSubmitting ? '...' : 'Sim, Excluir'}
+              </Button>
+            </div>
+          </form>
         </div>
       )}
     </div>

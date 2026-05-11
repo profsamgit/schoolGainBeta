@@ -39,10 +39,10 @@ interface EcosystemContextType {
   login: (ra: string, password?: string) => Promise<boolean>; // Entrar no sistema
   logout: () => void;             // Sair do sistema
   addPoints: (points: number, studentRa?: string) => void; // Dar pontos
-  updateUsers: (newUsers: User[]) => Promise<boolean>;
-  updateRewards: (newRewards: Reward[]) => Promise<void>;
-  updateArticles: (newArticles: EducationArticle[]) => Promise<void>;
-  updateQuizTopics: (newTopics: QuizTopic[]) => Promise<void>;
+  updateUsers: (newUsers: User[]) => Promise<{ success: boolean, error?: string }>;
+  updateRewards: (newRewards: Reward[]) => Promise<boolean>;
+  updateArticles: (newArticles: EducationArticle[]) => Promise<boolean>;
+  updateQuizTopics: (newTopics: QuizTopic[]) => Promise<boolean>;
   allTurmas: Turma[];
   allCursos: Curso[];
   allCargos: Cargo[];
@@ -78,6 +78,9 @@ interface EcosystemContextType {
   requestRegistration: (data: any) => Promise<boolean>;
   approveRegistration: (id: string) => Promise<boolean>;
   rejectRegistration: (id: string) => Promise<boolean>;
+  deleteUser: (userId: string) => Promise<boolean>;
+  deleteReward: (id: string) => Promise<boolean>;
+  deleteArticle: (id: string) => Promise<boolean>;
   updateUserStatus: (userId: string, status: 'active' | 'inactive') => Promise<boolean>;
   wasteEntries: WasteEntry[];
   registerWaste: (ra: string, type: WasteType, weightKg: number, terminalSchoolId?: string) => boolean;
@@ -252,6 +255,9 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const logout = service.logout.bind(service);
   const addPoints = service.addPoints.bind(service);
   const updateUsers = async (newUsers: User[]) => await service.updateUsers(newUsers);
+  const deleteUser = async (userId: string) => await service.deleteUser(userId);
+  const deleteReward = async (id: string) => await service.deleteReward(id);
+  const deleteArticle = async (id: string) => await service.deleteArticle(id);
   const updateRewards = async (newRewards: Reward[]) => await service.updateRewards(newRewards);
   const updateArticles = async (newArticles: EducationArticle[]) => await service.updateArticles(newArticles);
   const updateQuizTopics = async (newTopics: QuizTopic[]) => await service.updateQuizTopics(newTopics);
@@ -316,6 +322,9 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
       logout,
       addPoints,
       updateUsers,
+      deleteUser,
+      deleteReward,
+      deleteArticle,
       updateRewards,
       updateArticles,
       updateQuizTopics,
