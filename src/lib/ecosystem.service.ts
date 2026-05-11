@@ -27,7 +27,8 @@ import {
   EcosystemData,
   QuizTopic,
   UserLevel,
-  USER_LEVELS
+  USER_LEVELS,
+  RegistrationRequest
 } from './types';
 
 
@@ -120,7 +121,6 @@ export class EcosystemService {
     systemSettings: {
       studentLoginMethod: 'all',
       adminLoginMethod: 'all',
-      terminalId: 'TERM-01',
       studentCaptureSource: 'browser',
       adminCaptureSource: 'browser',
       studentCaptureDevice: '',
@@ -133,9 +133,12 @@ export class EcosystemService {
     securityState: {},
     wasteEntries: [],
     auditLogs: [],
+    registrationRequests: [],
     resetHistory: [],
     resetVersion: 'v22_stable'
   };
+
+  private _hardwareId: string | null = null;
 
   /**
    * BehaviorSubjects (RxJS):
@@ -160,13 +163,13 @@ export class EcosystemService {
   private cargosSubject = new BehaviorSubject<Cargo[]>([]);
   private setoresSubject = new BehaviorSubject<SetorEscolar[]>([]);
   private auditLogsSubject = new BehaviorSubject<AuditLogEntry[]>([]);
-  private levelSubject = new BehaviorSubject<string>('Iniciante');
+  private levelSubject = new BehaviorSubject<string>('Semente');
+  private registrationRequestsSubject = new BehaviorSubject<RegistrationRequest[]>([]);
 
   // Novos canais para hardware e gestão
   private systemSettingsSubject = new BehaviorSubject<SystemSettings>({
     studentLoginMethod: 'all',
     adminLoginMethod: 'all',
-    terminalId: 'TERM-01',
     studentCaptureSource: 'browser',
     adminCaptureSource: 'browser',
     studentCaptureDevice: '',
@@ -193,7 +196,6 @@ export class EcosystemService {
     this.systemSettingsSubject.next(this.data.systemSettings || {
       studentLoginMethod: 'all',
       adminLoginMethod: 'all',
-      terminalId: 'TERM-01',
       studentCaptureSource: 'browser',
       adminCaptureSource: 'browser',
       studentCaptureDevice: '',
@@ -204,6 +206,7 @@ export class EcosystemService {
     this.terminalsSubject.next(this.data.terminals || []);
     this.systemSettingsSubject.next(this.data.systemSettings);
     this.wasteEntriesSubject.next(this.data.wasteEntries || []);
+    this.registrationRequestsSubject.next(this.data.registrationRequests || []);
     this.resetHistorySubject.next(this.data.resetHistory || []);
   }
 
@@ -370,6 +373,14 @@ export class EcosystemService {
         this.syncStateWithUser(this.data.currentUserRa);
       }
     });
+
+    // 11. Sincronização de Solicitações de Cadastro
+    onSnapshot(query(collection(db, "registrationRequests"), orderBy("createdAt", "desc")), (snapshot) => {
+      const requests: RegistrationRequest[] = [];
+      snapshot.forEach(doc => requests.push(doc.data() as RegistrationRequest));
+      this.data.registrationRequests = requests;
+      this.registrationRequestsSubject.next(requests);
+    });
   }
 
   /**
@@ -379,6 +390,9 @@ export class EcosystemService {
     if (typeof window === 'undefined') return;
     this.sanitizeData(); // Limpa dados legados e intrusos
     this.initFirebaseSync(); // Inicia sincronização em tempo real com Firestore
+
+    // Inicializa Identificação de Hardware Local (Resiliente e Persistente)
+    this.setupHardwareId();
 
     // Notifica todos os inscritos sobre os dados carregados
     this.currentUserRaSubject.next(this.data.currentUserRa);
@@ -412,7 +426,6 @@ export class EcosystemService {
     // Sincronização entre abas: Ouve mudanças no localStorage vindas de outras abas (ex: Kiosk)
     window.addEventListener('storage', (event) => {
       if (event.key === 'schoolgain_ecosystem_data') {
-        // Debug: console.log('[ECOSYSTEM] Dados atualizados em outra aba, sincronizando...');
         this.loadFromStorage();
         this.notifyAll();
       }
@@ -472,6 +485,7 @@ export class EcosystemService {
 
       const score = EcosystemService.calculateTotalScore(student.points, state.vitality, state.purchasedItems.length);
       student.level = this.calculateLevel(score, state.purchasedItems);
+      state.level = student.level;
 
       if (cleanRa === this.data.currentUserRa?.toUpperCase() || cleanRa === this.kioskUserRaSubject.value?.toUpperCase()) {
         this.levelSubject.next(student.level);
@@ -503,6 +517,7 @@ export class EcosystemService {
   get terminals() { return this.terminalsSubject.value; }
   get schools() { return this.schoolsSubject.value; }
   get wasteEntries() { return this.wasteEntriesSubject.value; }
+  get registrationRequests() { return this.registrationRequestsSubject.value; }
   get resetHistory() { return this.resetHistorySubject.value; }
 
   // Observables para os componentes React se inscreverem
@@ -526,6 +541,7 @@ export class EcosystemService {
   get terminals$() { return this.terminalsSubject.asObservable(); }
   get schools$() { return this.schoolsSubject.asObservable(); }
   get wasteEntries$() { return this.wasteEntriesSubject.asObservable(); }
+  get registrationRequests$() { return this.registrationRequestsSubject.asObservable(); }
   get resetHistory$() { return this.resetHistorySubject.asObservable(); }
 
   get balance() { return this.balanceSubject.value; }
@@ -533,6 +549,7 @@ export class EcosystemService {
   get purchasedItems() { return this.purchasedItemsSubject.value; }
   get currentUserRa() { return this.currentUserRaSubject.value; }
   get systemSettings() { return this.systemSettingsSubject.value; }
+  get hardwareId() { return this._hardwareId; }
 
   /**
    * Realiza o upload de um avatar para o Firebase Storage e atualiza o usuário.
@@ -541,7 +558,6 @@ export class EcosystemService {
     try {
       let downloadURL = '';
 
-      // Debug: console.log(`[ECOSYSTEM] Iniciando processamento de foto: ${userId}`);
 
       // Geramos o Base64 IMEDIATAMENTE. Como o Storage é restrito no plano, 
       // usamos o Firestore (Base64) como método principal e único para máxima velocidade.
@@ -577,7 +593,6 @@ export class EcosystemService {
       });
 
       downloadURL = base64Data;
-      // Debug: console.log("[ECOSYSTEM] Foto processada localmente com sucesso.");
 
       // 4. Determina a coleção (users, participants, rewards, articles)
       let collectionName = "users";
@@ -650,8 +665,8 @@ export class EcosystemService {
   /**
    * Dispara um evento de login vindo de hardware externo (ESP32).
    */
-  triggerHardwareLogin(ra: string, terminalId: string) {
-    this.pendingLoginSubject.next({ ra, terminalId });
+  triggerHardwareLogin(ra: string, registeredId: string) {
+    this.pendingLoginSubject.next({ ra, terminalId: registeredId });
     // Limpa o evento após um curto período para não disparar login duplo
     setTimeout(() => this.pendingLoginSubject.next(null), 2000);
   }
@@ -689,9 +704,9 @@ export class EcosystemService {
     if (existing) return false;
 
     const newTerminal: Terminal = {
-      id: terminalId,
-      hardwareId,
-      location,
+      id: terminalId.toUpperCase().trim(),
+      hardwareId: hardwareId.toUpperCase().trim(),
+      location: location.toUpperCase().trim(),
       status: 'pending',
       schoolId,
       requestDate: new Date().toISOString(),
@@ -827,8 +842,17 @@ export class EcosystemService {
       return false;
     }
 
-    const newSchool: School = {
+    const sanitizedData = {
       ...schoolData,
+      name: schoolData.name.toUpperCase().trim(),
+      city: schoolData.city.toUpperCase().trim(),
+      state: schoolData.state.toUpperCase().trim(),
+      contactEmail: schoolData.contactEmail?.toLowerCase().trim(),
+      managerEmail: schoolData.managerEmail.toLowerCase().trim()
+    };
+
+    const newSchool: School = {
+      ...sanitizedData,
       id: `school-${Date.now()}`,
       status: 'pending',
       joinedDate: new Date().toISOString().split('T')[0]
@@ -924,7 +948,8 @@ export class EcosystemService {
       purchasedItems: [],
       lastMissionDate: null,
       curso: '',
-      nessiePurchaseDate: null
+      nessiePurchaseDate: null,
+      level: 'Semente'
     };
   }
 
@@ -1031,8 +1056,7 @@ export class EcosystemService {
       this.data.terminals = [...TERMINALS_MOCK];
       this.data.systemSettings = {
         studentLoginMethod: 'all',
-        adminLoginMethod: 'all',
-        terminalId: 'TERM-01'
+        adminLoginMethod: 'all'
       };
       (this.data as any).resetVersion = RESET_VERSION;
       hasChanges = true;
@@ -1076,11 +1100,78 @@ export class EcosystemService {
         purchasedItems: this.purchasedItemsSubject.value,
         lastMissionDate: this.lastMissionDateSubject.value,
         nessiePurchaseDate: this.data.userStates[this.data.currentUserRa]?.nessiePurchaseDate || null,
-        curso: (this.data.users.find(u => u.ra === this.data.currentUserRa) as any)?.curso
+        curso: (this.data.users.find(u => u.ra === this.data.currentUserRa) as any)?.curso,
+        level: this.levelSubject.value
       };
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
     localStorage.setItem(AUDIT_LOGS_KEY, JSON.stringify(this.auditLogsSubject.value));
+  }
+
+  /**
+   * Configura o identificador único de hardware baseado em fingerprinting do navegador.
+   * Isso garante que, mesmo limpando o localStorage, o ID permaneça o mesmo para o mesmo dispositivo.
+   */
+  private async setupHardwareId() {
+    if (typeof window === 'undefined') return;
+
+    const hardwareIdKey = `${STORAGE_BASE}_hardware_id`;
+    let hid = localStorage.getItem(hardwareIdKey);
+
+    // Se não estiver no cache, calculamos a "impressão digital" (fingerprint) do hardware
+    if (!hid) {
+      try {
+        const fingerprintData = {
+          ua: navigator.userAgent,
+          screen: `${screen.width}x${screen.height}x${screen.colorDepth}`,
+          lang: navigator.language,
+          tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          cores: navigator.hardwareConcurrency || 0,
+          // Canvas Fingerprinting: Gera um hash único baseado em como o navegador renderiza gráficos
+          canvas: this.getCanvasFingerprint()
+        };
+
+        const rawString = JSON.stringify(fingerprintData);
+        const hash = await EcosystemService.hashPassword(rawString);
+        hid = `HW-${hash.substring(0, 12).toUpperCase()}`;
+        
+        localStorage.setItem(hardwareIdKey, hid);
+      } catch (e) {
+        // Fallback para randômico se o cálculo falhar por restrições de segurança
+        hid = `HW-RND-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      }
+    }
+
+    this._hardwareId = hid;
+    console.log(`[ECOSYSTEM] Hardware ID (Fingerprint): ${this._hardwareId}`);
+  }
+
+  /**
+   * Gera uma assinatura visual única baseada na renderização de canvas.
+   */
+  private getCanvasFingerprint(): string {
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return 'no-canvas';
+      
+      canvas.width = 200;
+      canvas.height = 50;
+      
+      ctx.textBaseline = "top";
+      ctx.font = "14px 'Arial'";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillStyle = "#f60";
+      ctx.fillRect(125, 1, 62, 20);
+      ctx.fillStyle = "#069";
+      ctx.fillText("SchoolGain_HW_ID", 2, 15);
+      ctx.fillStyle = "rgba(102, 204, 0, 0.7)";
+      ctx.fillText("SchoolGain_HW_ID", 4, 17);
+      
+      return canvas.toDataURL();
+    } catch (e) {
+      return 'canvas-error';
+    }
   }
 
   /**
@@ -1319,7 +1410,8 @@ export class EcosystemService {
       return false;
     }
 
-    const student = (this.data?.users || []).find(u => u.ra === ra);
+    const cleanRa = ra.toUpperCase().trim();
+    const student = (this.data?.users || []).find(u => u.ra === cleanRa);
     if (!student) return false;
 
     this.syncUserPoints(ra, points, points);
@@ -1681,33 +1773,39 @@ export class EcosystemService {
     for (const u of newUsers) {
       // 1. Validar Email
       if (u.email) {
-        const email = u.email.toLowerCase().trim();
-        if (emails.has(email)) {
-          console.error(`[VALIDATION] Conflito de e-mail: ${email}. Usuários: ${emails.get(email)} e ${u.name}`);
+        u.email = u.email.toLowerCase().trim();
+        if (emails.has(u.email)) {
+          console.error(`[VALIDATION] Conflito de e-mail: ${u.email}. Usuários: ${emails.get(u.email)} e ${u.name}`);
           return false;
         }
-        emails.set(email, u.name);
+        emails.set(u.email, u.name);
       }
 
       // 2. Validar RA
       if (u.ra) {
-        const ra = u.ra.toUpperCase().trim();
-        if (ras.has(ra)) {
-          console.error(`[VALIDATION] Conflito de RA: ${ra}. Usuários: ${ras.get(ra)} e ${u.name}`);
+        u.ra = u.ra.toUpperCase().trim();
+        if (ras.has(u.ra)) {
+          console.error(`[VALIDATION] Conflito de RA: ${u.ra}. Usuários: ${ras.get(u.ra)} e ${u.name}`);
           return false;
         }
-        ras.set(ra, u.name);
+        ras.set(u.ra, u.name);
       }
 
       // 3. Validar RFID
       if (u.rfid) {
-        const rfid = u.rfid.toUpperCase().trim();
-        if (rfids.has(rfid)) {
-          console.error(`[VALIDATION] Conflito de RFID: ${rfid}. Usuários: ${rfids.get(rfid)} e ${u.name}`);
+        u.rfid = u.rfid.toUpperCase().trim();
+        if (rfids.has(u.rfid)) {
+          console.error(`[VALIDATION] Conflito de RFID: ${u.rfid}. Usuários: ${rfids.get(u.rfid)} e ${u.name}`);
           return false;
         }
-        rfids.set(rfid, u.name);
+        rfids.set(u.rfid, u.name);
       }
+
+      // 4. Normalizar campos de texto
+      if (u.name) u.name = u.name.toUpperCase().trim();
+      if (u.turma) u.turma = u.turma.toUpperCase().trim();
+      if (u.curso) u.curso = u.curso.toUpperCase().trim();
+      if (u.position) u.position = u.position.toUpperCase().trim();
     }
 
     // 1. Identifica usuários removidos (estavam na lista antiga mas não na nova)
@@ -2177,7 +2275,7 @@ export class EcosystemService {
       if (u.role !== 'student' && u.role !== 'visitor') u.points = 0;
 
       // AUTO-MIGRAÇÃO: Converte níveis legados para o novo padrão
-      if ((u.level as string) === 'Iniciante' || !u.level) {
+      if (!u.level || (u.level as string) === 'Iniciante') {
         u.level = 'Semente';
       }
 
@@ -2191,12 +2289,94 @@ export class EcosystemService {
     if (!this.data.systemSettings) {
       this.data.systemSettings = {
         studentLoginMethod: 'all',
-        adminLoginMethod: 'all',
-        terminalId: 'TOTEM-01'
+        adminLoginMethod: 'all'
       };
     }
 
     this.saveToStorage();
     this.notifyAll();
+  }
+
+  /**
+   * Solicita um novo cadastro de aluno na escola.
+   */
+  async requestRegistration(data: Omit<RegistrationRequest, 'id' | 'status' | 'createdAt'>) {
+    const sanitizedData = {
+      ...data,
+      name: data.name.toUpperCase().trim(),
+      ra: data.ra.toUpperCase().trim(),
+      rfid: data.rfid?.toUpperCase().trim(),
+      turma: data.turma.toUpperCase().trim(),
+      curso: data.curso.toUpperCase().trim()
+    };
+
+    const newRequest: RegistrationRequest = {
+      ...sanitizedData,
+      id: `req-${Date.now()}-${Math.random().toString(36).slice(-4)}`,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+
+    // Sincroniza no Firestore
+    await setDoc(doc(db, "registrationRequests", newRequest.id), newRequest);
+    return true;
+  }
+
+  /**
+   * Aprova uma solicitação de cadastro, criando o usuário correspondente.
+   */
+  async approveRegistration(requestId: string) {
+    if (!this.checkAdminAuth()) return false;
+    
+    const request = this.data.registrationRequests.find(r => r.id === requestId);
+    if (!request) return false;
+
+    // 1. Cria o novo usuário
+    const newUser: User = {
+      id: `user-student-${Date.now()}-${Math.random().toString(36).slice(-4)}`,
+      name: request.name.toUpperCase().trim(),
+      ra: request.ra.toUpperCase().trim(),
+      rfid: request.rfid?.toUpperCase().trim(),
+      turma: request.turma.toUpperCase().trim(),
+      curso: request.curso.toUpperCase().trim(),
+      role: 'student',
+      schoolId: request.schoolId,
+      points: 0,
+      level: 'Semente'
+    };
+
+    // 2. Salva o usuário no Firestore
+    await setDoc(doc(db, "users", newUser.id), newUser);
+
+    // 3. Remove a solicitação
+    await deleteDoc(doc(db, "registrationRequests", requestId));
+
+    // 4. Log de Telemetria
+    this.logTelemetry({
+      action: 'CRUD_CREATE',
+      category: 'DATA',
+      details: `Gestor aprovou cadastro do aluno: ${newUser.name} (${newUser.ra})`,
+      targetEntity: 'users',
+      targetId: newUser.id
+    });
+
+    return true;
+  }
+
+  /**
+   * Rejeita uma solicitação de cadastro.
+   */
+  async rejectRegistration(requestId: string) {
+    if (!this.checkAdminAuth()) return false;
+    await deleteDoc(doc(db, "registrationRequests", requestId));
+    
+    // Log de Telemetria opcional
+    this.logTelemetry({
+      action: 'CRUD_DELETE',
+      category: 'DATA',
+      details: `Gestor recusou uma solicitação de cadastro pendente.`
+    });
+
+    return true;
   }
 }

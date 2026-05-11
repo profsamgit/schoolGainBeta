@@ -422,7 +422,7 @@ export function InfraSection({
             <Button onClick={() => {
               if (editingTerminal) {
                 updateTerminalSettings(editingTerminal.id, { 
-                  location: terminalLocation,
+                  location: terminalLocation.toUpperCase().trim(),
                   settings: { 
                     ...editingTerminal.settings, 
                     preferredCamera,

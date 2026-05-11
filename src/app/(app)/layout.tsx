@@ -3,7 +3,7 @@ import { Header } from '@/components/layout/header';
 import { AppSidebar } from '@/components/layout/sidebar';
 import Link from 'next/link';
 import { useEcosystem } from './ecosystem-context';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button';
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { currentUser, isPreviewMode, displayUser } = useEcosystem();
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   // Proteção Global: Visitantes NÃO têm acesso à interface interna
   useEffect(() => {

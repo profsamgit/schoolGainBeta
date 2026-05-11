@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useMemo, Suspens
 import { useSearchParams } from 'next/navigation';
 
 import { EcosystemService } from '@/lib/ecosystem.service';
-import { User, Reward, EducationArticle, Participant, AuditLogEntry, Terminal, TerminalStatus, School, WasteEntry, WasteType, CycleSnapshot, Turma, Curso, Cargo, SetorEscolar, EcosystemItem, QuizTopic } from '@/lib/types';
+import { User, Reward, EducationArticle, Participant, AuditLogEntry, Terminal, TerminalStatus, School, WasteEntry, WasteType, CycleSnapshot, Turma, Curso, Cargo, SetorEscolar, EcosystemItem, QuizTopic, RegistrationRequest } from '@/lib/types';
 
 /**
  * ============================================================================
@@ -59,6 +59,7 @@ interface EcosystemContextType {
   grantSightingBonus: (ra: string) => void;
   systemSettings: any;              // Configurações de hardware
   updateSystemSettings: (settings: any) => void;
+  hardwareId: string | null;
   pendingHardwareLogin: { ra: string, terminalId: string } | null;
   terminals: Terminal[];
   requestTerminalAuthorization: (terminalId: string, hardwareId: string, location: string, schoolId: string) => boolean;
@@ -72,6 +73,10 @@ interface EcosystemContextType {
   updateSchools: (newSchools: School[]) => void;
   deleteSchool: (id: string) => void;
   getLockoutStatus: (id: string) => { isLocked: boolean, remainingSeconds: number };
+  registrationRequests: RegistrationRequest[];
+  requestRegistration: (data: any) => Promise<boolean>;
+  approveRegistration: (id: string) => Promise<boolean>;
+  rejectRegistration: (id: string) => Promise<boolean>;
   wasteEntries: WasteEntry[];
   registerWaste: (ra: string, type: WasteType, weightKg: number, terminalSchoolId?: string) => boolean;
   identifyKioskUser: (ra: string | null) => void;
@@ -98,7 +103,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const [purchasedItems, setPurchasedItems] = useState<EcosystemItem[]>(service.purchasedItems);
   const [currentUserRa, setCurrentUserRa] = useState<string | null>(service.currentUserRa);
   const [users, setUsers] = useState<any[]>(service.users);
-  const [level, setLevel] = useState<string>('Iniciante');
+  const [level, setLevel] = useState<string>('Semente');
 
   const [rewards, setRewards] = useState<any[]>(service.allRewards);
   const [articles, setArticles] = useState<any[]>(service.allArticles);
@@ -144,6 +149,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const [pendingHardwareLogin, setPendingHardwareLogin] = useState<{ ra: string, terminalId: string } | null>(null);
   const [terminals, setTerminals] = useState<Terminal[]>(service.terminals);
   const [wasteEntries, setWasteEntries] = useState<WasteEntry[]>(service.wasteEntries);
+  const [registrationRequests, setRegistrationRequests] = useState<RegistrationRequest[]>([]);
   const [resetHistory, setResetHistory] = useState<CycleSnapshot[]>(service.resetHistory || []);
   const [schools, setSchools] = useState<School[]>(service.schools);
   const [isMounted, setIsMounted] = useState(false);
@@ -169,7 +175,8 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
     const resetHistorySub = service.resetHistory$.subscribe(setResetHistory);
     const schoolsSub = service.schools$.subscribe(setSchools);
     const cargosSub = service.cargos$.subscribe(setCargos);
-    const setoresSub = service.setores$.subscribe(setSetores);
+    const sectorsSub = service.setores$.subscribe(setSetores);
+    const regReqSub = service.registrationRequests$.subscribe(setRegistrationRequests);
 
     service.initialize();
     setIsMounted(true);
@@ -195,7 +202,8 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
       resetHistorySub.unsubscribe();
       schoolsSub.unsubscribe();
       cargosSub.unsubscribe();
-      setoresSub.unsubscribe();
+      sectorsSub.unsubscribe();
+      regReqSub.unsubscribe();
     };
   }, [service]);
 
@@ -248,6 +256,9 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const verifyPassword = (pass: string) => service.verifyPassword(pass);
   const changePassword = service.changePassword.bind(service);
   const updateMyPassword = async (current: string, newPass: string) => service.updateMyPassword(current, newPass);
+  const requestRegistration = (data: any) => service.requestRegistration(data);
+  const approveRegistration = (id: string) => service.approveRegistration(id);
+  const rejectRegistration = (id: string) => service.rejectRegistration(id);
   const getLockoutStatus = service.getLockoutStatus.bind(service);
   const generateTerminalId = service.generateTerminalId.bind(service);
   const uploadUserAvatar = (uId: string, f: File) => service.uploadUserAvatar(uId, f);
@@ -262,6 +273,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
       isMissionDone,
       purchasedItems: effectiveItems,
       level: effectiveLevel,
+      hardwareId: service.hardwareId,
       completeDailyMission,
       deductPoints,
       registerAttendance,
@@ -312,6 +324,10 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
       updateSchools,
       deleteSchool,
       getLockoutStatus,
+      registrationRequests,
+      requestRegistration,
+      approveRegistration,
+      rejectRegistration,
       wasteEntries,
       registerWaste,
       identifyKioskUser,

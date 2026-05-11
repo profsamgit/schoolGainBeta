@@ -11,13 +11,18 @@ import {
   Trash2, 
   Lock, 
   Rss, 
-  Sparkles, 
   Camera, 
   Loader2,
   Search,
-  Eye
+  Eye,
+  Check,
+  X,
+  Clock,
+  Wand2
 } from 'lucide-react';
+import { RegistrationRequest, User, Turma, Curso, Cargo, SetorEscolar } from '@/lib/types';
 import { useRouter } from 'next/navigation';
+import { UseFormReturn } from 'react-hook-form';
 
 import { 
   Card, 
@@ -64,12 +69,9 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import dynamic from 'next/dynamic';
-import { User, Reward, EducationArticle, Turma, Curso, Cargo, SetorEscolar } from '@/lib/types';
-import { UseFormReturn } from 'react-hook-form';
 
 const QRScanner = dynamic(() => import('@/components/ui/qr-scanner'), { ssr: false });
 import PrintableBadge from '@/components/ecosystem/PrintableBadge';
-
 
 interface AcademicSectionProps {
   users: User[];
@@ -123,6 +125,9 @@ interface AcademicSectionProps {
   setIsDeleteConfirmOpen: (open: boolean) => void;
   securityPassword: string;
   setSecurityPassword: (val: string) => void;
+  registrationRequests: RegistrationRequest[];
+  approveRegistration: (id: string) => Promise<boolean>;
+  rejectRegistration: (id: string) => Promise<boolean>;
 }
 
 export function AcademicSection({
@@ -158,14 +163,11 @@ export function AcademicSection({
   setUserTurmaFilter,
   isQRScannerOpen,
   setIsQRScannerOpen,
-  handleQRDetected,
   uploadUserAvatar,
   uploadingUserId,
   setUploadingUserId,
   isRFIDCapturing,
   setIsRFIDCapturing,
-  isSearchQRScannerOpen,
-  setIsSearchQRScannerOpen,
   generateStrongPassword,
   isPasswordDialogOpen,
   setIsPasswordDialogOpen,
@@ -173,14 +175,15 @@ export function AcademicSection({
   isDeleteConfirmOpen,
   selectedItem,
   setSelectedItem,
-  confirmDelete,
   setIsDeleteConfirmOpen,
   securityPassword,
-  setSecurityPassword
+  setSecurityPassword,
+  registrationRequests,
+  approveRegistration,
+  rejectRegistration
 }: AcademicSectionProps) {
   const router = useRouter();
 
-  
   const generateRandomRA = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let result = '';
@@ -202,14 +205,145 @@ export function AcademicSection({
     });
   }, [filteredUsersForAdmin, userSearch, userRoleFilter, userTurmaFilter]);
 
+  const filteredRequests = useMemo(() => {
+    return registrationRequests.filter(req => 
+      targetSchoolId ? req.schoolId === targetSchoolId : true
+    );
+  }, [registrationRequests, targetSchoolId]);
+
+  // Componente interno para renderizar células de identificação de forma unificada
+  const UserIdentificationCell = ({ user }: { user: User }) => (
+    <div className="flex items-center gap-3">
+      <div className="relative group/avatar">
+        <Avatar className="h-10 w-10 rounded-xl bg-slate-100 border-2 border-transparent group-hover/avatar:border-primary transition-all overflow-hidden">
+          <AvatarImage src={user.avatar || undefined} className="object-cover" />
+          <AvatarFallback className="text-xs font-black bg-slate-900 text-white">{user.name.charAt(0)}</AvatarFallback>
+        </Avatar>
+        <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/avatar:opacity-100 rounded-xl cursor-pointer transition-opacity">
+          {uploadingUserId === user.id ? <Loader2 className="h-4 w-4 text-white animate-spin" /> : <Camera className="h-4 w-4 text-white" />}
+          <input 
+            type="file" 
+            className="hidden" 
+            accept="image/*" 
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              try {
+                setUploadingUserId(user.id);
+                await uploadUserAvatar(user.id, file);
+              } catch (err) {
+                console.error(err);
+              } finally {
+                setUploadingUserId(null);
+              }
+            }} 
+          />
+        </label>
+      </div>
+      <div className="flex flex-col">
+        <span className="text-sm font-bold text-slate-900">{user.name}</span>
+        {(user.role !== 'student' || user.email) && user.email && (
+          <span className="text-[10px] text-slate-400 font-medium lowercase italic">{user.email}</span>
+        )}
+      </div>
+    </div>
+  );
+
+  const UserTable = ({ data, role }: { data: User[], role: string }) => (
+    <div className="rounded-xl border border-slate-100 bg-white overflow-hidden shadow-sm">
+      <Table>
+        <TableHeader className="bg-slate-50/50">
+          <TableRow>
+            <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400 px-6">Identificação</TableHead>
+            <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">RA / ID</TableHead>
+            <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">Vínculo</TableHead>
+            <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">Status</TableHead>
+            <TableHead className="text-right px-6 font-black uppercase text-[10px] tracking-widest text-slate-400">Ações</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {data.length > 0 ? data.map((user) => (
+            <TableRow key={`${user.id}-${user.ra}`} className={isDeleteConfirmOpen && selectedItem?.id === user.id ? 'bg-red-50' : 'hover:bg-slate-50 transition-colors group'}>
+              <TableCell className="px-6">
+                <UserIdentificationCell user={user} />
+              </TableCell>
+              <TableCell className="font-mono text-[11px] font-bold text-primary">{user.ra}</TableCell>
+              <TableCell>
+                <div className="flex flex-col">
+                  {user.position && <span className="font-black text-slate-900 text-[9px] uppercase tracking-widest">{user.position}</span>}
+                  <span className="text-[10px] text-slate-500 font-bold">{user.turma || (role === 'visitor' ? 'Visitante' : 'Sem Turma')}</span>
+                </div>
+              </TableCell>
+              <TableCell>
+                <Badge 
+                  variant={user.role === 'admin' || user.role === 'super_admin' ? 'default' : user.role === 'visitor' ? 'outline' : 'secondary'} 
+                  className={`uppercase text-[8px] font-black tracking-tighter ${user.role === 'visitor' ? 'text-blue-600 border-blue-200 bg-blue-50/50' : ''}`}
+                >
+                  {user.role === 'super_admin' ? 'Mestre' : user.role === 'admin' ? 'Gestor' : user.role === 'visitor' ? 'Visita' : 'Aluno'}
+                </Badge>
+              </TableCell>
+              <TableCell className="text-right px-6">
+                <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {user.role === 'student' && (
+                    <Button variant="ghost" size="icon" onClick={() => router.push(`/dashboard?preview=${user.id}`)} className="h-8 w-8 text-slate-400 hover:text-primary hover:bg-primary/5" title="Visualizar Perfil">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="icon" onClick={() => { setBadgeUser(user as any); setIsBadgeOpen(true); }} className="h-8 w-8 text-slate-400 hover:text-primary hover:bg-primary/5" title="Ver Carteira">
+                    <QrCode className="h-4 w-4" />
+                  </Button>
+
+                  {(user.role === 'admin' || user.role === 'super_admin') && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      title="Trocar Senha"
+                      className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-50"
+                      onClick={() => {
+                        setSelectedItem(user);
+                        setIsPasswordDialogOpen(true);
+                      }}
+                    >
+                      <Lock className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    title="Editar"
+                    className="h-8 w-8 text-slate-400 hover:text-slate-900 hover:bg-slate-100"
+                    onClick={() => handleEdit(user, 'user')}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    title="Excluir"
+                    className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                    onClick={() => handleDelete(user, 'user')}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          )) : (
+            <TableRow>
+              <TableCell colSpan={5} className="text-center py-10 text-slate-400 uppercase text-[10px] font-black tracking-widest">Nenhum registro encontrado</TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+
   if (viewMode === 'form' && itemType === 'user') {
     return (
       <Card className="border-primary/20 bg-primary/5">
         <CardHeader className="flex flex-row items-center justify-between border-b bg-white/50">
           <div>
             <CardTitle>{isNew ? `Cadastrar Novo ${userRoleFilter === 'student' ? 'Aluno' : userRoleFilter === 'admin' ? 'Gestor' : 'Visitante'}` : `Editar Dados do ${userRoleFilter === 'student' ? 'Aluno' : userRoleFilter === 'admin' ? 'Gestor' : 'Visitante'}`}</CardTitle>
-
-
             <CardDescription>
               {isNew ? (
                 allTurmas.length === 0 || allCursos.length === 0 || allCargos.length === 0 || allSetores.length === 0 ? (
@@ -253,7 +387,7 @@ export function AcademicSection({
                           )} />
                           <div className="flex gap-1 mb-[2px]">
                             <Button type="button" variant="outline" size="icon" className="bg-white text-primary hover:bg-primary/10" onClick={generateRandomRA} title="Gerar ID Aleatório">
-                                <Sparkles className="h-4 w-4" />
+                                <Wand2 className="h-4 w-4" />
                             </Button>
                             <Button type="button" variant="outline" size="icon" className={` ${isQRScannerOpen ? 'bg-primary text-white' : 'bg-white'}`} onClick={() => setIsQRScannerOpen(!isQRScannerOpen)} title="Escanear QR Code">
                                 <QrCode className="h-4 w-4" />
@@ -346,7 +480,7 @@ export function AcademicSection({
                           <div className="flex justify-between items-center">
                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Senha Inicial</Label>
                             <Button type="button" variant="ghost" size="sm" onClick={generateStrongPassword} className="h-7 text-[10px] font-bold uppercase tracking-tighter text-primary">
-                              <Sparkles className="h-3 w-3 mr-1" /> Gerar Forte
+                              <Wand2 className="h-3 w-3 mr-1" /> Gerar Forte
                             </Button>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -405,8 +539,6 @@ export function AcademicSection({
           <Button onClick={() => handleNew('user')} className="bg-primary text-white font-black uppercase text-[10px] tracking-widest gap-2">
             <UserPlus className="h-4 w-4" /> Novo {userRoleFilter === 'student' ? 'Aluno' : userRoleFilter === 'admin' ? 'Gestor' : 'Visitante'}
           </Button>
-
-
         </CardHeader>
         
         <CardContent>
@@ -440,140 +572,100 @@ export function AcademicSection({
           </div>
 
           <Tabs value={userRoleFilter} onValueChange={(v: any) => setUserRoleFilter(v as any)} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-4 h-12 bg-slate-100 p-1">
+            <TabsList className="grid w-full grid-cols-4 mb-4 h-12 bg-slate-100 p-1">
               <TabsTrigger value="student" className="gap-2 uppercase font-black text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary">Alunos ({filteredUsersForAdmin.filter(u => u.role === 'student').length})</TabsTrigger>
               <TabsTrigger value="admin" className="gap-2 uppercase font-black text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary">Gestores ({filteredUsersForAdmin.filter(u => u.role === 'admin' || u.role === 'super_admin').length})</TabsTrigger>
               <TabsTrigger value="visitor" className="gap-2 uppercase font-black text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary">Visitantes ({filteredUsersForAdmin.filter(u => u.role === 'visitor').length})</TabsTrigger>
+              <TabsTrigger value="requests" className="gap-2 uppercase font-black text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary">
+                Solicitações 
+                {registrationRequests.length > 0 && (
+                  <Badge variant="destructive" className="h-4 w-4 p-0 flex items-center justify-center text-[8px] animate-pulse">
+                    {registrationRequests.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
             </TabsList>
             
-            <div className="rounded-xl border border-slate-100 bg-white overflow-hidden shadow-sm">
-              <Table>
-                <TableHeader className="bg-slate-50/50">
-                  <TableRow>
-                    <TableHead className="w-12 px-6"></TableHead>
-                    <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">Identificação</TableHead>
-                    <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">RA / ID</TableHead>
-                    <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">Vínculo</TableHead>
-                    <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">Status</TableHead>
-                    <TableHead className="text-right px-6 font-black uppercase text-[10px] tracking-widest text-slate-400">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.length > 0 ? filteredUsers.map((user) => (
-                    <TableRow key={`${user.id}-${user.ra}`} className={isDeleteConfirmOpen && selectedItem?.id === user.id ? 'bg-red-50' : 'hover:bg-slate-50 transition-colors group'}>
-                      <TableCell className="px-6">
-                      <div className="relative group/avatar">
-                        <Avatar className="h-10 w-10 rounded-xl bg-slate-100 border-2 border-transparent group-hover/avatar:border-primary transition-all overflow-hidden">
-                          <AvatarImage src={user.avatar || undefined} className="object-cover" />
-                          <AvatarFallback className="text-xs font-black bg-slate-900 text-white">{user.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/avatar:opacity-100 rounded-xl cursor-pointer transition-opacity">
-                          {uploadingUserId === user.id ? <Loader2 className="h-4 w-4 text-white animate-spin" /> : <Camera className="h-4 w-4 text-white" />}
-                          <input 
-                            type="file" 
-                            className="hidden" 
-                            accept="image/*" 
-                            onChange={async (e) => {
-                              const file = e.target.files?.[0];
-                              if (!file) return;
-                              try {
-                                setUploadingUserId(user.id);
-                                await uploadUserAvatar(user.id, file);
-                              } catch (err) {
-                                console.error(err);
-                              } finally {
-                                setUploadingUserId(null);
-                              }
-                            }} 
-                          />
-                        </label>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-bold text-slate-900">
-                      <div className="flex flex-col">
-                        <span className="text-sm">{user.name}</span>
-                        <span className="text-[10px] text-slate-400 font-medium lowercase italic">{user.email || 'sem e-mail'}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-mono text-[11px] font-bold text-primary">{user.ra}</TableCell>
-                    <TableCell>
-                      {user.position ? (
-                        <div className="flex flex-col">
-                          <span className="font-black text-slate-900 text-[9px] uppercase tracking-widest">{user.position}</span>
-                          <span className="text-[10px] text-slate-500 font-bold">{user.turma}</span>
-                        </div>
-                      ) : (
-                        <span className="text-[10px] text-slate-500 font-bold">{user.turma || 'Sem Turma'}</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                        <Badge variant={user.role === 'admin' || user.role === 'super_admin' ? 'default' : 'secondary'} className="uppercase text-[8px] font-black tracking-tighter">
-                          {user.role === 'super_admin' ? 'Mestre' : user.role === 'admin' ? 'Gestor' : user.role === 'visitor' ? 'Visita' : 'Aluno'}
-                        </Badge>
-                    </TableCell>
-                    <TableCell className="text-right px-6">
-                      <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" onClick={() => router.push(`/dashboard?preview=${user.id}`)} className="h-8 w-8 text-slate-400 hover:text-primary hover:bg-primary/5" title="Visualizar Perfil">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => { setBadgeUser(user as any); setIsBadgeOpen(true); }} className="h-8 w-8 text-slate-400 hover:text-primary hover:bg-primary/5" title="Ver Carteira">
-                          <QrCode className="h-4 w-4" />
-                        </Button>
+            <TabsContent value="student">
+              <UserTable data={filteredUsers.filter(u => u.role === 'student')} role="student" />
+            </TabsContent>
 
-                        {user.role === 'admin' && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            title="Trocar Senha"
-                            className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-50"
-                            onClick={() => {
-                              setSelectedItem(user);
-                              setIsPasswordDialogOpen(true);
-                            }}
-                          >
-                             <Lock className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          title="Editar"
-                          className="h-8 w-8 text-slate-400 hover:text-slate-900 hover:bg-slate-100"
-                          onClick={() => handleEdit(user, 'user')}
-                        >
-                           <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          title="Excluir"
-                          className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50"
-                          onClick={() => handleDelete(user, 'user')}
-                        >
-                           <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                    </TableRow>
-                  )) : (
+            <TabsContent value="admin">
+              <UserTable data={filteredUsers.filter(u => u.role === 'admin' || u.role === 'super_admin')} role="admin" />
+            </TabsContent>
+
+            <TabsContent value="visitor">
+              <UserTable data={filteredUsers.filter(u => u.role === 'visitor')} role="visitor" />
+            </TabsContent>
+
+            <TabsContent value="requests">
+              <div className="rounded-xl border border-slate-100 bg-white overflow-hidden shadow-sm">
+                <Table>
+                  <TableHeader className="bg-slate-50/50">
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-16">
-                        <div className="flex flex-col items-center gap-2 opacity-30">
-                           <Users className="h-10 w-10" />
-                           <p className="text-[10px] font-black uppercase tracking-widest italic">Nenhum registro encontrado</p>
-                        </div>
-                      </TableCell>
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400 px-6">Data</TableHead>
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">Aluno</TableHead>
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">RA</TableHead>
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">Escolaridade</TableHead>
+                      <TableHead className="text-right px-6 font-black uppercase text-[10px] tracking-widest text-slate-400">Decisão</TableHead>
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredRequests.length > 0 ? filteredRequests.map((req) => (
+                      <TableRow key={req.id} className="hover:bg-slate-50 transition-colors group">
+                        <TableCell className="px-6 font-medium text-[11px] text-slate-400">
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-3 w-3" />
+                            {new Date(req.createdAt).toLocaleDateString('pt-BR')}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-bold text-sm text-slate-900">{req.name}</TableCell>
+                        <TableCell className="font-mono text-[11px] font-bold text-primary">{req.ra}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-black uppercase text-slate-700">{req.turma}</span>
+                            <span className="text-[9px] font-bold text-slate-400">{req.curso}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right px-6">
+                          <div className="flex justify-end gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="h-8 border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 gap-1 font-bold text-[10px] uppercase"
+                              onClick={() => approveRegistration(req.id)}
+                            >
+                              <Check className="h-3 w-3" /> Aprovar
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="h-8 border-red-100 text-red-500 hover:bg-red-50 hover:text-red-600 gap-1 font-bold text-[10px] uppercase"
+                              onClick={() => rejectRegistration(req.id)}
+                            >
+                              <X className="h-3 w-3" /> Recusar
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )) : (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-16">
+                          <div className="flex flex-col items-center gap-2 opacity-30">
+                             <Clock className="h-10 w-10" />
+                             <p className="text-[10px] font-black uppercase tracking-widest italic">Nenhuma solicitação pendente</p>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
           </Tabs>
 
-          {/* MODAL DE CARTEIRA */}
           <Dialog open={isBadgeOpen} onOpenChange={setIsBadgeOpen}>
             <DialogContent className="sm:max-w-md p-0 overflow-hidden border-none bg-transparent shadow-none">
-              {/* Elementos para Acessibilidade (Screen Readers) */}
               <div className="sr-only">
                 <DialogHeader>
                   <DialogTitle>Visualização de Crachá Premium</DialogTitle>

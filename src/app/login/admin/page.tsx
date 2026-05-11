@@ -18,7 +18,7 @@ const QRScanner = dynamic(() => import('@/components/ui/qr-scanner'), { ssr: fal
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const { login, systemSettings, users, getLockoutStatus } = useEcosystem();
+  const { login, systemSettings, users, getLockoutStatus, hardwareId, terminals } = useEcosystem();
   const { toast } = useToast();
 
   const [username, setUsername] = useState('');
@@ -31,6 +31,7 @@ export default function AdminLoginPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [lockoutSecs, setLockoutSecs] = useState(0);
   
+  const currentTerminal = terminals.find(t => t.hardwareId === hardwareId);
   const usernameRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
@@ -127,7 +128,8 @@ export default function AdminLoginPage() {
 
     const pollHardware = async () => {
       try {
-        const res = await fetch(`/api/hardware/input?terminalId=${systemSettings.terminalId}`);
+        const pollId = currentTerminal?.id || hardwareId;
+        const res = await fetch(`/api/hardware/input?terminalId=${pollId}`);
         const data = await res.json();
         if (data.ra) handleHybridLogin(data.ra);
       } catch (e) {
@@ -139,7 +141,7 @@ export default function AdminLoginPage() {
     return () => {
       clearInterval(interval);
     };
-  }, [activeTab, systemSettings.terminalId, handleHybridLogin]);
+  }, [activeTab, hardwareId, currentTerminal?.id, handleHybridLogin]);
 
   return (
     <div className="flex min-h-screen flex-col bg-muted/40">

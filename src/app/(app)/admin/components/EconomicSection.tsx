@@ -101,7 +101,14 @@ export function EconomicSection({
     return rewards.filter(r => r.name.toLowerCase().includes(rewardSearch.toLowerCase()));
   }, [rewards, rewardSearch]);
 
-  const filteredAuditLogs = auditLogs; // Já filtrado por schoolId no parent
+  const filteredAuditLogs = useMemo(() => {
+    return auditLogs.filter(log => 
+      log.action === 'POINTS_AWARDED' || 
+      log.action === 'ITEM_PURCHASED' ||
+      (log.metadata && (log.metadata.points !== undefined || log.metadata.cost !== undefined)) ||
+      log.points !== undefined
+    );
+  }, [auditLogs]);
 
   if (viewMode === 'form' && itemType === 'reward') {
     return (

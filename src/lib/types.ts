@@ -199,6 +199,18 @@ export type QuizTopic = {
   schoolId?: string;
 };
 
+export type RegistrationRequest = {
+  id: string;
+  name: string;
+  ra: string;
+  rfid?: string;
+  turma: string;
+  curso: string;
+  schoolId: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+};
+
 /**
  * Tipos de itens que podem ser adquiridos no ecossistema.
  * Cada string corresponde a um elemento visual ou funcional no mundo virtual.
@@ -222,6 +234,7 @@ export interface EcosystemUserState {
   lastMissionDate: string | null;  // Data da última missão diária completada
   nessiePurchaseDate?: string | null;     // Data de compra do item especial (Nessie/Casa)
   curso?: string;            // Curso do aluno
+  level: string;             // Título do aluno
 }
 
 /**
@@ -238,7 +251,6 @@ export interface SecurityState {
 export interface SystemSettings {
   studentLoginMethod: 'manual' | 'qr' | 'rfid' | 'all';
   adminLoginMethod: 'manual' | 'qr' | 'rfid' | 'all';
-  terminalId: string;
   studentCaptureSource?: 'browser' | 'esp32' | 'url';
   adminCaptureSource?: 'browser' | 'esp32' | 'url';
   studentCaptureDevice?: string;
@@ -268,6 +280,7 @@ export interface EcosystemData {
   schools: School[];                       // Lista de escolas parceiras
   wasteEntries: WasteEntry[];              // Histórico de resíduos coletados
   auditLogs: AuditLogEntry[];              // Histórico de auditoria unificado
+  registrationRequests: RegistrationRequest[]; // Solicitações de cadastro pendentes
   resetHistory: CycleSnapshot[];           // Snapshots de ciclos passados
   resetVersion: string;                    // Versão atual para controle de migração
   securityState?: Record<string, SecurityState>; // Rastreamento de falhas de login

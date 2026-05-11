@@ -130,7 +130,10 @@ function AdminContent() {
     updateTerminalStatus,
     deleteTerminal,
     schools,
-    uploadUserAvatar
+    uploadUserAvatar,
+    registrationRequests,
+    approveRegistration,
+    rejectRegistration
   } = useEcosystem();
 
   const [uploadingUserId, setUploadingUserId] = useState<string | null>(null);
@@ -358,6 +361,15 @@ function AdminContent() {
         const sanitizedPayload = Object.fromEntries(
           Object.entries(payload).filter(([_, v]) => v !== undefined && v !== null && _ !== 'confirmPassword')
         );
+        
+        // Normalização Obrigatória (Caixa Alta)
+        if (sanitizedPayload.name) sanitizedPayload.name = (sanitizedPayload.name as string).toUpperCase().trim();
+        if (sanitizedPayload.ra) sanitizedPayload.ra = (sanitizedPayload.ra as string).toUpperCase().trim();
+        if (sanitizedPayload.turma) sanitizedPayload.turma = (sanitizedPayload.turma as string).toUpperCase().trim();
+        if (sanitizedPayload.curso) sanitizedPayload.curso = (sanitizedPayload.curso as string).toUpperCase().trim();
+        if (sanitizedPayload.position) sanitizedPayload.position = (sanitizedPayload.position as string).toUpperCase().trim();
+        if (sanitizedPayload.rfid) sanitizedPayload.rfid = (sanitizedPayload.rfid as string).toUpperCase().trim();
+
         let prefix = 'user';
         if (sanitizedPayload.role === 'super_admin') prefix = 'super';
         else if (sanitizedPayload.role === 'admin') prefix = 'admin';
@@ -565,6 +577,9 @@ function AdminContent() {
               setIsDeleteConfirmOpen={setIsDeleteConfirmOpen}
               securityPassword={securityPassword}
               setSecurityPassword={setSecurityPassword}
+              registrationRequests={registrationRequests}
+              approveRegistration={approveRegistration}
+              rejectRegistration={rejectRegistration}
             />
           </TabsContent>
 

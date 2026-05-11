@@ -32,7 +32,7 @@ const QRScanner = dynamic(() => import('@/components/ui/qr-scanner'), { ssr: fal
 export default function StudentLoginPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { login, users, systemSettings, getLockoutStatus } = useEcosystem();
+  const { login, users, systemSettings, getLockoutStatus, hardwareId, terminals } = useEcosystem();
 
   const [ra, setRa] = useState('');
   const [showKeyboard, setShowKeyboard] = useState(false);
@@ -44,6 +44,7 @@ export default function StudentLoginPage() {
   const [lockoutSecs, setLockoutSecs] = useState(0);
   const [scannerKey, setScannerKey] = useState(0);
   
+  const currentTerminal = terminals.find(t => t.hardwareId === hardwareId);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Sanitiza inputs básicos
@@ -131,7 +132,8 @@ export default function StudentLoginPage() {
 
     const pollHardware = async () => {
       try {
-        const res = await fetch(`/api/hardware/input?terminalId=${systemSettings.terminalId}`);
+        const pollId = currentTerminal?.id || hardwareId;
+        const res = await fetch(`/api/hardware/input?terminalId=${pollId}`);
         const data = await res.json();
         if (data.ra) {
           handleLogin(data.ra);
@@ -145,7 +147,7 @@ export default function StudentLoginPage() {
     return () => {
       clearInterval(interval);
     };
-  }, [activeTab, systemSettings.terminalId, handleLogin]);
+  }, [activeTab, hardwareId, currentTerminal?.id, handleLogin]);
 
   /**
    * ESCUTA DE TECLADO (RFID HID):
@@ -303,9 +305,17 @@ export default function StudentLoginPage() {
                     <Volume2 className="h-3 w-3" />
                     Feedback Sonoro Ativo
                   </div>
+                  <Button 
+                    variant="link" 
+                    className="text-primary font-bold"
+                    asChild
+                  >
+                    <Link href="/register-student">Não tem cadastro? Solicitar Acesso</Link>
+                  </Button>
                 </CardFooter>
             </Card>
         </main>
+
         <footer className="p-4 text-center text-xs text-muted-foreground space-y-2">
             <Link href="/" className="hover:text-primary underline">Voltar para a seleção de perfil</Link>
             <p><Link href="/about" className="hover:text-primary hover:underline">TDS 2B 2026 - CETI Frei José Apicella</Link></p>

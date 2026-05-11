@@ -73,7 +73,8 @@ export default function KioskPage() {
     deleteTerminal,
     registerWaste,
     identifyKioskUser,
-    generateTerminalId
+    generateTerminalId,
+    hardwareId
   } = useEcosystem();
   const { toast } = useToast();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -85,7 +86,7 @@ export default function KioskPage() {
   const [generatedTerminalId, setGeneratedTerminalId] = useState('');
   const [isMobileDevice, setIsMobileDevice] = useState(false);
 
-  const currentTerminal = terminals.find(t => t.hardwareId === systemSettings.terminalId);
+  const currentTerminal = terminals.find(t => t.hardwareId === hardwareId);
   const currentSchool = schools.find(s => s.id === currentTerminal?.schoolId);
   const isAuthorized = currentTerminal?.status === 'active';
   const isPending = currentTerminal?.status === 'pending';
@@ -158,7 +159,8 @@ export default function KioskPage() {
 
     const pollHardware = async () => {
       try {
-        const res = await fetch(`/api/hardware/input?terminalId=${systemSettings.terminalId}`);
+        const pollId = currentTerminal?.id || hardwareId;
+        const res = await fetch(`/api/hardware/input?terminalId=${pollId}`);
         const data = await res.json();
         if (data.ra) {
           const cleanRa = data.ra.replace(/[<>]/g, '').trim();
@@ -320,12 +322,12 @@ export default function KioskPage() {
         generatedTerminalId={generatedTerminalId} isRequestingAuth={isRequestingAuth}
         handleRequestAuth={() => {
           setIsRequestingAuth(true);
-          const res = requestTerminalAuthorization(generatedTerminalId, systemSettings.terminalId, requestedLocation, selectedSchoolId);
+          const res = requestTerminalAuthorization(generatedTerminalId, hardwareId || 'UNKNOWN', requestedLocation, selectedSchoolId);
           if (res) toast({ title: "Solicitação Enviada" });
           else toast({ title: "Erro", variant: "destructive" });
           setIsRequestingAuth(false);
         }}
-        deleteTerminal={deleteTerminal} terminalIdSetting={systemSettings.terminalId} toast={toast}
+        deleteTerminal={deleteTerminal} terminalIdSetting={hardwareId || 'DESCONHECIDO'} toast={toast}
       />
     );
   }
