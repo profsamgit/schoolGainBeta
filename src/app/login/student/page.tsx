@@ -88,22 +88,29 @@ export default function StudentLoginPage() {
         router.push('/dashboard');
       }
     } else {
-      playBeep('error');
-      
-      const updatedLockout = getLockoutStatus(cleanRa);
-      if (updatedLockout.isLocked) {
-        setLockoutSecs(updatedLockout.remainingSeconds);
+      const student = users.find((u: any) => u.ra === cleanRa || u.rfid === cleanRa);
+      if (student && student.status === 'inactive') {
         toast({ 
           variant: 'destructive', 
-          title: 'Segurança: RA Bloqueado', 
-          description: 'Múltiplas falhas detectadas para este RA. Acesso suspenso temporariamente.' 
+          title: 'Acesso Restrito', 
+          description: 'Este cadastro está inativo. Procure a secretaria para regularização.' 
         });
       } else {
-        toast({
-          variant: 'destructive',
-          title: 'Não identificado',
-          description: 'O código não corresponde a nenhum aluno cadastrado.',
-        });
+        const updatedLockout = getLockoutStatus(cleanRa);
+        if (updatedLockout.isLocked) {
+          setLockoutSecs(updatedLockout.remainingSeconds);
+          toast({ 
+            variant: 'destructive', 
+            title: 'Segurança: RA Bloqueado', 
+            description: 'Múltiplas falhas detectadas para este RA. Acesso suspenso temporariamente.' 
+          });
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Não identificado',
+            description: 'O código não corresponde a nenhum aluno cadastrado.',
+          });
+        }
       }
       
       setIsProcessing(false);

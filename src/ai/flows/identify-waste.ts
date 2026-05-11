@@ -44,7 +44,7 @@ export async function identifyWaste(input: IdentifyWasteInput): Promise<Identify
 
 const prompt = ai.definePrompt({
   name: 'identifyWastePrompt',
-  model: 'googleai/gemini-2.5-flash',
+  model: 'googleai/gemini-2.5-flash-lite',
   input: { schema: IdentifyWasteInputSchema },
   output: { schema: IdentifyWasteOutputSchema },
   config: {

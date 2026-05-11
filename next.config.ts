@@ -46,7 +46,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; frame-src 'self' https://www.youtube.com; connect-src 'self' ws: wss: https://*.googleapis.com https://*.firebaseio.com https://*.firebasestorage.app https://*.firebasestorage.googleapis.com https://*.firebaseapp.com;",
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; frame-src 'self' https://www.youtube.com; connect-src 'self' ws: wss: data: https://*.googleapis.com https://fonts.gstatic.com https://*.firebaseio.com https://*.firebasestorage.app https://*.firebasestorage.googleapis.com https://*.firebaseapp.com;",
           },
           {
             key: 'X-Frame-Options',

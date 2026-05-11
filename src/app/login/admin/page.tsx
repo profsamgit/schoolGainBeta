@@ -73,14 +73,19 @@ export default function AdminLoginPage() {
          router.push('/admin/dashboard');
        }
     } else {
-       playBeep('error');
-       const updatedLockout = getLockoutStatus(cleanUser);
-       if (updatedLockout.isLocked) {
-         setLockoutSecs(updatedLockout.remainingSeconds);
-         toast({ variant: 'destructive', title: 'Segurança: Bloqueado', description: 'Múltiplas falhas detectadas. Seu acesso foi suspenso temporariamente.' });
-       } else {
-         toast({ variant: 'destructive', title: 'Falha no login', description: 'RA/Email ou senha incorretos.' });
-       }
+      playBeep('error');
+      const user = users.find(u => u.ra === cleanUser || u.email?.toLowerCase() === cleanUser.toLowerCase());
+      if (user && user.status === 'inactive') {
+          toast({ variant: 'destructive', title: 'Acesso Restrito', description: 'Seu usuário está inativo no sistema.' });
+      } else {
+        const updatedLockout = getLockoutStatus(cleanUser);
+        if (updatedLockout.isLocked) {
+          setLockoutSecs(updatedLockout.remainingSeconds);
+          toast({ variant: 'destructive', title: 'Segurança: Bloqueado', description: 'Múltiplas falhas detectadas. Seu acesso foi suspenso temporariamente.' });
+        } else {
+          toast({ variant: 'destructive', title: 'Falha no login', description: 'RA/Email ou senha incorretos.' });
+        }
+      }
        setPassword('');
        setIsProcessing(false);
     }

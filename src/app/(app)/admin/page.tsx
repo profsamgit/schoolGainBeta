@@ -35,6 +35,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useEcosystem } from '@/app/(app)/ecosystem-context';
 import { EcosystemService } from '@/lib/ecosystem.service';
+import { toPng } from 'html-to-image';
 import { 
   User, 
   Reward, 
@@ -133,7 +134,8 @@ function AdminContent() {
     uploadUserAvatar,
     registrationRequests,
     approveRegistration,
-    rejectRegistration
+    rejectRegistration,
+    updateUserStatus
   } = useEcosystem();
 
   const [uploadingUserId, setUploadingUserId] = useState<string | null>(null);
@@ -224,6 +226,7 @@ function AdminContent() {
   const filteredCursos = useMemo(() => allCursos.filter((c: Curso) => !targetSchoolId || c.schoolId === targetSchoolId), [allCursos, targetSchoolId]);
   const filteredCargos = useMemo(() => allCargos.filter((c: Cargo) => !targetSchoolId || c.schoolId === targetSchoolId), [allCargos, targetSchoolId]);
   const filteredSetores = useMemo(() => allSetores.filter((s: SetorEscolar) => !targetSchoolId || s.schoolId === targetSchoolId), [allSetores, targetSchoolId]);
+  const filteredQuizTopics = useMemo(() => quizTopics.filter((t: QuizTopic) => !targetSchoolId || t.schoolId === targetSchoolId), [quizTopics, targetSchoolId]);
 
   // Forms
   const userForm = useForm<UserFormValues>({ resolver: zodResolver(userSchema), defaultValues: { name: '', email: '', ra: '', rfid: '', turma: '', curso: '', role: 'student', password: '', confirmPassword: '', avatar: '' } });
@@ -428,9 +431,9 @@ function AdminContent() {
 
   const handleBadgePrint = (user: User) => {
     if (!user) return;
-    const badgeElement = document.querySelector('#badge-container') || document.querySelector('.printable-badge');
+    const badgeElement = document.getElementById(`badge-${user.id}`);
     if (!badgeElement) {
-      toast({ title: 'Erro', description: 'Não foi possível encontrar o crachá para impressão.', variant: 'destructive' });
+      toast({ title: 'Erro', description: 'Não foi possível encontrar o crachá.', variant: 'destructive' });
       return;
     }
 
@@ -440,7 +443,6 @@ function AdminContent() {
       return;
     }
 
-    // Capture all styles
     const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
       .map(node => node.outerHTML)
       .join('\n');
@@ -454,14 +456,10 @@ function AdminContent() {
             @media print {
               @page { size: landscape; margin: 0; }
               body { margin: 0; padding: 0; }
-              .no-print { display: none; }
             }
             body { 
-              display: flex; 
-              justify-content: center; 
-              align-items: center; 
-              min-height: 100vh; 
-              background: white !important;
+              display: flex; justify-content: center; align-items: center; 
+              min-height: 100vh; background: white !important;
             }
             .print-wrapper {
               transform: scale(1.4);
@@ -472,9 +470,7 @@ function AdminContent() {
           </style>
         </head>
         <body>
-          <div class="print-wrapper">
-            ${badgeElement.innerHTML}
-          </div>
+          <div class="print-wrapper">${badgeElement.outerHTML}</div>
           <script>
             window.onload = () => {
               setTimeout(() => {
@@ -486,8 +482,46 @@ function AdminContent() {
         </body>
       </html>
     `);
-    
     printWindow.document.close();
+  };
+
+  const handleDownloadBadgeImage = async (user: User) => {
+    if (!user) return;
+    const badgeElement = document.getElementById(`badge-${user.id}`);
+    if (!badgeElement) {
+      toast({ title: 'Erro', description: 'Não foi possível encontrar o crachá.', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      toast({ title: "Gerando imagem...", description: "Preparando crachá premium..." });
+      
+      // Delay para renderização
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const dataUrl = await toPng(badgeElement, {
+        quality: 1.0,
+        pixelRatio: 3,
+        backgroundColor: '#ffffff',
+        cacheBust: true,
+        width: 321,
+        height: 208,
+        style: {
+          margin: '0',
+          transform: 'none',
+        }
+      });
+
+      const link = document.createElement('a');
+      link.download = `cracha-${user.ra || 'estudante'}.png`;
+      link.href = dataUrl;
+      link.click();
+
+      toast({ title: "Sucesso!", description: "Crachá salvo como imagem." });
+    } catch (error) {
+      console.error('Erro ao gerar imagem:', error);
+      toast({ variant: "destructive", title: "Erro ao salvar", description: "Falha ao gerar imagem do crachá." });
+    }
   };
 
 
@@ -557,6 +591,7 @@ function AdminContent() {
               onSubmit={onSubmit} handleEdit={handleEdit} handleDelete={handleDelete} handleNew={handleNew} closeAllForms={closeAllForms}
               isBadgeOpen={isBadgeOpen} setIsBadgeOpen={setIsBadgeOpen} badgeUser={badgeUser} setBadgeUser={setBadgeUser}
               handleBadgePrint={handleBadgePrint}
+              handleDownloadBadgeImage={handleDownloadBadgeImage}
               userSearch={userSearch}
               setUserSearch={setUserSearch}
               userRoleFilter={userRoleFilter}
@@ -580,12 +615,13 @@ function AdminContent() {
               registrationRequests={registrationRequests}
               approveRegistration={approveRegistration}
               rejectRegistration={rejectRegistration}
+              updateUserStatus={updateUserStatus}
             />
           </TabsContent>
 
           <TabsContent value="pedagogic">
             <PedagogicSection 
-              articles={articles} quizTopics={quizTopics} viewMode={viewMode} itemType={itemType} isNew={isNew} isSubmitting={isSubmitting}
+              articles={articles} quizTopics={filteredQuizTopics} viewMode={viewMode} itemType={itemType} isNew={isNew} isSubmitting={isSubmitting}
               articleForm={articleForm} onSubmit={onSubmit} handleEdit={handleEdit} handleDelete={handleDelete} handleNew={handleNew}
               closeAllForms={closeAllForms} articleSearch={articleSearch} setArticleSearch={setArticleSearch} newTopic={newTopic} setNewTopic={setNewTopic}
               handleAddTopic={() => {
@@ -639,6 +675,7 @@ function AdminContent() {
               updateTerminalStatus={updateTerminalStatus}
               updateTerminalSettings={updateTerminalSettings}
               currentUser={currentUser}
+              targetSchoolId={targetSchoolId}
               toast={toast}
             />
           </TabsContent>

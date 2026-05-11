@@ -18,7 +18,9 @@ import {
   Globe, 
   Mail, 
   Calendar, 
-  Trash2 
+  Trash2,
+  Power,
+  ShieldOff
 } from 'lucide-react';
 import { 
   Dialog, 
@@ -30,13 +32,14 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import Link from 'next/link';
 
 interface SchoolSectionProps {
-  activeSchools: School[];
+  schools: School[];
   terminals: Terminal[];
   deleteSchool: (id: string) => void;
-  updateSchoolStatus: (id: string, status: 'active' | 'pending') => void | Promise<void>;
+  updateSchoolStatus: (id: string, status: 'active' | 'pending' | 'inactive' | 'suspended') => void | Promise<void>;
   isSchoolEditDialogOpen: boolean;
   setIsSchoolEditDialogOpen: (open: boolean) => void;
   editingSchoolObj: any;
@@ -52,7 +55,7 @@ interface SchoolSectionProps {
 }
 
 export function SchoolSection({
-  activeSchools,
+  schools,
   terminals,
   deleteSchool,
   updateSchoolStatus,
@@ -71,7 +74,7 @@ export function SchoolSection({
 }: SchoolSectionProps) {
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 animate-in slide-in-from-bottom-4 duration-500">
-      {activeSchools.map((school) => (
+      {schools.map((school) => (
         <Card key={school.id} className="group hover:border-primary/50 transition-all duration-300 shadow-sm hover:shadow-xl overflow-hidden flex flex-col">
           <div className="h-1.5 bg-primary/20 group-hover:bg-primary transition-colors"></div>
           <CardHeader className="pb-4">
@@ -97,7 +100,18 @@ export function SchoolSection({
                 >
                   <Edit className="h-4 w-4" />
                 </Button>
-                <Badge variant="secondary" className="text-[9px] font-black uppercase tracking-widest h-6">Ativo</Badge>
+                <div className="flex flex-col items-end gap-1">
+                  <Badge variant={school.status === 'active' ? 'secondary' : 'destructive'} className="text-[9px] font-black uppercase tracking-widest h-6">
+                    {school.status === 'active' ? 'Ativa' : school.status === 'suspended' ? 'Suspensa' : 'Inativa'}
+                  </Badge>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Label className="text-[9px] font-bold uppercase text-slate-400">Acesso</Label>
+                    <Switch 
+                      checked={school.status === 'active'}
+                      onCheckedChange={(checked) => updateSchoolStatus(school.id, checked ? 'active' : 'suspended')}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
             <CardTitle className="mt-4 text-xl font-bold tracking-tight">{school.name}</CardTitle>
@@ -212,10 +226,10 @@ export function SchoolSection({
         </DialogContent>
       </Dialog>
 
-      {activeSchools.length === 0 && (
+      {schools.length === 0 && (
         <div className="col-span-full py-20 text-center space-y-4">
           <Building2 className="h-12 w-12 text-slate-200 mx-auto" />
-          <p className="text-slate-500">Nenhuma escola ativa na rede ainda.</p>
+          <p className="text-slate-500">Nenhuma escola cadastrada na rede ainda.</p>
           <Button variant="outline" onClick={() => setActiveTab('overview')}>Ver Solicitações</Button>
         </div>
       )}

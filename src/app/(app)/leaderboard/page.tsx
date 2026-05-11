@@ -62,8 +62,15 @@ const getLevelBadge = (level: string) => {
   }
 };
 
+const formatDisplayName = (name: string) => {
+  if (!name) return "";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length <= 1) return name;
+  return `${parts[0]} ${parts[parts.length - 1]}`;
+};
+
 export default function LeaderboardPage() {
-  const { users, currentUserRa, balance, vitality, purchasedItems, getUserState, getMonthlyLegends, isPreviewMode, currentUser } = useEcosystem();
+  const { users, currentUserRa, balance, vitality, purchasedItems, getUserState, getMonthlyLegends, isPreviewMode, currentUser, userStates } = useEcosystem();
 
   const [selectedUser, setSelectedUser] = useState<any>(null);
   
@@ -71,8 +78,9 @@ export default function LeaderboardPage() {
 
   const calculateScore = (u: any) => {
     const p = u.points || 0;
-    const v = u.ra === currentUser?.ra ? vitality : (u.vitality || 0);
-    const items = u.ra === currentUser?.ra ? purchasedItems.length : (u.itemsCount || 0);
+    const state = userStates[u.ra] || {};
+    const v = u.ra === currentUser?.ra ? vitality : (state.vitality || 100);
+    const items = u.ra === currentUser?.ra ? purchasedItems.length : (state.purchasedItems?.length || 0);
 
     return EcosystemService.calculateTotalScore(p, v, items);
   };
@@ -90,7 +98,7 @@ export default function LeaderboardPage() {
         totalScore: calculateScore(u)
       }))
       .sort((a, b) => b.totalScore - a.totalScore);
-  }, [users, currentUserRa, balance, vitality, purchasedItems]);
+  }, [users, currentUserRa, balance, vitality, purchasedItems, userStates]);
 
   const topThree = dynamicLeaderboard.slice(0, 3);
   const restUsers = dynamicLeaderboard.slice(3);
@@ -128,10 +136,14 @@ export default function LeaderboardPage() {
                         isFirst ? "border-emerald-400/50" : "border-white/10"
                     )}>
                         <div className={cn(
-                            "w-full h-full rounded-full flex items-center justify-center text-white text-3xl font-black",
+                            "w-full h-full rounded-full flex items-center justify-center text-white text-3xl font-black relative group-hover:scale-110 transition-transform duration-500",
                             isFirst ? "bg-emerald-600" : isSecond ? "bg-slate-600" : "bg-orange-600"
                         )}>
-                            {user.name.charAt(0)}
+                            {user.avatar ? (
+                              <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                            ) : (
+                              user.name.charAt(0)
+                            )}
                         </div>
                     </div>
                     <div className={cn(
@@ -147,8 +159,10 @@ export default function LeaderboardPage() {
                     )}
                 </div>
 
-                <div className="space-y-1.5">
-                    <h3 className="text-base md:text-xl font-black text-white truncate w-full px-2 uppercase tracking-tighter">{user.name}</h3>
+                <div className="space-y-1.5 w-full">
+                    <h3 className="text-[14px] md:text-lg font-black text-white px-2 uppercase tracking-tight text-center leading-tight line-clamp-2 min-h-[2.5rem] flex items-center justify-center">
+                        {formatDisplayName(user.name)}
+                    </h3>
                     <div className="flex items-center justify-center gap-1.5">
                         <Flame className={cn("h-4 w-4", isFirst ? "text-emerald-400" : "text-white/40")} />
                         <span className={cn(
@@ -348,15 +362,19 @@ export default function LeaderboardPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center font-black text-slate-500 shadow-sm border border-slate-200 group-hover:border-emerald-200 transition-colors">
-                            {user.name.charAt(0)}
+                        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center font-black text-slate-500 shadow-sm border border-slate-200 group-hover:border-emerald-200 transition-colors overflow-hidden">
+                            {user.avatar ? (
+                                <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                            ) : (
+                                user.name.charAt(0)
+                            )}
                         </div>
                         <div>
                             <span className={cn(
                                 "block text-lg uppercase tracking-tight",
                                 user.ra === currentUser?.ra ? "font-black text-emerald-700" : "font-bold text-slate-700"
                             )}>
-                                {user.name}
+                                {formatDisplayName(user.name)}
                                 {user.ra === currentUser?.ra && <span className="ml-2 text-[10px] bg-emerald-500 text-white px-2 py-0.5 rounded-full font-black uppercase tracking-widest">Você</span>}
 
                                 {index + 4 === 1 && <Leaf className="ml-2 h-4 w-4 text-yellow-400 inline" fill="currentColor" />}

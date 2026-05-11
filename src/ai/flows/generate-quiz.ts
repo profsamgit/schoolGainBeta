@@ -36,8 +36,12 @@ export async function generateQuiz(input: GenerateQuizInput): Promise<GenerateQu
 
 const prompt = ai.definePrompt({
   name: 'generateQuizPrompt',
+  model: 'googleai/gemini-2.5-flash-lite',
   input: {schema: GenerateQuizInputSchema},
   output: {schema: GenerateQuizOutputSchema},
+  config: {
+    responseMimeType: 'application/json',
+  },
   prompt: `You are an expert educator specializing in environmental science, tasked with creating engaging quizzes for students.
 Generate a multiple-choice quiz on the topic of "{{topic}}".
 

@@ -35,6 +35,7 @@ interface InfraSectionProps {
   updateTerminalStatus: (id: string, status: any, schoolId: string) => void;
   updateTerminalSettings: (id: string, settings: Partial<Terminal>) => void;
   currentUser: any;
+  targetSchoolId?: string;
   toast: any;
 }
 
@@ -47,6 +48,7 @@ export function InfraSection({
   updateTerminalStatus,
   updateTerminalSettings,
   currentUser,
+  targetSchoolId,
   toast
 }: InfraSectionProps) {
   const [isTerminalDialogOpen, setIsTerminalDialogOpen] = useState(false);
@@ -250,7 +252,7 @@ export function InfraSection({
                           <div className="flex gap-2">
                              <Button size="sm" variant="outline" onClick={() => deleteTerminal(terminal.id)} className="bg-white text-red-600 border-red-200">Recusar</Button>
                              <Button size="sm" onClick={() => {
-                                updateTerminalStatus(terminal.id, 'active', currentUser.schoolId || 'system-global');
+                                updateTerminalStatus(terminal.id, 'active', targetSchoolId || currentUser.schoolId || 'system-global');
                                 toast({ title: "Terminal Autorizado", description: `O totem em ${terminal.location} está ativo.` });
                              }} className="bg-amber-600 hover:bg-amber-700">Autorizar Acesso</Button>
                           </div>

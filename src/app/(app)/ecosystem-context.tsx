@@ -30,6 +30,7 @@ interface EcosystemContextType {
   allParticipants: Participant[]; // Lista da equipe do projeto
   updateParticipants: (newParticipants: Participant[]) => void;
   users: User[];              // Lista de todos os alunos (para ranking)
+  userStates: Record<string, any>;
   allRewards: Reward[];         // Prêmios disponíveis
   allArticles: EducationArticle[];        // Artigos educativos
   allQuizTopics: QuizTopic[];   // Assuntos para o Quiz
@@ -69,7 +70,7 @@ interface EcosystemContextType {
   schools: School[];
   requestSchoolRegistration: (data: Omit<School, 'id' | 'status' | 'joinedDate'>) => boolean;
   registerSchool: (data: Omit<School, 'id' | 'status' | 'joinedDate'>) => Promise<boolean>;
-  updateSchoolStatus: (id: string, status: 'active' | 'pending') => Promise<void>;
+  updateSchoolStatus: (id: string, status: 'active' | 'pending' | 'inactive' | 'suspended') => Promise<void>;
   updateSchools: (newSchools: School[]) => void;
   deleteSchool: (id: string) => void;
   getLockoutStatus: (id: string) => { isLocked: boolean, remainingSeconds: number };
@@ -77,6 +78,7 @@ interface EcosystemContextType {
   requestRegistration: (data: any) => Promise<boolean>;
   approveRegistration: (id: string) => Promise<boolean>;
   rejectRegistration: (id: string) => Promise<boolean>;
+  updateUserStatus: (userId: string, status: 'active' | 'inactive') => Promise<boolean>;
   wasteEntries: WasteEntry[];
   registerWaste: (ra: string, type: WasteType, weightKg: number, terminalSchoolId?: string) => boolean;
   identifyKioskUser: (ra: string | null) => void;
@@ -88,7 +90,9 @@ interface EcosystemContextType {
   generateTerminalId: () => string;
   uploadUserAvatar: (userId: string, file: File) => Promise<string | null>;
   isPreviewMode: boolean;
+  isInitializing: boolean;
   displayUser: User | null;
+  service: EcosystemService;
 }
 
 
@@ -110,6 +114,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const [quizTopics, setQuizTopics] = useState<QuizTopic[]>(service.allQuizTopics);
   const [participants, setParticipants] = useState<Participant[]>(service.allParticipants);
   const [turmas, setTurmas] = useState<Turma[]>(service.allTurmas);
+  const [userStates, setUserStates] = useState<Record<string, any>>(service.userStates || {});
 
   // --- LÓGICA DE PREVIEW (MODO AUDITORIA) ---
   const searchParams = useSearchParams();
@@ -153,6 +158,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const [resetHistory, setResetHistory] = useState<CycleSnapshot[]>(service.resetHistory || []);
   const [schools, setSchools] = useState<School[]>(service.schools);
   const [isMounted, setIsMounted] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
     const balanceSub = service.balance$.subscribe(setBalance);
@@ -177,9 +183,26 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
     const cargosSub = service.cargos$.subscribe(setCargos);
     const sectorsSub = service.setores$.subscribe(setSetores);
     const regReqSub = service.registrationRequests$.subscribe(setRegistrationRequests);
+    const userStatesSub = service.userStates$.subscribe(setUserStates);
 
     service.initialize();
-    setIsMounted(true);
+    
+    // Forçamos uma atualização imediata do RA e usuários para evitar o tick de atraso do subscribe
+    if (service.currentUserRa) {
+      setCurrentUserRa(service.currentUserRa);
+    }
+    setUsers([...service.users]);
+
+    // Lógica de liberação de inicialização:
+    // Esperamos um pouco para dar tempo do Firebase Auth e Firestore dispararem os primeiros snapshots
+    const checkAuthAndFinalize = () => {
+      setTimeout(() => {
+        setIsInitializing(false);
+        setIsMounted(true);
+      }, 300); // Aumentado para 300ms para maior estabilidade em conexões lentas
+    };
+
+    checkAuthAndFinalize();
 
     return () => {
       balanceSub.unsubscribe();
@@ -204,6 +227,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
       cargosSub.unsubscribe();
       sectorsSub.unsubscribe();
       regReqSub.unsubscribe();
+      userStatesSub.unsubscribe();
     };
   }, [service]);
 
@@ -262,6 +286,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const getLockoutStatus = service.getLockoutStatus.bind(service);
   const generateTerminalId = service.generateTerminalId.bind(service);
   const uploadUserAvatar = (uId: string, f: File) => service.uploadUserAvatar(uId, f);
+  const updateUserStatus = (uId: string, s: 'active' | 'inactive') => service.updateUserStatus(uId, s);
 
   // Evita problemas de renderização no servidor (Next.js)
   if (!isMounted) return null;
@@ -302,6 +327,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
       updateCursos,
       updateCargos,
       updateSetores,
+      userStates,
       getUserState,
       auditLogs,
       grantPoints,
@@ -338,8 +364,11 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
       updateMyPassword,
       generateTerminalId,
       uploadUserAvatar,
+      updateUserStatus,
       isPreviewMode,
-      displayUser
+      isInitializing,
+      displayUser,
+      service
     }}>
       {children}
     </EcosystemContext.Provider>

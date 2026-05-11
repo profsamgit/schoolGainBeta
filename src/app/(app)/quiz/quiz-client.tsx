@@ -60,7 +60,11 @@ export function QuizClient() {
 
   const { toast } = useToast();
   const { completeDailyMission, allQuizTopics: rawTopics, currentUser } = useEcosystem();
-  const allQuizTopics = rawTopics.filter(t => !currentUser?.schoolId || t.schoolId === currentUser.schoolId);
+  const allQuizTopics = rawTopics.filter(t => 
+    !t.schoolId || 
+    t.schoolId === 'global' || 
+    t.schoolId === currentUser?.schoolId
+  );
   const searchParams = useSearchParams();
 
   const form = useForm<QuizFormValues>({

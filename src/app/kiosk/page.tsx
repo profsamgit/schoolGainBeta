@@ -138,6 +138,11 @@ export default function KioskPage() {
 
     const student = users.find((user: any) => user.ra === cleanRa || user.rfid === cleanRa);
     if (student) {
+        if (student.status === 'inactive') {
+            toast({ variant: 'destructive', title: 'Acesso Restrito', description: 'Este registro está inativo. Procure a secretaria.' });
+            playBeep('error');
+            return;
+        }
         const actualRa = student.ra || cleanRa;
         identifyKioskUser(actualRa);
         setIdentifiedStudent(student);

@@ -54,7 +54,7 @@ import {
 } from 'firebase/auth';
 
 const STORAGE_BASE = 'schoolgain_v22';
-const STORAGE_KEY = `${STORAGE_BASE}_ecosystem`;
+const STORAGE_KEY = 'schoolgain_ecosystem_data';
 const AUDIT_LOGS_KEY = `${STORAGE_BASE}_audit_logs`;
 
 /**
@@ -165,6 +165,7 @@ export class EcosystemService {
   private auditLogsSubject = new BehaviorSubject<AuditLogEntry[]>([]);
   private levelSubject = new BehaviorSubject<string>('Semente');
   private registrationRequestsSubject = new BehaviorSubject<RegistrationRequest[]>([]);
+  private userStatesSubject = new BehaviorSubject<Record<string, EcosystemUserState>>({});
 
   // Novos canais para hardware e gestão
   private systemSettingsSubject = new BehaviorSubject<SystemSettings>({
@@ -232,17 +233,19 @@ export class EcosystemService {
         // Garante que o usuário logado localmente ainda exista no banco
         if (this.data.currentUserId) {
           const currentInDb = users.find(u => u.id === this.data.currentUserId);
-          if (!currentInDb) {
-            console.warn("Usuário logado não encontrado no banco. Deslogando...");
+          if (!currentInDb && snapshot.metadata.fromCache === false) {
+            console.warn("Usuário logado não encontrado no banco de dados. Deslogando por segurança...");
             this.logout();
             return;
           }
-          // Se o RA mudou no banco para o usuário logado, atualizamos a referência local para o sync continuar feliz
-          if (currentInDb.ra !== this.data.currentUserRa) {
-            this.data.currentUserRa = currentInDb.ra || null;
-            this.data.currentUserId = currentInDb.id;
-            this.currentUserRaSubject.next(this.data.currentUserRa);
-            this.saveToStorage();
+          if (currentInDb) {
+            // Se o RA mudou no banco para o usuário logado, atualizamos a referência local para o sync continuar feliz
+            if (currentInDb.ra !== this.data.currentUserRa) {
+              this.data.currentUserRa = currentInDb.ra || null;
+              this.data.currentUserId = currentInDb.id;
+              this.currentUserRaSubject.next(this.data.currentUserRa);
+              this.saveToStorage();
+            }
           }
         }
       }
@@ -368,6 +371,7 @@ export class EcosystemService {
       snapshot.forEach(doc => {
         this.data.userStates[doc.id] = doc.data() as EcosystemUserState;
       });
+      this.userStatesSubject.next({ ...this.data.userStates });
       // Se houver um usuário logado, atualiza o saldo dele
       if (this.data.currentUserRa) {
         this.syncStateWithUser(this.data.currentUserRa);
@@ -388,6 +392,7 @@ export class EcosystemService {
    */
   initialize() {
     if (typeof window === 'undefined') return;
+    this.loadFromStorage(); // Recupera a sessão e dados salvos anteriormente
     this.sanitizeData(); // Limpa dados legados e intrusos
     this.initFirebaseSync(); // Inicia sincronização em tempo real com Firestore
 
@@ -425,7 +430,7 @@ export class EcosystemService {
 
     // Sincronização entre abas: Ouve mudanças no localStorage vindas de outras abas (ex: Kiosk)
     window.addEventListener('storage', (event) => {
-      if (event.key === 'schoolgain_ecosystem_data') {
+      if (event.key === STORAGE_KEY) {
         this.loadFromStorage();
         this.notifyAll();
       }
@@ -541,6 +546,8 @@ export class EcosystemService {
   get terminals$() { return this.terminalsSubject.asObservable(); }
   get schools$() { return this.schoolsSubject.asObservable(); }
   get wasteEntries$() { return this.wasteEntriesSubject.asObservable(); }
+  get userStates() { return this.data.userStates; }
+  get userStates$() { return this.userStatesSubject.asObservable(); }
   get registrationRequests$() { return this.registrationRequestsSubject.asObservable(); }
   get resetHistory$() { return this.resetHistorySubject.asObservable(); }
 
@@ -813,7 +820,8 @@ export class EcosystemService {
         schoolId: newSchool.id,
         ra: `G-${Date.now().toString().slice(-4)}`,
         points: 0,
-        level: 'Semente'
+        level: 'Semente',
+        status: 'active'
       };
       this.data.users.push(newUser);
       this.usersSubject.next([...this.data.users]);
@@ -871,7 +879,7 @@ export class EcosystemService {
   /**
    * Atualiza o status de uma escola (Aprovação).
    */
-  async updateSchoolStatus(id: string, status: 'active' | 'pending') {
+  async updateSchoolStatus(id: string, status: 'active' | 'pending' | 'inactive' | 'suspended') {
     if (!this.checkAdminAuth()) return;
     const school = this.data.schools.find(s => s.id === id);
     if (school) {
@@ -890,7 +898,8 @@ export class EcosystemService {
             schoolId: school.id,
             ra: `G-${Date.now().toString().slice(-4)}`,
             points: 0,
-            level: 'Semente'
+            level: 'Semente',
+            status: 'active'
           };
           this.data.users.push(newUser);
           this.usersSubject.next([...this.data.users]);
@@ -1648,7 +1657,21 @@ export class EcosystemService {
     );
 
     if (user) {
-      // Lógica diferenciada por cargo
+      // 2. Verifica se o usuário ou a escola estão ativos
+      if (user.status === 'inactive') {
+        console.warn(`[AUTH] Tentativa de login de usuário inativo: ${user.name}`);
+        return false;
+      }
+
+      if (user.schoolId && user.schoolId !== 'global') {
+        const school = this.data.schools.find(s => s.id === user.schoolId);
+        if (school && (school.status === 'inactive' || school.status === 'suspended')) {
+          console.warn(`[AUTH] Tentativa de login vinculada a unidade inativa/suspensa: ${school.name}`);
+          return false;
+        }
+      }
+
+      // 3. Lógica diferenciada por cargo
       if (cleanPassword) {
         if (user.role === 'super_admin') {
           // Super Admins continuam usando a segurança nativa do Firebase Auth
@@ -1806,6 +1829,7 @@ export class EcosystemService {
       if (u.turma) u.turma = u.turma.toUpperCase().trim();
       if (u.curso) u.curso = u.curso.toUpperCase().trim();
       if (u.position) u.position = u.position.toUpperCase().trim();
+      if (!u.status) u.status = 'active';
     }
 
     // 1. Identifica usuários removidos (estavam na lista antiga mas não na nova)
@@ -2263,7 +2287,8 @@ export class EcosystemService {
             schoolId: school.id,
             ra: `G-${school.id.split('-')[1] || Date.now().toString().slice(-4)}`,
             points: 0,
-            level: 'Semente'
+            level: 'Semente',
+            status: 'active'
           };
           this.data.users.push(newUser);
         }
@@ -2281,6 +2306,9 @@ export class EcosystemService {
 
       // AUTO-CORREÇÃO: Garante que o cargo seja sempre minúsculo para os filtros funcionarem
       if (u.role) u.role = u.role.toLowerCase() as any;
+
+      // MUDANÇA: Garante status ativo por padrão
+      if (!u.status) u.status = 'active';
 
       return u;
     });
@@ -2342,7 +2370,8 @@ export class EcosystemService {
       role: 'student',
       schoolId: request.schoolId,
       points: 0,
-      level: 'Semente'
+      level: 'Semente',
+      status: 'active'
     };
 
     // 2. Salva o usuário no Firestore
@@ -2378,5 +2407,25 @@ export class EcosystemService {
     });
 
     return true;
+  }
+
+  async updateUserStatus(userId: string, status: 'active' | 'inactive') {
+    if (!this.checkAdminAuth()) return false;
+    const user = this.data.users.find(u => u.id === userId);
+    if (user) {
+      user.status = status;
+      await setDoc(doc(db, "users", userId), { status }, { merge: true });
+      this.usersSubject.next([...this.data.users]);
+      
+      this.logTelemetry({
+        action: 'CRUD_UPDATE',
+        category: 'DATA',
+        details: `Gestor alterou status do usuário ${user.name} para ${status.toUpperCase()}`,
+        targetEntity: 'users',
+        targetId: userId
+      });
+      return true;
+    }
+    return false;
   }
 }

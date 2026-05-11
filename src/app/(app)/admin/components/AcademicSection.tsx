@@ -18,9 +18,11 @@ import {
   Check,
   X,
   Clock,
-  Wand2
+  Wand2,
+  Image as ImageIcon
 } from 'lucide-react';
 import { RegistrationRequest, User, Turma, Curso, Cargo, SetorEscolar } from '@/lib/types';
+import { Power, Shield, UserX, UserCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { UseFormReturn } from 'react-hook-form';
 
@@ -68,6 +70,7 @@ import {
 } from "@/components/ui/form";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
 import dynamic from 'next/dynamic';
 
 const QRScanner = dynamic(() => import('@/components/ui/qr-scanner'), { ssr: false });
@@ -98,6 +101,7 @@ interface AcademicSectionProps {
   badgeUser: User | null;
   setBadgeUser: (user: User | null) => void;
   handleBadgePrint: (user: User) => void;
+  handleDownloadBadgeImage: (user: User) => Promise<void>;
   userSearch: string;
   setUserSearch: (val: string) => void;
   userRoleFilter: 'student' | 'admin' | 'visitor';
@@ -128,6 +132,7 @@ interface AcademicSectionProps {
   registrationRequests: RegistrationRequest[];
   approveRegistration: (id: string) => Promise<boolean>;
   rejectRegistration: (id: string) => Promise<boolean>;
+  updateUserStatus: (userId: string, status: 'active' | 'inactive') => Promise<boolean>;
 }
 
 export function AcademicSection({
@@ -155,6 +160,7 @@ export function AcademicSection({
   badgeUser,
   setBadgeUser,
   handleBadgePrint,
+  handleDownloadBadgeImage,
   userSearch,
   setUserSearch,
   userRoleFilter,
@@ -180,8 +186,10 @@ export function AcademicSection({
   setSecurityPassword,
   registrationRequests,
   approveRegistration,
-  rejectRegistration
+  rejectRegistration,
+  updateUserStatus
 }: AcademicSectionProps) {
+  const [showInactive, setShowInactive] = useState(false);
   const router = useRouter();
 
   const generateRandomRA = () => {
@@ -200,10 +208,12 @@ export function AcademicSection({
       const matchesRole = userRoleFilter === 'admin' 
         ? (u.role === 'admin' || u.role === 'super_admin') 
         : u.role === userRoleFilter;
-      const matchesTurma = userTurmaFilter === 'all' ? true : u.turma === userTurmaFilter;
-      return matchesSearch && matchesRole && matchesTurma;
+      const matchesTurma = userTurmaFilter === 'all' || u.turma === userTurmaFilter;
+      const matchesStatus = showInactive ? true : u.status !== 'inactive';
+      
+      return matchesSearch && matchesRole && matchesTurma && matchesStatus;
     });
-  }, [filteredUsersForAdmin, userSearch, userRoleFilter, userTurmaFilter]);
+  }, [filteredUsersForAdmin, userSearch, userRoleFilter, userTurmaFilter, showInactive]);
 
   const filteredRequests = useMemo(() => {
     return registrationRequests.filter(req => 
@@ -257,6 +267,7 @@ export function AcademicSection({
             <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400 px-6">Identificação</TableHead>
             <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">RA / ID</TableHead>
             <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">Vínculo</TableHead>
+            <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">Pontos</TableHead>
             <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">Status</TableHead>
             <TableHead className="text-right px-6 font-black uppercase text-[10px] tracking-widest text-slate-400">Ações</TableHead>
           </TableRow>
@@ -269,23 +280,41 @@ export function AcademicSection({
               </TableCell>
               <TableCell className="font-mono text-[11px] font-bold text-primary">{user.ra}</TableCell>
               <TableCell>
-                <div className="flex flex-col">
+                <div className="flex flex-col gap-1">
+                  <Badge 
+                    variant={user.role === 'admin' || user.role === 'super_admin' ? 'default' : user.role === 'visitor' ? 'outline' : 'secondary'} 
+                    className={`w-fit uppercase text-[7px] font-black tracking-tighter h-4 px-1 ${user.role === 'visitor' ? 'text-blue-600 border-blue-200 bg-blue-50/50' : ''}`}
+                  >
+                    {user.role === 'super_admin' ? 'Mestre' : user.role === 'admin' ? 'Gestor' : user.role === 'visitor' ? 'Visita' : 'Aluno'}
+                  </Badge>
                   {user.position && <span className="font-black text-slate-900 text-[9px] uppercase tracking-widest">{user.position}</span>}
                   <span className="text-[10px] text-slate-500 font-bold">{user.turma || (role === 'visitor' ? 'Visitante' : 'Sem Turma')}</span>
                 </div>
               </TableCell>
               <TableCell>
-                <Badge 
-                  variant={user.role === 'admin' || user.role === 'super_admin' ? 'default' : user.role === 'visitor' ? 'outline' : 'secondary'} 
-                  className={`uppercase text-[8px] font-black tracking-tighter ${user.role === 'visitor' ? 'text-blue-600 border-blue-200 bg-blue-50/50' : ''}`}
-                >
-                  {user.role === 'super_admin' ? 'Mestre' : user.role === 'admin' ? 'Gestor' : user.role === 'visitor' ? 'Visita' : 'Aluno'}
-                </Badge>
+                <div className="font-bold text-primary">{(user as any).points || 0}</div>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  <Switch 
+                    checked={user.status !== 'inactive'} 
+                    onCheckedChange={(checked) => updateUserStatus(user.id, checked ? 'active' : 'inactive')}
+                  />
+                  <Badge variant={user.status === 'inactive' ? 'destructive' : 'secondary'} className="text-[9px] uppercase font-bold">
+                    {user.status === 'inactive' ? 'Inativo' : 'Ativo'}
+                  </Badge>
+                </div>
               </TableCell>
               <TableCell className="text-right px-6">
                 <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   {user.role === 'student' && (
-                    <Button variant="ghost" size="icon" onClick={() => router.push(`/dashboard?preview=${user.id}`)} className="h-8 w-8 text-slate-400 hover:text-primary hover:bg-primary/5" title="Visualizar Perfil">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => router.push(`/dashboard?preview=${user.id}${targetSchoolId ? `&schoolId=${targetSchoolId}` : ''}`)} 
+                      className="h-8 w-8 text-slate-400 hover:text-primary hover:bg-primary/5" 
+                      title="Visualizar Perfil"
+                    >
                       <Eye className="h-4 w-4" />
                     </Button>
                   )}
@@ -330,7 +359,7 @@ export function AcademicSection({
             </TableRow>
           )) : (
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-10 text-slate-400 uppercase text-[10px] font-black tracking-widest">Nenhum registro encontrado</TableCell>
+              <TableCell colSpan={6} className="text-center py-10 text-slate-400 uppercase text-[10px] font-black tracking-widest">Nenhum registro encontrado</TableCell>
             </TableRow>
           )}
         </TableBody>
@@ -536,9 +565,19 @@ export function AcademicSection({
                 <CardDescription className="text-[10px] font-bold uppercase tracking-widest">Gestão de alunos, visitantes e equipe administrativa local.</CardDescription>
              </div>
           </div>
-          <Button onClick={() => handleNew('user')} className="bg-primary text-white font-black uppercase text-[10px] tracking-widest gap-2">
-            <UserPlus className="h-4 w-4" /> Novo {userRoleFilter === 'student' ? 'Aluno' : userRoleFilter === 'admin' ? 'Gestor' : 'Visitante'}
-          </Button>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-lg border border-slate-200">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-2">Inativos</Label>
+              <Switch 
+                checked={showInactive} 
+                onCheckedChange={setShowInactive}
+                className="data-[state=checked]:bg-amber-500"
+              />
+            </div>
+            <Button onClick={() => handleNew('user')} className="bg-primary text-white font-black uppercase text-[10px] tracking-widest gap-2">
+              <UserPlus className="h-4 w-4" /> Novo {userRoleFilter === 'student' ? 'Aluno' : userRoleFilter === 'admin' ? 'Gestor' : 'Visitante'}
+            </Button>
+          </div>
         </CardHeader>
         
         <CardContent>
@@ -685,9 +724,14 @@ export function AcademicSection({
                       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Design Premium Ativo</p>
                     </div>
                     
-                    <Button onClick={() => handleBadgePrint(badgeUser)} className="w-full bg-primary hover:bg-primary/90 text-white gap-2 font-black uppercase text-[10px] tracking-widest h-12 shadow-lg shadow-primary/20 transition-all">
-                      <Printer className="h-4 w-4" /> Imprimir Crachá Premium
-                    </Button>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button onClick={() => handleDownloadBadgeImage(badgeUser)} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-black uppercase text-[10px] tracking-widest h-12 shadow-lg shadow-emerald-200 transition-all">
+                        <ImageIcon className="h-4 w-4" /> Salvar Imagem
+                      </Button>
+                      <Button onClick={() => handleBadgePrint(badgeUser)} variant="outline" className="gap-2 font-black uppercase text-[10px] tracking-widest h-12 shadow-lg transition-all">
+                        <Printer className="h-4 w-4" /> Imprimir / PDF
+                      </Button>
+                    </div>
                     <p className="text-[9px] text-center text-slate-400 font-medium px-4">
                       O crachá será impresso com as dimensões oficiais (85mm x 55mm).
                     </p>

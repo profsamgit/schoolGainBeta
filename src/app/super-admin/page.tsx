@@ -527,7 +527,7 @@ export default function SuperAdminPage() {
 
           <TabsContent value="schools">
             <SchoolSection
-              activeSchools={schools.filter(s => s.status === 'active')}
+              schools={schools.filter(s => s.status !== 'pending')}
               terminals={terminals}
               deleteSchool={deleteSchool}
               updateSchoolStatus={updateSchoolStatus}

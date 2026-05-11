@@ -39,6 +39,7 @@ export type User = {
   itemsCount?: number;
   schoolId?: string;
   mustChangePassword?: boolean;
+  status: 'active' | 'inactive';
 };
 
 export type Reward = {
@@ -140,7 +141,7 @@ export type School = {
   contactEmail: string;
   managerEmail?: string;     // E-mail de login do gestor da unidade
   managerPassword?: string;  // Senha inicial do gestor
-  status: 'active' | 'pending';
+  status: 'active' | 'pending' | 'inactive' | 'suspended';
   joinedDate: string;
 };
 

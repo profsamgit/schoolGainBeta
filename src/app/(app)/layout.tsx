@@ -3,22 +3,77 @@ import { Header } from '@/components/layout/header';
 import { AppSidebar } from '@/components/layout/sidebar';
 import Link from 'next/link';
 import { useEcosystem } from './ecosystem-context';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
 import { Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { currentUser, isPreviewMode, displayUser } = useEcosystem();
+  const { currentUser, isPreviewMode, displayUser, isInitializing, service } = useEcosystem();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const schoolId = searchParams.get('schoolId');
 
-  // Proteção Global: Visitantes NÃO têm acesso à interface interna
+  const { toast } = useToast();
+
+  // Monitoramento de Conexão e Sessão
   useEffect(() => {
+    // Só agimos após o sistema terminar de inicializar
+    if (isInitializing) return;
+    // 1. Lidar com perda de internet (Conexão Física)
+    const handleOffline = () => {
+      toast({
+        title: "Conexão perdida",
+        description: "Você está offline. Algumas funcionalidades podem não funcionar corretamente.",
+        variant: "destructive",
+      });
+      // Redireciona para a home em caso de queda total de conexão conforme solicitado
+      router.push('/'); 
+    };
+
+    window.addEventListener('offline', handleOffline);
+
+    // 2. Lidar com perda de sessão (Logout/Desconexão do Banco)
+    // Se o usuário sumir e não estivermos em modo preview, voltamos para a home de seleção
+    // Nota: Para rotas /admin, somos mais tolerantes para dar tempo ao Firebase Auth
+    if (!currentUser && !isPreviewMode) {
+      const isDashboardRoute = window.location.pathname.includes('/admin') || window.location.pathname.includes('/leaderboard');
+      
+      if (isDashboardRoute) {
+          // Se for uma rota crítica, damos um "respiro" extra de 1 segundo antes de expulsar
+          const timeout = setTimeout(() => {
+            if (!service.currentUserRa && !isPreviewMode) {
+                router.push('/');
+            }
+          }, 1000);
+          return () => clearTimeout(timeout);
+      } else {
+          router.push('/');
+      }
+    }
+
+    // 3. Bloqueio de Visitantes
     if (currentUser?.role === 'visitor') {
       router.push('/kiosk');
     }
-  }, [currentUser, router]);
+
+    return () => {
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [currentUser, isPreviewMode, isInitializing, router, toast]);
+
+  if (isInitializing) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-emerald-500 font-black uppercase tracking-[0.3em] text-[10px] animate-pulse">Sincronizando Ecossistema...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AppSidebar>
@@ -41,7 +96,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 variant="secondary" 
                 size="sm" 
                 className="bg-white text-amber-600 hover:bg-slate-50 font-black uppercase text-[10px] tracking-widest h-9 px-5 rounded-lg shadow-lg transition-all active:scale-95"
-                onClick={() => router.push('/admin?tab=academic')}
+                onClick={() => {
+                  const effectiveSchoolId = schoolId || displayUser?.schoolId;
+                  const target = effectiveSchoolId ? `/admin?schoolId=${effectiveSchoolId}&tab=academic` : '/admin?tab=academic';
+                  router.push(target);
+                }}
               >
                 Encerrar Auditoria
               </Button>

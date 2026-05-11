@@ -22,16 +22,17 @@ export const ADMIN_MOCK: User = {
   level: 'Semente',
   ra: 'ADMIN-01',
   schoolId: 'global',
+  status: 'active',
 };
 
 export const REWARDS_MOCK: Reward[] = [];
 export const ARTICLES_MOCK: EducationArticle[] = [];
 export const QUIZ_TOPICS_MOCK: QuizTopic[] = [
-  { id: 'topic-1', name: 'Reciclagem', schoolId: 'school-1' },
-  { id: 'topic-2', name: 'Consumo Consciente', schoolId: 'school-1' },
-  { id: 'topic-3', name: 'Biodiversidade', schoolId: 'school-1' },
-  { id: 'topic-4', name: 'Energias Renováveis', schoolId: 'school-1' },
-  { id: 'topic-5', name: 'Desmatamento', schoolId: 'school-1' },
+  { id: 'topic-1', name: 'Reciclagem' },
+  { id: 'topic-2', name: 'Consumo Consciente' },
+  { id: 'topic-3', name: 'Biodiversidade' },
+  { id: 'topic-4', name: 'Energias Renováveis' },
+  { id: 'topic-5', name: 'Desmatamento' },
 ];
 
 export const PARTICIPANTS_MOCK: Participant[] = [];
