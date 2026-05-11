@@ -277,7 +277,11 @@ export default function StudentLoginPage() {
                     {/* LOGIN QR CODE */}
                     <TabsContent value="qr" className="space-y-4">
                       <div className="space-y-4">
-                        <QRScanner key={scannerKey} onScan={(text) => handleLogin(text)} />
+                        <QRScanner 
+                          key={scannerKey} 
+                          onScan={(text) => handleLogin(text)} 
+                          deviceId={systemSettings.studentCaptureDevice}
+                        />
                         <p className="text-xs text-center text-muted-foreground font-bold uppercase tracking-widest bg-slate-100 py-2 rounded-full">
                           Aponte sua Carteira para a câmera
                         </p>

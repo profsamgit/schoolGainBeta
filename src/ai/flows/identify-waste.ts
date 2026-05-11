@@ -86,7 +86,7 @@ const identifyWasteFlow = ai.defineFlow(
       outputSchema: IdentifyWasteOutputSchema,
     },
     async (input): Promise<IdentifyWasteOutput> => {
-      console.log('--- Identificando Resíduo via AI ---');
+      // Log de processo AI suprimido para produção
       
       try {
           const {output} = await prompt(input);
@@ -114,10 +114,10 @@ const identifyWasteFlow = ai.defineFlow(
               return finalResult;
           }
       } catch (promptError) {
-          console.error('Error during AI prompt execution:', promptError);
+          // Hardware Input Log suprimido em produção
       }
       
-      console.log('Flow fallback: hitting error throw.');
+      throw new Error('Falha no processamento do fluxo de IA.');
       // Fallback in case the model fails to generate a valid output
       throw new Error('Falha ao identificar o resíduo. Tente novamente.');
     }

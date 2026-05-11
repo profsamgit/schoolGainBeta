@@ -29,7 +29,11 @@ export default function StudentCard() {
 
     const printWindow = window.open('', '_blank', 'width=850,height=600');
     if (!printWindow) {
-      alert('Por favor, permita pop-ups para imprimir a carteira.');
+      toast({
+        variant: "destructive",
+        title: "Bloqueador de Pop-ups Ativo",
+        description: "Por favor, permita pop-ups para que possamos abrir a tela de impressão da carteirinha.",
+      });
       return;
     }
 

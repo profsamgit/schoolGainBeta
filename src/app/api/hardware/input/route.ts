@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       timestamp: Date.now()
     };
 
-    console.log(`[HARDWARE] Login autorizado recebido no Terminal ${terminalId}: RA ${ra}`);
+    // Hardware Input Log suprimido em produção
 
     return NextResponse.json({ success: true, message: 'Login registrado com sucesso' });
   } catch (error) {

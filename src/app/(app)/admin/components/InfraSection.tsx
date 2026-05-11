@@ -28,7 +28,7 @@ import { SystemSettings, Terminal } from '@/lib/types';
 
 interface InfraSectionProps {
   systemSettings: SystemSettings;
-  updateSystemSettings: (settings: SystemSettings) => void;
+  updateSystemSettings: (settings: SystemSettings, targetSchoolId?: string) => void;
   videoDevices: MediaDeviceInfo[];
   filteredTerminalsForAdmin: Terminal[];
   deleteTerminal: (id: string) => void;
@@ -78,7 +78,7 @@ export function InfraSection({
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Método de Login Ativo</Label>
               <Select 
                 value={systemSettings.studentLoginMethod} 
-                onValueChange={(v: any) => updateSystemSettings({...systemSettings, studentLoginMethod: v})}
+                onValueChange={(v: any) => updateSystemSettings({...systemSettings, studentLoginMethod: v}, targetSchoolId)}
               >
                 <SelectTrigger className="bg-white font-bold"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -94,7 +94,7 @@ export function InfraSection({
                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Fonte da Câmera</Label>
                 <Select 
                   value={systemSettings.studentCaptureSource || 'browser'} 
-                  onValueChange={(v: any) => updateSystemSettings({...systemSettings, studentCaptureSource: v})}
+                  onValueChange={(v: any) => updateSystemSettings({...systemSettings, studentCaptureSource: v}, targetSchoolId)}
                 >
                   <SelectTrigger className="bg-white font-bold h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -111,7 +111,7 @@ export function InfraSection({
                   <Select 
                     key={`student-cam-${videoDevices.length}`}
                     value={systemSettings.studentCaptureDevice || 'default'} 
-                    onValueChange={(v: any) => updateSystemSettings({...systemSettings, studentCaptureDevice: v})}
+                    onValueChange={(v: any) => updateSystemSettings({...systemSettings, studentCaptureDevice: v}, targetSchoolId)}
                   >
                     <SelectTrigger className="bg-white font-bold h-9"><SelectValue placeholder="Selecione a câmera" /></SelectTrigger>
                     <SelectContent>
@@ -130,7 +130,7 @@ export function InfraSection({
                   <Input 
                     placeholder={systemSettings.studentCaptureSource === 'esp32' ? "Ex: 192.168.1.50" : "http://server.com/stream"}
                     value={systemSettings.studentCaptureUrl || ''}
-                    onChange={(e) => updateSystemSettings({...systemSettings, studentCaptureUrl: e.target.value})}
+                    onChange={(e) => updateSystemSettings({...systemSettings, studentCaptureUrl: e.target.value}, targetSchoolId)}
                     className="bg-white font-bold h-9 text-xs"
                   />
                 </div>
@@ -154,7 +154,7 @@ export function InfraSection({
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Método de Autenticação</Label>
               <Select 
                 value={systemSettings.adminLoginMethod} 
-                onValueChange={(v: any) => updateSystemSettings({...systemSettings, adminLoginMethod: v})}
+                onValueChange={(v: any) => updateSystemSettings({...systemSettings, adminLoginMethod: v}, targetSchoolId)}
               >
                 <SelectTrigger className="bg-white font-bold"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -171,7 +171,7 @@ export function InfraSection({
                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Fonte da Câmera</Label>
                 <Select 
                   value={systemSettings.adminCaptureSource || 'browser'} 
-                  onValueChange={(v: any) => updateSystemSettings({...systemSettings, adminCaptureSource: v})}
+                  onValueChange={(v: any) => updateSystemSettings({...systemSettings, adminCaptureSource: v}, targetSchoolId)}
                 >
                   <SelectTrigger className="bg-white font-bold h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -188,7 +188,7 @@ export function InfraSection({
                   <Select 
                     key={`admin-cam-${videoDevices.length}`}
                     value={systemSettings.adminCaptureDevice || 'default'} 
-                    onValueChange={(v: any) => updateSystemSettings({...systemSettings, adminCaptureDevice: v})}
+                    onValueChange={(v: any) => updateSystemSettings({...systemSettings, adminCaptureDevice: v}, targetSchoolId)}
                   >
                     <SelectTrigger className="bg-white font-bold h-9"><SelectValue placeholder="Selecione a câmera" /></SelectTrigger>
                     <SelectContent>
@@ -207,7 +207,7 @@ export function InfraSection({
                   <Input 
                     placeholder={systemSettings.adminCaptureSource === 'esp32' ? "Ex: 192.168.1.50" : "http://server.com/stream"}
                     value={systemSettings.adminCaptureUrl || ''}
-                    onChange={(e) => updateSystemSettings({...systemSettings, adminCaptureUrl: e.target.value})}
+                    onChange={(e) => updateSystemSettings({...systemSettings, adminCaptureUrl: e.target.value}, targetSchoolId)}
                     className="bg-white font-bold h-9 text-xs"
                   />
                 </div>

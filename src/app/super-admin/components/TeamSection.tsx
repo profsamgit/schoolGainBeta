@@ -18,6 +18,7 @@ import {
   Camera, 
   Loader2 
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Dialog, 
   DialogContent, 
@@ -59,6 +60,7 @@ export function TeamSection({
   uploadingUserId,
   setUploadingUserId
 }: TeamSectionProps) {
+  const { toast } = useToast();
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <Card className="border-primary/10 shadow-lg">
@@ -140,13 +142,13 @@ export function TeamSection({
                             onChange={async (e) => {
                               const file = e.target.files?.[0];
                               if (!file) return;
-                              const uploadId = devFormData.id || editingDev?.id || 'new-participant';
+                              const uploadId = devFormData.id || editingDev?.id || `PART-NEW-${Date.now()}`;
                               try {
                                 setUploadingUserId('new-dev');
                                 const url = await uploadUserAvatar(uploadId, file);
                                 if (url) setDevFormData({...devFormData, avatar: url});
                               } catch (err) {
-                                alert("Erro ao subir foto no modal.");
+                                toast({ title: "Erro de Upload", description: "Não foi possível subir a foto. Tente novamente.", variant: "destructive" });
                               } finally {
                                 setUploadingUserId(null);
                               }
@@ -191,11 +193,11 @@ export function TeamSection({
                             if (url) {
                               // Sucesso
                             } else {
-                              alert("Falha no upload da imagem. Verifique sua conexão ou o tamanho do arquivo.");
+                              toast({ title: "Falha no Upload", description: "Verifique sua conexão ou o tamanho do arquivo.", variant: "destructive" });
                             }
                           } catch (err) {
                             console.error(err);
-                            alert("Erro crítico no upload.");
+                            toast({ title: "Erro Crítico", description: "Ocorreu um erro inesperado durante o upload.", variant: "destructive" });
                           } finally {
                             setUploadingUserId(null);
                           }

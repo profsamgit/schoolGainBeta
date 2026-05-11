@@ -239,7 +239,10 @@ export default function AdminLoginPage() {
 
                         <TabsContent value="qr" className="space-y-4">
                             <div className="space-y-4">
-                                <QRScanner onScan={handleHybridLogin} />
+                                <QRScanner 
+                                    onScan={handleHybridLogin} 
+                                    deviceId={systemSettings.adminCaptureDevice}
+                                />
                                 <p className="text-[10px] text-center text-rose-600 font-black uppercase tracking-[0.2em] bg-rose-50 py-2 rounded-lg">
                                     Acesso Administrativo via QR
                                 </p>

@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useEcosystem } from '@/app/(app)/ecosystem-context';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, CheckCircle2, UserPlus, Send, Loader2, QrCode, Cpu, Eye, X, Wand2, Wifi } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, UserPlus, Send, Loader2, QrCode, Cpu, Eye, X, Wand2, Wifi, BookOpen, GraduationCap, School as SchoolIcon } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { QRCodeSVG } from 'qrcode.react';
@@ -17,7 +17,7 @@ import { useEffect, useCallback } from 'react';
 const QRScanner = dynamic(() => import('@/components/ui/qr-scanner'), { ssr: false });
 
 export default function RegisterStudentPage() {
-  const { requestRegistration, allTurmas, allCursos, schools } = useEcosystem();
+  const { requestRegistration, allTurmas, allCursos, schools, setTargetSchoolId, systemSettings } = useEcosystem();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -230,7 +230,10 @@ export default function RegisterStudentPage() {
                     >
                       <X className="h-4 w-4" />
                     </Button>
-                    <QRScanner onScan={handleRADetected} />
+                    <QRScanner 
+                      onScan={handleRADetected} 
+                      deviceId={systemSettings.studentCaptureDevice}
+                    />
                   </div>
                 )}
 
@@ -265,27 +268,34 @@ export default function RegisterStudentPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Sua Escola / Unidade</Label>
-                <Select onValueChange={(val) => setFormData(prev => ({ ...prev, schoolId: val }))} required>
-                  <SelectTrigger className="h-12 bg-white">
-                    <SelectValue placeholder="Selecione sua escola" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {schools.filter(s => s.status === 'active').map(s => (
-                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                    ))}
-                    {schools.length === 0 && <SelectItem value="school-default">Unidade Padrão SchoolGain</SelectItem>}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4 pt-2">
                 <div className="space-y-2">
-                  <Label>Série / Turma</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                    <SchoolIcon className="h-3 w-3 text-primary" /> Sua Escola / Unidade
+                  </Label>
+                  <Select onValueChange={(val) => {
+                    setFormData(prev => ({ ...prev, schoolId: val }));
+                    setTargetSchoolId(val);
+                  }} required>
+                    <SelectTrigger className="h-14 bg-white border-slate-200 rounded-xl focus:ring-primary/20">
+                      <SelectValue placeholder="Selecione sua escola" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {schools.filter(s => s.status === 'active').map(s => (
+                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                      ))}
+                      {schools.length === 0 && <SelectItem value="school-default">Unidade Padrão SchoolGain</SelectItem>}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                    <BookOpen className="h-3 w-3 text-primary" /> Série / Turma
+                  </Label>
                   <Select onValueChange={(val) => setFormData(prev => ({ ...prev, turma: val }))} required>
-                    <SelectTrigger className="h-12 bg-white">
-                      <SelectValue placeholder="Selecione" />
+                    <SelectTrigger className="h-14 bg-white border-slate-200 rounded-xl focus:ring-primary/20">
+                      <SelectValue placeholder="Selecione sua turma" />
                     </SelectTrigger>
                     <SelectContent>
                       {allTurmas
@@ -293,14 +303,18 @@ export default function RegisterStudentPage() {
                         .map(t => (
                           <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>
                         ))}
+                      {allTurmas.length === 0 && <SelectItem value="none" disabled>Selecione a escola primeiro</SelectItem>}
                     </SelectContent>
                   </Select>
                 </div>
+
                 <div className="space-y-2">
-                  <Label>Curso Técnico</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                    <GraduationCap className="h-3 w-3 text-primary" /> Curso Técnico
+                  </Label>
                   <Select onValueChange={(val) => setFormData(prev => ({ ...prev, curso: val }))} required>
-                    <SelectTrigger className="h-12 bg-white">
-                      <SelectValue placeholder="Selecione" />
+                    <SelectTrigger className="h-14 bg-white border-slate-200 rounded-xl focus:ring-primary/20">
+                      <SelectValue placeholder="Selecione seu curso" />
                     </SelectTrigger>
                     <SelectContent>
                       {allCursos
@@ -308,6 +322,7 @@ export default function RegisterStudentPage() {
                         .map(c => (
                           <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
                         ))}
+                      {allCursos.length === 0 && <SelectItem value="none" disabled>Selecione a escola primeiro</SelectItem>}
                     </SelectContent>
                   </Select>
                 </div>

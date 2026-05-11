@@ -518,14 +518,14 @@ export default function SuperAdminPage() {
           </div>
         </header>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 lg:w-[1100px] h-12 bg-slate-200/50 p-1 rounded-xl">
-            <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-white font-black uppercase text-[10px] tracking-widest">Visão Geral</TabsTrigger>
-            <TabsTrigger value="schools" className="rounded-lg data-[state=active]:bg-white font-black uppercase text-[10px] tracking-widest">Rede de Escolas</TabsTrigger>
-            <TabsTrigger value="history" className="rounded-lg data-[state=active]:bg-white font-black uppercase text-[10px] tracking-widest">Gestão de Ciclo</TabsTrigger>
-            <TabsTrigger value="telemetry" className="rounded-lg data-[state=active]:bg-white font-black uppercase text-[10px] tracking-widest">Telemetria</TabsTrigger>
-            <TabsTrigger value="developers" className="rounded-lg data-[state=active]:bg-white font-black uppercase text-[10px] tracking-widest">Equipe</TabsTrigger>
-            <TabsTrigger value="account" className="rounded-lg data-[state=active]:bg-white font-black uppercase text-[10px] tracking-widest">Segurança</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 w-full">
+          <TabsList className="!flex !w-full h-16 bg-slate-200/40 p-1.5 rounded-2xl border border-white/50 shadow-sm backdrop-blur-sm">
+            <TabsTrigger value="overview" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300">Visão Geral</TabsTrigger>
+            <TabsTrigger value="schools" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300">Rede de Escolas</TabsTrigger>
+            <TabsTrigger value="history" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300">Gestão de Ciclo</TabsTrigger>
+            <TabsTrigger value="telemetry" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300">Telemetria</TabsTrigger>
+            <TabsTrigger value="developers" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300">Equipe</TabsTrigger>
+            <TabsTrigger value="account" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300">Segurança</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">

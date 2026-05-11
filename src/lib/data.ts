@@ -21,7 +21,6 @@ export const ADMIN_MOCK: User = {
   points: 0,
   level: 'Semente',
   ra: 'ADMIN-01',
-  schoolId: 'global',
   status: 'active',
 };
 

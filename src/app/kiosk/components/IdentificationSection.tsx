@@ -28,6 +28,7 @@ import Link from 'next/link';
 // Importação dinâmica do Scanner para evitar erros de SSR
 import dynamic from 'next/dynamic';
 const QRScanner = dynamic(() => import('@/components/ui/qr-scanner'), { ssr: false });
+import { useEcosystem } from '@/app/(app)/ecosystem-context';
 
 interface IdentificationSectionProps {
   currentSchool: School | undefined;
@@ -47,6 +48,8 @@ interface IdentificationSectionProps {
   scannerKey: number;
   loginCameraDeviceId: string | undefined;
   handleVisitorLogin: () => void;
+  onIdentify: (data: string) => void;
+  isProcessing: boolean;
 }
 
 export function IdentificationSection({
@@ -66,8 +69,12 @@ export function IdentificationSection({
   activeLoginCameraSource,
   scannerKey,
   loginCameraDeviceId,
-  handleVisitorLogin
+  handleVisitorLogin,
+  onIdentify,
+  isProcessing
 }: IdentificationSectionProps) {
+  const { systemSettings } = useEcosystem();
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <main className="flex-1 w-full flex flex-col items-center justify-center p-4">
@@ -169,8 +176,8 @@ export function IdentificationSection({
                   <div className="space-y-4">
                     <QRScanner 
                       key={scannerKey} 
-                      onScan={(text) => handleLogin(text)} 
-                      deviceId={loginCameraDeviceId}
+                      onScan={onIdentify} 
+                      deviceId={systemSettings.studentCaptureDevice}
                     />
                     <p className="text-xs text-center text-muted-foreground uppercase font-black tracking-widest bg-slate-100 py-2 rounded-full">
                       Aproxime sua Carteira da câmera

@@ -75,6 +75,7 @@ import { Switch } from '@/components/ui/switch';
 import dynamic from 'next/dynamic';
 
 const QRScanner = dynamic(() => import('@/components/ui/qr-scanner'), { ssr: false });
+import { useEcosystem } from '@/app/(app)/ecosystem-context';
 import PrintableBadge from '@/components/ecosystem/PrintableBadge';
 
 interface AcademicSectionProps {
@@ -192,6 +193,7 @@ export function AcademicSection({
 }: AcademicSectionProps) {
   const [showInactive, setShowInactive] = useState(false);
   const router = useRouter();
+  const { systemSettings } = useEcosystem();
 
   const generateRandomRA = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -431,10 +433,13 @@ export function AcademicSection({
                                   <span className="text-[10px] text-white font-bold uppercase tracking-widest">Câmera Ativa: Aponte o QR Code</span>
                                   <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-white hover:text-red-400" onClick={() => setIsQRScannerOpen(false)}>×</Button>
                               </div>
-                              <QRScanner onScan={(text: string) => {
+                              <QRScanner 
+                                onScan={(text: string) => {
                                   userForm.setValue('ra', text.toUpperCase());
                                   setIsQRScannerOpen(false);
-                              }} />
+                                }} 
+                                deviceId={systemSettings.adminCaptureDevice}
+                              />
                           </div>
                       )}
 

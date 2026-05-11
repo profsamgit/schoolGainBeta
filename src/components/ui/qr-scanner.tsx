@@ -69,7 +69,7 @@ export default function QRScanner({ onScan, onError, deviceId }: QRScannerProps)
             );
         } catch (err: any) {
             // Silencia erros esperados de concorrência ou hardware
-            console.log("[QR] Scanner inicializado com aviso (esperado em trocas rápidas):", err);
+            // Aviso de inicialização do scanner silenciado em produção
         } finally {
             isStartingRef.current = false;
         }

@@ -97,6 +97,7 @@ interface EcosystemContextType {
   isInitializing: boolean;
   displayUser: User | null;
   service: EcosystemService;
+  setTargetSchoolId: (id: string | null) => void;
 }
 
 
@@ -125,11 +126,22 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const previewId = searchParams.get('preview');
   const qSchoolId = searchParams.get('schoolId');
 
+  const [manualSchoolId, setManualSchoolId] = useState<string | null>(null);
+
   const targetSchoolId = useMemo(() => {
+    // 1. Prioridade para seleção manual (ex: Dropdown de cadastro público ou troca de unidade no Admin)
+    if (manualSchoolId) return manualSchoolId;
+
+    // 2. Se for Super Admin, respeita o parâmetro da URL (?schoolId=...)
     const user = users.find(u => u.ra === currentUserRa);
     if (user?.role === 'super_admin' && qSchoolId) return qSchoolId;
+
+    // 3. Se houver parâmetro de URL mesmo sem ser admin (ex: link direto para cadastro de unidade)
+    if (qSchoolId) return qSchoolId;
+
+    // 4. Fallback para a unidade do usuário logado
     return user?.schoolId;
-  }, [qSchoolId, users, currentUserRa]);
+  }, [qSchoolId, users, currentUserRa, manualSchoolId]);
 
   const isPreviewMode = useMemo(() => {
     return !!(previewId && (currentUserRa && users.find(u => u.ra === currentUserRa)?.role?.includes('admin')));
@@ -436,7 +448,8 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
       isPreviewMode,
       isInitializing,
       displayUser,
-      service
+      service,
+      setTargetSchoolId: setManualSchoolId
     }}>
       {children}
     </EcosystemContext.Provider>

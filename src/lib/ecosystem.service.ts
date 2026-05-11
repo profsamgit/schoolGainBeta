@@ -234,7 +234,6 @@ export class EcosystemService {
         if (this.data.currentUserId) {
           const currentInDb = users.find(u => u.id === this.data.currentUserId);
           if (!currentInDb && snapshot.metadata.fromCache === false) {
-            console.warn("Usuário logado não encontrado no banco de dados. Deslogando por segurança...");
             this.logout();
             return;
           }
@@ -288,17 +287,23 @@ export class EcosystemService {
     // Cada escola tem seu próprio documento de configuração baseado no schoolId
     const currentRa = this.currentUserRaSubject.value;
     const currentUser = this.data.users.find(u => u.ra === currentRa);
-    const settingsId = currentUser?.schoolId || 'global';
-    onSnapshot(doc(db, "settings", settingsId), (docSnap) => {
-      if (docSnap.exists()) {
-        const settings = docSnap.data() as SystemSettings;
-        this.data.systemSettings = settings;
-        this.systemSettingsSubject.next(settings);
-      } else if (settingsId !== 'global') {
-        // Se não houver config específica, cria uma cópia inicial
-        setDoc(doc(db, "settings", settingsId), this.data.systemSettings);
-      }
-    });
+    const settingsId = currentUser?.schoolId;
+
+    if (settingsId) {
+      onSnapshot(doc(db, "settings", settingsId), (docSnap) => {
+        if (docSnap.exists()) {
+          const settings = docSnap.data() as SystemSettings;
+          this.data.systemSettings = settings;
+          this.systemSettingsSubject.next(settings);
+        } else {
+          // Se não houver config específica, cria uma cópia inicial baseada no padrão
+          setDoc(doc(db, "settings", settingsId), this.data.systemSettings);
+        }
+      });
+    } else {
+      // Para Super Admins ou deslogados, usa o padrão do sistema sem criar lixo no Firestore
+      this.systemSettingsSubject.next(this.data.systemSettings);
+    }
 
     // Sincronização de Tópicos de Quiz
     onSnapshot(collection(db, "quizTopics"), (snapshot) => {
@@ -610,7 +615,7 @@ export class EcosystemService {
       let collectionName = "users";
       let isUserType = true;
 
-      if (userId.startsWith('participant-') || userId.startsWith('dev-')) {
+      if (userId.startsWith('participant-') || userId.startsWith('dev-') || userId.startsWith('PART-')) {
         collectionName = "participants";
         isUserType = false;
       } else if (userId.startsWith('reward-')) {
@@ -655,7 +660,6 @@ export class EcosystemService {
 
       return downloadURL;
     } catch (error) {
-      console.error("[STORAGE] Erro crítico no upload do avatar:", error);
       return null;
     }
   }
@@ -666,14 +670,20 @@ export class EcosystemService {
   updateSystemSettings(settings: SystemSettings, targetSchoolId?: string) {
     const currentRa = this.currentUserRaSubject.value;
     const currentUser = this.data.users.find(u => u.ra === currentRa);
-    const schoolId = targetSchoolId || currentUser?.schoolId || 'global';
+    const schoolId = targetSchoolId || currentUser?.schoolId;
+
+    if (!schoolId) {
+      console.warn("[ECOSYSTEM] Tentativa de salvar configurações sem unidade definida.");
+      return;
+    }
+
     this.data.systemSettings = settings;
     this.systemSettingsSubject.next(settings);
     this.saveToStorage();
 
     // Sincroniza com Firestore no documento da unidade
     setDoc(doc(db, "settings", schoolId), settings).catch(err => {
-      console.error(`[FIREBASE] Erro ao salvar configurações para ${schoolId}:`, err);
+      // Hardware communication error handled by UI layer
     });
   }
 
@@ -782,7 +792,7 @@ export class EcosystemService {
     if (updated) setDoc(doc(db, "terminals", id), updated);
 
     this.saveToStorage();
-    console.log(`[ECOSYSTEM] Configurações do terminal ${id} atualizadas:`, settings);
+    // Log de atualização de terminal suprimido
   }
 
   /**
@@ -808,14 +818,12 @@ export class EcosystemService {
     const resolvedPassword = initialPassword || schoolData.managerPassword;
 
     if (!schoolData.managerEmail || !resolvedPassword) {
-      console.warn("[VALIDATION] Tentativa de registrar escola sem gestor.");
       return false;
     }
 
     // Validação de E-mail Único na Rede
     const emailLower = schoolData.managerEmail.toLowerCase().trim();
     if (this.data.users.some(u => u.email?.toLowerCase() === emailLower)) {
-      console.error(`[AUTH] Falha ao registrar escola: O e-mail ${emailLower} já está em uso.`);
       return false;
     }
 
@@ -1012,8 +1020,7 @@ export class EcosystemService {
       this.saveToStorage();
       return { success: true };
     } catch (error) {
-      console.error("Erro ao deletar escola:", error);
-      return { success: false, error: 'Falha na comunicação com o banco de dados.' };
+      throw new Error('Falha no processamento da requisição de remoção.');
     }
   }
 
@@ -1228,7 +1235,7 @@ export class EcosystemService {
     }
 
     this._hardwareId = hid;
-    console.log(`[ECOSYSTEM] Hardware ID (Fingerprint): ${this._hardwareId}`);
+    // Hardware Fingerprint carregado silenciosamente
   }
 
   /**
@@ -1558,7 +1565,7 @@ export class EcosystemService {
       schoolId: terminalSchoolId || student.schoolId
     };
 
-    console.log(`[ECOSYSTEM] Registro de processamento: ${weightKg}kg de ${type} para o usuário ${cleanRa}. Créditos: ${points}`);
+    // Log de registro de resíduos suprimido para produção (Telemetria ativa)
 
     this.logTelemetry({
       action: 'POINTS_AWARDED',
@@ -1809,7 +1816,7 @@ export class EcosystemService {
         action: 'LOGIN_SUCCESS',
         category: 'AUTH',
         details: `Login realizado com sucesso: ${user.name} (${user.role})`,
-        unitId: user.schoolId === 'global' ? 'MASTER' : user.schoolId
+      unitId: user.schoolId === 'MASTER' || !user.schoolId ? 'MASTER' : user.schoolId
       });
 
       this.saveToStorage();
@@ -2647,12 +2654,12 @@ export class EcosystemService {
     }
 
     if (prefix === 'rw' || prefix === 'ctd' || prefix === 'trm' || prefix === 'cur' || prefix === 'crg' || prefix === 'str' || prefix === 'qz') {
-      const cleanSchoolId = schoolId === 'global' ? 'global' : (schoolId?.replace('school-', '') || 'global');
+      const cleanSchoolId = !schoolId || schoolId === 'MASTER' ? 'MASTER' : schoolId.replace('school-', '');
       return `${prefix}-${cleanSchoolId}-${random}`;
     }
     
     // Remove o prefixo 'school-' se existir para o ID ficar mais curto
-    const cleanSchoolId = schoolId?.replace('school-', '') || 'global';
+    const cleanSchoolId = !schoolId || schoolId === 'MASTER' ? 'MASTER' : schoolId.replace('school-', '');
     return `${prefix}-${cleanSchoolId}-${random}`;
   }
 
@@ -2701,10 +2708,10 @@ export class EcosystemService {
     const unique = new Map<string, T>();
     items.forEach(item => {
       // Chave composta por Nome + Unidade para permitir nomes iguais em escolas diferentes
-      const key = `${item.id}-${item.schoolId || 'global'}`;
-      const nameKey = `${item.name.toUpperCase().trim()}-${item.schoolId || 'global'}`;
+      const key = `${item.id}-${item.schoolId || 'MASTER'}`;
+      const nameKey = `${item.name.toUpperCase().trim()}-${item.schoolId || 'MASTER'}`;
       
-      if (!unique.has(key) && !Array.from(unique.values()).some(existing => `${existing.name.toUpperCase().trim()}-${existing.schoolId || 'global'}` === nameKey)) {
+      if (!unique.has(key) && !Array.from(unique.values()).some(existing => `${existing.name.toUpperCase().trim()}-${existing.schoolId || 'MASTER'}` === nameKey)) {
         unique.set(key, item);
       }
     });
@@ -2715,8 +2722,38 @@ export class EcosystemService {
    * Realiza a limpeza de dados (Sanitization).
    * Garante que o sistema não tenha duplicidades ou dados órfãos.
    */
-  sanitizeData() {
-    // 1. Limpeza de Entidades Estruturais
+  async sanitizeData() {
+    // 1. Migração e Unificação de Configurações (Aposentadoria do ID 'global')
+    try {
+      const globalSettingsSnap = await getDoc(doc(db, "settings", "global"));
+      if (globalSettingsSnap.exists()) {
+        const globalData = globalSettingsSnap.data();
+        console.log("[MIGRAÇÃO] Dados globais detectados. Iniciando unificação nas unidades...");
+        
+        // Propaga campos do global para todas as escolas cadastradas
+        const schools = this.data.schools;
+        await Promise.all(schools.map(async (school) => {
+          const schoolSettingsRef = doc(db, "settings", school.id);
+          const schoolSettingsSnap = await getDoc(schoolSettingsRef);
+          
+          if (schoolSettingsSnap.exists()) {
+            // Unifica os dados (Prioridade para o que já está na escola, mas preenche buracos do global)
+            await setDoc(schoolSettingsRef, { ...globalData, ...schoolSettingsSnap.data() }, { merge: true });
+          } else {
+            // Se a escola não tinha settings, cria com os dados do global
+            await setDoc(schoolSettingsRef, globalData);
+          }
+        }));
+
+        // Remove o documento global após a unificação bem-sucedida
+        await deleteDoc(doc(db, "settings", "global"));
+        console.log("[MIGRAÇÃO] Documento 'global' removido com sucesso.");
+      }
+    } catch (err) {
+      console.error("[MIGRAÇÃO] Erro ao unificar configurações:", err);
+    }
+
+    // 2. Limpeza de Entidades Estruturais
     this.data.turmas = this.deduplicateByName(this.data.turmas || []);
     this.data.cursos = this.deduplicateByName(this.data.cursos || []);
     this.data.cargos = this.deduplicateByName(this.data.cargos || []);

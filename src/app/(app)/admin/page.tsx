@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { 
-  Database, 
-  Users, 
-  BookOpen, 
-  Gift, 
-  Cpu, 
-  Shield, 
-  ShieldAlert, 
+import {
+  Database,
+  Users,
+  BookOpen,
+  Gift,
+  Cpu,
+  Shield,
+  ShieldAlert,
   Globe,
   Lock,
   ShieldCheck,
@@ -23,13 +23,13 @@ import * as z from 'zod';
 
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription, 
-  DialogFooter 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,17 +37,17 @@ import { useToast } from '@/hooks/use-toast';
 import { useEcosystem } from '@/app/(app)/ecosystem-context';
 import { EcosystemService } from '@/lib/ecosystem.service';
 import { toPng } from 'html-to-image';
-import { 
-  User, 
-  Reward, 
-  EducationArticle, 
-  QuizTopic, 
-  Terminal, 
-  Turma, 
-  Curso, 
-  Cargo, 
+import {
+  User,
+  Reward,
+  EducationArticle,
+  QuizTopic,
+  Terminal,
+  Turma,
+  Curso,
+  Cargo,
   SetorEscolar,
-  SCHOOL_SECTORS 
+  SCHOOL_SECTORS
 } from '@/lib/types';
 
 // Import refactored sections
@@ -105,7 +105,7 @@ function AdminContent() {
   const [activeTab, setActiveTab] = useState(initialTab);
   const { toast } = useToast();
 
-  const { 
+  const {
     users,
     allRewards: rewards,
     allArticles: articles,
@@ -164,7 +164,7 @@ function AdminContent() {
           if (typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             await navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
               stream.getTracks().forEach(track => track.stop());
-            }).catch(() => {});
+            }).catch(() => { });
             const devices = await navigator.mediaDevices.enumerateDevices();
             setVideoDevices(devices.filter(device => device.kind === 'videoinput'));
           }
@@ -190,7 +190,7 @@ function AdminContent() {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [itemType, setItemType] = useState<'user' | 'reward' | 'article' | 'turma' | 'curso' | 'cargo' | 'setor' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const [grantRa, setGrantRa] = useState('');
   const [grantAction, setGrantAction] = useState('');
   const [grantPointsValue, setGrantPointsValue] = useState(0);
@@ -287,14 +287,14 @@ function AdminContent() {
     setItemType(type);
     setIsNew(false);
     setViewMode('form');
-    if (type === 'user') userForm.reset({ 
-      ...item, 
-      ra: (item.ra || '').toUpperCase(), 
+    if (type === 'user') userForm.reset({
+      ...item,
+      ra: (item.ra || '').toUpperCase(),
       email: item.email || '',
       position: item.position || '',
       rfid: item.rfid || '',
-      password: '', 
-      confirmPassword: '' 
+      password: '',
+      confirmPassword: ''
     });
     if (type === 'reward') rewardForm.reset(item);
     if (type === 'article') articleForm.reset(item);
@@ -315,7 +315,7 @@ function AdminContent() {
 
   const confirmDelete = async () => {
     if (!selectedItem || !itemType) return;
-    
+
     // Verificação de Segurança (Chave Mestra)
     const isAuthorized = await EcosystemService.verifyUniversalPassword(securityPassword, currentUser, users);
     if (!isAuthorized) {
@@ -334,12 +334,12 @@ function AdminContent() {
       else if (itemType === 'curso') await updateCursos(allCursos.filter((i: Curso) => i.id !== selectedItem.id));
       else if (itemType === 'cargo') await updateCargos(allCargos.filter((i: Cargo) => i.id !== selectedItem.id));
       else if (itemType === 'setor') await updateSetores(allSetores.filter((i: SetorEscolar) => i.id !== selectedItem.id));
-      
+
       if (success || itemType !== 'user' && itemType !== 'reward' && itemType !== 'article') {
-          toast({ title: 'Item Removido!', description: `${selectedItem.name || selectedItem.title} foi removido.` });
-          closeAllForms();
+        toast({ title: 'Item Removido!', description: `${selectedItem.name || selectedItem.title} foi removido.` });
+        closeAllForms();
       } else {
-          toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível remover o item.' });
+        toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível remover o item.' });
       }
     } catch (error) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível remover o item.' });
@@ -401,7 +401,7 @@ function AdminContent() {
       const sanitizedValues = { ...values };
       Object.keys(sanitizedValues).forEach(key => {
         if (
-          typeof sanitizedValues[key] === 'string' && 
+          typeof sanitizedValues[key] === 'string' &&
           !['email', 'password', 'confirmPassword', 'role', 'avatar', 'image', 'slug'].includes(key)
         ) {
           sanitizedValues[key] = sanitizedValues[key].toUpperCase().trim();
@@ -423,7 +423,7 @@ function AdminContent() {
         const sanitizedPayload = Object.fromEntries(
           Object.entries(payload).filter(([_, v]) => v !== undefined && v !== null && _ !== 'confirmPassword')
         );
-        
+
         // Normalização Obrigatória (Caixa Alta)
         if (sanitizedPayload.name) sanitizedPayload.name = (sanitizedPayload.name as string).toUpperCase().trim();
         if (sanitizedPayload.ra) sanitizedPayload.ra = (sanitizedPayload.ra as string).toUpperCase().trim();
@@ -440,11 +440,11 @@ function AdminContent() {
         const newId = EcosystemService.generateStandardId(prefix, targetSchoolId || currentUser?.schoolId);
         const finalUsers = isNew ? [...users, { ...sanitizedPayload, id: newId, points: 0, level: 'Semente' } as unknown as User] : users.map(u => u.id === selectedItem.id ? { ...u, ...sanitizedPayload } as User : u);
         const result = await updateUsers(finalUsers, targetSchoolId || currentUser?.schoolId);
-        
+
         if (!result.success) {
-            toast({ variant: 'destructive', title: 'Erro de Validação', description: result.error || 'Não foi possível salvar. Verifique os dados.' });
-            setIsSubmitting(false);
-            return;
+          toast({ variant: 'destructive', title: 'Erro de Validação', description: result.error || 'Não foi possível salvar. Verifique os dados.' });
+          setIsSubmitting(false);
+          return;
         }
 
         toast({ title: isNew ? 'Aluno Cadastrado!' : 'Dados Atualizados!', description: `${sanitizedPayload.name} foi salvo com sucesso.` });
@@ -453,24 +453,24 @@ function AdminContent() {
         const sanitizedPayload = Object.fromEntries(
           Object.entries(payload).filter(([_, v]) => v !== undefined && v !== null && _ !== 'confirmPassword')
         );
-        
+
         const sid = targetSchoolId || currentUser?.schoolId;
         if (!sid) {
-            toast({ variant: 'destructive', title: 'Erro', description: 'Unidade não identificada.' });
-            return;
+          toast({ variant: 'destructive', title: 'Erro', description: 'Unidade não identificada.' });
+          return;
         }
         const newId = EcosystemService.generateStandardId('rw', sid);
-        
-        const success = await updateRewards(isNew 
-          ? [...rewards, { ...sanitizedPayload, id: newId, schoolId: sid } as unknown as Reward] 
+
+        const success = await updateRewards(isNew
+          ? [...rewards, { ...sanitizedPayload, id: newId, schoolId: sid } as unknown as Reward]
           : rewards.map(r => r.id === selectedItem.id ? { ...r, ...sanitizedPayload } as Reward : r),
           sid
         );
-        
+
         if (!success) {
-            toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao salvar recompensa.' });
-            setIsSubmitting(false);
-            return;
+          toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao salvar recompensa.' });
+          setIsSubmitting(false);
+          return;
         }
         toast({ title: isNew ? 'Item Adicionado!' : 'Item Atualizado!', description: `${values.name} foi processado.` });
         closeAllForms();
@@ -478,24 +478,24 @@ function AdminContent() {
         const sanitizedPayload = Object.fromEntries(
           Object.entries(payload).filter(([_, v]) => v !== undefined && v !== null && _ !== 'confirmPassword')
         );
-        
+
         const sid = targetSchoolId || currentUser?.schoolId;
         if (!sid) {
-            toast({ variant: 'destructive', title: 'Erro', description: 'Unidade não identificada.' });
-            return;
+          toast({ variant: 'destructive', title: 'Erro', description: 'Unidade não identificada.' });
+          return;
         }
         const newId = EcosystemService.generateStandardId('ctd', sid);
 
-        const success = await updateArticles(isNew 
-          ? [...articles, { ...sanitizedPayload, id: newId, schoolId: sid, slug: values.title.toLowerCase().replace(/ /g, '-') } as unknown as EducationArticle] 
+        const success = await updateArticles(isNew
+          ? [...articles, { ...sanitizedPayload, id: newId, schoolId: sid, slug: values.title.toLowerCase().replace(/ /g, '-') } as unknown as EducationArticle]
           : articles.map(a => a.id === selectedItem.id ? { ...a, ...sanitizedPayload } as EducationArticle : a),
           sid
         );
-        
+
         if (!success) {
-            toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao salvar artigo.' });
-            setIsSubmitting(false);
-            return;
+          toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao salvar artigo.' });
+          setIsSubmitting(false);
+          return;
         }
         toast({ title: isNew ? 'Item Adicionado!' : 'Item Atualizado!', description: `${values.title} foi processado.` });
         closeAllForms();
@@ -602,7 +602,7 @@ function AdminContent() {
 
     try {
       toast({ title: "Gerando imagem...", description: "Preparando crachá premium..." });
-      
+
       // Delay para renderização
       await new Promise(resolve => setTimeout(resolve, 500));
 
@@ -666,20 +666,20 @@ function AdminContent() {
           )}
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 h-auto gap-1 bg-slate-100 p-1">
-            <TabsTrigger value="povoamento" className="uppercase font-black text-[10px] py-3"><Database className="mr-2 h-4 w-4"/> Povoamento</TabsTrigger>
-            <TabsTrigger value="academic" className="uppercase font-black text-[10px] py-3"><Users className="mr-2 h-4 w-4"/> Acadêmico</TabsTrigger>
-            <TabsTrigger value="pedagogic" className="uppercase font-black text-[10px] py-3"><BookOpen className="mr-2 h-4 w-4"/> Pedagógico</TabsTrigger>
-            <TabsTrigger value="economic" className="uppercase font-black text-[10px] py-3"><Gift className="mr-2 h-4 w-4"/> Econômico</TabsTrigger>
-            <TabsTrigger value="infra" className="uppercase font-black text-[10px] py-3"><Cpu className="mr-2 h-4 w-4"/> Infra</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 w-full">
+          <TabsList className="!flex !w-full h-16 bg-slate-200/40 p-1.5 rounded-2xl border border-white/50 shadow-sm backdrop-blur-sm">
+            <TabsTrigger value="povoamento" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300"><Database className="mr-2 h-4 w-4" /> Povoamento</TabsTrigger>
+            <TabsTrigger value="academic" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300"><Users className="mr-2 h-4 w-4" /> Acadêmico</TabsTrigger>
+            <TabsTrigger value="pedagogic" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300"><BookOpen className="mr-2 h-4 w-4" /> Pedagógico</TabsTrigger>
+            <TabsTrigger value="economic" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300"><Gift className="mr-2 h-4 w-4" /> Econômico</TabsTrigger>
+            <TabsTrigger value="infra" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300"><Cpu className="mr-2 h-4 w-4" /> Infra</TabsTrigger>
           </TabsList>
 
           <TabsContent value="povoamento">
-            <PovoamentoSection 
-              allTurmas={allTurmas} 
-              allCursos={allCursos} 
-              allCargos={allCargos} 
+            <PovoamentoSection
+              allTurmas={allTurmas}
+              allCursos={allCursos}
+              allCargos={allCargos}
               allSetores={allSetores}
               targetSchoolId={targetSchoolId}
               updateTurmas={updateTurmas}
@@ -691,7 +691,7 @@ function AdminContent() {
           </TabsContent>
 
           <TabsContent value="academic">
-            <AcademicSection 
+            <AcademicSection
               users={users} filteredUsersForAdmin={filteredUsersForAdmin} allTurmas={allTurmas} allCursos={allCursos} allCargos={allCargos} allSetores={allSetores}
               filteredTurmas={filteredTurmas} filteredSetores={filteredSetores} filteredCursos={filteredCursos}
               viewMode={viewMode} itemType={itemType} isNew={isNew} isSubmitting={isSubmitting} userForm={userForm}
@@ -727,7 +727,7 @@ function AdminContent() {
           </TabsContent>
 
           <TabsContent value="pedagogic">
-            <PedagogicSection 
+            <PedagogicSection
               articles={articles} quizTopics={filteredQuizTopics} viewMode={viewMode} itemType={itemType} isNew={isNew} isSubmitting={isSubmitting}
               articleForm={articleForm} onSubmit={onSubmit} handleEdit={handleEdit} handleDelete={handleDelete} handleNew={handleNew}
               closeAllForms={closeAllForms} articleSearch={articleSearch} setArticleSearch={setArticleSearch} newTopic={newTopic} setNewTopic={setNewTopic}
@@ -766,7 +766,7 @@ function AdminContent() {
           </TabsContent>
 
           <TabsContent value="economic">
-            <EconomicSection 
+            <EconomicSection
               rewards={rewards} auditLogs={auditLogs} filteredUsersForAdmin={filteredUsersForAdmin}
               viewMode={viewMode} itemType={itemType} isNew={isNew} isSubmitting={isSubmitting} rewardForm={rewardForm}
               onSubmit={onSubmit} handleEdit={handleEdit} handleDelete={handleDelete} handleNew={handleNew} closeAllForms={closeAllForms}
@@ -792,9 +792,9 @@ function AdminContent() {
           </TabsContent>
 
           <TabsContent value="infra">
-            <InfraSection 
-              systemSettings={systemSettings} 
-              updateSystemSettings={updateSystemSettings} 
+            <InfraSection
+              systemSettings={systemSettings}
+              updateSystemSettings={updateSystemSettings}
               videoDevices={videoDevices}
               filteredTerminalsForAdmin={filteredTerminalsForAdmin}
               deleteTerminal={deleteTerminal}
@@ -821,17 +821,17 @@ function AdminContent() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleUpdateUserPassword} className="space-y-4 pt-4">
-            <Input type="password" required value={passFormData.currentPass} onChange={e => setPassFormData({...passFormData, currentPass: e.target.value})} placeholder="Sua senha de Gestor" />
+            <Input type="password" required value={passFormData.currentPass} onChange={e => setPassFormData({ ...passFormData, currentPass: e.target.value })} placeholder="Sua senha de Gestor" />
             <div className="grid grid-cols-2 gap-4">
-              <Input type="password" required value={passFormData.newPass} onChange={e => setPassFormData({...passFormData, newPass: e.target.value})} placeholder="Nova Senha" />
-              <Input type="password" required value={passFormData.confirmPass} onChange={e => setPassFormData({...passFormData, confirmPass: e.target.value})} placeholder="Confirmar" />
+              <Input type="password" required value={passFormData.newPass} onChange={e => setPassFormData({ ...passFormData, newPass: e.target.value })} placeholder="Nova Senha" />
+              <Input type="password" required value={passFormData.confirmPass} onChange={e => setPassFormData({ ...passFormData, confirmPass: e.target.value })} placeholder="Confirmar" />
             </div>
             <Button type="submit" disabled={isSubmitting} className="w-full">Confirmar</Button>
           </form>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={mustChangePass} onOpenChange={() => {}}>
+      <Dialog open={mustChangePass} onOpenChange={() => { }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Segurança: Primeiro Acesso</DialogTitle>
@@ -840,8 +840,8 @@ function AdminContent() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleUpdateUserPassword} className="space-y-4 pt-2">
-            <Input type="password" required value={passFormData.newPass} onChange={e => setPassFormData({...passFormData, newPass: e.target.value})} placeholder="Nova Senha Pessoal" />
-            <Input type="password" required value={passFormData.confirmPass} onChange={e => setPassFormData({...passFormData, confirmPass: e.target.value})} placeholder="Confirmar Nova Senha" />
+            <Input type="password" required value={passFormData.newPass} onChange={e => setPassFormData({ ...passFormData, newPass: e.target.value })} placeholder="Nova Senha Pessoal" />
+            <Input type="password" required value={passFormData.confirmPass} onChange={e => setPassFormData({ ...passFormData, confirmPass: e.target.value })} placeholder="Confirmar Nova Senha" />
             <Button type="submit" disabled={isSubmitting} className="w-full h-12">Definir e Acessar</Button>
           </form>
         </DialogContent>
@@ -874,21 +874,21 @@ function AdminContent() {
               <p className="text-[11px] font-bold">"{selectedItem.name || selectedItem.title}"</p>
             </div>
           </div>
-          
-          <form 
+
+          <form
             onSubmit={(e) => {
               e.preventDefault();
               confirmDelete();
-            }} 
+            }}
             className="space-y-4"
           >
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Senha de Segurança</Label>
-              <Input 
-                type="password" 
-                value={securityPassword} 
-                onChange={e => setSecurityPassword(e.target.value)} 
-                placeholder="Sua senha ou Master" 
+              <Input
+                type="password"
+                value={securityPassword}
+                onChange={e => setSecurityPassword(e.target.value)}
+                placeholder="Sua senha ou Master"
                 className="border-red-200"
                 autoFocus
               />

@@ -29,6 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, School, Cargo, SetorEscolar } from '@/lib/types';
 import dynamic from 'next/dynamic';
+import { useEcosystem } from '@/app/(app)/ecosystem-context';
 
 const QRScanner = dynamic(() => import('@/components/ui/qr-scanner'), { ssr: false });
 
@@ -105,6 +106,7 @@ export function SecuritySection({
   isRFIDCapturing,
   setIsRFIDCapturing
 }: SecuritySectionProps) {
+  const { systemSettings } = useEcosystem();
 
   const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -384,13 +386,16 @@ export function SecuritySection({
                      </div>
 
                      {isQRScannerOpen && (
-                        <div className="border-2 border-primary rounded-xl overflow-hidden bg-black aspect-video relative animate-in zoom-in duration-200">
-                           <QRScanner onScan={(text) => {
-                             setUserFormData({ ...userFormData, ra: text.toUpperCase() });
-                             setIsQRScannerOpen(false);
-                           }} />
-                           <Button type="button" variant="ghost" size="sm" className="absolute top-2 right-2 text-white h-6 w-6 p-0" onClick={() => setIsQRScannerOpen(false)}>×</Button>
-                        </div>
+                         <div className="border-2 border-primary rounded-xl overflow-hidden bg-black aspect-video relative animate-in zoom-in duration-200">
+                            <QRScanner 
+                              onScan={(text) => {
+                                setUserFormData({ ...userFormData, ra: text.toUpperCase() });
+                                setIsQRScannerOpen(false);
+                              }} 
+                              deviceId={systemSettings.adminCaptureDevice}
+                            />
+                            <Button type="button" variant="ghost" size="sm" className="absolute top-2 right-2 text-white h-6 w-6 p-0" onClick={() => setIsQRScannerOpen(false)}>×</Button>
+                         </div>
                      )}
 
                      <div className="flex flex-col gap-2">
