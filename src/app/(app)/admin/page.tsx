@@ -79,7 +79,7 @@ const rewardSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(3, 'Nome muito curto'),
   description: z.string().min(5, 'Descrição muito curta'),
-  cost: z.coerce.number().min(1, 'Custo inválido'),
+  cost: z.number().min(1, 'Custo inválido'),
   image: z.string().url('URL inválida').optional().or(z.literal('')),
   imageHint: z.string().optional(),
 });

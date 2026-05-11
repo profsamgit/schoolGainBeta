@@ -22,7 +22,7 @@ export default function RegisterSchoolPage() {
     state: '',
     contactEmail: '',
     managerEmail: '',
-    managerPassword: '',
+    initialManagerPassword: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -146,14 +146,14 @@ export default function RegisterSchoolPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="managerPassword">Senha Inicial</Label>
+                    <Label htmlFor="initialManagerPassword">Senha Inicial</Label>
                     <Input 
-                      id="managerPassword" 
+                      id="initialManagerPassword" 
                       type="password" 
                       placeholder="Crie uma senha forte" 
                       required 
-                      value={formData.managerPassword}
-                      onChange={e => setFormData({...formData, managerPassword: e.target.value})}
+                      value={formData.initialManagerPassword}
+                      onChange={e => setFormData({...formData, initialManagerPassword: e.target.value})}
                     />
                   </div>
                 </div>

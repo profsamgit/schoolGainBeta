@@ -43,7 +43,7 @@ import { useEcosystem } from '../ecosystem-context';
 const formSchema = z.object({
   topic: z.string().min(1, 'Por favor, selecione um tópico.'),
   difficulty: z.enum(['easy', 'medium', 'hard']),
-  numberOfQuestions: z.coerce.number().int().min(3).max(10),
+  numberOfQuestions: z.number().int().min(3).max(10),
 });
 
 type QuizFormValues = z.infer<typeof formSchema>;

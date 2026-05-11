@@ -139,7 +139,7 @@ export type School = {
   logo?: string;
   contactEmail: string;
   managerEmail?: string;     // E-mail de login do gestor da unidade
-  managerPassword?: string;  // Senha inicial (temporária para aprovação)
+  initialManagerPassword?: string;  // Senha inicial (temporária para aprovação)
   status: 'active' | 'pending' | 'inactive' | 'suspended';
   joinedDate: string;
 };

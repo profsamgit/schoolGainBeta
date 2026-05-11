@@ -615,7 +615,7 @@ export class EcosystemService {
       let collectionName = "users";
       let isUserType = true;
 
-      if (userId.startsWith('participant-') || userId.startsWith('dev-') || userId.startsWith('PART-')) {
+      if (userId.startsWith('PART-')) {
         collectionName = "participants";
         isUserType = false;
       } else if (userId.startsWith('reward-')) {
@@ -815,7 +815,7 @@ export class EcosystemService {
   async registerSchool(schoolData: Omit<School, 'id' | 'status' | 'joinedDate'>, initialPassword?: string) {
     if (!this.checkAdminAuth()) return false;
 
-    const resolvedPassword = initialPassword || schoolData.managerPassword;
+    const resolvedPassword = initialPassword || schoolData.initialManagerPassword;
 
     if (!schoolData.managerEmail || !resolvedPassword) {
       return false;
@@ -858,7 +858,7 @@ export class EcosystemService {
 
     // Sincroniza Escola no Firestore (Sem a senha no registro permanente)
     const schoolToSave = { ...newSchool };
-    delete schoolToSave.managerPassword;
+    delete (schoolToSave as any).initialManagerPassword;
     setDoc(doc(db, "schools", newSchool.id), schoolToSave);
 
     // Inicializa configurações de hardware da unidade
@@ -902,7 +902,7 @@ export class EcosystemService {
       state: schoolData.state.toUpperCase().trim(),
       contactEmail: schoolData.contactEmail?.toLowerCase().trim(),
       managerEmail: schoolData.managerEmail.toLowerCase().trim(),
-      managerPassword: initialPassword // Mantemos aqui temporariamente apenas para o objeto que será salvo como 'pending'
+      initialManagerPassword: initialPassword // Mantemos aqui temporariamente apenas para o objeto que será salvo como 'pending'
     };
 
     const newSchool: School = {
@@ -930,7 +930,7 @@ export class EcosystemService {
     const school = this.data.schools.find(s => s.id === id);
     if (school) {
       school.status = status;
-      const resolvedPassword = initialPassword || school.managerPassword;
+      const resolvedPassword = initialPassword || school.initialManagerPassword;
 
       // Se estiver ativando, garante que o usuário gestor exista
       if (status === 'active' && school.managerEmail && resolvedPassword) {
@@ -957,7 +957,7 @@ export class EcosystemService {
 
       // Sincroniza Escola no Firestore (Limpa a senha se estiver ativando)
       const schoolToSave = { ...school };
-      if (status === 'active') delete schoolToSave.managerPassword;
+      if (status === 'active') delete (schoolToSave as any).initialManagerPassword;
       setDoc(doc(db, "schools", id), schoolToSave);
 
       // Inicializa configurações de hardware da unidade (Multi-Tenant)

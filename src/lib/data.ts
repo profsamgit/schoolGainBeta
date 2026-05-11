@@ -20,7 +20,7 @@ export const ADMIN_MOCK: User = {
   password: '', // A senha deve ser configurada diretamente no Firebase Authentication em Produção
   points: 0,
   level: 'Semente',
-  ra: 'ADMIN-01',
+  ra: 'SUPER-ADMIN',
   status: 'active',
 };
 

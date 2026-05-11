@@ -355,6 +355,8 @@ export default function KioskPage() {
           const visitor = users.find(u => u.ra === 'VISITANTE');
           if (visitor) { setStudentRa('VISITANTE'); setIdentifiedStudent(visitor); setStep('scanning'); }
         }}
+        onIdentify={handleLogin}
+        isProcessing={isLoading}
       />
     );
   }

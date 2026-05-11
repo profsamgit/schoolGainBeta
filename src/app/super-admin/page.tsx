@@ -111,7 +111,7 @@ export default function SuperAdminPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isRFIDCapturing, toast]);
   const [newSchool, setNewSchool] = useState({
-    name: '', city: '', state: '', contactEmail: '', managerEmail: '', managerPassword: '',
+    name: '', city: '', state: '', contactEmail: '', managerEmail: '', initialManagerPassword: '',
   });
   const [adminPasswordForAction, setAdminPasswordForAction] = useState('');
 
@@ -166,11 +166,11 @@ export default function SuperAdminPage() {
         managerEmail: newSchool.managerEmail.toLowerCase().trim()
       };
 
-      const res = await registerSchool(sanitizedSchool, sanitizedSchool.managerPassword);
+      const res = await registerSchool(sanitizedSchool, sanitizedSchool.initialManagerPassword);
       if (res) {
         toast({ title: "Sucesso", description: "Nova escola cadastrada e ativa!" });
         setIsAddDialogOpen(false);
-        setNewSchool({ name: '', city: '', state: '', contactEmail: '', managerEmail: '', managerPassword: '' });
+        setNewSchool({ name: '', city: '', state: '', contactEmail: '', managerEmail: '', initialManagerPassword: '' });
         setAdminPasswordForAction('');
       } else {
         toast({ 
@@ -504,7 +504,7 @@ export default function SuperAdminPage() {
                       <div className="space-y-1"><Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Estado</Label><Input required maxLength={2} value={newSchool.state} onChange={e => setNewSchool({ ...newSchool, state: e.target.value.toUpperCase() })} /></div>
                     </div>
                     <div className="space-y-1"><Label className="text-[10px] font-black uppercase tracking-widest opacity-70">E-mail Gestor</Label><Input type="email" required value={newSchool.managerEmail} onChange={e => setNewSchool({ ...newSchool, managerEmail: e.target.value, contactEmail: e.target.value })} /></div>
-                    <div className="space-y-1"><Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Senha Inicial</Label><Input type="password" required value={newSchool.managerPassword} onChange={e => setNewSchool({ ...newSchool, managerPassword: e.target.value })} /></div>
+                    <div className="space-y-1"><Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Senha Inicial</Label><Input type="password" required value={newSchool.initialManagerPassword} onChange={e => setNewSchool({ ...newSchool, initialManagerPassword: e.target.value })} /></div>
                     <div className="space-y-1 p-3 bg-slate-50 rounded-lg border">
                       <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Sua Senha Master</Label>
                       <Input type="password" required value={adminPasswordForAction} onChange={e => setAdminPasswordForAction(e.target.value)} />
