@@ -123,6 +123,10 @@ export default function SuperAdminPage() {
   const [editingSchoolObj, setEditingSchoolObj] = useState<any>(null);
   const [schoolEditData, setSchoolEditData] = useState({ name: '', city: '', state: '', managerEmail: '' });
 
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [schoolToDelete, setSchoolToDelete] = useState<School | null>(null);
+  const [deletePassword, setDeletePassword] = useState('');
+
   const [resetConfirm, setResetConfirm] = useState('');
   const [selectedSchoolForReset, setSelectedSchoolForReset] = useState<string>('all');
   const [isResetting, setIsResetting] = useState(false);
@@ -198,25 +202,33 @@ export default function SuperAdminPage() {
     }
   };
 
-  const handleSaveDev = (e: React.FormEvent) => {
+  const handleSaveDev = async (e: React.FormEvent) => {
     e.preventDefault();
     let updatedDevs = [...allParticipants];
     if (editingDev) {
       updatedDevs = updatedDevs.map(d => d.id === editingDev.id ? { ...d, ...devFormData } : d);
     } else {
-      updatedDevs.push({ ...devFormData, id: devFormData.id || `participant-${Date.now()}` });
+      updatedDevs.push({ ...devFormData });
     }
-    updateParticipants(updatedDevs);
-    toast({ title: "Sucesso", description: "Equipe atualizada!" });
-    setIsDevDialogOpen(false);
-    setEditingDev(null);
-    setDevFormData({ id: '', name: '', role: '', description: '', avatar: '', initials: '' });
+    const success = await updateParticipants(updatedDevs);
+    if (success) {
+      toast({ title: "Sucesso", description: "Equipe atualizada!" });
+      setIsDevDialogOpen(false);
+      setEditingDev(null);
+      setDevFormData({ id: '', name: '', role: '', description: '', avatar: '', initials: '' });
+    } else {
+      toast({ title: "Erro", description: "Falha ao atualizar a equipe.", variant: "destructive" });
+    }
   };
 
-  const handleDeleteDev = (id: string) => {
+  const handleDeleteDev = async (id: string) => {
     if (!confirm('Tem certeza que deseja remover este participante?')) return;
-    updateParticipants(allParticipants.filter(d => d.id !== id));
-    toast({ title: "Sucesso", description: "Participante removido." });
+    const success = await updateParticipants(allParticipants.filter(d => d.id !== id));
+    if (success) {
+      toast({ title: "Sucesso", description: "Participante removido." });
+    } else {
+      toast({ title: "Erro", description: "Falha ao remover o participante.", variant: "destructive" });
+    }
   };
 
   const handleSaveSuperAdmin = async (e: React.FormEvent) => {
@@ -543,6 +555,12 @@ export default function SuperAdminPage() {
               isSubmitting={isSubmitting}
               toast={toast}
               setActiveTab={setActiveTab}
+              deletePassword={deletePassword}
+              setDeletePassword={setDeletePassword}
+              isDeleteDialogOpen={isDeleteDialogOpen}
+              setIsDeleteDialogOpen={setIsDeleteDialogOpen}
+              schoolToDelete={schoolToDelete}
+              setSchoolToDelete={setSchoolToDelete}
             />
           </TabsContent>
 

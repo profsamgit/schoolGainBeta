@@ -38,7 +38,7 @@ import Link from 'next/link';
 interface SchoolSectionProps {
   schools: School[];
   terminals: Terminal[];
-  deleteSchool: (id: string) => Promise<{ success: boolean; error?: string }>;
+  deleteSchool: (id: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   updateSchoolStatus: (id: string, status: 'active' | 'pending' | 'inactive' | 'suspended') => void | Promise<void>;
   isSchoolEditDialogOpen: boolean;
   setIsSchoolEditDialogOpen: (open: boolean) => void;
@@ -52,6 +52,12 @@ interface SchoolSectionProps {
   isSubmitting: boolean;
   toast: any;
   setActiveTab: (tab: string) => void;
+  deletePassword: string;
+  setDeletePassword: (pass: string) => void;
+  isDeleteDialogOpen: boolean;
+  setIsDeleteDialogOpen: (open: boolean) => void;
+  schoolToDelete: School | null;
+  setSchoolToDelete: (school: School | null) => void;
 }
 
 export function SchoolSection({
@@ -70,7 +76,13 @@ export function SchoolSection({
   handleUpdateSchool,
   isSubmitting,
   toast,
-  setActiveTab
+  setActiveTab,
+  deletePassword,
+  setDeletePassword,
+  isDeleteDialogOpen,
+  setIsDeleteDialogOpen,
+  schoolToDelete,
+  setSchoolToDelete
 }: SchoolSectionProps) {
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 animate-in slide-in-from-bottom-4 duration-500">
@@ -163,19 +175,10 @@ export function SchoolSection({
               variant="ghost" 
               size="icon" 
               className="h-10 w-10 text-slate-400 hover:text-red-600 hover:bg-red-50"
-              onClick={async () => {
-                if(confirm(`Encerrar parceria com ${school.name}? Todos os dados desta unidade serão arquivados.`)) {
-                  const result = await deleteSchool(school.id);
-                  if (result.success) {
-                    toast({ title: "Escola Removida", description: "O acesso desta unidade foi revogado." });
-                  } else {
-                    toast({ 
-                      title: "Bloqueio de Segurança", 
-                      description: result.error, 
-                      variant: "destructive" 
-                    });
-                  }
-                }
+              onClick={() => {
+                setSchoolToDelete(school);
+                setDeletePassword('');
+                setIsDeleteDialogOpen(true);
               }}
             >
               <Trash2 className="h-4 w-4" />
@@ -184,6 +187,55 @@ export function SchoolSection({
         </Card>
       ))}
       
+      {/* MODAL DE EXCLUSÃO DE ESCOLA */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black uppercase tracking-tighter flex items-center gap-2 text-red-600">
+              <ShieldOff className="h-5 w-5" /> Encerrar Parceria
+            </DialogTitle>
+            <DialogDescription>
+              Você está prestes a remover <strong>{schoolToDelete?.name}</strong>. 
+              Esta ação revoga o acesso de todos os gestores e alunos desta unidade.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-1 p-3 bg-red-50 rounded-lg border border-red-200">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-red-700">Confirmação de Segurança</Label>
+              <Input 
+                type="password" 
+                required 
+                value={deletePassword} 
+                onChange={e => setDeletePassword(e.target.value)} 
+                placeholder="Sua senha de Super Admin" 
+              />
+            </div>
+          </div>
+          <DialogFooter className="pt-4">
+            <Button 
+              variant="destructive"
+              className="w-full h-12 font-black uppercase text-xs tracking-widest"
+              onClick={async () => {
+                if (!schoolToDelete) return;
+                const result = await deleteSchool(schoolToDelete.id, deletePassword);
+                if (result.success) {
+                  setIsDeleteDialogOpen(false);
+                  toast({ title: "Escola Removida", description: "O acesso desta unidade foi revogado permanentemente." });
+                } else {
+                  toast({ 
+                    title: "Falha na Autenticação", 
+                    description: result.error, 
+                    variant: "destructive" 
+                  });
+                }
+              }}
+            >
+              Confirmar Exclusão Definitiva
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* MODAL DE EDIÇÃO DE ESCOLA */}
       <Dialog open={isSchoolEditDialogOpen} onOpenChange={setIsSchoolEditDialogOpen}>
         <DialogContent className="max-w-md">

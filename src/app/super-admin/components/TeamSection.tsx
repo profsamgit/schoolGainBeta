@@ -74,7 +74,7 @@ export function TeamSection({
             setIsDevDialogOpen(open);
             if (!open) {
               setEditingDev(null);
-              setDevFormData({ name: '', role: '', description: '', avatar: '', initials: '' });
+              setDevFormData({ id: '', name: '', role: '', description: '', avatar: '', initials: '' });
             }
           }}>
             <DialogTrigger asChild>
@@ -82,7 +82,7 @@ export function TeamSection({
                 className="font-black uppercase text-xs tracking-widest gap-2"
                 onClick={() => {
                   setEditingDev(null);
-                  setDevFormData({ id: `participant-${Date.now()}`, name: '', role: '', description: '', avatar: '', initials: '' });
+                  setDevFormData({ id: '', name: '', role: '', description: '', avatar: '', initials: '' });
                 }}
               >
                 <Plus className="h-4 w-4" /> Adicionar Membro
@@ -140,7 +140,7 @@ export function TeamSection({
                             onChange={async (e) => {
                               const file = e.target.files?.[0];
                               if (!file) return;
-                              const uploadId = devFormData.id || editingDev?.id || `dev-${Date.now()}`;
+                              const uploadId = devFormData.id || editingDev?.id || 'new-participant';
                               try {
                                 setUploadingUserId('new-dev');
                                 const url = await uploadUserAvatar(uploadId, file);

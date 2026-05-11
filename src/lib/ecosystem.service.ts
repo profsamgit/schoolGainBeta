@@ -107,16 +107,16 @@ export class EcosystemService {
   // Dados iniciais e estrutura de armazenamento
   private data: EcosystemData = {
     users: [ADMIN_MOCK],
-    rewards: [...REWARDS_MOCK],
-    articles: [...ARTICLES_MOCK],
-    quizTopics: [...QUIZ_TOPICS_MOCK],
+    rewards: [],
+    articles: [],
+    quizTopics: [],
     currentUserRa: null,
     currentUserId: null,
-    participants: [...PARTICIPANTS_MOCK],
-    turmas: [...TURMAS_MOCK],
-    cursos: [...CURSOS_MOCK],
-    cargos: [...CARGOS_MOCK],
-    setores: [...SETORES_MOCK],
+    participants: [],
+    turmas: [],
+    cursos: [],
+    cargos: [],
+    setores: [],
     userStates: {},
     systemSettings: {
       studentLoginMethod: 'all',
@@ -128,8 +128,8 @@ export class EcosystemService {
       studentCaptureUrl: '',
       adminCaptureUrl: ''
     },
-    terminals: [...TERMINALS_MOCK],
-    schools: [...SCHOOLS_MOCK],
+    terminals: [],
+    schools: [],
     securityState: {},
     wasteEntries: [],
     auditLogs: [],
@@ -790,10 +790,10 @@ export class EcosystemService {
   /**
    * Registra uma nova escola diretamente como ativa (uso do Super Admin).
    */
-  async registerSchool(schoolData: Omit<School, 'id' | 'status' | 'joinedDate'>) {
+  async registerSchool(schoolData: Omit<School, 'id' | 'status' | 'joinedDate'>, initialPassword?: string) {
     if (!this.checkAdminAuth()) return false;
 
-    if (!schoolData.managerEmail || !schoolData.managerPassword) {
+    if (!schoolData.managerEmail || !initialPassword) {
       console.warn("[VALIDATION] Tentativa de registrar escola sem gestor.");
       return false;
     }
@@ -815,12 +815,12 @@ export class EcosystemService {
     this.data.schools.push(newSchool);
 
     // Cria o usuário gestor imediatamente
-    if (newSchool.managerEmail) {
+    if (newSchool.managerEmail && initialPassword) {
       const newUser: User = {
         id: EcosystemService.generateStandardId('admin', newSchool.id),
         name: `Gestor ${newSchool.name}`,
         email: newSchool.managerEmail,
-        password: await EcosystemService.hashPassword(newSchool.managerPassword!),
+        password: await EcosystemService.hashPassword(initialPassword),
         role: 'admin',
         schoolId: newSchool.id,
         ra: `G-${Date.now().toString().slice(-4)}`,
@@ -834,8 +834,16 @@ export class EcosystemService {
 
     this.schoolsSubject.next([...this.data.schools]);
 
-    // Sincroniza Escola no Firestore
-    setDoc(doc(db, "schools", newSchool.id), newSchool);
+    // Sincroniza Escola no Firestore (Sem a senha no registro permanente)
+    const schoolToSave = { ...newSchool };
+    delete schoolToSave.managerPassword;
+    setDoc(doc(db, "schools", newSchool.id), schoolToSave);
+
+    // Inicializa configurações de hardware da unidade
+    setDoc(doc(db, "settings", newSchool.id), this.data.systemSettings || {
+      studentLoginMethod: 'all',
+      adminLoginMethod: 'all'
+    });
 
     // Se criou gestor, sincroniza ele também usando seu ID único
     if (newSchool.managerEmail) {
@@ -850,8 +858,8 @@ export class EcosystemService {
   /**
    * Solicita o registro de uma nova escola.
    */
-  requestSchoolRegistration(schoolData: Omit<School, 'id' | 'status' | 'joinedDate'>) {
-    if (!schoolData.managerEmail || !schoolData.managerPassword) {
+  requestSchoolRegistration(schoolData: Omit<School, 'id' | 'status' | 'joinedDate'>, initialPassword?: string) {
+    if (!schoolData.managerEmail || !initialPassword) {
       return false;
     }
 
@@ -861,7 +869,8 @@ export class EcosystemService {
       city: schoolData.city.toUpperCase().trim(),
       state: schoolData.state.toUpperCase().trim(),
       contactEmail: schoolData.contactEmail?.toLowerCase().trim(),
-      managerEmail: schoolData.managerEmail.toLowerCase().trim()
+      managerEmail: schoolData.managerEmail.toLowerCase().trim(),
+      managerPassword: initialPassword // Mantemos aqui temporariamente apenas para o objeto que será salvo como 'pending'
     };
 
     const newSchool: School = {
@@ -884,21 +893,21 @@ export class EcosystemService {
   /**
    * Atualiza o status de uma escola (Aprovação).
    */
-  async updateSchoolStatus(id: string, status: 'active' | 'pending' | 'inactive' | 'suspended') {
+  async updateSchoolStatus(id: string, status: 'active' | 'pending' | 'inactive' | 'suspended', initialPassword?: string) {
     if (!this.checkAdminAuth()) return;
     const school = this.data.schools.find(s => s.id === id);
     if (school) {
       school.status = status;
 
       // Se estiver ativando, garante que o usuário gestor exista
-      if (status === 'active' && school.managerEmail) {
+      if (status === 'active' && school.managerEmail && initialPassword) {
         const userExists = this.data.users.find(u => u.email?.toLowerCase() === school.managerEmail?.toLowerCase());
         if (!userExists) {
           const newUser: User = {
-            id: `user-admin-${Date.now()}`,
+            id: EcosystemService.generateStandardId('admin', school.id),
             name: `Gestor ${school.name}`,
             email: school.managerEmail,
-            password: await EcosystemService.hashPassword(school.managerPassword!),
+            password: await EcosystemService.hashPassword(initialPassword),
             role: 'admin',
             schoolId: school.id,
             ra: `G-${Date.now().toString().slice(-4)}`,
@@ -913,8 +922,16 @@ export class EcosystemService {
 
       this.schoolsSubject.next([...this.data.schools]);
 
-      // Sincroniza Escola no Firestore
-      setDoc(doc(db, "schools", id), school);
+      // Sincroniza Escola no Firestore (Limpa a senha se estiver ativando)
+      const schoolToSave = { ...school };
+      if (status === 'active') delete schoolToSave.managerPassword;
+      setDoc(doc(db, "schools", id), schoolToSave);
+
+      // Inicializa configurações de hardware da unidade (Multi-Tenant)
+      setDoc(doc(db, "settings", id), this.data.systemSettings || {
+        studentLoginMethod: 'all',
+        adminLoginMethod: 'all'
+      });
 
       // Sincroniza novo gestor se criado
       if (status === 'active' && school.managerEmail) {
@@ -938,10 +955,16 @@ export class EcosystemService {
 
   /**
    * Remove uma escola da rede de forma segura.
-   * Só permite a exclusão se não houver gestores ativos vinculados à unidade.
+   * Só permite a exclusão se não houver gestores ativos vinculados à unidade
+   * e se o Super Admin confirmar com sua senha.
    */
-  async deleteSchool(id: string): Promise<{ success: boolean; error?: string }> {
+  async deleteSchool(id: string, password?: string): Promise<{ success: boolean; error?: string }> {
     if (!this.checkAdminAuth()) return { success: false, error: 'Não autorizado' };
+
+    // Verificação de Senha do Super Admin
+    if (!password) return { success: false, error: 'Confirmação de senha necessária.' };
+    const isPasswordValid = await this.verifyPassword(password);
+    if (!isPasswordValid) return { success: false, error: 'Senha incorreta. Ação cancelada.' };
 
     // Regra de Negócio: Primeiro remove os gestores, depois a unidade
     const hasManagers = this.data.users.some(u => u.schoolId === id && u.role === 'admin');
@@ -953,7 +976,12 @@ export class EcosystemService {
     }
 
     try {
-      await deleteDoc(doc(db, "schools", id));
+      // Limpeza completa: Escola + Configurações de Unidade
+      await Promise.all([
+        deleteDoc(doc(db, "schools", id)),
+        deleteDoc(doc(db, "settings", id))
+      ]);
+      
       this.data.schools = this.data.schools.filter(s => s.id !== id);
       this.schoolsSubject.next([...this.data.schools]);
       this.saveToStorage();
@@ -1949,32 +1977,21 @@ export class EcosystemService {
   }
 
 
+  /**
+   * Remove um usuário individual do sistema de forma segura.
+   * Utiliza a lógica de sincronização do updateUsers para evitar órfãos.
+   */
   async deleteUser(userId: string): Promise<boolean> {
     if (!this.checkAdminAuth()) return false;
     const user = this.data.users.find(u => u.id === userId);
     if (!user) return false;
     
-    this.data.users = this.data.users.filter(u => u.id !== userId);
-    this.usersSubject.next([...this.data.users]);
-    
-    // 2. Remove do Firestore
-    try {
-      await deleteDoc(doc(db, "users", userId));
-      await deleteDoc(doc(db, "userStates", userId));
-      
-      // Limpeza de cache local do userStates
-      if (this.data.userStates) {
-          delete this.data.userStates[userId];
-          this.userStatesSubject.next({ ...this.data.userStates });
-      }
-
-      this.saveToStorage();
-      return true;
-    } catch (error) { 
-      console.error("Erro ao deletar usuário:", error);
-      return false; 
-    }
+    // Filtra para remover apenas o usuário alvo da sua respectiva unidade
+    const otherUsersOfSchool = this.data.users.filter(u => u.schoolId === user.schoolId && u.id !== userId);
+    const result = await this.updateUsers(otherUsersOfSchool, user.schoolId);
+    return result.success;
   }
+
 
   async deleteReward(id: string, targetSchoolId?: string): Promise<boolean> {
     if (!this.checkAdminAuth()) return false;
@@ -2226,16 +2243,43 @@ export class EcosystemService {
     }
   }
 
-  updateParticipants(newParticipants: Participant[]) {
-    if (!this.checkAdminAuth()) return;
-    this.data.participants = newParticipants;
-    this.participantsSubject.next(newParticipants);
+  /**
+   * Atualiza a lista de participantes (Equipe Sobre) com geração de ID e sincronização.
+   */
+  async updateParticipants(newParticipants: Participant[]): Promise<boolean> {
+    if (!this.checkAdminAuth()) return false;
 
-    // Sincroniza cada participante no Firestore
-    newParticipants.forEach(p => {
-      setDoc(doc(db, "participants", p.id), p);
-    });
-    this.saveToStorage();
+    try {
+      // 1. Identifica itens removidos para apagar no Firestore
+      const removedItems = this.data.participants.filter(oldP => 
+        !newParticipants.some(newP => newP.id === oldP.id)
+      );
+
+      for (const item of removedItems) {
+        if (item.id) await deleteDoc(doc(db, "participants", item.id));
+      }
+
+      // 2. Processa novos itens e atualizações
+      const processedParticipants = newParticipants.map(p => ({
+        ...p,
+        id: p.id || EcosystemService.generateStandardId('PART')
+      }));
+
+      // 3. Salva no Firestore
+      for (const p of processedParticipants) {
+        await setDoc(doc(db, "participants", p.id), p);
+      }
+
+      // 4. Atualiza estado local
+      this.data.participants = processedParticipants;
+      this.participantsSubject.next(processedParticipants);
+      this.saveToStorage();
+      
+      return true;
+    } catch (error) {
+      console.error("[ECOSYSTEM] Erro ao atualizar participantes:", error);
+      return false;
+    }
   }
 
   async updateTurmas(newTurmas: Turma[], targetSchoolId?: string): Promise<boolean> {
@@ -2600,7 +2644,7 @@ export class EcosystemService {
     if (!this.data.articles) this.data.articles = [];
     if (!this.data.rewards) this.data.rewards = [];
     if (!this.data.participants) this.data.participants = [];
-    if (!this.data.quizTopics) this.data.quizTopics = QUIZ_TOPICS_MOCK;
+    if (!this.data.quizTopics) this.data.quizTopics = [];
 
     // 2. Higienização de Entidades (Garante que cada item tenha um schoolId válido)
     const normalize = (items: any[], prefix: string, collection: string) => {

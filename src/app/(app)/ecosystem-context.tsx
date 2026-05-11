@@ -28,7 +28,7 @@ interface EcosystemContextType {
   buyUpgrade: (item: EcosystemItem) => boolean;      // Compra um item para o mundo virtual
   healVitality: (points: number) => boolean;         // Recupera saúde do mundo gastando pontos
   allParticipants: Participant[]; // Lista da equipe do projeto
-  updateParticipants: (newParticipants: Participant[]) => void;
+  updateParticipants: (newParticipants: Participant[]) => Promise<boolean>;
   users: User[];              // Lista de todos os alunos (para ranking)
   userStates: Record<string, any>;
   allRewards: Reward[];         // Prêmios disponíveis
@@ -75,7 +75,7 @@ interface EcosystemContextType {
   registerSchool: (data: Omit<School, 'id' | 'status' | 'joinedDate'>) => Promise<boolean>;
   updateSchoolStatus: (id: string, status: 'active' | 'pending' | 'inactive' | 'suspended') => Promise<void>;
   updateSchools: (newSchools: School[]) => void;
-  deleteSchool: (id: string) => Promise<{ success: boolean; error?: string }>;
+  deleteSchool: (id: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   getLockoutStatus: (id: string) => { isLocked: boolean, remainingSeconds: number };
   registrationRequests: RegistrationRequest[];
   requestRegistration: (data: any) => Promise<boolean>;
@@ -335,7 +335,9 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const registerSchool = (data: any) => service.registerSchool(data);
   const updateSchoolStatus = (id: any, status: any) => service.updateSchoolStatus(id, status);
   const updateSchools = (newSchools: any) => service.updateSchools(newSchools);
-  const deleteSchool = async (id: any) => await service.deleteSchool(id);
+  const deleteSchool = async (id: string, password?: string) => {
+    return await service.deleteSchool(id, password);
+  };
   const registerWaste = (ra: string, type: WasteType, weightKg: number, tSId?: string) => service.registerWaste(ra, type, weightKg, tSId);
   const identifyKioskUser = service.identifyKioskUser.bind(service);
   const performCycleReset = (pass: string, sId?: string) => service.performCycleReset(pass, sId);
