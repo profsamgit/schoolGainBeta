@@ -27,14 +27,7 @@ export const ADMIN_MOCK: User = {
 
 export const REWARDS_MOCK: Reward[] = [];
 export const ARTICLES_MOCK: EducationArticle[] = [];
-export const QUIZ_TOPICS_MOCK: QuizTopic[] = [
-  { id: 'topic-1', name: 'Reciclagem' },
-  { id: 'topic-2', name: 'Consumo Consciente' },
-  { id: 'topic-3', name: 'Biodiversidade' },
-  { id: 'topic-4', name: 'Energias Renováveis' },
-  { id: 'topic-5', name: 'Desmatamento' },
-];
-
+export const QUIZ_TOPICS_MOCK: QuizTopic[] = [];
 export const PARTICIPANTS_MOCK: Participant[] = [];
 export const TURMAS_MOCK: Turma[] = [];
 export const CURSOS_MOCK: Curso[] = [];

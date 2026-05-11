@@ -323,16 +323,23 @@ export function EconomicSection({
                   {filteredAuditLogs.map((log) => (
                       <TableRow key={log.id}>
                         <TableCell className="text-[10px] text-slate-500">{new Date(log.timestamp).toLocaleString('pt-BR')}</TableCell>
-                        <TableCell className="font-bold">{log.studentName || log.metadata?.studentName || 'N/A'}</TableCell>
-                        <TableCell className="text-xs italic text-slate-600">{log.details || log.action}</TableCell>
+                        <TableCell className="font-bold">
+                          {log.studentName || log.metadata?.studentName || log.targetRa || 'N/A'}
+                        </TableCell>
+                        <TableCell className="text-xs italic text-slate-600">
+                          {log.details || log.action?.replace(/_/g, ' ')}
+                        </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="text-[10px] uppercase font-black tracking-tighter">
-                            {log.metadata?.sector || 'Geral'}
+                            {log.metadata?.sector || log.unitId || 'Geral'}
                           </Badge>
                         </TableCell>
-                        <TableCell className="italic text-slate-400 text-xs">{log.adminName || log.actorName}</TableCell>
+                        <TableCell className="italic text-slate-400 text-xs">
+                          {log.adminName || log.actorName || 'Sistema'}
+                        </TableCell>
                         <TableCell className="text-right font-black text-emerald-600">
-                          {log.points || log.metadata?.points ? `+${log.points || log.metadata?.points} PTS` : '-'}
+                          {log.points || log.metadata?.points ? `+${log.points || log.metadata?.points} PTS` : 
+                           log.metadata?.cost ? `-${log.metadata.cost} PTS` : '-'}
                         </TableCell>
                       </TableRow>
                   ))}

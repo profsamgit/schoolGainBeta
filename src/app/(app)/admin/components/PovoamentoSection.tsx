@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Turma, Curso, Cargo, SetorEscolar } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { EcosystemService } from '@/lib/ecosystem.service';
 
 interface PovoamentoSectionProps {
   allTurmas: Turma[];
@@ -17,10 +18,10 @@ interface PovoamentoSectionProps {
   allCargos: Cargo[];
   allSetores: SetorEscolar[];
   targetSchoolId: string | undefined;
-  updateTurmas: (newTurmas: Turma[]) => void;
-  updateCursos: (newCursos: Curso[]) => void;
-  updateCargos: (newCargos: Cargo[]) => void;
-  updateSetores: (newSetores: SetorEscolar[]) => void;
+  updateTurmas: (newTurmas: Turma[], targetSchoolId?: string) => Promise<boolean>;
+  updateCursos: (newCursos: Curso[], targetSchoolId?: string) => Promise<boolean>;
+  updateCargos: (newCargos: Cargo[], targetSchoolId?: string) => Promise<boolean>;
+  updateSetores: (newSetores: SetorEscolar[], targetSchoolId?: string) => Promise<boolean>;
   handleDelete: (item: any, type: string) => void;
 }
 
@@ -54,9 +55,11 @@ export function PovoamentoSection({
   const [cargoFormData, setCargoFormData] = useState({ name: '', status: 'active' as 'active' | 'inactive' });
   const [setorFormData, setSetorFormData] = useState({ name: '', status: 'active' as 'active' | 'inactive' });
 
-  const handleSaveTurma = (e?: React.FormEvent) => {
+  const handleSaveTurma = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     let newTurmas;
+    const sid = targetSchoolId || 'global';
+    
     if (editingTurma) {
       newTurmas = allTurmas.map(t => t.id === editingTurma.id ? { ...t, ...turmaFormData } : t);
     } else {
@@ -64,18 +67,27 @@ export function PovoamentoSection({
         toast({ title: "Aviso", description: "Esta turma já existe.", variant: "destructive" });
         return;
       }
-      newTurmas = [...allTurmas, { id: `turma-${Date.now()}`, name: turmaFormData.name, status: turmaFormData.status, schoolId: targetSchoolId }];
+      const id = EcosystemService.generateStandardId('trm', targetSchoolId);
+      newTurmas = [...allTurmas, { id: id, name: turmaFormData.name, status: turmaFormData.status, schoolId: sid }];
     }
-    updateTurmas(newTurmas);
-    setIsTurmaDialogOpen(false);
-    setEditingTurma(null);
-    setTurmaFormData({ name: '', status: 'active' });
-    toast({ title: "Sucesso", description: "Configuração de turma atualizada." });
+
+    const success = await updateTurmas(newTurmas, sid);
+    
+    if (success) {
+      setIsTurmaDialogOpen(false);
+      setEditingTurma(null);
+      setTurmaFormData({ name: '', status: 'active' });
+      toast({ title: "Sucesso", description: "Configuração de turma atualizada." });
+    } else {
+      toast({ title: "Erro", description: "Não foi possível salvar no banco de dados. Verifique sua conexão e permissões.", variant: "destructive" });
+    }
   };
 
-  const handleSaveCurso = (e?: React.FormEvent) => {
+  const handleSaveCurso = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     let newCursos;
+    const sid = targetSchoolId || 'global';
+
     if (editingCurso) {
       newCursos = allCursos.map(c => c.id === editingCurso.id ? { ...c, ...cursoFormData } : c);
     } else {
@@ -83,18 +95,27 @@ export function PovoamentoSection({
         toast({ title: "Aviso", description: "Este curso já existe.", variant: "destructive" });
         return;
       }
-      newCursos = [...allCursos, { id: `curso-${Date.now()}`, name: cursoFormData.name, status: cursoFormData.status, schoolId: targetSchoolId }];
+      const id = EcosystemService.generateStandardId('cur', targetSchoolId);
+      newCursos = [...allCursos, { id: id, name: cursoFormData.name, status: cursoFormData.status, schoolId: sid }];
     }
-    updateCursos(newCursos);
-    setIsCursoDialogOpen(false);
-    setEditingCurso(null);
-    setCursoFormData({ name: '', status: 'active' });
-    toast({ title: "Sucesso", description: "Configuração de curso atualizada." });
+
+    const success = await updateCursos(newCursos, sid);
+
+    if (success) {
+      setIsCursoDialogOpen(false);
+      setEditingCurso(null);
+      setCursoFormData({ name: '', status: 'active' });
+      toast({ title: "Sucesso", description: "Configuração de curso atualizada." });
+    } else {
+      toast({ title: "Erro", description: "Falha ao salvar curso no servidor.", variant: "destructive" });
+    }
   };
 
-  const handleSaveCargo = (e?: React.FormEvent) => {
+  const handleSaveCargo = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     let newCargos;
+    const sid = targetSchoolId || 'global';
+
     if (editingCargo) {
       newCargos = allCargos.map(c => c.id === editingCargo.id ? { ...c, ...cargoFormData } : c);
     } else {
@@ -102,18 +123,27 @@ export function PovoamentoSection({
         toast({ title: "Aviso", description: "Este cargo já existe.", variant: "destructive" });
         return;
       }
-      newCargos = [...allCargos, { id: `cargo-${Date.now()}`, name: cargoFormData.name, status: cargoFormData.status, schoolId: targetSchoolId }];
+      const id = EcosystemService.generateStandardId('crg', targetSchoolId);
+      newCargos = [...allCargos, { id: id, name: cargoFormData.name, status: cargoFormData.status, schoolId: sid }];
     }
-    updateCargos(newCargos);
-    setIsCargoDialogOpen(false);
-    setEditingCargo(null);
-    setCargoFormData({ name: '', status: 'active' });
-    toast({ title: "Sucesso", description: "Cargo administrativo atualizado." });
+
+    const success = await updateCargos(newCargos, sid);
+
+    if (success) {
+      setIsCargoDialogOpen(false);
+      setEditingCargo(null);
+      setCargoFormData({ name: '', status: 'active' });
+      toast({ title: "Sucesso", description: "Cargo administrativo atualizado." });
+    } else {
+      toast({ title: "Erro", description: "Falha ao sincronizar cargo.", variant: "destructive" });
+    }
   };
 
-  const handleSaveSetor = (e?: React.FormEvent) => {
+  const handleSaveSetor = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     let newSetores;
+    const sid = targetSchoolId || 'global';
+
     if (editingSetor) {
       newSetores = allSetores.map(s => s.id === editingSetor.id ? { ...s, ...setorFormData } : s);
     } else {
@@ -121,13 +151,20 @@ export function PovoamentoSection({
         toast({ title: "Aviso", description: "Este setor já existe.", variant: "destructive" });
         return;
       }
-      newSetores = [...allSetores, { id: `setor-${Date.now()}`, name: setorFormData.name, status: setorFormData.status, schoolId: targetSchoolId }];
+      const id = EcosystemService.generateStandardId('str', targetSchoolId);
+      newSetores = [...allSetores, { id: id, name: setorFormData.name, status: setorFormData.status, schoolId: sid }];
     }
-    updateSetores(newSetores);
-    setIsSetorDialogOpen(false);
-    setEditingSetor(null);
-    setSetorFormData({ name: '', status: 'active' });
-    toast({ title: "Sucesso", description: "Setor operacional atualizado." });
+
+    const success = await updateSetores(newSetores, sid);
+
+    if (success) {
+      setIsSetorDialogOpen(false);
+      setEditingSetor(null);
+      setSetorFormData({ name: '', status: 'active' });
+      toast({ title: "Sucesso", description: "Setor operacional atualizado." });
+    } else {
+      toast({ title: "Erro", description: "Falha ao salvar setor.", variant: "destructive" });
+    }
   };
 
   return (

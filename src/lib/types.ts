@@ -61,7 +61,7 @@ export type EducationArticle = {
   image: string;
   imageHint: string;
   videoUrl?: string;
-  schoolId?: string;
+  schoolId: string;
 };
 
 export type Participant = {
@@ -94,6 +94,7 @@ export type AuditLogEntry = {
     targetId?: string;     // ID do registro afetado
     // Retrocompatibilidade
     ra?: string;
+    targetRa?: string;
     studentName?: string;
     points?: number;
     adminName?: string;
@@ -170,34 +171,34 @@ export type Turma = {
   id: string;
   name: string;
   status: 'active' | 'inactive';
-  schoolId?: string;
+  schoolId: string;
 };
 
 export type Curso = {
   id: string;
   name: string;
   status: 'active' | 'inactive';
-  schoolId?: string;
+  schoolId: string;
 };
 
 export type Cargo = {
   id: string;
   name: string;
   status: 'active' | 'inactive';
-  schoolId?: string;
+  schoolId: string;
 };
 
 export type SetorEscolar = {
   id: string;
   name: string;
   status: 'active' | 'inactive';
-  schoolId?: string;
+  schoolId: string;
 };
 
 export type QuizTopic = {
   id: string;
   name: string;
-  schoolId?: string;
+  schoolId: string;
 };
 
 export type RegistrationRequest = {

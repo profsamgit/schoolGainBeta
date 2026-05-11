@@ -261,7 +261,7 @@ export default function AdminDashboardPage() {
                       {filteredUsers.filter(u => u.role === 'student').sort((a,b) => b.points - a.points).slice(0, 5).map((user) => (
                         <div key={user.id} className="flex items-center gap-4">
                             <Avatar className="h-9 w-9 hidden sm:flex">
-                                <AvatarImage src={`https://picsum.photos/seed/${user.id}/100/100`} alt="Avatar" />
+                                <AvatarImage src={user.avatar || `https://picsum.photos/seed/${user.id}/100/100`} alt="Avatar" />
                                 <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div className="grid gap-1">

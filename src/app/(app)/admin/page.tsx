@@ -140,7 +140,9 @@ function AdminContent() {
     updateUserStatus,
     deleteUser,
     deleteReward,
-    deleteArticle
+    deleteArticle,
+    deleteQuizTopic,
+    service
   } = useEcosystem();
 
   const [uploadingUserId, setUploadingUserId] = useState<string | null>(null);
@@ -324,9 +326,10 @@ function AdminContent() {
     setIsSubmitting(true);
     try {
       let success = false;
+      const sid = targetSchoolId || currentUser?.schoolId;
       if (itemType === 'user') success = await deleteUser(selectedItem.id);
-      else if (itemType === 'reward') success = await deleteReward(selectedItem.id);
-      else if (itemType === 'article') success = await deleteArticle(selectedItem.id);
+      else if (itemType === 'reward') success = await deleteReward(selectedItem.id, sid);
+      else if (itemType === 'article') success = await deleteArticle(selectedItem.id, sid);
       else if (itemType === 'turma') await updateTurmas(allTurmas.filter((i: Turma) => i.id !== selectedItem.id));
       else if (itemType === 'curso') await updateCursos(allCursos.filter((i: Curso) => i.id !== selectedItem.id));
       else if (itemType === 'cargo') await updateCargos(allCargos.filter((i: Cargo) => i.id !== selectedItem.id));
@@ -429,13 +432,14 @@ function AdminContent() {
         if (sanitizedPayload.position) sanitizedPayload.position = (sanitizedPayload.position as string).toUpperCase().trim();
         if (sanitizedPayload.rfid) sanitizedPayload.rfid = (sanitizedPayload.rfid as string).toUpperCase().trim();
 
-        let prefix = 'user';
+        let prefix = 'user-student';
         if (sanitizedPayload.role === 'super_admin') prefix = 'super';
         else if (sanitizedPayload.role === 'admin') prefix = 'admin';
+        else if (sanitizedPayload.role === 'visitor') prefix = 'user-visitante';
 
-        const newId = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(-4)}`;
+        const newId = EcosystemService.generateStandardId(prefix, targetSchoolId || currentUser?.schoolId);
         const finalUsers = isNew ? [...users, { ...sanitizedPayload, id: newId, points: 0, level: 'Semente' } as unknown as User] : users.map(u => u.id === selectedItem.id ? { ...u, ...sanitizedPayload } as User : u);
-        const result = await updateUsers(finalUsers);
+        const result = await updateUsers(finalUsers, targetSchoolId || currentUser?.schoolId);
         
         if (!result.success) {
             toast({ variant: 'destructive', title: 'Erro de Validação', description: result.error || 'Não foi possível salvar. Verifique os dados.' });
@@ -449,7 +453,20 @@ function AdminContent() {
         const sanitizedPayload = Object.fromEntries(
           Object.entries(payload).filter(([_, v]) => v !== undefined && v !== null && _ !== 'confirmPassword')
         );
-        const success = await updateRewards(isNew ? [...rewards, { ...sanitizedPayload, id: `reward-${Date.now()}` } as unknown as Reward] : rewards.map(r => r.id === selectedItem.id ? { ...r, ...sanitizedPayload } as Reward : r));
+        
+        const sid = targetSchoolId || currentUser?.schoolId;
+        if (!sid) {
+            toast({ variant: 'destructive', title: 'Erro', description: 'Unidade não identificada.' });
+            return;
+        }
+        const newId = EcosystemService.generateStandardId('rw', sid);
+        
+        const success = await updateRewards(isNew 
+          ? [...rewards, { ...sanitizedPayload, id: newId, schoolId: sid } as unknown as Reward] 
+          : rewards.map(r => r.id === selectedItem.id ? { ...r, ...sanitizedPayload } as Reward : r),
+          sid
+        );
+        
         if (!success) {
             toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao salvar recompensa.' });
             setIsSubmitting(false);
@@ -461,7 +478,20 @@ function AdminContent() {
         const sanitizedPayload = Object.fromEntries(
           Object.entries(payload).filter(([_, v]) => v !== undefined && v !== null && _ !== 'confirmPassword')
         );
-        const success = await updateArticles(isNew ? [...articles, { ...sanitizedPayload, id: `article-${Date.now()}`, slug: values.title.toLowerCase().replace(/ /g, '-') } as unknown as EducationArticle] : articles.map(a => a.id === selectedItem.id ? { ...a, ...sanitizedPayload } as EducationArticle : a));
+        
+        const sid = targetSchoolId || currentUser?.schoolId;
+        if (!sid) {
+            toast({ variant: 'destructive', title: 'Erro', description: 'Unidade não identificada.' });
+            return;
+        }
+        const newId = EcosystemService.generateStandardId('ctd', sid);
+
+        const success = await updateArticles(isNew 
+          ? [...articles, { ...sanitizedPayload, id: newId, schoolId: sid, slug: values.title.toLowerCase().replace(/ /g, '-') } as unknown as EducationArticle] 
+          : articles.map(a => a.id === selectedItem.id ? { ...a, ...sanitizedPayload } as EducationArticle : a),
+          sid
+        );
+        
         if (!success) {
             toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao salvar artigo.' });
             setIsSubmitting(false);
@@ -701,13 +731,32 @@ function AdminContent() {
               articles={articles} quizTopics={filteredQuizTopics} viewMode={viewMode} itemType={itemType} isNew={isNew} isSubmitting={isSubmitting}
               articleForm={articleForm} onSubmit={onSubmit} handleEdit={handleEdit} handleDelete={handleDelete} handleNew={handleNew}
               closeAllForms={closeAllForms} articleSearch={articleSearch} setArticleSearch={setArticleSearch} newTopic={newTopic} setNewTopic={setNewTopic}
-              handleAddTopic={() => {
+              handleAddTopic={async () => {
                 if (newTopic) {
-                  updateQuizTopics([...quizTopics, { id: `topic-${Date.now()}`, name: newTopic, schoolId: targetSchoolId }]);
-                  setNewTopic('');
+                  const sid = targetSchoolId || currentUser?.schoolId;
+                  if (!sid) {
+                    toast({ variant: 'destructive', title: 'Erro', description: 'Unidade não identificada.' });
+                    return;
+                  }
+                  const newId = EcosystemService.generateStandardId('qz', sid);
+                  const success = await updateQuizTopics([...quizTopics, { id: newId, name: newTopic, schoolId: sid }], sid);
+                  if (success) {
+                    setNewTopic('');
+                    toast({ title: "Tópico Adicionado", description: "O novo tópico foi salvo na unidade." });
+                  } else {
+                    toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao salvar tópico.' });
+                  }
                 }
               }}
-              handleDeleteTopic={(topic) => updateQuizTopics(quizTopics.filter(t => t.id !== topic.id))}
+              handleDeleteTopic={async (topic) => {
+                const sid = targetSchoolId || currentUser?.schoolId;
+                const success = await deleteQuizTopic(topic.id, sid);
+                if (success) {
+                  toast({ title: "Tópico Removido", description: "O tópico foi excluído da unidade." });
+                } else {
+                  toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao excluir tópico.' });
+                }
+              }}
               isDeleteConfirmOpen={isDeleteConfirmOpen} setIsDeleteConfirmOpen={setIsDeleteConfirmOpen} selectedItem={selectedItem} confirmDelete={confirmDelete}
               securityPassword={securityPassword} setSecurityPassword={setSecurityPassword}
               uploadUserAvatar={uploadUserAvatar}

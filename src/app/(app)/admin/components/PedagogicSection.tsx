@@ -3,22 +3,22 @@
 import { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  BookOpen, Plus, Trash2, Edit, MoreHorizontal, ArrowLeft, Camera, Loader2, Lock 
+import {
+  BookOpen, Plus, Trash2, Edit, MoreHorizontal, ArrowLeft, Camera, Loader2, Lock
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  Form, FormControl, FormField, FormItem, FormLabel, FormMessage 
+import {
+  Form, FormControl, FormField, FormItem, FormLabel, FormMessage
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table';
-import { 
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger 
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { EducationArticle, QuizTopic } from '@/lib/types';
 
@@ -118,9 +118,9 @@ export function PedagogicSection({
                   </Avatar>
                   <div className="flex-1 space-y-2">
                     <p className="text-xs font-medium text-slate-500">Resolução ideal: 200x200px (Quadrada).</p>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
+                    <Button
+                      type="button"
+                      variant="outline"
                       className="relative overflow-hidden group/upload"
                       disabled={uploadingUserId === 'new-article'}
                     >
@@ -129,10 +129,10 @@ export function PedagogicSection({
                       ) : (
                         <><Camera className="mr-2 h-4 w-4" /> Subir Capa</>
                       )}
-                      <input 
-                        type="file" 
-                        className="absolute inset-0 opacity-0 cursor-pointer" 
-                        accept="image/*" 
+                      <input
+                        type="file"
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                        accept="image/*"
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (!file) return;
@@ -146,7 +146,7 @@ export function PedagogicSection({
                           } finally {
                             setUploadingUserId(null);
                           }
-                        }} 
+                        }}
                       />
                     </Button>
                   </div>
@@ -164,12 +164,12 @@ export function PedagogicSection({
                 <Lock className="h-4 w-4" />
                 <span className="text-xs font-black uppercase tracking-widest">Confirmação de Segurança</span>
               </div>
-              <Input 
-                type="password" 
-                required 
-                value={securityPassword} 
-                onChange={(e) => setSecurityPassword(e.target.value)} 
-                placeholder="Sua senha ou senha Master" 
+              <Input
+                type="password"
+                required
+                value={securityPassword}
+                onChange={(e) => setSecurityPassword(e.target.value)}
+                placeholder="Sua senha ou senha Master"
                 className="bg-white border-amber-200"
               />
               <p className="text-[9px] text-amber-700 font-medium">Autorização necessária para publicar alterações.</p>
@@ -188,60 +188,60 @@ export function PedagogicSection({
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-3">
-          <Card className="bg-indigo-900 text-white overflow-hidden relative">
-              <CardHeader className="pb-2">
-                  <CardTitle className="text-[10px] uppercase font-black tracking-[0.2em] text-indigo-400 opacity-80">Conteúdo Educativo</CardTitle>
-              </CardHeader>
-              <CardContent>
-                  <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-black">{filteredArticles.length}</span>
-                      <span className="text-xs font-bold text-indigo-400">ARTIGOS</span>
-                  </div>
-                  <div className="absolute top-[-20px] right-[-20px] opacity-10 rotate-12"><BookOpen className="h-32 w-32" /></div>
-              </CardContent>
-          </Card>
-          <Card className="bg-slate-900 text-white">
-              <CardHeader className="pb-2">
-                  <CardTitle className="text-[10px] uppercase font-black tracking-[0.2em] text-slate-400">Banco de Desafios</CardTitle>
-              </CardHeader>
-              <CardContent>
-                  <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-black">{quizTopics.length}</span>
-                      <span className="text-xs font-bold text-slate-400">TÓPICOS</span>
-                  </div>
-              </CardContent>
-          </Card>
-          <Card className="bg-slate-900 text-white">
-              <CardHeader className="pb-2">
-                  <CardTitle className="text-[10px] uppercase font-black tracking-[0.2em] text-slate-400">Base de Vídeos</CardTitle>
-              </CardHeader>
-              <CardContent>
-                  <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-black">{filteredArticles.filter(a => a.videoUrl).length}</span>
-                      <span className="text-xs font-bold text-slate-400">MULTIMÍDIA</span>
-                  </div>
-              </CardContent>
-          </Card>
+        <Card className="bg-indigo-900 text-white overflow-hidden relative">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[10px] uppercase font-black tracking-[0.2em] text-indigo-400 opacity-80">Conteúdo Educativo</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-black">{filteredArticles.length}</span>
+              <span className="text-xs font-bold text-indigo-400">ARTIGOS</span>
+            </div>
+            <div className="absolute top-[-20px] right-[-20px] opacity-10 rotate-12"><BookOpen className="h-32 w-32" /></div>
+          </CardContent>
+        </Card>
+        <Card className="bg-slate-900 text-white">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[10px] uppercase font-black tracking-[0.2em] text-slate-400">Banco de Desafios</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-black">{quizTopics.length}</span>
+              <span className="text-xs font-bold text-slate-400">TÓPICOS</span>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-slate-900 text-white">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[10px] uppercase font-black tracking-[0.2em] text-slate-400">Base de Vídeos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-black">{filteredArticles.filter(a => a.videoUrl).length}</span>
+              <span className="text-xs font-bold text-slate-400">MULTIMÍDIA</span>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
-          <CardHeader><CardTitle className="text-sm font-black uppercase tracking-widest text-slate-500">Tópicos de Quiz</CardTitle><CardDescription>Geração automática de desafios para os alunos.</CardDescription></CardHeader>
-          <CardContent className="space-y-4">
-              <div className="flex gap-2">
-                  <Input placeholder="Novo tópico (ex: Reciclagem)" value={newTopic} onChange={(e) => setNewTopic(e.target.value)} className="bg-white" />
-                  <Button onClick={handleAddTopic}><Plus className="h-4 w-4" /></Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                  {filteredQuizTopics.map((topic, idx) => (
-                      <Badge key={`${topic.id}-${idx}`} variant="secondary" className="pr-1 bg-white border border-slate-200 text-slate-700 font-bold">
-                        {topic.name}
-                        <Button size="icon" variant="ghost" className="h-4 w-4 ml-1 hover:text-red-500" onClick={() => handleDeleteTopic(topic)}>
-                          <Trash2 className="h-3 w-3"/>
-                        </Button>
-                      </Badge>
-                  ))}
-              </div>
-          </CardContent>
+        <CardHeader><CardTitle className="text-sm font-black uppercase tracking-widest text-slate-500">Tópicos de Quiz</CardTitle><CardDescription>Geração automática de desafios para os alunos.</CardDescription></CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <Input placeholder="Novo tópico (ex: Reciclagem, Consumo Consciente, Biodiversidade, Energias Renováveis, Desmatamento)" value={newTopic} onChange={(e) => setNewTopic(e.target.value)} className="bg-white" />
+            <Button onClick={handleAddTopic}><Plus className="h-4 w-4" /></Button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {filteredQuizTopics.map((topic, idx) => (
+              <Badge key={`${topic.id}-${idx}`} variant="secondary" className="pr-1 bg-white border border-slate-200 text-slate-700 font-bold">
+                {topic.name}
+                <Button size="icon" variant="ghost" className="h-4 w-4 ml-1 hover:text-red-500" onClick={() => handleDeleteTopic(topic)}>
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </Badge>
+            ))}
+          </div>
+        </CardContent>
       </Card>
 
       <Card>
@@ -251,12 +251,12 @@ export function PedagogicSection({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="p-4 bg-muted/30 rounded-xl border border-muted-foreground/10">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1 block">Pesquisar Artigo</Label>
-              <Input placeholder="Buscar por título..." value={articleSearch} onChange={(e) => setArticleSearch(e.target.value)} className="bg-white" />
+            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1 block">Pesquisar Artigo</Label>
+            <Input placeholder="Buscar por título..." value={articleSearch} onChange={(e) => setArticleSearch(e.target.value)} className="bg-white" />
           </div>
 
           <div className="mb-4">
-             {/* Redundância removida: O painel de exclusão global agora gerencia isso */}
+            {/* Redundância removida: O painel de exclusão global agora gerencia isso */}
           </div>
           <Table>
             <TableHeader><TableRow><TableHead>Título</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>

@@ -26,7 +26,7 @@ interface OverviewSectionProps {
   terminals: Terminal[];
   auditLogs: AuditLogEntry[];
   wasteEntries: WasteEntry[];
-  deleteSchool: (id: string) => void;
+  deleteSchool: (id: string) => Promise<{ success: boolean; error?: string }>;
   updateSchoolStatus: (id: string, status: 'active' | 'pending') => void | Promise<void>;
   toast: any;
 }
@@ -170,7 +170,14 @@ export function OverviewSection({
                     size="sm" 
                     variant="ghost" 
                     className="text-[10px] font-bold text-red-600 hover:bg-red-50"
-                    onClick={() => deleteSchool(school.id)}
+                    onClick={async () => {
+                      const res = await deleteSchool(school.id);
+                      if (res.success) {
+                        toast({ title: "Solicitação Recusada", description: "A escola foi removida da lista de espera." });
+                      } else {
+                        toast({ title: "Erro", description: res.error, variant: "destructive" });
+                      }
+                    }}
                   >
                     Recusar
                   </Button>

@@ -165,7 +165,7 @@ export class EcosystemService {
   private auditLogsSubject = new BehaviorSubject<AuditLogEntry[]>([]);
   private levelSubject = new BehaviorSubject<string>('Semente');
   private registrationRequestsSubject = new BehaviorSubject<RegistrationRequest[]>([]);
-  private userStatesSubject = new BehaviorSubject<Record<string, EcosystemUserState>>({});
+  private userStatesSubject = new BehaviorSubject<Record<string, EcosystemUserState>>({}); // Estado de cada aluno indexado pelo ID (Firestore)
 
   // Novos canais para hardware e gestão
   private systemSettingsSubject = new BehaviorSubject<SystemSettings>({
@@ -281,16 +281,19 @@ export class EcosystemService {
       }
     });
 
-    // 5. Configurações Globais (SystemSettings)
-    // Usamos um documento fixo 'global' na coleção 'settings'
-    onSnapshot(doc(db, "settings", "global"), (docSnap) => {
+    // 5. Configurações por Unidade (SystemSettings)
+    // Cada escola tem seu próprio documento de configuração baseado no schoolId
+    const currentRa = this.currentUserRaSubject.value;
+    const currentUser = this.data.users.find(u => u.ra === currentRa);
+    const settingsId = currentUser?.schoolId || 'global';
+    onSnapshot(doc(db, "settings", settingsId), (docSnap) => {
       if (docSnap.exists()) {
         const settings = docSnap.data() as SystemSettings;
         this.data.systemSettings = settings;
         this.systemSettingsSubject.next(settings);
-      } else {
-        // Se não existir, cria o padrão no banco
-        setDoc(doc(db, "settings", "global"), this.data.systemSettings);
+      } else if (settingsId !== 'global') {
+        // Se não houver config específica, cria uma cópia inicial
+        setDoc(doc(db, "settings", settingsId), this.data.systemSettings);
       }
     });
 
@@ -373,8 +376,8 @@ export class EcosystemService {
       });
       this.userStatesSubject.next({ ...this.data.userStates });
       // Se houver um usuário logado, atualiza o saldo dele
-      if (this.data.currentUserRa) {
-        this.syncStateWithUser(this.data.currentUserRa);
+      if (this.data.currentUserId) {
+        this.syncStateWithUser(this.data.currentUserId);
       }
     });
 
@@ -419,10 +422,11 @@ export class EcosystemService {
       if (firebaseUser) {
         // Busca o RA correspondente ao email no nosso banco de dados
         const user = this.data.users.find(u => u.email?.toLowerCase() === firebaseUser.email?.toLowerCase());
-        if (user && user.ra !== this.data.currentUserRa) {
+        if (user) {
           this.data.currentUserRa = user.ra!;
+          this.data.currentUserId = user.id;
           this.currentUserRaSubject.next(user.ra!);
-          this.syncStateWithUser(user.ra!);
+          this.syncStateWithUser(user.id);
           this.saveToStorage();
         }
       }
@@ -437,21 +441,20 @@ export class EcosystemService {
     });
 
     // Se houver um usuário logado, sincroniza os pontos e ecossistema dele
-    if (this.data.currentUserRa) {
-      this.syncStateWithUser(this.data.currentUserRa);
+    if (this.data.currentUserId) {
+      this.syncStateWithUser(this.data.currentUserId);
     }
   }
 
   /**
-   * Sincroniza o estado (balance, vitality, etc) com um RA específico.
+   * Sincroniza o estado (balance, vitality, etc) com um ID específico.
    */
-  private syncStateWithUser(ra: string) {
-    const cleanRa = ra.toUpperCase().trim();
-    const userState = this.data?.userStates?.[cleanRa] || this.getDefaultState();
-    const user = (this.data?.users || []).find(u => u.ra?.toUpperCase() === cleanRa);
+  private syncStateWithUser(userId: string) {
+    const userState = this.data?.userStates?.[userId] || this.getDefaultState();
+    const user = (this.data?.users || []).find(u => u.id === userId);
 
-    // Se for o usuário global, atualiza os canais globais
-    if (cleanRa === this.data.currentUserRa?.toUpperCase()) {
+    // Se for o usuário logado localmente, atualiza os BehaviorSubjects globais
+    if (userId === this.data.currentUserId) {
       this.balanceSubject.next(userState.balance);
       this.vitalitySubject.next(userState.vitality);
       this.purchasedItemsSubject.next(userState.purchasedItems);
@@ -459,53 +462,52 @@ export class EcosystemService {
       if (user) this.levelSubject.next(user.level || 'Semente');
     }
 
-    // Sempre retorna os dados para quem pediu (ex: Kiosk)
     return { ...userState, level: user?.level || 'Semente' };
   }
 
   /**
-   * Atualiza os pontos de um usuário.
-   * @param ra RA do aluno.
-   * @param currentBalanceChange Mudança no saldo atual (pode ser negativo se ele gastar).
-   * @param lifetimePointsGain Ganho de pontos vitalícios (usado no ranking).
+   * Atualiza os pontos de um usuário usando seu ID como chave primária de estado.
+   * @param identifier RA ou ID do usuário.
+   * @param currentBalanceChange Mudança no saldo atual.
+   * @param lifetimePointsGain Ganho de pontos vitalícios.
    */
-  private syncUserPoints(ra: string, currentBalanceChange: number, lifetimePointsGain: number) {
-    const cleanRa = ra.toUpperCase().trim();
-    const state = this.data.userStates[cleanRa] || this.getDefaultState();
-    state.balance += Number(currentBalanceChange);
-    this.data.userStates[cleanRa] = state;
+  private syncUserPoints(identifier: string, currentBalanceChange: number, lifetimePointsGain: number) {
+    // Resolve o usuário (pode vir por RA do Kiosk ou ID do Admin)
+    const student = this.data.users.find(u => 
+      u.id === identifier || u.ra?.toUpperCase() === identifier.toUpperCase().trim()
+    );
 
-    // Atualiza os canais se o RA for o global OU o do Kiosk
-    if (cleanRa === this.data.currentUserRa?.toUpperCase() || cleanRa === this.kioskUserRaSubject.value?.toUpperCase()) {
+    if (!student) return;
+
+    const userId = student.id;
+    const state = this.data.userStates[userId] || this.getDefaultState();
+    state.balance += Number(currentBalanceChange);
+    this.data.userStates[userId] = state;
+
+    // Se for o usuário ativo (Global ou Kiosk), atualiza os canais de feedback imediato
+    if (userId === this.data.currentUserId || student.ra?.toUpperCase() === this.kioskUserRaSubject.value?.toUpperCase()) {
       this.balanceSubject.next(state.balance);
     }
 
-    // Atualiza a lista global de usuários para refletir no ranking
-    const studentIdx = (this.data?.users || []).findIndex(u => u.ra?.toUpperCase() === cleanRa);
-    if (studentIdx !== -1) {
-      const student = this.data.users[studentIdx];
-      student.points = (Number(student.points) || 0) + Number(lifetimePointsGain);
-      student.vitality = state.vitality;
-      student.itemsCount = state.purchasedItems.length;
+    // Atualiza metadados do aluno para o ranking
+    student.points = (Number(student.points) || 0) + Number(lifetimePointsGain);
+    student.vitality = state.vitality;
+    student.itemsCount = state.purchasedItems.length;
 
-      const score = EcosystemService.calculateTotalScore(student.points, state.vitality, state.purchasedItems.length);
-      student.level = this.calculateLevel(score, state.purchasedItems);
-      state.level = student.level;
+    const score = EcosystemService.calculateTotalScore(student.points, student.vitality || 0, student.itemsCount || 0);
+    student.level = this.calculateLevel(score, state.purchasedItems);
+    state.level = student.level;
 
-      if (cleanRa === this.data.currentUserRa?.toUpperCase() || cleanRa === this.kioskUserRaSubject.value?.toUpperCase()) {
-        this.levelSubject.next(student.level);
-      }
-
-      this.data.users[studentIdx] = { ...student };
-
-      // Sincroniza Usuário e Estado no Firestore usando ID único para estabilidade
-      setDoc(doc(db, "users", student.id), student);
-      setDoc(doc(db, "userStates", cleanRa), state);
-
-      this.usersSubject.next([...this.data.users]);
+    if (userId === this.data.currentUserId || student.ra?.toUpperCase() === this.kioskUserRaSubject.value?.toUpperCase()) {
+      this.levelSubject.next(student.level);
     }
 
-    this.saveToStorage(); // Salva as mudanças permanentemente
+    // Persistência Atômica no Firestore usando ID (Imutável)
+    setDoc(doc(db, "users", student.id), student);
+    setDoc(doc(db, "userStates", student.id), state);
+
+    this.usersSubject.next([...this.data.users]);
+    this.saveToStorage();
   }
 
   // Getters para acessar os dados atuais
@@ -658,14 +660,17 @@ export class EcosystemService {
   /**
    * Atualiza as configurações de hardware do sistema.
    */
-  updateSystemSettings(settings: SystemSettings) {
+  updateSystemSettings(settings: SystemSettings, targetSchoolId?: string) {
+    const currentRa = this.currentUserRaSubject.value;
+    const currentUser = this.data.users.find(u => u.ra === currentRa);
+    const schoolId = targetSchoolId || currentUser?.schoolId || 'global';
     this.data.systemSettings = settings;
     this.systemSettingsSubject.next(settings);
     this.saveToStorage();
 
-    // Sincroniza com Firestore
-    setDoc(doc(db, "settings", "global"), settings).catch(err => {
-      console.error("[FIREBASE] Erro ao salvar configurações:", err);
+    // Sincroniza com Firestore no documento da unidade
+    setDoc(doc(db, "settings", schoolId), settings).catch(err => {
+      console.error(`[FIREBASE] Erro ao salvar configurações para ${schoolId}:`, err);
     });
   }
 
@@ -711,7 +716,7 @@ export class EcosystemService {
     if (existing) return false;
 
     const newTerminal: Terminal = {
-      id: terminalId.toUpperCase().trim(),
+      id: EcosystemService.generateStandardId('totem', schoolId),
       hardwareId: hardwareId.toUpperCase().trim(),
       location: location.toUpperCase().trim(),
       status: 'pending',
@@ -802,7 +807,7 @@ export class EcosystemService {
 
     const newSchool: School = {
       ...schoolData,
-      id: `school-${Date.now()}`,
+      id: EcosystemService.generateStandardId('school', undefined, { name: schoolData.name, city: schoolData.city }),
       status: 'active',
       joinedDate: new Date().toISOString().split('T')[0]
     };
@@ -812,7 +817,7 @@ export class EcosystemService {
     // Cria o usuário gestor imediatamente
     if (newSchool.managerEmail) {
       const newUser: User = {
-        id: `user-admin-${Date.now()}-${Math.random().toString(36).slice(-4)}`,
+        id: EcosystemService.generateStandardId('admin', newSchool.id),
         name: `Gestor ${newSchool.name}`,
         email: newSchool.managerEmail,
         password: await EcosystemService.hashPassword(newSchool.managerPassword!),
@@ -932,13 +937,31 @@ export class EcosystemService {
   }
 
   /**
-   * Remove uma escola da rede.
+   * Remove uma escola da rede de forma segura.
+   * Só permite a exclusão se não houver gestores ativos vinculados à unidade.
    */
-  deleteSchool(id: string) {
-    if (!this.checkAdminAuth()) return;
-    this.data.schools = this.data.schools.filter(s => s.id !== id);
-    this.schoolsSubject.next([...this.data.schools]);
-    this.saveToStorage();
+  async deleteSchool(id: string): Promise<{ success: boolean; error?: string }> {
+    if (!this.checkAdminAuth()) return { success: false, error: 'Não autorizado' };
+
+    // Regra de Negócio: Primeiro remove os gestores, depois a unidade
+    const hasManagers = this.data.users.some(u => u.schoolId === id && u.role === 'admin');
+    if (hasManagers) {
+      return { 
+        success: false, 
+        error: 'Bloqueio de Segurança: Remova primeiro os gestores desta unidade antes de excluí-la.' 
+      };
+    }
+
+    try {
+      await deleteDoc(doc(db, "schools", id));
+      this.data.schools = this.data.schools.filter(s => s.id !== id);
+      this.schoolsSubject.next([...this.data.schools]);
+      this.saveToStorage();
+      return { success: true };
+    } catch (error) {
+      console.error("Erro ao deletar escola:", error);
+      return { success: false, error: 'Falha na comunicação com o banco de dados.' };
+    }
   }
 
 
@@ -1198,6 +1221,8 @@ export class EcosystemService {
     targetEntity?: string;
     targetId?: string;
     unitId?: string;
+    studentName?: string;
+    points?: number;
   }) {
     const actor = this.data?.users?.find(u => u.ra === this.currentUserRa);
   
@@ -1224,7 +1249,9 @@ export class EcosystemService {
       details: params.details,
       metadata: params.metadata,
       targetEntity: params.targetEntity,
-      targetId: params.targetId
+      targetId: params.targetId,
+      studentName: params.studentName,
+      points: params.points
     });
 
 
@@ -1432,6 +1459,8 @@ export class EcosystemService {
       details: `${points} Bio-Coins concedidos a ${student.name} no setor ${sector}. Motivo: ${action}`,
       targetEntity: 'users',
       targetId: student.id,
+      studentName: student.name,
+      points: points,
       unitId: terminalSchoolId || student.schoolId,
       metadata: { points, sector, action, originalRa: ra }
     });
@@ -1556,10 +1585,10 @@ export class EcosystemService {
     }
 
     // Reseta estados de ecossistema (vitalidade e itens)
-    Object.keys(this.data.userStates).forEach(ra => {
-      const user = this.data.users.find(u => u.ra === ra);
+    Object.keys(this.data.userStates).forEach(id => {
+      const user = this.data.users.find(u => u.id === id);
       if (user && (!schoolId || user.schoolId === schoolId)) {
-        this.data.userStates[ra] = this.getDefaultState();
+        this.data.userStates[id] = this.getDefaultState();
       }
     });
 
@@ -1579,16 +1608,16 @@ export class EcosystemService {
     });
 
     // Limpa estados de ecossistema no Firestore
-    Object.keys(this.data.userStates).forEach(ra => {
-      const user = this.data.users.find(u => u.ra === ra);
+    Object.keys(this.data.userStates).forEach(id => {
+      const user = this.data.users.find(u => u.id === id);
       if (user && (!schoolId || user.schoolId === schoolId)) {
-        setDoc(doc(db, "userStates", ra), this.data.userStates[ra]);
+        setDoc(doc(db, "userStates", id), this.data.userStates[id]);
       }
     });
 
     // Se o usuário logado foi resetado, atualiza saldo local
-    if (this.currentUserRa) {
-      this.syncStateWithUser(this.currentUserRa);
+    if (this.data.currentUserId) {
+      this.syncStateWithUser(this.data.currentUserId);
     }
 
     this.saveToStorage();
@@ -1698,7 +1727,7 @@ export class EcosystemService {
       this.data.currentUserRa = ra;
       this.data.currentUserId = user.id;
       this.currentUserRaSubject.next(ra);
-      this.syncStateWithUser(ra);
+      this.syncStateWithUser(user.id);
       this.resetSecurityState(securityKey);
 
       // Telemetria de Login
@@ -1762,7 +1791,10 @@ export class EcosystemService {
     const cleanRa = ra?.toUpperCase().trim() || null;
     this.kioskUserRaSubject.next(cleanRa);
     if (cleanRa) {
-      this.syncStateWithUser(cleanRa);
+      const user = this.data.users.find(u => u.ra?.toUpperCase() === cleanRa);
+      if (user) {
+        this.syncStateWithUser(user.id);
+      }
     }
   }
 
@@ -1785,119 +1817,137 @@ export class EcosystemService {
   }
 
   // Funções de atualização em massa (usadas no painel admin)
-  async updateUsers(newUsers: User[]): Promise<{ success: boolean, error?: string }> {
+  async updateUsers(newUsers: User[], targetSchoolId?: string): Promise<{ success: boolean, error?: string }> {
     if (!this.checkAdminAuth()) return { success: false, error: 'Não autorizado' };
 
-    // Validação Global de Dados Críticos Duplicados (Email, RA, RFID)
-    const emails = new Map<string, string>();
-    const ras = new Map<string, string>();
-    const rfids = new Map<string, string>();
+    try {
+      // Validação Global de Dados Críticos Duplicados (Email, RA, RFID)
+      const emails = new Map<string, string>();
+      const ras = new Map<string, string>();
+      const rfids = new Map<string, string>();
 
-    for (const u of newUsers) {
-      // 1. Validar Email
-      if (u.email) {
-        u.email = u.email.toLowerCase().trim();
-        if (emails.has(u.email)) {
-          return { success: false, error: `Conflito de e-mail: ${u.email}. Já em uso por ${emails.get(u.email)}` };
+      for (const u of newUsers) {
+        // 1. Validar Email
+        if (u.email) {
+          u.email = u.email.toLowerCase().trim();
+          if (emails.has(u.email)) {
+            return { success: false, error: `Conflito de e-mail: ${u.email}. Já em uso por ${emails.get(u.email)}` };
+          }
+          emails.set(u.email, u.name);
         }
-        emails.set(u.email, u.name);
+
+        // 2. Validar RA
+        if (u.ra) {
+          u.ra = u.ra.toUpperCase().trim();
+          if (ras.has(u.ra)) {
+            const conflictMsg = `Conflito de RA: ${u.ra}. O aluno ${ras.get(u.ra)} já utiliza este código.`;
+            return { success: false, error: conflictMsg };
+          }
+          ras.set(u.ra, u.name);
+        }
+
+        // 3. Validar RFID
+        if (u.rfid) {
+          u.rfid = u.rfid.toUpperCase().trim();
+          if (rfids.has(u.rfid)) {
+            const conflictMsg = `Conflito de RFID: ${u.rfid}. Já em uso por ${rfids.get(u.rfid)}.`;
+            return { success: false, error: conflictMsg };
+          }
+          rfids.set(u.rfid, u.name);
+        }
+
+        // 4. Normalizar campos de texto
+        if (u.name) u.name = u.name.toUpperCase().trim();
+        if (u.turma) u.turma = u.turma.toUpperCase().trim();
+        if (u.curso) u.curso = u.curso.toUpperCase().trim();
+        if (u.position) u.position = u.position.toUpperCase().trim();
+        if (!u.status) u.status = 'active';
       }
 
-      // 2. Validar RA
-      if (u.ra) {
-        u.ra = u.ra.toUpperCase().trim();
-        if (ras.has(u.ra)) {
-          const conflictMsg = `Conflito de RA: ${u.ra}. O aluno ${ras.get(u.ra)} já utiliza este código.`;
-          return { success: false, error: conflictMsg };
+      // 1. Identifica usuários removidos
+      // Se targetSchoolId for fornecido, apenas remove usuários daquela escola que não estão na nova lista
+      const removedUsers = this.data.users.filter(oldU => {
+        const isInNewList = newUsers.find(newU => newU.id === oldU.id);
+        if (targetSchoolId) {
+          return oldU.schoolId === targetSchoolId && !isInNewList;
         }
-        ras.set(u.ra, u.name);
-      }
-
-      // 3. Validar RFID
-      if (u.rfid) {
-        u.rfid = u.rfid.toUpperCase().trim();
-        if (rfids.has(u.rfid)) {
-          const conflictMsg = `Conflito de RFID: ${u.rfid}. Já em uso por ${rfids.get(u.rfid)}.`;
-          return { success: false, error: conflictMsg };
-        }
-        rfids.set(u.rfid, u.name);
-      }
-
-      // 4. Normalizar campos de texto
-      if (u.name) u.name = u.name.toUpperCase().trim();
-      if (u.turma) u.turma = u.turma.toUpperCase().trim();
-      if (u.curso) u.curso = u.curso.toUpperCase().trim();
-      if (u.position) u.position = u.position.toUpperCase().trim();
-      if (!u.status) u.status = 'active';
-    }
-
-    // 1. Identifica usuários removidos (estavam na lista antiga mas não na nova)
-    const removedUsers = this.data.users.filter(oldU => !newUsers.find(newU => newU.id === oldU.id));
-
-    // 2. Remove duplicatas por ID antes de processar
-    const uniqueUsers = Array.from(new Map(newUsers.map(u => [u.id, u])).values());
-
-    // 3. Identifica quais usuários mudaram para salvar apenas o necessário
-    const changedUsers = uniqueUsers.filter(newUser => {
-      const oldUser = this.data.users.find(u => u.id === newUser.id);
-      return !oldUser || JSON.stringify(oldUser) !== JSON.stringify(newUser);
-    });
-
-    const oldData = [...this.data.users];
-    this.data.users = uniqueUsers;
-    this.usersSubject.next([...uniqueUsers]);
-
-    // Sincroniza apenas os alterados no Firestore
-    await Promise.all([
-      // Deleta os removidos (Tenta pelo ID e pelo RA para garantir limpeza total)
-      ...removedUsers.flatMap(u => [
-        deleteDoc(doc(db, "users", u.id)),
-        ...(u.ra ? [deleteDoc(doc(db, "users", u.ra))] : [])
-      ]),
-
-      // Salva/Atualiza os novos ou modificados
-      ...changedUsers.map(u => {
-        const oldUser = oldData.find(old => old.id === u.id);
-
-        // Se o RA mudou, precisamos apagar o documento antigo (que usava o RA como ID)
-        if (oldUser && oldUser.ra && oldUser.ra !== u.ra) {
-          deleteDoc(doc(db, "users", oldUser.ra)).catch(e => console.error("Erro ao limpar RA antigo:", e));
-        }
-
-        // Agora sempre usamos o u.id como ID do documento para ser estável
-        return setDoc(doc(db, "users", u.id), u);
-      })
-    ]);
-
-    // Telemetria CRUD Usuários
-    if (removedUsers.length > 0) {
-      await this.logTelemetry({
-        action: 'CRUD_DELETE',
-        category: 'DATA',
-        details: `Exclusão de ${removedUsers.length} usuários.`,
-        targetEntity: 'users',
-        metadata: { ids: removedUsers.map(u => u.id), names: removedUsers.map(u => u.name) }
+        return !isInNewList;
       });
-    }
 
-    if (changedUsers.length > 0) {
-      for (const u of changedUsers) {
-        const isNew = !oldData.find(old => old.id === u.id);
+      // 2. Mescla os usuários (Preserva usuários de outras escolas se a lista for parcial/filtrada)
+      let uniqueUsers: User[];
+      if (targetSchoolId) {
+        const otherSchoolsUsers = this.data.users.filter(u => u.schoolId !== targetSchoolId);
+        uniqueUsers = [...otherSchoolsUsers, ...newUsers];
+      } else {
+        uniqueUsers = Array.from(new Map(newUsers.map(u => [u.id, u])).values());
+      }
+
+      // 3. Identifica quais usuários mudaram para salvar apenas o necessário
+      const changedUsers = newUsers.filter(newUser => {
+        const oldUser = this.data.users.find(u => u.id === newUser.id);
+        return !oldUser || JSON.stringify(oldUser) !== JSON.stringify(newUser);
+      });
+
+      const oldData = [...this.data.users];
+      this.data.users = uniqueUsers;
+      this.usersSubject.next([...uniqueUsers]);
+
+      // Sincroniza apenas os alterados no Firestore
+      await Promise.all([
+        // Deleta os removidos
+        ...removedUsers.flatMap(u => [
+          deleteDoc(doc(db, "users", u.id)),
+          ...(u.ra ? [deleteDoc(doc(db, "users", u.ra))] : [])
+        ]),
+
+        // Salva/Atualiza os novos ou modificados
+        ...changedUsers.map(u => {
+          const oldUser = oldData.find(old => old.id === u.id);
+
+          // Se o RA mudou, precisamos apagar o documento antigo (que usava o RA como ID)
+          if (oldUser && oldUser.ra && oldUser.ra !== u.ra) {
+            deleteDoc(doc(db, "users", oldUser.ra)).catch(e => console.error("Erro ao limpar RA antigo:", e));
+          }
+
+          return setDoc(doc(db, "users", u.id), u);
+        })
+      ]);
+
+      // Telemetria
+      if (removedUsers.length > 0) {
         await this.logTelemetry({
-          action: isNew ? 'CRUD_CREATE' : 'CRUD_UPDATE',
+          action: 'CRUD_DELETE',
           category: 'DATA',
-          details: `${isNew ? 'Criação' : 'Atualização'} do usuário: ${u.name} (${u.role})`,
+          details: `Exclusão de ${removedUsers.length} usuários.`,
           targetEntity: 'users',
-          targetId: u.id,
-          unitId: u.schoolId,
-          metadata: { snapshot: u }
+          metadata: { ids: removedUsers.map(u => u.id), names: removedUsers.map(u => u.name) }
         });
       }
-    }
 
-    this.saveToStorage();
-    return { success: true };
+      if (changedUsers.length > 0) {
+        for (const u of changedUsers) {
+          const isNew = !oldData.find(old => old.id === u.id);
+          await this.logTelemetry({
+            action: isNew ? 'CRUD_CREATE' : 'CRUD_UPDATE',
+            category: 'DATA',
+            details: `${isNew ? 'Criação' : 'Atualização'} do usuário: ${u.name} (${u.role})`,
+            targetEntity: 'users',
+            targetId: u.id,
+            unitId: u.schoolId,
+            metadata: { snapshot: u }
+          });
+        }
+      }
+
+      this.saveToStorage();
+      return { success: true };
+    } catch (error: any) {
+      console.error("[ECOSYSTEM] Erro ao atualizar usuários:", error);
+      return { success: false, error: error.message || 'Erro interno no banco de dados' };
+    }
   }
+
 
   async deleteUser(userId: string): Promise<boolean> {
     if (!this.checkAdminAuth()) return false;
@@ -1910,14 +1960,11 @@ export class EcosystemService {
     // 2. Remove do Firestore
     try {
       await deleteDoc(doc(db, "users", userId));
-      if (user.ra) {
-          await deleteDoc(doc(db, "users", user.ra));
-          await deleteDoc(doc(db, "userStates", user.ra));
-      }
+      await deleteDoc(doc(db, "userStates", userId));
       
       // Limpeza de cache local do userStates
-      if (user.ra && this.data.userStates) {
-          delete this.data.userStates[user.ra];
+      if (this.data.userStates) {
+          delete this.data.userStates[userId];
           this.userStatesSubject.next({ ...this.data.userStates });
       }
 
@@ -1929,8 +1976,15 @@ export class EcosystemService {
     }
   }
 
-  async deleteReward(id: string): Promise<boolean> {
+  async deleteReward(id: string, targetSchoolId?: string): Promise<boolean> {
     if (!this.checkAdminAuth()) return false;
+    
+    // Se targetSchoolId for fornecido, garante que o item pertence à unidade
+    if (targetSchoolId) {
+      const reward = this.data.rewards.find(r => r.id === id);
+      if (reward && reward.schoolId !== targetSchoolId) return false;
+    }
+
     this.data.rewards = this.data.rewards.filter(r => r.id !== id);
     this.rewardsSubject.next([...this.data.rewards]);
     try {
@@ -1940,8 +1994,14 @@ export class EcosystemService {
     } catch (error) { return false; }
   }
 
-  async deleteArticle(id: string): Promise<boolean> {
+  async deleteArticle(id: string, targetSchoolId?: string): Promise<boolean> {
     if (!this.checkAdminAuth()) return false;
+    
+    if (targetSchoolId) {
+      const article = this.data.articles.find(a => a.id === id);
+      if (article && article.schoolId !== targetSchoolId) return false;
+    }
+
     this.data.articles = this.data.articles.filter(a => a.id !== id);
     this.articlesSubject.next([...this.data.articles]);
     try {
@@ -1951,114 +2011,219 @@ export class EcosystemService {
     } catch (error) { return false; }
   }
 
-  async updateRewards(newRewards: Reward[]): Promise<boolean> {
+  async updateRewards(newRewards: Reward[], targetSchoolId?: string): Promise<boolean> {
     if (!this.checkAdminAuth()) return false;
 
-    const removedItems = this.data.rewards.filter(oldI => !newRewards.find(newI => newI.id === oldI.id));
-
-    const changedRewards = newRewards.filter(newR => {
-      const oldR = this.data.rewards.find(r => r.id === newR.id);
-      return !oldR || JSON.stringify(oldR) !== JSON.stringify(newR);
-    });
-
-    // Telemetria CRUD Recompensas
-    if (removedItems.length > 0) {
-      await this.logTelemetry({
-        action: 'CRUD_DELETE',
-        category: 'DATA',
-        details: `Exclusão de ${removedItems.length} recompensas.`,
-        targetEntity: 'rewards',
-        metadata: { ids: removedItems.map(i => i.id) }
+    try {
+      const removedItems = this.data.rewards.filter(oldI => {
+        const isInNewList = newRewards.find(newI => newI.id === oldI.id);
+        if (targetSchoolId) {
+          return oldI.schoolId === targetSchoolId && !isInNewList;
+        }
+        return !isInNewList;
       });
-    }
 
-    for (const r of changedRewards) {
-      const isNew = !this.data.rewards.find(old => old.id === r.id);
-      await this.logTelemetry({
-        action: isNew ? 'CRUD_CREATE' : 'CRUD_UPDATE',
-        category: 'DATA',
-        details: `${isNew ? 'Criação' : 'Edição'} de recompensa: ${r.name}`,
-        targetEntity: 'rewards',
-        targetId: r.id,
-        metadata: { snapshot: r }
+      const changedRewards = newRewards.filter(newR => {
+        const oldR = this.data.rewards.find(r => r.id === newR.id);
+        return !oldR || JSON.stringify(oldR) !== JSON.stringify(newR);
       });
+
+      // Telemetria CRUD Recompensas
+      if (removedItems.length > 0) {
+        await this.logTelemetry({
+          action: 'CRUD_DELETE',
+          category: 'DATA',
+          details: `Exclusão de ${removedItems.length} recompensas.`,
+          targetEntity: 'rewards',
+          metadata: { ids: removedItems.map(i => i.id) }
+        });
+      }
+
+      for (const r of changedRewards) {
+        const isNew = !this.data.rewards.find(old => old.id === r.id);
+        await this.logTelemetry({
+          action: isNew ? 'CRUD_CREATE' : 'CRUD_UPDATE',
+          category: 'DATA',
+          details: `${isNew ? 'Criação' : 'Edição'} de recompensa: ${r.name}`,
+          targetEntity: 'rewards',
+          targetId: r.id,
+          unitId: r.schoolId,
+          metadata: { snapshot: r }
+        });
+      }
+
+      // Mesclagem segura
+      let finalRewards: Reward[];
+      if (targetSchoolId) {
+        finalRewards = [...this.data.rewards.filter(r => r.schoolId !== targetSchoolId), ...newRewards];
+      } else {
+        finalRewards = newRewards;
+      }
+
+      this.data.rewards = finalRewards;
+      this.rewardsSubject.next(finalRewards);
+
+      // Sincroniza alterados e deleta removidos
+      await Promise.all([
+        ...removedItems.map(i => deleteDoc(doc(db, "rewards", i.id))),
+        ...changedRewards.map(r => setDoc(doc(db, "rewards", r.id), r))
+      ]);
+
+      this.saveToStorage();
+      return true;
+    } catch (error) {
+      console.error("[ECOSYSTEM] Erro ao atualizar recompensas:", error);
+      return false;
     }
-
-    this.data.rewards = newRewards;
-    this.rewardsSubject.next(newRewards);
-
-    // Sincroniza alterados e deleta removidos
-    await Promise.all([
-      ...removedItems.map(i => deleteDoc(doc(db, "rewards", i.id))),
-      ...changedRewards.map(r => setDoc(doc(db, "rewards", r.id), r))
-    ]);
-
-    this.saveToStorage();
-    return true;
   }
 
-  async updateArticles(newArticles: EducationArticle[]): Promise<boolean> {
+  async updateArticles(newArticles: EducationArticle[], targetSchoolId?: string): Promise<boolean> {
     if (!this.checkAdminAuth()) return false;
 
-    const removedItems = this.data.articles.filter(oldI => !newArticles.find(newI => newI.id === oldI.id));
-
-    const changedArticles = newArticles.filter(newA => {
-      const oldA = this.data.articles.find(a => a.id === newA.id);
-      return !oldA || JSON.stringify(oldA) !== JSON.stringify(newA);
-    });
-
-    this.data.articles = newArticles;
-    this.articlesSubject.next(newArticles);
-
-    // Telemetria CRUD Artigos
-    if (removedItems.length > 0) {
-      await this.logTelemetry({
-        action: 'CRUD_DELETE',
-        category: 'DATA',
-        details: `Exclusão de ${removedItems.length} artigos educativos.`,
-        targetEntity: 'articles',
-        metadata: { ids: removedItems.map(i => i.id) }
+    try {
+      const removedItems = this.data.articles.filter(oldI => {
+        const isInNewList = newArticles.find(newI => newI.id === oldI.id);
+        if (targetSchoolId) {
+          return oldI.schoolId === targetSchoolId && !isInNewList;
+        }
+        return !isInNewList;
       });
-    }
 
-    for (const a of changedArticles) {
-      const isNew = !this.data.articles.find(old => old.id === a.id);
-      await this.logTelemetry({
-        action: isNew ? 'CRUD_CREATE' : 'CRUD_UPDATE',
-        category: 'DATA',
-        details: `${isNew ? 'Criação' : 'Edição'} de artigo: ${a.title}`,
-        targetEntity: 'articles',
-        targetId: a.id,
-        metadata: { snapshot: a }
+      const changedArticles = newArticles.filter(newA => {
+        const oldA = this.data.articles.find(a => a.id === newA.id);
+        return !oldA || JSON.stringify(oldA) !== JSON.stringify(newA);
       });
+
+      // Telemetria CRUD Artigos
+      if (removedItems.length > 0) {
+        await this.logTelemetry({
+          action: 'CRUD_DELETE',
+          category: 'DATA',
+          details: `Exclusão de ${removedItems.length} artigos educativos.`,
+          targetEntity: 'articles',
+          metadata: { ids: removedItems.map(i => i.id) }
+        });
+      }
+
+      for (const a of changedArticles) {
+        const isNew = !this.data.articles.find(old => old.id === a.id);
+        await this.logTelemetry({
+          action: isNew ? 'CRUD_CREATE' : 'CRUD_UPDATE',
+          category: 'DATA',
+          details: `${isNew ? 'Criação' : 'Edição'} de artigo: ${a.title}`,
+          targetEntity: 'articles',
+          targetId: a.id,
+          unitId: a.schoolId,
+          metadata: { snapshot: a }
+        });
+      }
+
+      // Mesclagem segura
+      let finalArticles: EducationArticle[];
+      if (targetSchoolId) {
+        finalArticles = [...this.data.articles.filter(a => a.schoolId !== targetSchoolId), ...newArticles];
+      } else {
+        finalArticles = newArticles;
+      }
+
+      this.data.articles = finalArticles;
+      this.articlesSubject.next(finalArticles);
+
+      // Sincroniza alterados e deleta removidos
+      await Promise.all([
+        ...removedItems.map(i => deleteDoc(doc(db, "articles", i.id))),
+        ...changedArticles.map(a => setDoc(doc(db, "articles", a.id), a))
+      ]);
+
+      this.saveToStorage();
+      return true;
+    } catch (error) {
+      console.error("[ECOSYSTEM] Erro ao atualizar artigos:", error);
+      return false;
     }
-
-    // Sincroniza alterados e deleta removidos
-    await Promise.all([
-      ...removedItems.map(i => deleteDoc(doc(db, "articles", i.id))),
-      ...changedArticles.map(a => setDoc(doc(db, "articles", a.id), a))
-    ]);
-
-    this.saveToStorage();
-    return true;
   }
 
-  async updateQuizTopics(newTopics: QuizTopic[]): Promise<boolean> {
+  async deleteQuizTopic(id: string, targetSchoolId?: string): Promise<boolean> {
+    if (!this.checkAdminAuth()) return false;
+    
+    if (targetSchoolId) {
+      const topic = this.data.quizTopics.find(t => t.id === id);
+      if (topic && topic.schoolId !== targetSchoolId) return false;
+    }
+
+    this.data.quizTopics = this.data.quizTopics.filter(t => t.id !== id);
+    this.quizTopicsSubject.next([...this.data.quizTopics]);
+    try {
+      await deleteDoc(doc(db, "quizTopics", id));
+      this.saveToStorage();
+      return true;
+    } catch (error) { return false; }
+  }
+
+  async updateQuizTopics(newTopics: QuizTopic[], targetSchoolId?: string): Promise<boolean> {
     if (!this.checkAdminAuth()) return false;
 
-    const removedItems = this.data.quizTopics.filter(oldI => !newTopics.find(newI => newI.id === oldI.id));
+    try {
+      const removedItems = this.data.quizTopics.filter(oldI => {
+        const isInNewList = newTopics.find(newI => newI.id === oldI.id);
+        if (targetSchoolId) {
+          return oldI.schoolId === targetSchoolId && !isInNewList;
+        }
+        return !isInNewList;
+      });
 
-    this.data.quizTopics = newTopics;
-    this.quizTopicsSubject.next(newTopics);
+      const changedTopics = newTopics.filter(newT => {
+        const oldT = this.data.quizTopics.find(t => t.id === newT.id);
+        return !oldT || JSON.stringify(oldT) !== JSON.stringify(newT);
+      });
 
-    // Sincroniza alterados e deleta removidos
-    await Promise.all([
-      ...removedItems.map(i => deleteDoc(doc(db, "quizTopics", i.id))),
-      ...newTopics.map(topic => setDoc(doc(db, "quizTopics", topic.id), topic))
-    ]);
+      // Telemetria CRUD Tópicos
+      if (removedItems.length > 0) {
+        await this.logTelemetry({
+          action: 'CRUD_DELETE',
+          category: 'DATA',
+          details: `Exclusão de ${removedItems.length} tópicos de quiz.`,
+          targetEntity: 'quizTopics',
+          metadata: { ids: removedItems.map(i => i.id) }
+        });
+      }
 
-    this.saveToStorage();
-    return true;
+      for (const t of changedTopics) {
+        const isNew = !this.data.quizTopics.find(old => old.id === t.id);
+        await this.logTelemetry({
+          action: isNew ? 'CRUD_CREATE' : 'CRUD_UPDATE',
+          category: 'DATA',
+          details: `${isNew ? 'Criação' : 'Edição'} de tópico de quiz: ${t.name}`,
+          targetEntity: 'quizTopics',
+          targetId: t.id,
+          unitId: t.schoolId,
+          metadata: { snapshot: t }
+        });
+      }
+
+      // Mesclagem segura
+      let finalTopics: QuizTopic[];
+      if (targetSchoolId) {
+        finalTopics = [...this.data.quizTopics.filter(t => t.schoolId !== targetSchoolId), ...newTopics];
+      } else {
+        finalTopics = newTopics;
+      }
+
+      this.data.quizTopics = finalTopics;
+      this.quizTopicsSubject.next(finalTopics);
+
+      // Sincroniza alterados e deleta removidos
+      await Promise.all([
+        ...removedItems.map(i => deleteDoc(doc(db, "quizTopics", i.id))),
+        ...changedTopics.map(t => setDoc(doc(db, "quizTopics", t.id), t))
+      ]);
+
+      this.saveToStorage();
+      return true;
+    } catch (error) {
+      console.error("[ECOSYSTEM] Erro ao atualizar tópicos de quiz:", error);
+      return false;
+    }
   }
 
   updateParticipants(newParticipants: Participant[]) {
@@ -2073,107 +2238,188 @@ export class EcosystemService {
     this.saveToStorage();
   }
 
-  async updateTurmas(newTurmas: Turma[]) {
-    if (!this.checkAdminAuth()) return;
+  async updateTurmas(newTurmas: Turma[], targetSchoolId?: string): Promise<boolean> {
+    if (!this.checkAdminAuth()) return false;
 
-    const removedItems = this.data.turmas.filter(oldI => !newTurmas.find(newI => newI.id === oldI.id));
-
-    // Telemetria Estrutural (Turmas)
-    if (removedItems.length > 0) {
-      await this.logTelemetry({
-        action: 'CONFIG_CHANGE',
-        category: 'DATA',
-        details: `Atualização estrutural de turmas na unidade. Excluídas: ${removedItems.length}`,
-        targetEntity: 'turmas',
-        metadata: { count: newTurmas.length, removed: removedItems.map(i => i.name) }
+    try {
+      const removedItems = this.data.turmas.filter(oldI => {
+        const isInNewList = newTurmas.find(newI => newI.id === oldI.id);
+        if (targetSchoolId) {
+          return oldI.schoolId === targetSchoolId && !isInNewList;
+        }
+        return !isInNewList;
       });
+
+      // Telemetria Estrutural (Turmas)
+      if (removedItems.length > 0) {
+        await this.logTelemetry({
+          action: 'CONFIG_CHANGE',
+          category: 'DATA',
+          details: `Atualização estrutural de turmas na unidade. Excluídas: ${removedItems.length}`,
+          targetEntity: 'turmas',
+          metadata: { count: newTurmas.length, removed: removedItems.map(i => i.name) }
+        });
+      }
+
+      // Mesclagem segura
+      let finalTurmas: Turma[];
+      if (targetSchoolId) {
+        finalTurmas = [...this.data.turmas.filter(t => t.schoolId !== targetSchoolId), ...newTurmas];
+      } else {
+        finalTurmas = newTurmas;
+      }
+
+      this.data.turmas = finalTurmas;
+      this.turmasSubject.next([...finalTurmas]);
+
+      await Promise.all([
+        ...removedItems.map(i => deleteDoc(doc(db, "turmas", i.id))),
+        ...newTurmas.map(t => setDoc(doc(db, "turmas", t.id), t))
+      ]);
+      
+      this.saveToStorage();
+      return true;
+    } catch (error) {
+      console.error("[ECOSYSTEM] Erro ao atualizar turmas:", error);
+      return false;
     }
-
-    this.data.turmas = newTurmas;
-    this.turmasSubject.next([...newTurmas]);
-
-    await Promise.all([
-      ...removedItems.map(i => deleteDoc(doc(db, "turmas", i.id))),
-      ...newTurmas.map(t => setDoc(doc(db, "turmas", t.id), t))
-    ]);
-    this.saveToStorage();
   }
 
-  async updateCursos(newCursos: Curso[]) {
-    if (!this.checkAdminAuth()) return;
+  async updateCursos(newCursos: Curso[], targetSchoolId?: string): Promise<boolean> {
+    if (!this.checkAdminAuth()) return false;
 
-    const removedItems = this.data.cursos.filter(oldI => !newCursos.find(newI => newI.id === oldI.id));
-
-    // Telemetria Estrutural (Cursos)
-    if (removedItems.length > 0) {
-      await this.logTelemetry({
-        action: 'CONFIG_CHANGE',
-        category: 'DATA',
-        details: `Atualização estrutural de cursos técnicos. Excluídos: ${removedItems.length}`,
-        targetEntity: 'cursos',
-        metadata: { count: newCursos.length, removed: removedItems.map(i => i.name) }
+    try {
+      const removedItems = this.data.cursos.filter(oldI => {
+        const isInNewList = newCursos.find(newI => newI.id === oldI.id);
+        if (targetSchoolId) {
+          return oldI.schoolId === targetSchoolId && !isInNewList;
+        }
+        return !isInNewList;
       });
+
+      if (removedItems.length > 0) {
+        await this.logTelemetry({
+          action: 'CONFIG_CHANGE',
+          category: 'DATA',
+          details: `Atualização estrutural de cursos técnicos. Excluídos: ${removedItems.length}`,
+          targetEntity: 'cursos',
+          metadata: { count: newCursos.length, removed: removedItems.map(i => i.name) }
+        });
+      }
+
+      let finalCursos: Curso[];
+      if (targetSchoolId) {
+        finalCursos = [...this.data.cursos.filter(c => c.schoolId !== targetSchoolId), ...newCursos];
+      } else {
+        finalCursos = newCursos;
+      }
+
+      this.data.cursos = finalCursos;
+      this.cursosSubject.next([...finalCursos]);
+
+      await Promise.all([
+        ...removedItems.map(i => deleteDoc(doc(db, "cursos", i.id))),
+        ...newCursos.map(c => setDoc(doc(db, "cursos", c.id), c))
+      ]);
+      
+      this.saveToStorage();
+      return true;
+    } catch (error) {
+      console.error("[ECOSYSTEM] Erro ao atualizar cursos:", error);
+      return false;
     }
-
-    this.data.cursos = newCursos;
-    this.cursosSubject.next([...newCursos]);
-
-    await Promise.all([
-      ...removedItems.map(i => deleteDoc(doc(db, "cursos", i.id))),
-      ...newCursos.map(c => setDoc(doc(db, "cursos", c.id), c))
-    ]);
-    this.saveToStorage();
   }
 
-  async updateCargos(newCargos: Cargo[]) {
-    if (!this.checkAdminAuth()) return;
+  async updateCargos(newCargos: Cargo[], targetSchoolId?: string): Promise<boolean> {
+    if (!this.checkAdminAuth()) return false;
 
-    const removedItems = this.data.cargos.filter(oldI => !newCargos.find(newI => newI.id === oldI.id));
-
-    if (removedItems.length > 0) {
-      await this.logTelemetry({
-        action: 'CONFIG_CHANGE',
-        category: 'DATA',
-        details: `Atualização de cargos administrativos. Excluídos: ${removedItems.length}`,
-        targetEntity: 'cargos',
-        metadata: { count: newCargos.length, removed: removedItems.map(i => i.name) }
+    try {
+      const removedItems = this.data.cargos.filter(oldI => {
+        const isInNewList = newCargos.find(newI => newI.id === oldI.id);
+        if (targetSchoolId) {
+          return oldI.schoolId === targetSchoolId && !isInNewList;
+        }
+        return !isInNewList;
       });
+
+      if (removedItems.length > 0) {
+        await this.logTelemetry({
+          action: 'CONFIG_CHANGE',
+          category: 'DATA',
+          details: `Atualização de cargos administrativos. Excluídos: ${removedItems.length}`,
+          targetEntity: 'cargos',
+          metadata: { count: newCargos.length, removed: removedItems.map(i => i.name) }
+        });
+      }
+
+      let finalCargos: Cargo[];
+      if (targetSchoolId) {
+        finalCargos = [...this.data.cargos.filter(c => c.schoolId !== targetSchoolId), ...newCargos];
+      } else {
+        finalCargos = newCargos;
+      }
+
+      this.data.cargos = finalCargos;
+      this.cargosSubject.next([...finalCargos]);
+
+      await Promise.all([
+        ...removedItems.map(i => deleteDoc(doc(db, "cargos", i.id))),
+        ...newCargos.map(c => setDoc(doc(db, "cargos", c.id), c))
+      ]);
+      
+      this.saveToStorage();
+      return true;
+    } catch (error) {
+      console.error("[ECOSYSTEM] Erro ao atualizar cargos:", error);
+      return false;
     }
-
-    this.data.cargos = newCargos;
-    this.cargosSubject.next([...newCargos]);
-
-    await Promise.all([
-      ...removedItems.map(i => deleteDoc(doc(db, "cargos", i.id))),
-      ...newCargos.map(c => setDoc(doc(db, "cargos", c.id), c))
-    ]);
-    this.saveToStorage();
   }
 
-  async updateSetores(newSetores: SetorEscolar[]) {
-    if (!this.checkAdminAuth()) return;
+  async updateSetores(newSetores: SetorEscolar[], targetSchoolId?: string): Promise<boolean> {
+    if (!this.checkAdminAuth()) return false;
 
-    const removedItems = this.data.setores.filter(oldI => !newSetores.find(newI => newI.id === oldI.id));
-
-    if (removedItems.length > 0) {
-      await this.logTelemetry({
-        action: 'CONFIG_CHANGE',
-        category: 'DATA',
-        details: `Atualização de setores escolares. Excluídos: ${removedItems.length}`,
-        targetEntity: 'setores',
-        metadata: { count: newSetores.length, removed: removedItems.map(i => i.name) }
+    try {
+      const removedItems = this.data.setores.filter(oldI => {
+        const isInNewList = newSetores.find(newI => newI.id === oldI.id);
+        if (targetSchoolId) {
+          return oldI.schoolId === targetSchoolId && !isInNewList;
+        }
+        return !isInNewList;
       });
+
+      if (removedItems.length > 0) {
+        await this.logTelemetry({
+          action: 'CONFIG_CHANGE',
+          category: 'DATA',
+          details: `Atualização de setores escolares. Excluídos: ${removedItems.length}`,
+          targetEntity: 'setores',
+          metadata: { count: newSetores.length, removed: removedItems.map(i => i.name) }
+        });
+      }
+
+      let finalSetores: SetorEscolar[];
+      if (targetSchoolId) {
+        finalSetores = [...this.data.setores.filter(s => s.schoolId !== targetSchoolId), ...newSetores];
+      } else {
+        finalSetores = newSetores;
+      }
+
+      this.data.setores = finalSetores;
+      this.setoresSubject.next([...finalSetores]);
+
+      await Promise.all([
+        ...removedItems.map(i => deleteDoc(doc(db, "setores", i.id))),
+        ...newSetores.map(s => setDoc(doc(db, "setores", s.id), s))
+      ]);
+      
+      this.saveToStorage();
+      return true;
+    } catch (error) {
+      console.error("[ECOSYSTEM] Erro ao atualizar setores:", error);
+      return false;
     }
-
-    this.data.setores = newSetores;
-    this.setoresSubject.next([...newSetores]);
-
-    await Promise.all([
-      ...removedItems.map(i => deleteDoc(doc(db, "setores", i.id))),
-      ...newSetores.map(s => setDoc(doc(db, "setores", s.id), s))
-    ]);
-    this.saveToStorage();
   }
+
 
   /**
    * Altera a senha de um usuário (principalmente gestores).
@@ -2245,6 +2491,45 @@ export class EcosystemService {
   }
 
   /**
+   * Gera um ID padronizado baseado no tipo, unidade e código aleatório.
+   * Padrão: {prefixo}-{schoolId/dados}-{codigo}
+   */
+  static generateStandardId(prefix: string, schoolId?: string | null, metadata?: { name?: string, city?: string }): string {
+    const random = Math.random().toString(36).substring(2, 7).toUpperCase();
+    
+    if (prefix === 'super') return `super-${random}`;
+
+    if (prefix === 'school' && metadata?.name && metadata?.city) {
+      // 1. Extrai Iniciais (Ignora preposições)
+      const stopWords = ['DE', 'DA', 'DO', 'DOS', 'DAS', 'E'];
+      const initials = metadata.name
+        .toUpperCase()
+        .split(' ')
+        .filter(word => word.length > 0 && !stopWords.includes(word))
+        .map(word => word[0])
+        .join('');
+
+      // 2. Sanitiza Cidade (Sem espaços e sem acentos)
+      const cleanCity = metadata.city
+        .toUpperCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // Remove acentos
+        .replace(/\s+/g, ''); // Remove espaços
+
+      return `SCH-${initials}-${cleanCity}-${random}`;
+    }
+
+    if (prefix === 'rw' || prefix === 'ctd' || prefix === 'trm' || prefix === 'cur' || prefix === 'crg' || prefix === 'str' || prefix === 'qz') {
+      const cleanSchoolId = schoolId === 'global' ? 'global' : (schoolId?.replace('school-', '') || 'global');
+      return `${prefix}-${cleanSchoolId}-${random}`;
+    }
+    
+    // Remove o prefixo 'school-' se existir para o ID ficar mais curto
+    const cleanSchoolId = schoolId?.replace('school-', '') || 'global';
+    return `${prefix}-${cleanSchoolId}-${random}`;
+  }
+
+  /**
    * Determina a classificação visual do usuário (título honorário).
    */
   private calculateLevel(score: number, purchasedItems?: EcosystemItem[]): UserLevel {
@@ -2285,12 +2570,15 @@ export class EcosystemService {
   /**
    * Remove itens duplicados de uma lista baseada no nome e ID.
    */
-  private deduplicateByName<T extends { id: string; name: string }>(items: T[]): T[] {
+  private deduplicateByName<T extends { id: string; name: string; schoolId?: string }>(items: T[]): T[] {
     const unique = new Map<string, T>();
     items.forEach(item => {
-      // Se não tem o ID e não tem nenhum item com o mesmo nome
-      if (!unique.has(item.id) && !Array.from(unique.values()).some(existing => existing.name === item.name)) {
-        unique.set(item.id, item);
+      // Chave composta por Nome + Unidade para permitir nomes iguais em escolas diferentes
+      const key = `${item.id}-${item.schoolId || 'global'}`;
+      const nameKey = `${item.name.toUpperCase().trim()}-${item.schoolId || 'global'}`;
+      
+      if (!unique.has(key) && !Array.from(unique.values()).some(existing => `${existing.name.toUpperCase().trim()}-${existing.schoolId || 'global'}` === nameKey)) {
+        unique.set(key, item);
       }
     });
     return Array.from(unique.values());
@@ -2314,6 +2602,23 @@ export class EcosystemService {
     if (!this.data.participants) this.data.participants = [];
     if (!this.data.quizTopics) this.data.quizTopics = QUIZ_TOPICS_MOCK;
 
+    // 2. Higienização de Entidades (Garante que cada item tenha um schoolId válido)
+    const normalize = (items: any[], prefix: string, collection: string) => {
+      if (!items) return [];
+      return items.map(item => {
+        // Garantimos que dados sem unidade não "vazem" como globais indevidamente
+        if (!item.schoolId) item.schoolId = 'orphan-fix';
+        return item;
+      });
+    };
+
+    this.data.rewards = normalize(this.data.rewards, 'rw', 'rewards');
+    this.data.articles = normalize(this.data.articles, 'ctd', 'articles');
+    this.data.turmas = normalize(this.data.turmas, 'trm', 'turmas');
+    this.data.cursos = normalize(this.data.cursos, 'cur', 'cursos');
+    this.data.cargos = normalize(this.data.cargos, 'crg', 'cargos');
+    this.data.setores = normalize(this.data.setores, 'str', 'setores');
+
     // 3. Gestão de Usuários e Segurança
     const uniqueUsers = new Map<string, User>();
     this.data.users.forEach(u => {
@@ -2335,7 +2640,7 @@ export class EcosystemService {
         const gestorExists = this.data.users.some(u => u.email?.toLowerCase() === school.managerEmail?.toLowerCase());
         if (!gestorExists) {
           const newUser: User = {
-            id: `user-admin-${school.id}`,
+            id: EcosystemService.generateStandardId('admin', school.id),
             name: `Gestor ${school.name}`,
             email: school.managerEmail,
             password: ADMIN_MOCK.password,
@@ -2352,6 +2657,12 @@ export class EcosystemService {
     });
 
     this.data.users = this.data.users.map(u => {
+      // Normalização Global (Maiúsculas e Trim)
+      if (u.name) u.name = u.name.toUpperCase().trim();
+      if (u.ra) u.ra = u.ra.toUpperCase().trim();
+      if (u.turma) u.turma = u.turma.toUpperCase().trim();
+      if (u.curso) u.curso = u.curso.toUpperCase().trim();
+
       // Garante que usuários administrativos não constem no ranking de pontuação
       if (u.role !== 'student' && u.role !== 'visitor') u.points = 0;
 
@@ -2417,7 +2728,7 @@ export class EcosystemService {
 
     // 1. Cria o novo usuário
     const newUser: User = {
-      id: `user-student-${Date.now()}-${Math.random().toString(36).slice(-4)}`,
+      id: EcosystemService.generateStandardId('user-student', request.schoolId),
       name: request.name.toUpperCase().trim(),
       ra: request.ra.toUpperCase().trim(),
       rfid: request.rfid?.toUpperCase().trim(),

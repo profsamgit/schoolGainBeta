@@ -39,18 +39,21 @@ interface EcosystemContextType {
   login: (ra: string, password?: string) => Promise<boolean>; // Entrar no sistema
   logout: () => void;             // Sair do sistema
   addPoints: (points: number, studentRa?: string) => void; // Dar pontos
-  updateUsers: (newUsers: User[]) => Promise<{ success: boolean, error?: string }>;
-  updateRewards: (newRewards: Reward[]) => Promise<boolean>;
-  updateArticles: (newArticles: EducationArticle[]) => Promise<boolean>;
-  updateQuizTopics: (newTopics: QuizTopic[]) => Promise<boolean>;
+  updateUsers: (newUsers: User[], targetSchoolId?: string) => Promise<{ success: boolean, error?: string }>;
+  updateRewards: (newRewards: Reward[], targetSchoolId?: string) => Promise<boolean>;
+  updateArticles: (newArticles: EducationArticle[], targetSchoolId?: string) => Promise<boolean>;
+  updateQuizTopics: (newTopics: QuizTopic[], targetSchoolId?: string) => Promise<boolean>;
+  deleteQuizTopic: (id: string, targetSchoolId?: string) => Promise<boolean>;
+  deleteReward: (id: string, targetSchoolId?: string) => Promise<boolean>;
+  deleteArticle: (id: string, targetSchoolId?: string) => Promise<boolean>;
   allTurmas: Turma[];
   allCursos: Curso[];
   allCargos: Cargo[];
   allSetores: SetorEscolar[];
-  updateTurmas: (newTurmas: Turma[]) => void;
-  updateCursos: (newCursos: Curso[]) => void;
-  updateCargos: (newCargos: Cargo[]) => void;
-  updateSetores: (newSetores: SetorEscolar[]) => void;
+  updateTurmas: (newTurmas: Turma[], targetSchoolId?: string) => Promise<boolean>;
+  updateCursos: (newCursos: Curso[], targetSchoolId?: string) => Promise<boolean>;
+  updateCargos: (newCargos: Cargo[], targetSchoolId?: string) => Promise<boolean>;
+  updateSetores: (newSetores: SetorEscolar[], targetSchoolId?: string) => Promise<boolean>;
   getUserState: (ra: string) => any;
   auditLogs: AuditLogEntry[]; // Histórico de pontos dados por admins
   grantPoints: (ra: string, points: number, sector: string, action: string, adminName: string, password?: string, terminalSchoolId?: string) => Promise<boolean>;
@@ -59,7 +62,7 @@ interface EcosystemContextType {
   getGlobalLeader: () => any;       // O aluno número 1 do sistema
   grantSightingBonus: (ra: string) => void;
   systemSettings: any;              // Configurações de hardware
-  updateSystemSettings: (settings: any) => void;
+  updateSystemSettings: (settings: any, targetSchoolId?: string) => void;
   hardwareId: string | null;
   pendingHardwareLogin: { ra: string, terminalId: string } | null;
   terminals: Terminal[];
@@ -72,15 +75,13 @@ interface EcosystemContextType {
   registerSchool: (data: Omit<School, 'id' | 'status' | 'joinedDate'>) => Promise<boolean>;
   updateSchoolStatus: (id: string, status: 'active' | 'pending' | 'inactive' | 'suspended') => Promise<void>;
   updateSchools: (newSchools: School[]) => void;
-  deleteSchool: (id: string) => void;
+  deleteSchool: (id: string) => Promise<{ success: boolean; error?: string }>;
   getLockoutStatus: (id: string) => { isLocked: boolean, remainingSeconds: number };
   registrationRequests: RegistrationRequest[];
   requestRegistration: (data: any) => Promise<boolean>;
   approveRegistration: (id: string) => Promise<boolean>;
   rejectRegistration: (id: string) => Promise<boolean>;
   deleteUser: (userId: string) => Promise<boolean>;
-  deleteReward: (id: string) => Promise<boolean>;
-  deleteArticle: (id: string) => Promise<boolean>;
   updateUserStatus: (userId: string, status: 'active' | 'inactive') => Promise<boolean>;
   wasteEntries: WasteEntry[];
   registerWaste: (ra: string, type: WasteType, weightKg: number, terminalSchoolId?: string) => boolean;
@@ -119,9 +120,16 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const [turmas, setTurmas] = useState<Turma[]>(service.allTurmas);
   const [userStates, setUserStates] = useState<Record<string, any>>(service.userStates || {});
 
-  // --- LÓGICA DE PREVIEW (MODO AUDITORIA) ---
+   // --- LÓGICA DE PREVIEW (MODO AUDITORIA) ---
   const searchParams = useSearchParams();
   const previewId = searchParams.get('preview');
+  const qSchoolId = searchParams.get('schoolId');
+
+  const targetSchoolId = useMemo(() => {
+    const user = users.find(u => u.ra === currentUserRa);
+    if (user?.role === 'super_admin' && qSchoolId) return qSchoolId;
+    return user?.schoolId;
+  }, [qSchoolId, users, currentUserRa]);
 
   const isPreviewMode = useMemo(() => {
     return !!(previewId && (currentUserRa && users.find(u => u.ra === currentUserRa)?.role?.includes('admin')));
@@ -152,7 +160,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const [cursos, setCursos] = useState<Curso[]>(service.allCursos);
   const [cargos, setCargos] = useState<Cargo[]>(service.allCargos);
   const [setores, setSetores] = useState<SetorEscolar[]>(service.allSetores);
-  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(service.auditLogs);
+  const [rawAuditLogs, setRawAuditLogs] = useState<AuditLogEntry[]>(service.auditLogs);
   const [systemSettings, setSystemSettings] = useState(service.systemSettings);
   const [pendingHardwareLogin, setPendingHardwareLogin] = useState<{ ra: string, terminalId: string } | null>(null);
   const [terminals, setTerminals] = useState<Terminal[]>(service.terminals);
@@ -175,7 +183,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
     const turmasSub = service.turmas$.subscribe(setTurmas);
     const cursosSub = service.cursos$.subscribe(setCursos);
     const purchasedItemsSub = service.purchasedItems$.subscribe(setPurchasedItems);
-    const auditLogsSub = service.auditLogs$.subscribe(setAuditLogs);
+    const auditLogsSub = service.auditLogs$.subscribe(setRawAuditLogs);
     const levelSub = service.level$.subscribe(setLevel);
     const settingsSub = service.systemSettings$.subscribe(setSystemSettings);
     const pendingLoginSub = service.pendingLogin$.subscribe(setPendingHardwareLogin);
@@ -239,6 +247,53 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
     return users.find((u: User) => u.ra === currentUserRa) || null;
   }, [currentUserRa, users]);
 
+  const allRewards = useMemo(() => {
+    const sid = targetSchoolId || currentUser?.schoolId;
+    return rewards.filter((r: Reward) => (sid && r.schoolId === sid));
+  }, [rewards, currentUser, targetSchoolId]);
+
+  const allArticles = useMemo(() => {
+    const sid = targetSchoolId || currentUser?.schoolId;
+    return articles.filter((a: EducationArticle) => (sid && a.schoolId === sid));
+  }, [articles, currentUser, targetSchoolId]);
+
+  const allTurmas = useMemo(() => {
+    const sid = targetSchoolId || currentUser?.schoolId;
+    return turmas.filter((t: Turma) => (sid && t.schoolId === sid));
+  }, [turmas, currentUser, targetSchoolId]);
+
+  const allQuizTopics = useMemo(() => {
+    const sid = targetSchoolId || currentUser?.schoolId;
+    return quizTopics.filter((t: QuizTopic) => (sid && t.schoolId === sid));
+  }, [quizTopics, currentUser, targetSchoolId]);
+
+  const allCursos = useMemo(() => {
+    const sid = targetSchoolId || currentUser?.schoolId;
+    return cursos.filter((c: Curso) => (sid && c.schoolId === sid));
+  }, [cursos, currentUser, targetSchoolId]);
+
+  const auditLogs = useMemo(() => {
+    const sid = targetSchoolId || currentUser?.schoolId;
+    
+    // Super Admin sem targetSchoolId vê tudo (opcional, dependendo da preferência)
+    if (currentUser?.role === 'super_admin' && !targetSchoolId) return rawAuditLogs;
+
+    // Se não houver unidade identificada, não mostra nada por segurança
+    if (!sid && !isPreviewMode) return [];
+
+    return rawAuditLogs.filter((l: AuditLogEntry) => l.unitId === 'MASTER' || (sid && l.unitId === sid));
+  }, [rawAuditLogs, currentUser, targetSchoolId, isPreviewMode]);
+
+  const allCargos = useMemo(() => {
+    const sid = targetSchoolId || currentUser?.schoolId;
+    return cargos.filter((c: Cargo) => (sid && c.schoolId === sid));
+  }, [cargos, currentUser, targetSchoolId]);
+
+  const allSetores = useMemo(() => {
+    const sid = targetSchoolId || currentUser?.schoolId;
+    return setores.filter((s: SetorEscolar) => (sid && s.schoolId === sid));
+  }, [setores, currentUser, targetSchoolId]);
+
   const completeDailyMission = (points: number) => {
     const res = service.completeDailyMission(points);
     if (res) {
@@ -254,17 +309,18 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const login = (ra: string, pass?: string) => service.login(ra, pass);
   const logout = service.logout.bind(service);
   const addPoints = service.addPoints.bind(service);
-  const updateUsers = async (newUsers: User[]) => await service.updateUsers(newUsers);
+  const updateUsers = async (newUsers: User[], targetSchoolId?: string) => await service.updateUsers(newUsers, targetSchoolId);
   const deleteUser = async (userId: string) => await service.deleteUser(userId);
-  const deleteReward = async (id: string) => await service.deleteReward(id);
-  const deleteArticle = async (id: string) => await service.deleteArticle(id);
-  const updateRewards = async (newRewards: Reward[]) => await service.updateRewards(newRewards);
-  const updateArticles = async (newArticles: EducationArticle[]) => await service.updateArticles(newArticles);
-  const updateQuizTopics = async (newTopics: QuizTopic[]) => await service.updateQuizTopics(newTopics);
-  const updateTurmas = service.updateTurmas.bind(service);
-  const updateCursos = service.updateCursos.bind(service);
-  const updateCargos = service.updateCargos.bind(service);
-  const updateSetores = service.updateSetores.bind(service);
+  const deleteReward = async (id: string, sid?: string) => await service.deleteReward(id, sid);
+  const deleteArticle = async (id: string, sid?: string) => await service.deleteArticle(id, sid);
+  const updateRewards = async (newRewards: Reward[], sid?: string) => await service.updateRewards(newRewards, sid);
+  const updateArticles = async (newArticles: EducationArticle[], sid?: string) => await service.updateArticles(newArticles, sid);
+  const updateQuizTopics = async (newTopics: QuizTopic[], sid?: string) => await service.updateQuizTopics(newTopics, sid);
+  const deleteQuizTopic = async (id: string, sid?: string) => await service.deleteQuizTopic(id, sid);
+  const updateTurmas = async (newTurmas: Turma[], sid?: string) => await service.updateTurmas(newTurmas, sid);
+  const updateCursos = async (newCursos: Curso[], sid?: string) => await service.updateCursos(newCursos, sid);
+  const updateCargos = async (newCargos: Cargo[], sid?: string) => await service.updateCargos(newCargos, sid);
+  const updateSetores = async (newSetores: SetorEscolar[], sid?: string) => await service.updateSetores(newSetores, sid);
   const grantPoints = (ra: string, pts: number, sec: string, act: string, adm: string, pass?: string, tSId?: string) => service.grantPoints(ra, pts, sec, act, adm, pass, tSId);
   const getMonthlyLegends = service.getMonthlyLegends.bind(service);
   const isNessieAvailable = service.isNessieAvailable.bind(service);
@@ -279,7 +335,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const registerSchool = (data: any) => service.registerSchool(data);
   const updateSchoolStatus = (id: any, status: any) => service.updateSchoolStatus(id, status);
   const updateSchools = (newSchools: any) => service.updateSchools(newSchools);
-  const deleteSchool = (id: any) => service.deleteSchool(id);
+  const deleteSchool = async (id: any) => await service.deleteSchool(id);
   const registerWaste = (ra: string, type: WasteType, weightKg: number, tSId?: string) => service.registerWaste(ra, type, weightKg, tSId);
   const identifyKioskUser = service.identifyKioskUser.bind(service);
   const performCycleReset = (pass: string, sId?: string) => service.performCycleReset(pass, sId);
@@ -313,8 +369,8 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
       allParticipants: participants,
       updateParticipants,
       users,
-      allRewards: rewards,
-      allArticles: articles,
+      allRewards,
+      allArticles,
       allQuizTopics: quizTopics,
       currentUserRa,
       currentUser: displayUser,
@@ -328,10 +384,11 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
       updateRewards,
       updateArticles,
       updateQuizTopics,
-      allTurmas: turmas,
-      allCursos: cursos,
-      allCargos: cargos,
-      allSetores: setores,
+      deleteQuizTopic,
+      allTurmas,
+      allCursos,
+      allCargos,
+      allSetores,
       updateTurmas,
       updateCursos,
       updateCargos,

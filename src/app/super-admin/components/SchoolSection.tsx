@@ -38,7 +38,7 @@ import Link from 'next/link';
 interface SchoolSectionProps {
   schools: School[];
   terminals: Terminal[];
-  deleteSchool: (id: string) => void;
+  deleteSchool: (id: string) => Promise<{ success: boolean; error?: string }>;
   updateSchoolStatus: (id: string, status: 'active' | 'pending' | 'inactive' | 'suspended') => void | Promise<void>;
   isSchoolEditDialogOpen: boolean;
   setIsSchoolEditDialogOpen: (open: boolean) => void;
@@ -163,10 +163,18 @@ export function SchoolSection({
               variant="ghost" 
               size="icon" 
               className="h-10 w-10 text-slate-400 hover:text-red-600 hover:bg-red-50"
-              onClick={() => {
+              onClick={async () => {
                 if(confirm(`Encerrar parceria com ${school.name}? Todos os dados desta unidade serão arquivados.`)) {
-                  deleteSchool(school.id);
-                  toast({ title: "Escola Removida", description: "O acesso desta unidade foi revogado." });
+                  const result = await deleteSchool(school.id);
+                  if (result.success) {
+                    toast({ title: "Escola Removida", description: "O acesso desta unidade foi revogado." });
+                  } else {
+                    toast({ 
+                      title: "Bloqueio de Segurança", 
+                      description: result.error, 
+                      variant: "destructive" 
+                    });
+                  }
                 }
               }}
             >
