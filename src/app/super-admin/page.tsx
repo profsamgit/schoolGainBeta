@@ -166,12 +166,18 @@ export default function SuperAdminPage() {
         managerEmail: newSchool.managerEmail.toLowerCase().trim()
       };
 
-      const res = await registerSchool(sanitizedSchool);
+      const res = await registerSchool(sanitizedSchool, sanitizedSchool.managerPassword);
       if (res) {
         toast({ title: "Sucesso", description: "Nova escola cadastrada e ativa!" });
         setIsAddDialogOpen(false);
         setNewSchool({ name: '', city: '', state: '', contactEmail: '', managerEmail: '', managerPassword: '' });
         setAdminPasswordForAction('');
+      } else {
+        toast({ 
+          title: "Erro de Validação", 
+          description: "Não foi possível registrar a escola. Verifique se o e-mail do gestor já está em uso ou se faltam dados.", 
+          variant: "destructive" 
+        });
       }
     } catch (error) {
       toast({ title: "Erro", description: "Falha ao cadastrar escola.", variant: "destructive" });

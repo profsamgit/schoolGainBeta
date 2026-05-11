@@ -251,10 +251,13 @@ export class EcosystemService {
       }
     });
 
-    // 2. Sincronização de Recompensas
+    // 2. Sincronização de Recompensas (Com limpeza de campo RA legado)
     onSnapshot(collection(db, "rewards"), (snapshot) => {
       const rewards: Reward[] = [];
-      snapshot.forEach(doc => rewards.push(doc.data() as Reward));
+      snapshot.forEach(doc => {
+        const { ra, ...cleanReward } = doc.data() as any;
+        rewards.push(cleanReward as Reward);
+      });
       if (rewards.length > 0) {
         this.data.rewards = rewards;
         this.rewardsSubject.next(rewards);
@@ -751,6 +754,15 @@ export class EcosystemService {
       // Sincroniza no Firestore
       setDoc(doc(db, "terminals", id), terminal);
 
+      this.logTelemetry({
+        action: 'CRUD_UPDATE',
+        category: 'SYSTEM',
+        details: `Status do terminal ${terminal.location} alterado para ${status.toUpperCase()}`,
+        targetEntity: 'terminals',
+        targetId: id,
+        unitId: schoolId || terminal.schoolId
+      });
+
       this.saveToStorage();
     }
   }
@@ -793,7 +805,9 @@ export class EcosystemService {
   async registerSchool(schoolData: Omit<School, 'id' | 'status' | 'joinedDate'>, initialPassword?: string) {
     if (!this.checkAdminAuth()) return false;
 
-    if (!schoolData.managerEmail || !initialPassword) {
+    const resolvedPassword = initialPassword || schoolData.managerPassword;
+
+    if (!schoolData.managerEmail || !resolvedPassword) {
       console.warn("[VALIDATION] Tentativa de registrar escola sem gestor.");
       return false;
     }
@@ -815,12 +829,12 @@ export class EcosystemService {
     this.data.schools.push(newSchool);
 
     // Cria o usuário gestor imediatamente
-    if (newSchool.managerEmail && initialPassword) {
+    if (newSchool.managerEmail && resolvedPassword) {
       const newUser: User = {
         id: EcosystemService.generateStandardId('admin', newSchool.id),
         name: `Gestor ${newSchool.name}`,
         email: newSchool.managerEmail,
-        password: await EcosystemService.hashPassword(initialPassword),
+        password: await EcosystemService.hashPassword(resolvedPassword),
         role: 'admin',
         schoolId: newSchool.id,
         ra: `G-${Date.now().toString().slice(-4)}`,
@@ -852,6 +866,16 @@ export class EcosystemService {
     }
 
     this.saveToStorage();
+
+    this.logTelemetry({
+      action: 'CRUD_CREATE',
+      category: 'SYSTEM',
+      details: `Nova unidade escolar registrada: ${newSchool.name}`,
+      targetEntity: 'schools',
+      targetId: newSchool.id,
+      unitId: 'MASTER'
+    });
+
     return true;
   }
 
@@ -898,16 +922,17 @@ export class EcosystemService {
     const school = this.data.schools.find(s => s.id === id);
     if (school) {
       school.status = status;
+      const resolvedPassword = initialPassword || school.managerPassword;
 
       // Se estiver ativando, garante que o usuário gestor exista
-      if (status === 'active' && school.managerEmail && initialPassword) {
+      if (status === 'active' && school.managerEmail && resolvedPassword) {
         const userExists = this.data.users.find(u => u.email?.toLowerCase() === school.managerEmail?.toLowerCase());
         if (!userExists) {
           const newUser: User = {
             id: EcosystemService.generateStandardId('admin', school.id),
             name: `Gestor ${school.name}`,
             email: school.managerEmail,
-            password: await EcosystemService.hashPassword(initialPassword),
+            password: await EcosystemService.hashPassword(resolvedPassword),
             role: 'admin',
             schoolId: school.id,
             ra: `G-${Date.now().toString().slice(-4)}`,
@@ -1271,7 +1296,7 @@ export class EcosystemService {
       action: params.action,
       category: params.category,
       timestamp: new Date().toISOString(),
-      actorId: this.currentUserRa || 'SYSTEM',
+      actorId: actor?.id || 'SYSTEM',
       actorName: actor?.name || 'Sistema Autônomo',
       unitId: params.unitId || (actor?.role === 'super_admin' ? 'MASTER' : actor?.schoolId),
       details: params.details,
@@ -1329,7 +1354,12 @@ export class EcosystemService {
       if (this.data?.userStates) this.data.userStates[this.currentUserRa] = state;
 
       this.syncUserPoints(this.currentUserRa, points, points);
-      // O syncUserPoints já salva no Firestore o state atualizado
+      
+      this.logTelemetry({
+        action: 'MISSION_COMPLETED',
+        category: 'ECOSYSTEM',
+        details: `Aluno completou missão diária e conquistou ${points} Bio-Coins.`
+      });
     }
     return true;
   }
@@ -1447,6 +1477,13 @@ export class EcosystemService {
 
     // Sincroniza e salva
     this.syncUserPoints(this.currentUserRa, balanceAdjust, pointsAdjust);
+
+    this.logTelemetry({
+      action: 'ITEM_PURCHASED',
+      category: 'ECOSYSTEM',
+      details: `Compra de melhoria de ecossistema: ${item}`,
+      metadata: { item, cost: upgrade.price }
+    });
     return true;
   }
 
@@ -1461,7 +1498,7 @@ export class EcosystemService {
         await this.logTelemetry({
           action: 'LOGIN_FAIL',
           category: 'AUTH',
-          details: `Falha de senha administrativa ao tentar conceder pontos para RA: ${ra}`,
+          details: `Falha de senha administrativa ao tentar conceder pontos para usuário da unidade.`,
           unitId: terminalSchoolId
         });
         return false;
@@ -1490,7 +1527,7 @@ export class EcosystemService {
       studentName: student.name,
       points: points,
       unitId: terminalSchoolId || student.schoolId,
-      metadata: { points, sector, action, originalRa: ra }
+      metadata: { points, sector, action }
     });
 
     return true;
@@ -1522,6 +1559,15 @@ export class EcosystemService {
     };
 
     console.log(`[ECOSYSTEM] Registro de processamento: ${weightKg}kg de ${type} para o usuário ${cleanRa}. Créditos: ${points}`);
+
+    this.logTelemetry({
+      action: 'POINTS_AWARDED',
+      category: 'ECOSYSTEM',
+      details: `Coleta de resíduos (${type}): ${weightKg}kg convertidos em ${points} Bio-Coins.`,
+      studentName: student.name,
+      points: points,
+      unitId: terminalSchoolId || student.schoolId
+    });
 
     this.addPoints(points, cleanRa);
 
@@ -1773,7 +1819,7 @@ export class EcosystemService {
     await this.logTelemetry({
       action: 'LOGIN_FAIL',
       category: 'AUTH',
-      details: `Falha de autenticação para o identificador: ${securityKey}`
+      details: `Falha de autenticação para credencial protegida.`
     });
     this.handleFailedLogin(securityKey);
     return false;
@@ -2005,7 +2051,18 @@ export class EcosystemService {
     this.data.rewards = this.data.rewards.filter(r => r.id !== id);
     this.rewardsSubject.next([...this.data.rewards]);
     try {
+      const reward = this.data.rewards.find(r => r.id === id);
       await deleteDoc(doc(db, "rewards", id));
+
+      this.logTelemetry({
+        action: 'CRUD_DELETE',
+        category: 'DATA',
+        details: `Recompensa excluída: ${reward?.name || id}`,
+        targetEntity: 'rewards',
+        targetId: id,
+        unitId: targetSchoolId || reward?.schoolId
+      });
+
       this.saveToStorage();
       return true;
     } catch (error) { return false; }
@@ -2022,7 +2079,18 @@ export class EcosystemService {
     this.data.articles = this.data.articles.filter(a => a.id !== id);
     this.articlesSubject.next([...this.data.articles]);
     try {
+      const article = this.data.articles.find(a => a.id === id);
       await deleteDoc(doc(db, "articles", id));
+
+      this.logTelemetry({
+        action: 'CRUD_DELETE',
+        category: 'DATA',
+        details: `Artigo excluído: ${article?.title || id}`,
+        targetEntity: 'articles',
+        targetId: id,
+        unitId: targetSchoolId || article?.schoolId
+      });
+
       this.saveToStorage();
       return true;
     } catch (error) { return false; }
@@ -2069,12 +2137,23 @@ export class EcosystemService {
         });
       }
 
-      // Mesclagem segura
+      // Mesclagem segura e Limpeza de Campos Obsoletos (Remoção do RA)
       let finalRewards: Reward[];
+      const sanitizeReward = (r: Reward) => {
+        const { ra, ...clean } = r as any;
+        return clean as Reward;
+      };
+
+      const sanitizedNewRewards = newRewards.map(sanitizeReward);
+      const sanitizedChangedRewards = changedRewards.map(sanitizeReward);
+
       if (targetSchoolId) {
-        finalRewards = [...this.data.rewards.filter(r => r.schoolId !== targetSchoolId), ...newRewards];
+        finalRewards = [
+          ...this.data.rewards.filter(r => r.schoolId !== targetSchoolId), 
+          ...sanitizedNewRewards
+        ];
       } else {
-        finalRewards = newRewards;
+        finalRewards = sanitizedNewRewards;
       }
 
       this.data.rewards = finalRewards;
@@ -2083,7 +2162,7 @@ export class EcosystemService {
       // Sincroniza alterados e deleta removidos
       await Promise.all([
         ...removedItems.map(i => deleteDoc(doc(db, "rewards", i.id))),
-        ...changedRewards.map(r => setDoc(doc(db, "rewards", r.id), r))
+        ...sanitizedChangedRewards.map(r => setDoc(doc(db, "rewards", r.id), r))
       ]);
 
       this.saveToStorage();
@@ -2181,16 +2260,20 @@ export class EcosystemService {
     if (!this.checkAdminAuth()) return false;
 
     try {
-      const removedItems = this.data.quizTopics.filter(oldI => {
-        const isInNewList = newTopics.find(newI => newI.id === oldI.id);
+      // Limpeza de segurança: Remove qualquer item inválido ou sem ID das listas
+      const currentTopics = (this.data.quizTopics || []).filter(t => t && t.id);
+      const sanitizedNewTopics = (newTopics || []).filter(t => t && t.id);
+
+      const removedItems = currentTopics.filter(oldI => {
+        const isInNewList = sanitizedNewTopics.find(newI => newI.id === oldI.id);
         if (targetSchoolId) {
           return oldI.schoolId === targetSchoolId && !isInNewList;
         }
         return !isInNewList;
       });
 
-      const changedTopics = newTopics.filter(newT => {
-        const oldT = this.data.quizTopics.find(t => t.id === newT.id);
+      const changedTopics = sanitizedNewTopics.filter(newT => {
+        const oldT = currentTopics.find(t => t.id === newT.id);
         return !oldT || JSON.stringify(oldT) !== JSON.stringify(newT);
       });
 
@@ -2206,7 +2289,7 @@ export class EcosystemService {
       }
 
       for (const t of changedTopics) {
-        const isNew = !this.data.quizTopics.find(old => old.id === t.id);
+        const isNew = !currentTopics.find(old => old.id === t.id);
         await this.logTelemetry({
           action: isNew ? 'CRUD_CREATE' : 'CRUD_UPDATE',
           category: 'DATA',
@@ -2221,19 +2304,19 @@ export class EcosystemService {
       // Mesclagem segura
       let finalTopics: QuizTopic[];
       if (targetSchoolId) {
-        finalTopics = [...this.data.quizTopics.filter(t => t.schoolId !== targetSchoolId), ...newTopics];
+        finalTopics = [...currentTopics.filter(t => t.schoolId !== targetSchoolId), ...sanitizedNewTopics];
       } else {
-        finalTopics = newTopics;
+        finalTopics = sanitizedNewTopics;
       }
 
       this.data.quizTopics = finalTopics;
       this.quizTopicsSubject.next(finalTopics);
 
-      // Sincroniza alterados e deleta removidos
-      await Promise.all([
-        ...removedItems.map(i => deleteDoc(doc(db, "quizTopics", i.id))),
-        ...changedTopics.map(t => setDoc(doc(db, "quizTopics", t.id), t))
-      ]);
+      // Sincroniza alterados e deleta removidos (apenas se tiverem ID válido)
+      const deletePromises = removedItems.map(i => deleteDoc(doc(db, "quizTopics", i.id)));
+      const updatePromises = changedTopics.map(t => setDoc(doc(db, "quizTopics", t.id), t));
+
+      await Promise.all([...deletePromises, ...updatePromises]);
 
       this.saveToStorage();
       return true;
@@ -2795,7 +2878,7 @@ export class EcosystemService {
     this.logTelemetry({
       action: 'CRUD_CREATE',
       category: 'DATA',
-      details: `Gestor aprovou cadastro do aluno: ${newUser.name} (${newUser.ra})`,
+      details: `Gestor aprovou cadastro do aluno: ${newUser.name}`,
       targetEntity: 'users',
       targetId: newUser.id
     });

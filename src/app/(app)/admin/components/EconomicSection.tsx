@@ -250,10 +250,10 @@ export function EconomicSection({
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-1 space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Identificar Aluno (RA)</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Identificar Aluno</Label>
                   <Select onValueChange={setGrantRa} value={grantRa}>
                     <SelectTrigger className="bg-white border-emerald-200"><SelectValue placeholder="Selecione o aluno..." /></SelectTrigger>
-                    <SelectContent>{filteredUsersForAdmin.filter(u => u.role === 'student').map(u => <SelectItem key={u.id} value={u.ra || ''}>{u.name} ({u.ra})</SelectItem>)}</SelectContent>
+                    <SelectContent>{filteredUsersForAdmin.filter(u => u.role === 'student').map(u => <SelectItem key={u.id} value={u.ra || ''}>{u.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="md:col-span-1 space-y-2">
@@ -324,7 +324,7 @@ export function EconomicSection({
                       <TableRow key={log.id}>
                         <TableCell className="text-[10px] text-slate-500">{new Date(log.timestamp).toLocaleString('pt-BR')}</TableCell>
                         <TableCell className="font-bold">
-                          {log.studentName || log.metadata?.studentName || log.targetRa || 'N/A'}
+                          {log.studentName || log.metadata?.studentName || 'N/A'}
                         </TableCell>
                         <TableCell className="text-xs italic text-slate-600">
                           {log.details || log.action?.replace(/_/g, ' ')}

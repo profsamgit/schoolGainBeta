@@ -85,16 +85,14 @@ export type AuditLogEntry = {
     action: AuditActionType | string;
     category: 'AUTH' | 'DATA' | 'ECOSYSTEM' | 'SYSTEM';
     timestamp: string;
-    actorId: string;   // RA ou ID de quem realizou a ação
+    actorId: string;   // ID Único (UUID) de quem realizou a ação
     actorName: string;
     unitId?: string;   // ID da escola ou 'MASTER'
     details: string;   // Descrição humanizada da ação
     metadata?: any;    // Dados técnicos (Ex: snapshot do objeto antes/depois)
     targetEntity?: string; // Tabela afetada (users, schools, etc)
     targetId?: string;     // ID do registro afetado
-    // Retrocompatibilidade
-    ra?: string;
-    targetRa?: string;
+    // Rastreabilidade Nominal
     studentName?: string;
     points?: number;
     adminName?: string;

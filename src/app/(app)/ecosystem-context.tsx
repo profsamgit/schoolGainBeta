@@ -72,8 +72,8 @@ interface EcosystemContextType {
   deleteTerminal: (id: string) => void;
   schools: School[];
   requestSchoolRegistration: (data: Omit<School, 'id' | 'status' | 'joinedDate'>) => boolean;
-  registerSchool: (data: Omit<School, 'id' | 'status' | 'joinedDate'>) => Promise<boolean>;
-  updateSchoolStatus: (id: string, status: 'active' | 'pending' | 'inactive' | 'suspended') => Promise<void>;
+  registerSchool: (data: Omit<School, 'id' | 'status' | 'joinedDate'>, password?: string) => Promise<boolean>;
+  updateSchoolStatus: (id: string, status: 'active' | 'pending' | 'inactive' | 'suspended', password?: string) => Promise<void>;
   updateSchools: (newSchools: School[]) => void;
   deleteSchool: (id: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   getLockoutStatus: (id: string) => { isLocked: boolean, remainingSeconds: number };
@@ -332,8 +332,8 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const updateTerminalSettings = service.updateTerminalSettings.bind(service);
   const deleteTerminal = service.deleteTerminal.bind(service);
   const requestSchoolRegistration = service.requestSchoolRegistration.bind(service);
-  const registerSchool = (data: any) => service.registerSchool(data);
-  const updateSchoolStatus = (id: any, status: any) => service.updateSchoolStatus(id, status);
+  const registerSchool = (data: any, password?: string) => service.registerSchool(data, password);
+  const updateSchoolStatus = (id: any, status: any, password?: string) => service.updateSchoolStatus(id, status, password);
   const updateSchools = (newSchools: any) => service.updateSchools(newSchools);
   const deleteSchool = async (id: string, password?: string) => {
     return await service.deleteSchool(id, password);
