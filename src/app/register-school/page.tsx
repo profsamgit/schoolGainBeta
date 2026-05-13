@@ -30,10 +30,12 @@ export default function RegisterSchoolPage() {
     setIsSubmitting(true);
 
     try {
-      const res = requestSchoolRegistration(formData);
+      const res = await requestSchoolRegistration(formData, formData.initialManagerPassword);
       if (res) {
         setIsSuccess(true);
         toast({ title: "Solicitação Enviada", description: "Entraremos em contato em breve!" });
+      } else {
+        toast({ title: "Erro", description: "Dados insuficientes para o cadastro.", variant: "destructive" });
       }
     } catch (error) {
       toast({ title: "Erro", description: "Não foi possível enviar a solicitação.", variant: "destructive" });

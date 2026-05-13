@@ -82,8 +82,8 @@ export function WasteChart() {
           Distribuição proporcional por categoria de resíduo.
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig} className="h-[350px] w-full">
+      <CardContent className="min-h-[350px]">
+        <ChartContainer config={chartConfig} className="w-full" height={350}>
           <PieChart>
             <Pie
               data={chartData}

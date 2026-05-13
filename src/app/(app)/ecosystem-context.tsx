@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useMemo, Suspens
 import { useSearchParams } from 'next/navigation';
 
 import { EcosystemService } from '@/lib/ecosystem.service';
-import { User, Reward, EducationArticle, Participant, AuditLogEntry, Terminal, TerminalStatus, School, WasteEntry, WasteType, CycleSnapshot, Turma, Curso, Cargo, SetorEscolar, EcosystemItem, QuizTopic, RegistrationRequest } from '@/lib/types';
+import { User, Reward, EducationArticle, Participant, AuditLogEntry, Terminal, TerminalStatus, School, WasteEntry, WasteType, CycleSnapshot, Turma, Curso, Cargo, SetorEscolar, EcosystemItem, QuizTopic, RegistrationRequest, EcosystemLegend, UserLevel } from '@/lib/types';
 
 /**
  * ============================================================================
@@ -21,7 +21,7 @@ interface EcosystemContextType {
   vitality: number;          // Percentual de saúde do ecossistema (0-100)
   isMissionDone: boolean;    // Indica se a missão do dia já foi concluída
   purchasedItems: EcosystemItem[]; // Lista de objetos/animais que o aluno já comprou
-  level: string;             // Título do aluno (ex: "Semente", "Árvore")
+  level: UserLevel;             // Título do aluno (ex: "Semente", "Árvore")
   completeDailyMission: (points: number) => boolean; // Função para ganhar pontos diários
   deductPoints: (points: number) => boolean;         // Função para gastar pontos
   registerAttendance: (status: 'presente' | 'falta') => void; // Registra presença/falta
@@ -71,7 +71,7 @@ interface EcosystemContextType {
   updateTerminalSettings: (id: string, settings: Partial<Terminal>) => void;
   deleteTerminal: (id: string) => void;
   schools: School[];
-  requestSchoolRegistration: (data: Omit<School, 'id' | 'status' | 'joinedDate'>) => boolean;
+  requestSchoolRegistration: (data: Omit<School, 'id' | 'status' | 'joinedDate'>, initialPassword?: string) => Promise<boolean>;
   registerSchool: (data: Omit<School, 'id' | 'status' | 'joinedDate'>, password?: string) => Promise<boolean>;
   updateSchoolStatus: (id: string, status: 'active' | 'pending' | 'inactive' | 'suspended', password?: string) => Promise<void>;
   updateSchools: (newSchools: School[]) => void;
@@ -98,6 +98,7 @@ interface EcosystemContextType {
   displayUser: User | null;
   service: EcosystemService;
   setTargetSchoolId: (id: string | null) => void;
+  legends: EcosystemLegend[];
 }
 
 
@@ -112,7 +113,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const [purchasedItems, setPurchasedItems] = useState<EcosystemItem[]>(service.purchasedItems);
   const [currentUserRa, setCurrentUserRa] = useState<string | null>(service.currentUserRa);
   const [users, setUsers] = useState<any[]>(service.users);
-  const [level, setLevel] = useState<string>('Semente');
+  const [level, setLevel] = useState<UserLevel>('Semente');
 
   const [rewards, setRewards] = useState<any[]>(service.allRewards);
   const [articles, setArticles] = useState<any[]>(service.allArticles);
@@ -180,6 +181,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const [registrationRequests, setRegistrationRequests] = useState<RegistrationRequest[]>([]);
   const [resetHistory, setResetHistory] = useState<CycleSnapshot[]>(service.resetHistory || []);
   const [schools, setSchools] = useState<School[]>(service.schools);
+  const [legends, setLegends] = useState<EcosystemLegend[]>(service.legends);
   const [isMounted, setIsMounted] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
 
@@ -207,6 +209,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
     const sectorsSub = service.setores$.subscribe(setSetores);
     const regReqSub = service.registrationRequests$.subscribe(setRegistrationRequests);
     const userStatesSub = service.userStates$.subscribe(setUserStates);
+    const legendsSub = service.legends$.subscribe(setLegends);
 
     service.initialize();
     
@@ -251,6 +254,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
       sectorsSub.unsubscribe();
       regReqSub.unsubscribe();
       userStatesSub.unsubscribe();
+      legendsSub.unsubscribe();
     };
   }, [service]);
 
@@ -334,7 +338,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const updateCargos = async (newCargos: Cargo[], sid?: string) => await service.updateCargos(newCargos, sid);
   const updateSetores = async (newSetores: SetorEscolar[], sid?: string) => await service.updateSetores(newSetores, sid);
   const grantPoints = (ra: string, pts: number, sec: string, act: string, adm: string, pass?: string, tSId?: string) => service.grantPoints(ra, pts, sec, act, adm, pass, tSId);
-  const getMonthlyLegends = service.getMonthlyLegends.bind(service);
+  const getMonthlyLegends = () => service.getMonthlyLegends(targetSchoolId || undefined);
   const isNessieAvailable = service.isNessieAvailable.bind(service);
   const getGlobalLeader = service.getGlobalLeader.bind(service);
   const grantSightingBonus = service.grantSightingBonus.bind(service);
@@ -343,7 +347,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const updateTerminalStatus = service.updateTerminalStatus.bind(service);
   const updateTerminalSettings = service.updateTerminalSettings.bind(service);
   const deleteTerminal = service.deleteTerminal.bind(service);
-  const requestSchoolRegistration = service.requestSchoolRegistration.bind(service);
+  const requestSchoolRegistration = (data: any, pass?: string) => service.requestSchoolRegistration(data, pass);
   const registerSchool = (data: any, password?: string) => service.registerSchool(data, password);
   const updateSchoolStatus = (id: any, status: any, password?: string) => service.updateSchoolStatus(id, status, password);
   const updateSchools = (newSchools: any) => service.updateSchools(newSchools);
@@ -449,7 +453,8 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
       isInitializing,
       displayUser,
       service,
-      setTargetSchoolId: setManualSchoolId
+      setTargetSchoolId: setManualSchoolId,
+      legends
     }}>
       {children}
     </EcosystemContext.Provider>

@@ -149,10 +149,21 @@ export type CycleSnapshot = {
     endDate: string;
     totalWasteKg: number;
     totalPoints: number;
-    topStudents: { name: string, points: number, ra: string }[];
+    topStudents: Array<{ name: string; points: number; ra: string }>;
     wasteByType: Record<string, number>;
     schoolId?: string;
 };
+
+export interface EcosystemLegend {
+    id: string; // Formato: studentId-month-year
+    studentId: string;
+    studentName: string;
+    schoolId: string;
+    month: number;
+    year: number;
+    purchaseDate: string;
+    benefitActive: boolean;
+}
 
 export type WasteType = 'Plástico' | 'Papel' | 'Metal' | 'Orgânico' | 'Vidro' | 'Eletrônico' | 'Não reciclável';
 
@@ -218,9 +229,9 @@ export type RegistrationRequest = {
 export type EcosystemItem = 
   'filtro_ar' | 'limpar_rio' | 'reparar_grama' | 
   'arvore_1' | 'arvore_2' | 'arvore_3' | 
-  'passaro_1' | 'passaro_2' | 
+  'passaro_1' | 'passaro_2' | 'passaro_3' |
   'peixe_1' | 'peixe_2' | 'peixe_3' | 
-  'cachorro' | 'coelho' | 'borboletas' | 'borboletas_2' | 'borboletas_3' |
+  'cachorro' | 'gato' | 'coelho' | 'borboletas' | 'borboletas_2' | 'borboletas_3' | 'borboletas_4' |
   'casa' | 'barco_1' | 'barco_2' | 'monstro_lago';
 
 /**
@@ -234,7 +245,7 @@ export interface EcosystemUserState {
   lastMissionDate: string | null;  // Data da última missão diária completada
   nessiePurchaseDate?: string | null;     // Data de compra do item especial (Nessie/Casa)
   curso?: string;            // Curso do aluno
-  level: string;             // Título do aluno
+  level: UserLevel;             // Título do aluno
 }
 
 /**

@@ -51,53 +51,68 @@ export function EcossistemaShop({
           </button>
       </div>
 
-      {/* NOVO DOCK DE COMPRAS */}
+      {/* NOVO DOCK DE COMPRAS - REDESIGN PREMIUM */}
       <div className={cn(
-          "absolute bottom-0 inset-x-0 z-[150] p-10 flex justify-center transition-all duration-1000 transform",
+          "absolute bottom-0 inset-x-0 z-[150] p-6 lg:p-10 flex justify-center transition-all duration-1000 transform",
           isShopVisible ? "translate-y-0 opacity-100" : "translate-y-[120%] opacity-0 pointer-events-none"
       )}>
-          <div className="relative w-full max-w-5xl">
-              <div className="absolute -inset-10 bg-indigo-500/20 blur-[100px] rounded-full opacity-50" />
+          <div className="relative w-full max-w-6xl">
+              <div className="absolute -inset-20 bg-indigo-500/10 blur-[120px] rounded-full opacity-30 animate-pulse" />
               
-              <div className="bg-black/40 backdrop-blur-[45px] rounded-[4rem] p-4 border border-white/10 shadow-[0_50px_100px_rgba(0,0,0,0.6)] flex flex-col gap-6">
-                  <div className="flex justify-between items-center px-8 pt-6 pb-2 relative z-10">
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center">
-                            <Sparkles className="w-5 h-5 text-indigo-400" />
+              <div className="bg-black/40 backdrop-blur-[60px] rounded-[3rem] p-2 border border-white/10 shadow-[0_50px_100px_rgba(0,0,0,0.8)] flex flex-col gap-2 overflow-hidden">
+                  {/* HEADER DA LOJA */}
+                  <div className="flex justify-between items-center px-10 pt-8 pb-4 relative z-10">
+                    <div className="flex items-center gap-6">
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 ring-4 ring-white/5">
+                            <Sparkles className="w-7 h-7 text-white animate-pulse" />
                         </div>
                         <div>
-                            <h3 className="text-white font-black text-lg tracking-tighter uppercase">Bio-Ecossistema</h3>
-                            <p className="text-white/30 text-[10px] font-bold uppercase tracking-widest leading-none">Biodiversidade & Sustentabilidade</p>
+                            <div className="flex items-center gap-3">
+                                <h3 className="text-white font-black text-2xl tracking-tighter uppercase italic">Bio-Shop</h3>
+                                <span className="px-2 py-0.5 bg-indigo-500/20 border border-indigo-500/30 rounded text-[9px] font-black text-indigo-400 uppercase tracking-widest">v2.0 Premium</span>
+                            </div>
+                            <p className="text-white/40 text-[11px] font-bold uppercase tracking-[0.3em] mt-1">Catalisador de Biodiversidade</p>
                         </div>
                     </div>
-                    <button 
-                        onClick={() => setIsShopVisible(false)}
-                        className="w-12 h-12 bg-white/5 hover:bg-rose-500/20 border border-white/10 rounded-2xl flex items-center justify-center text-white/40 hover:text-rose-400 transition-all group/close"
-                    >
-                        <X size={24} className="group-hover/close:rotate-90 transition-transform" />
-                    </button>
+                    
+                    <div className="flex items-center gap-4">
+                        <div className="hidden md:flex flex-col items-end mr-4">
+                            <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">Seu Saldo</span>
+                            <span className="text-xl font-black text-emerald-400 tracking-widest tabular-nums">₵ {balance.toLocaleString()}</span>
+                        </div>
+                        <button 
+                            onClick={() => setIsShopVisible(false)}
+                            className="w-14 h-14 bg-white/5 hover:bg-rose-500/20 border border-white/10 rounded-2xl flex items-center justify-center text-white/40 hover:text-rose-400 transition-all group/close"
+                        >
+                            <X size={28} className="group-hover/close:rotate-90 transition-transform" />
+                        </button>
+                    </div>
                   </div>
 
-                  <div className="flex flex-col gap-10 pb-12 px-8 overflow-y-auto max-h-[60vh] scrollbar-hide pt-4">
+                  {/* CONTEÚDO SCROLLABLE */}
+                  <div className="flex flex-col gap-12 pb-14 px-10 overflow-y-auto max-h-[65vh] scrollbar-hide pt-6">
                     {[
-                        { id: 'Base', label: 'Habitat Base', color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
-                        { id: 'Flora', label: 'Flora & Vegetação', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-                        { id: 'Fauna', label: 'Fauna Silvestre', color: 'text-sky-400', bg: 'bg-sky-500/10' },
-                        { id: 'Lendário', label: 'Itens Lendários', color: 'text-amber-400', bg: 'bg-amber-500/10' }
+                        { id: 'Base', label: 'Habitat Base', desc: 'Fundação necessária para qualquer forma de vida.', color: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20' },
+                        { id: 'Flora', label: 'Flora & Vegetação', desc: 'Pulmões verdes do seu mundo virtual.', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+                        { id: 'Fauna', label: 'Fauna Silvestre', desc: 'Traga movimento e alma para o ecossistema.', color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/20' },
+                        { id: 'Lendário', label: 'Mítico & Lendário', desc: 'Conquistas supremas de sustentabilidade.', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' }
                     ].map((cat) => {
                         const catItems = shopItems.filter(item => item.category === cat.id);
                         if (catItems.length === 0) return null;
 
                         return (
-                            <div key={cat.id} className="space-y-6">
-                                <div className="flex items-center gap-4 px-2">
-                                    <div className={cn("px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em]", cat.bg, cat.color)}>
-                                        {cat.label}
+                            <div key={cat.id} className="space-y-8">
+                                <div className="flex items-end gap-6 px-2">
+                                    <div className="flex flex-col">
+                                        <div className={cn("px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-[0.25em] w-fit mb-2", cat.bg, cat.color, "border", cat.border)}>
+                                            {cat.label}
+                                        </div>
+                                        <p className="text-white/20 text-[10px] font-bold uppercase tracking-widest">{cat.desc}</p>
                                     </div>
-                                    <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
+                                    <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent mb-3" />
                                 </div>
                                 
-                                <div className="flex flex-wrap items-center justify-start gap-5 overflow-visible">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                                     {catItems.map((item) => {
                                         const idx = shopItems.indexOf(item);
                                         const isPurchased = purchasedItems.includes(item.id as EcosystemItem);
@@ -110,74 +125,104 @@ export function EcossistemaShop({
                                         const isLocked = isRequirementLocked || isVitalityLocked || isLegendaryLocked || isNessieSoldOut;
                                         const canAfford = balance >= item.price;
 
-                                        const categoryStyles = {
-                                            Base: "border-indigo-500/20 group-hover:border-indigo-500/50 shadow-indigo-500/5",
-                                            Flora: "border-emerald-500/20 group-hover:border-emerald-500/50 shadow-emerald-500/5",
-                                            Fauna: "border-sky-500/20 group-hover:border-sky-500/50 shadow-sky-500/5",
-                                            Lendário: "border-amber-500/20 group-hover:border-amber-500/50 shadow-amber-500/5",
-                                        }[item.category as string] || "border-white/10";
-                                        
                                         return (
                                             <div 
                                                 key={item.id}
-                                                className="relative flex flex-col items-center gap-4 w-28 group/item"
+                                                className={cn(
+                                                    "group/card relative flex flex-col p-5 rounded-[2.5rem] border-2 transition-all duration-700",
+                                                    isPurchased 
+                                                        ? "bg-emerald-500/5 border-emerald-500/20 shadow-[0_20px_40px_rgba(16,185,129,0.05)]" 
+                                                        : isLocked 
+                                                            ? "bg-black/20 border-white/5 opacity-60" 
+                                                            : "bg-white/[0.03] border-white/10 hover:border-white/20 hover:bg-white/[0.06] hover:-translate-y-2 hover:shadow-[0_30px_60px_rgba(0,0,0,0.4)]"
+                                                )}
                                                 onMouseEnter={() => setHoveredIdx(idx)}
                                                 onMouseLeave={() => setHoveredIdx(null)}
                                             >
-                                                <button 
-                                                    onClick={() => !isLocked && !isPurchased && handleBuy(item.id as EcosystemItem)}
-                                                    className={cn(
-                                                        "group/icon relative w-20 h-20 rounded-[1.8rem] flex items-center justify-center transition-all duration-700 border-2 overflow-hidden",
-                                                        isPurchased ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.1)]" : 
-                                                        isLocked ? "bg-black/40 text-white/10 border-white/5 grayscale" : 
-                                                        cn("bg-white/5 text-white/80 hover:text-white hover:-translate-y-2 bg-gradient-to-br from-white/5 to-transparent shadow-xl", categoryStyles)
-                                                    )}
-                                                >
+                                                {/* ICON CONTAINER */}
+                                                <div className="flex justify-between items-start mb-6">
                                                     <div className={cn(
-                                                        "absolute inset-0 opacity-0 group-hover/icon:opacity-100 transition-opacity duration-700",
-                                                        item.category === 'Base' ? "bg-indigo-500/5" :
-                                                        item.category === 'Flora' ? "bg-emerald-500/5" :
-                                                        item.category === 'Fauna' ? "bg-sky-500/5" : "bg-amber-500/10"
-                                                    )} />
-
-                                                    <div className="relative z-10 scale-150 transform-gpu transition-transform duration-700 group-hover/icon:scale-[1.8]">{item.icon}</div>
+                                                        "w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-700",
+                                                        isPurchased ? "bg-emerald-500/20 text-emerald-400" : 
+                                                        isLocked ? "bg-white/5 text-white/10" : "bg-white/10 text-white group-hover/card:scale-110"
+                                                    )}>
+                                                        <div className="scale-[1.8]">{item.icon}</div>
+                                                    </div>
                                                     
-                                                    {isPurchased && (
-                                                        <div className="absolute top-2 right-2 bg-emerald-500 rounded-full p-0.5 shadow-lg z-20">
-                                                            <CheckCircle2 size={8} className="text-white" />
+                                                    {!isPurchased && !isLocked && (
+                                                        <div className="px-3 py-1 bg-white/10 rounded-lg border border-white/10 text-emerald-400 font-black text-xs tabular-nums">
+                                                            ₵{item.price}
                                                         </div>
                                                     )}
-                                                </button>
 
+                                                    {item.id === 'monstro_lago' && !isPurchased && (
+                                                        <div className={cn(
+                                                            "px-2 py-1 rounded text-[8px] font-black uppercase tracking-tighter",
+                                                            isNessieSoldOut ? "bg-rose-500/20 text-rose-400" : "bg-amber-400/20 text-amber-400 animate-pulse"
+                                                        )}>
+                                                            {isNessieSoldOut ? 'Sem Vagas' : 'Limitado'}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* INFO */}
+                                                <div className="space-y-2 mb-8">
+                                                    <h4 className={cn(
+                                                        "font-black text-sm uppercase tracking-wider",
+                                                        isPurchased ? "text-emerald-400" : "text-white"
+                                                    )}>{item.name}</h4>
+                                                    <p className="text-white/30 text-[10px] font-medium leading-relaxed min-h-[30px]">
+                                                        {item.desc || "Item decorativo para seu mundo virtual."}
+                                                    </p>
+                                                </div>
+
+                                                {/* REQUISITOS (SE BLOQUEADO) */}
+                                                {isLocked && !isPurchased && (
+                                                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-[4px] rounded-[2.5rem] p-6 text-center animate-in fade-in duration-500">
+                                                        {isNessieSoldOut ? (
+                                                            <div className="space-y-2">
+                                                                <X className="w-10 h-10 text-rose-500 mx-auto mb-2" />
+                                                                <h5 className="text-white font-black text-xs uppercase tracking-widest">Esgotado</h5>
+                                                                <p className="text-white/40 text-[8px] font-bold uppercase leading-tight">
+                                                                    Limite mensal de 3 agentes atingido.<br/>Tente novamente no próximo ciclo!
+                                                                </p>
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                <Lock className="w-8 h-8 text-white/20 mb-3" />
+                                                                <p className="text-white/60 text-[9px] font-black uppercase tracking-[0.2em] leading-tight">
+                                                                    {isRequirementLocked ? `Requer ${item.req}` : `Requer Vitalidade ${item.minVitality}%`}
+                                                                </p>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {/* BOTÃO DE AÇÃO */}
                                                 <button 
                                                     disabled={isLocked || isPurchased || !canAfford}
                                                     onClick={() => handleBuy(item.id as EcosystemItem)}
                                                     className={cn(
-                                                        "w-full h-8 rounded-xl font-black text-[9px] uppercase tracking-[0.2em] transition-all duration-500 border relative overflow-hidden",
+                                                        "w-full py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all duration-500 border relative overflow-hidden group/btn",
                                                         isPurchased 
                                                             ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 cursor-default" 
                                                             : isLocked 
-                                                                ? "bg-white/5 text-white/10 border-white/5 cursor-not-allowed"
+                                                                ? "hidden"
                                                                 : canAfford
-                                                                    ? "bg-white text-slate-950 hover:bg-slate-200 hover:scale-105 active:scale-95 shadow-lg shadow-white/5"
+                                                                    ? "bg-white text-slate-950 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)]"
                                                                     : "bg-rose-500/10 text-rose-500 border-rose-500/20 cursor-not-allowed"
                                                     )}
                                                 >
-                                                    <div className="relative z-10 flex items-center justify-center gap-1.5">
+                                                    <span className="relative z-10 flex items-center justify-center gap-2">
                                                         {isPurchased ? (
                                                             <>
-                                                                <ShieldCheck size={10} />
-                                                                <span>Ativo</span>
-                                                            </>
-                                                        ) : isLocked ? (
-                                                            <>
-                                                                <Lock size={10} />
-                                                                <span>{isNessieSoldOut ? 'Esgotado' : 'Bloqueado'}</span>
+                                                                <ShieldCheck size={14} />
+                                                                <span>Já Adquirido</span>
                                                             </>
                                                         ) : (
-                                                            <span>{canAfford ? 'Comprar' : 'Sem Saldo'}</span>
+                                                            <span>{canAfford ? 'Comprar Agora' : 'Saldo Insuficiente'}</span>
                                                         )}
-                                                    </div>
+                                                    </span>
                                                 </button>
                                             </div>
                                         );

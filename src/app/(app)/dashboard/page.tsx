@@ -32,7 +32,8 @@ import {
   ShieldCheck,
   Leaf,
   TreeDeciduous,
-  Eye
+  Eye,
+  Sparkles
 } from 'lucide-react';
 
 import Link from 'next/link';
@@ -81,6 +82,7 @@ const getLevelIcon = (level: string) => {
 
 import StudentCard from '@/components/ecosystem/StudentCard';
 import PhotoCaptureDialog from '@/components/ecosystem/PhotoCaptureDialog';
+import { LevelJourney } from './components/LevelJourney';
 
 export default function DashboardPage() {
   /**
@@ -100,7 +102,10 @@ export default function DashboardPage() {
     currentUserRa, 
     level, 
     uploadUserAvatar, 
-    isPreviewMode 
+    isPreviewMode,
+    getMonthlyLegends,
+    legends,
+    userStates
   } = useEcosystem();
 
   const router = useRouter();
@@ -138,6 +143,12 @@ export default function DashboardPage() {
   // Score Global: Uma fórmula matemática que soma pontos + bônus por conquistas
   const globalScore = EcosystemService.calculateTotalScore(balance, vitality, purchasedItems.length);
   
+  // Lógica de Lenda: Verifica se o aluno atual está no Hall das Lendas deste mês
+  const isLegend = useMemo(() => {
+    const monthlyLegends = getMonthlyLegends();
+    return monthlyLegends.some((l: any) => l.ra?.toUpperCase() === currentUserRa?.toUpperCase());
+  }, [getMonthlyLegends, currentUserRa, legends, userStates]);
+
   /**
 
    * LÓGICA DE NÍVEL:
@@ -158,7 +169,10 @@ export default function DashboardPage() {
     <div className="flex flex-col min-h-[calc(100vh-8rem)]">
       <div className="grid gap-6 flex-grow">
 
-
+        {/* JORNADA DE NÍVEL PREMIUM */}
+        <Card className="overflow-hidden border-none shadow-2xl bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950">
+           <LevelJourney currentLevel={currentLevel} totalScore={globalScore} />
+        </Card>
         
         {/* CARD DE BOAS-VINDAS E RESUMO */}
         <Card>
@@ -194,7 +208,13 @@ export default function DashboardPage() {
 
               </div>
               <div className="space-y-1">
-                <CardTitle className="text-2xl">Olá, {currentUser?.name?.split(' ')[0] || 'Agente'}!</CardTitle>
+                <CardTitle className={cn(
+                  "text-2xl transition-all",
+                  isLegend ? "text-amber-600 dark:text-amber-400 flex items-center gap-2" : ""
+                )}>
+                  Olá, {currentUser?.name?.split(' ')[0] || 'Agente'}!
+                  {isLegend && <Sparkles className="h-5 w-5 animate-pulse" />}
+                </CardTitle>
 
 
                 <CardDescription className="font-medium text-slate-500">
@@ -204,40 +224,28 @@ export default function DashboardPage() {
             </div>
             <StudentCard />
           </CardHeader>
-          <CardContent className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <CardContent className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             
             {/* Bloco de Saldo */}
-            <Card>
+            <Card className="bg-emerald-500/5 border-emerald-500/20">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Bio-Coins</CardTitle>
-                <Target className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Bio-Coins</CardTitle>
+                <Target className="h-4 w-4 text-emerald-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{balance}</div>
-                <p className="text-xs text-muted-foreground">Saldo disponível para upgrades</p>
-              </CardContent>
-            </Card>
-
-            {/* Bloco de Nível */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Nível Atual</CardTitle>
-                {getLevelIcon(currentLevel)}
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{currentLevel}</div>
-                <p className="text-xs text-muted-foreground">Sua patente ecológica</p>
+                <div className="text-3xl font-black text-slate-900 dark:text-white">{balance.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground font-medium">Saldo disponível para upgrades</p>
               </CardContent>
             </Card>
 
             {/* Bloco de Ranking */}
-            <Card>
+            <Card className="bg-indigo-500/5 border-indigo-500/20">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Sua Posição</CardTitle>
-                <Trophy className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400">Sua Posição</CardTitle>
+                <Trophy className="h-4 w-4 text-indigo-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className="text-3xl font-black text-slate-900 dark:text-white">
                   #
                   {(() => {
                     if (!Array.isArray(users) || !currentUser) return 0;
@@ -247,19 +255,19 @@ export default function DashboardPage() {
 
                   })()}
                 </div>
-                <p className="text-xs text-muted-foreground">de {users.filter(u => u.role === 'student').length} alunos</p>
+                <p className="text-xs text-muted-foreground font-medium">de {users.filter(u => u.role === 'student').length} alunos</p>
               </CardContent>
             </Card>
 
             {/* Bloco de Vitalidade */}
-            <Card>
+            <Card className="bg-rose-500/5 border-rose-500/20">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Vitalidade</CardTitle>
-                <Activity className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-black uppercase tracking-widest text-rose-600 dark:text-rose-400">Vitalidade</CardTitle>
+                <Activity className="h-4 w-4 text-rose-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{vitality}%</div>
-                <p className="text-xs text-muted-foreground">Saúde do seu ecossistema</p>
+                <div className="text-3xl font-black text-slate-900 dark:text-white">{vitality}%</div>
+                <p className="text-xs text-muted-foreground font-medium">Saúde do seu ecossistema</p>
               </CardContent>
             </Card>
 

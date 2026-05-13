@@ -3,11 +3,15 @@
 import { 
   ArrowLeft, 
   Coins, 
-  Sparkles 
+  Sparkles,
+  ShieldCheck,
+  Infinity
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useEcosystem } from '@/app/(app)/ecosystem-context';
 
 interface EcossistemaHUDProps {
   balance: number;
@@ -20,60 +24,104 @@ export function EcossistemaHUD({
   vitality,
   handleHealAction
 }: EcossistemaHUDProps) {
+  const { level, purchasedItems, userStates, currentUserRa } = useEcosystem();
+
+  // Verifica proteção lendária
+  const hasLegendaryShield = (() => {
+    if (!purchasedItems.includes('monstro_lago') || !currentUserRa) return false;
+    const state = userStates[currentUserRa];
+    if (!state || !state.nessiePurchaseDate) return false;
+    
+    const today = new Date();
+    const currentMonth = `${today.getFullYear()}-${today.getMonth() + 1}`;
+    const [pYear, pMonth] = state.nessiePurchaseDate.split('-').map(Number);
+    return currentMonth === `${pYear}-${pMonth}`;
+  })();
+
   return (
-    <div className="absolute top-8 inset-x-0 z-50 flex justify-center px-6 pointer-events-none animate-in slide-in-from-top duration-700">
-      <div className="flex items-center gap-2 p-1.5 bg-black/20 backdrop-blur-2xl rounded-[2rem] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] pointer-events-auto group transition-all hover:bg-black/30">
+    <div className="absolute top-8 inset-x-0 z-50 flex justify-center px-6 pointer-events-none animate-in slide-in-from-top duration-1000 ease-in-out">
+      <div className={cn(
+          "flex items-center gap-4 p-2 bg-black/30 backdrop-blur-[40px] rounded-[2.5rem] border shadow-[0_25px_60px_rgba(0,0,0,0.5)] pointer-events-auto group transition-all hover:bg-black/40 ring-1 ring-white/5",
+          hasLegendaryShield ? "border-amber-400/30 shadow-amber-500/10" : "border-white/10"
+      )}>
           {/* VOLTAR */}
           <Link href="/dashboard">
-              <Button size="icon" variant="ghost" className="w-11 h-11 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-white transition-all hover:scale-105 active:scale-95 leading-none">
-                  <ArrowLeft size={18} />
-              </Button>
+              <button className="w-12 h-12 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-white transition-all hover:scale-105 active:scale-95 flex items-center justify-center group/back">
+                  <ArrowLeft size={20} className="group-hover/back:-translate-x-1 transition-transform" />
+              </button>
           </Link>
 
-          <div className="h-8 w-px bg-white/10 mx-1" />
+          <div className="h-10 w-px bg-white/10 mx-1" />
+
+          {/* BADGE DE NÍVEL */}
+          <div className="hidden sm:flex items-center gap-3 px-5 py-2.5 bg-gradient-to-br from-indigo-500/10 to-blue-600/10 rounded-full border border-indigo-500/20 shadow-inner">
+              <div className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
+              <div className="flex flex-col">
+                  <span className="text-[9px] font-black text-indigo-400/60 uppercase tracking-widest leading-none mb-1">Nível Atual</span>
+                  <span className="text-xs font-black text-white tracking-widest leading-none uppercase italic">{level}</span>
+              </div>
+          </div>
 
           {/* SALDO */}
-          <div className="flex items-center gap-3 px-4 py-2 bg-white/5 rounded-full border border-white/5 shadow-inner">
-              <div className="p-1.5 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-full shadow-lg shadow-indigo-500/40">
-                  <Coins className="w-3.5 h-3.5 text-white" />
+          <div className="flex items-center gap-4 px-6 py-2.5 bg-white/5 rounded-full border border-white/5 shadow-inner">
+              <div className="p-2 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl shadow-lg shadow-orange-500/20">
+                  <Coins className="w-4 h-4 text-white" />
               </div>
               <div className="flex flex-col">
-                  <span className="text-xs font-black text-white/40 uppercase tracking-widest leading-none mb-0.5">Créditos</span>
-                  <span className="text-lg font-black text-white tracking-widest leading-none tabular-nums">
+                  <span className="text-[9px] font-black text-white/30 uppercase tracking-widest leading-none mb-1">Bio-Coins</span>
+                  <span className="text-xl font-black text-white tracking-[0.1em] leading-none tabular-nums">
                     {(balance || 0).toLocaleString()}
                   </span>
               </div>
           </div>
 
           {/* VITALIDADE */}
-          <div className="flex items-center gap-4 px-4 py-2 bg-white/5 rounded-full border border-white/5 shadow-inner min-w-[240px]">
+          <div className="flex items-center gap-5 px-6 py-2.5 bg-white/5 rounded-full border border-white/5 shadow-inner min-w-[200px] lg:min-w-[280px] relative overflow-hidden">
+              {hasLegendaryShield && (
+                  <div className="absolute inset-0 bg-amber-400/5 animate-pulse pointer-events-none" />
+              )}
+              
               <div className="flex flex-col text-right">
-                  <span className="text-xs font-black text-white/40 uppercase tracking-widest leading-none mb-0.5">Vitalidade</span>
-                  <span className={cn(
-                      "text-lg font-black tracking-widest leading-none transition-colors duration-500",
-                      (vitality || 0) > 70 ? "text-emerald-400" : (vitality || 0) > 30 ? "text-amber-400" : "text-rose-500"
-                  )}>{vitality || 0}%</span>
+                  <span className="text-[9px] font-black text-white/30 uppercase tracking-widest leading-none mb-1">
+                      {hasLegendaryShield ? 'Protegido' : 'Vitalidade'}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {hasLegendaryShield && <Infinity size={14} className="text-amber-400 animate-pulse" />}
+                    <span className={cn(
+                        "text-xl font-black tracking-widest leading-none transition-colors duration-500",
+                        hasLegendaryShield ? "text-amber-400" : ((vitality || 0) > 70 ? "text-emerald-400" : (vitality || 0) > 30 ? "text-amber-400" : "text-rose-500")
+                    )}>{vitality || 0}%</span>
+                  </div>
               </div>
               
-              <div className="flex-1 h-2.5 bg-white/5 rounded-full overflow-hidden border border-white/5 relative">
+              <div className="flex-1 h-3 bg-white/5 rounded-full overflow-hidden border border-white/5 relative">
                   <div 
                       className={cn(
-                          "h-full transition-all transition-duration-[1500ms] rounded-full",
-                          vitality > 70 ? "bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_15px_rgba(52,211,153,0.4)]" : 
-                          vitality > 30 ? "bg-gradient-to-r from-amber-500 to-orange-400" : "bg-gradient-to-r from-rose-600 to-red-500"
+                          "h-full transition-all transition-duration-[2000ms] rounded-full",
+                          hasLegendaryShield ? "bg-gradient-to-r from-amber-400 to-amber-200 shadow-[0_0_15px_rgba(251,191,36,0.5)]" : (
+                            vitality > 70 ? "bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_20px_rgba(52,211,153,0.3)]" : 
+                            vitality > 30 ? "bg-gradient-to-r from-amber-500 to-orange-400" : "bg-gradient-to-r from-rose-600 to-red-500"
+                          )
                       )}
                       style={{ width: `${vitality}%` }}
                   />
               </div>
 
-              {vitality < 100 && balance >= 100 && (
+              {vitality < 100 && balance >= 100 && !hasLegendaryShield && (
                   <button 
                     onClick={() => handleHealAction(100)}
-                    className="p-2 bg-emerald-500/20 hover:bg-emerald-500/30 rounded-full border border-emerald-500/20 text-emerald-400 transition-all hover:scale-110 active:scale-90 group"
+                    className="p-2.5 bg-emerald-500/20 hover:bg-emerald-500/30 rounded-xl border border-emerald-500/20 text-emerald-400 transition-all hover:scale-110 active:scale-90 group/heal relative overflow-hidden"
                     title="Recuperar Vitalidade (+10%)"
                   >
-                    <Sparkles className="w-4 h-4 group-hover:animate-spin" />
+                    <div className="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover/heal:opacity-100 transition-opacity" />
+                    <Sparkles className="w-5 h-5 group-hover/heal:rotate-12 transition-transform" />
                   </button>
+              )}
+
+              {hasLegendaryShield && (
+                  <div className="p-2.5 bg-amber-400/10 rounded-xl border border-amber-400/20 text-amber-400" title="Proteção da Lenda Ativa">
+                      <ShieldCheck size={20} className="animate-bounce" />
+                  </div>
               )}
           </div>
       </div>

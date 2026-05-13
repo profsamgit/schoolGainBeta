@@ -70,11 +70,11 @@ const formatDisplayName = (name: string) => {
 };
 
 export default function LeaderboardPage() {
-  const { users, currentUserRa, balance, vitality, purchasedItems, getUserState, getMonthlyLegends, isPreviewMode, currentUser, userStates } = useEcosystem();
+  const { users, currentUserRa, balance, vitality, purchasedItems, getUserState, getMonthlyLegends, isPreviewMode, currentUser, userStates, legends } = useEcosystem();
 
   const [selectedUser, setSelectedUser] = useState<any>(null);
   
-  const monthlyLegends = useMemo(() => getMonthlyLegends(), [getMonthlyLegends, purchasedItems]);
+  const monthlyLegends = useMemo(() => getMonthlyLegends(), [getMonthlyLegends, legends, purchasedItems, userStates]);
 
   const calculateScore = (u: any) => {
     const p = u.points || 0;
@@ -289,11 +289,15 @@ export default function LeaderboardPage() {
                     return (
                       <div key={i} className="flex flex-col items-center gap-4">
                          <div className={cn(
-                            "w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center border-2 transition-all duration-500",
+                            "w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center border-2 transition-all duration-500 overflow-hidden",
                             legend ? "bg-emerald-500/20 border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.3)] animate-pulse" : "bg-white/5 border-dashed border-white/10"
                          )}>
                             {legend ? (
-                               <span className="text-3xl font-black text-white">{legend.name.charAt(0)}</span>
+                               legend.avatar ? (
+                                  <img src={legend.avatar} alt={legend.name} className="w-full h-full object-cover" />
+                               ) : (
+                                  <span className="text-3xl font-black text-white">{legend.name.charAt(0)}</span>
+                               )
                             ) : (
                                <Trophy className="h-8 w-8 text-white/10" />
                             )}

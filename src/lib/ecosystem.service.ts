@@ -28,7 +28,8 @@ import {
   QuizTopic,
   UserLevel,
   USER_LEVELS,
-  RegistrationRequest
+  RegistrationRequest,
+  EcosystemLegend
 } from './types';
 
 
@@ -149,7 +150,7 @@ export class EcosystemService {
   private vitalitySubject = new BehaviorSubject<number>(100);
   private currentUserRaSubject = new BehaviorSubject<string | null>(null);
   private isSyncing = false;
-  private usersSubject = new BehaviorSubject<User[]>([]);
+  private usersSubject = new BehaviorSubject<User[]>([ADMIN_MOCK]);
   private rewardsSubject = new BehaviorSubject<Reward[]>([]);
   private articlesSubject = new BehaviorSubject<EducationArticle[]>([]);
   private quizTopicsSubject = new BehaviorSubject<QuizTopic[]>([]);
@@ -163,7 +164,7 @@ export class EcosystemService {
   private cargosSubject = new BehaviorSubject<Cargo[]>([]);
   private setoresSubject = new BehaviorSubject<SetorEscolar[]>([]);
   private auditLogsSubject = new BehaviorSubject<AuditLogEntry[]>([]);
-  private levelSubject = new BehaviorSubject<string>('Semente');
+  private levelSubject = new BehaviorSubject<UserLevel>('Semente');
   private registrationRequestsSubject = new BehaviorSubject<RegistrationRequest[]>([]);
   private userStatesSubject = new BehaviorSubject<Record<string, EcosystemUserState>>({}); // Estado de cada aluno indexado pelo ID (Firestore)
 
@@ -182,6 +183,7 @@ export class EcosystemService {
   private wasteEntriesSubject = new BehaviorSubject<WasteEntry[]>([]);
   private resetHistorySubject = new BehaviorSubject<CycleSnapshot[]>([]);
   private kioskUserRaSubject = new BehaviorSubject<string | null>(null);
+  private legendsSubject = new BehaviorSubject<EcosystemLegend[]>([]);
 
   constructor() {
     // Inicializa os canais com os dados iniciais (mockados)
@@ -396,6 +398,17 @@ export class EcosystemService {
       this.data.registrationRequests = requests;
       this.registrationRequestsSubject.next(requests);
     });
+
+    // 12. Sincronização de Lendas (Ecosystem Legends) - Persistência dedicada solicitada pelo USER
+    onSnapshot(collection(db, "ecosystemLegends"), (snapshot) => {
+      const legends: EcosystemLegend[] = [];
+      snapshot.forEach(doc => legends.push(doc.data() as EcosystemLegend));
+      this.legendsSubject.next(legends);
+      // Após atualizar a lista de lendas, re-sincroniza o estado para atualizar o Escudo
+      if (this.data.currentUserId) {
+        this.syncStateWithUser(this.data.currentUserId);
+      }
+    });
   }
 
   /**
@@ -456,10 +469,57 @@ export class EcosystemService {
 
   /**
    * Sincroniza o estado (balance, vitality, etc) com um ID específico.
+   * Agora inclui lógica de degradação temporal (Tamagotchi).
    */
   private syncStateWithUser(userId: string) {
     const userState = this.data?.userStates?.[userId] || this.getDefaultState();
     const user = (this.data?.users || []).find(u => u.id === userId);
+
+    // Lógica de Degradação Diária (Tamagotchi)
+    // Se o aluno ficar dias sem fazer missões, a vitalidade cai 10% por dia.
+    if (userState.lastMissionDate) {
+      // REGRA DE PROTEÇÃO LENDÁRIA: Se comprou a Nessie este mês, a vitalidade não baixa.
+      // Agora valida via coleção dedicada 'ecosystemLegends'
+      const hasLegendaryShield = (() => {
+        const legends = this.legendsSubject.value;
+        const today = new Date();
+        const currentMonth = today.getMonth() + 1;
+        const currentYear = today.getFullYear();
+        
+        return legends.some(l => 
+          l.studentId === userId && 
+          l.month === currentMonth && 
+          l.year === currentYear &&
+          l.benefitActive
+        );
+      })();
+
+      if (!hasLegendaryShield) {
+        const [day, month, year] = userState.lastMissionDate.split('/').map(Number);
+        const lastDate = new Date(year, month - 1, day);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        lastDate.setHours(0, 0, 0, 0);
+
+        const diffTime = Math.abs(today.getTime() - lastDate.getTime());
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays > 0) {
+          const degradation = diffDays * 10;
+          const newVitality = Math.max(0, userState.vitality - degradation);
+          
+          // Se a vitalidade mudou, persistimos o "dano" no estado do aluno
+          if (newVitality !== userState.vitality) {
+            userState.vitality = newVitality;
+            this.data.userStates[userId] = userState;
+            if (user) user.vitality = newVitality;
+            
+            // Sincroniza no Firestore silenciosamente
+            setDoc(doc(db, "userStates", userId), userState, { merge: true });
+          }
+        }
+      }
+    }
 
     // Se for o usuário logado localmente, atualiza os BehaviorSubjects globais
     if (userId === this.data.currentUserId) {
@@ -560,6 +620,8 @@ export class EcosystemService {
   get userStates$() { return this.userStatesSubject.asObservable(); }
   get registrationRequests$() { return this.registrationRequestsSubject.asObservable(); }
   get resetHistory$() { return this.resetHistorySubject.asObservable(); }
+  get legends$() { return this.legendsSubject.asObservable(); }
+  get legends() { return this.legendsSubject.value; }
 
   get balance() { return this.balanceSubject.value; }
   get vitality() { return this.vitalitySubject.value; }
@@ -890,7 +952,7 @@ export class EcosystemService {
   /**
    * Solicita o registro de uma nova escola.
    */
-  requestSchoolRegistration(schoolData: Omit<School, 'id' | 'status' | 'joinedDate'>, initialPassword?: string) {
+  async requestSchoolRegistration(schoolData: Omit<School, 'id' | 'status' | 'joinedDate'>, initialPassword?: string) {
     if (!schoolData.managerEmail || !initialPassword) {
       return false;
     }
@@ -915,11 +977,15 @@ export class EcosystemService {
     this.data.schools.push(newSchool);
     this.schoolsSubject.next([...this.data.schools]);
 
-    // Sincroniza no Firestore
-    setDoc(doc(db, "schools", newSchool.id), newSchool);
-
-    this.saveToStorage();
-    return true;
+    try {
+      // Sincroniza no Firestore
+      await setDoc(doc(db, "schools", newSchool.id), newSchool);
+      this.saveToStorage();
+      return true;
+    } catch (error) {
+      console.error("[ECOSYSTEM] Erro ao registrar solicitação de escola:", error);
+      return false;
+    }
   }
 
   /**
@@ -1048,16 +1114,24 @@ export class EcosystemService {
 
   /**
    * Verifica se o item especial "Nessie" ainda está disponível para compra este mês.
-   * (Limitado a 3 pessoas por mês).
+   * (Limitado a 3 pessoas por mês POR UNIDADE ESCOLAR).
    */
   isNessieAvailable() {
     const today = new Date();
-    const currentMonth = `${today.getFullYear()}-${today.getMonth() + 1}`;
+    const currentMonth = today.getMonth() + 1;
+    const currentYear = today.getFullYear();
+    const currentRa = this.currentUserRa;
+    const user = this.data.users.find(u => u.ra === currentRa);
+    if (!user || !user.schoolId) return false;
 
-    const nessieOwnersInMonth = Object.values(this.data?.userStates || {}).filter(state => {
-      if (!state.purchasedItems.includes('monstro_lago') || !state.nessiePurchaseDate) return false;
-      return state.nessiePurchaseDate.startsWith(currentMonth);
-    });
+    const schoolId = user.schoolId;
+    const legends = this.legendsSubject.value;
+
+    const nessieOwnersInMonth = legends.filter(l => 
+      l.schoolId === schoolId && 
+      l.month === currentMonth && 
+      l.year === currentYear
+    );
 
     return nessieOwnersInMonth.length < 3;
   }
@@ -1065,25 +1139,67 @@ export class EcosystemService {
   /**
    * Retorna os usuários que atingiram o item lendário no mês vigente.
    */
-  getMonthlyLegends() {
+  getMonthlyLegends(targetSchoolId?: string) {
     const today = new Date();
-    const currentMonth = `${today.getFullYear()}-${today.getMonth() + 1}`;
+    const currentMonth = today.getMonth() + 1;
+    const currentYear = today.getFullYear();
+    
+    let sid = targetSchoolId;
+    if (!sid) {
+      const currentRa = this.currentUserRa;
+      const user = this.data.users.find(u => u.ra === currentRa);
+      sid = user?.schoolId;
+    }
 
-    return Object.entries(this.data.userStates)
-      .filter(([_, state]) => {
-        return state.purchasedItems.includes('monstro_lago') &&
-          state.nessiePurchaseDate &&
-          state.nessiePurchaseDate.startsWith(currentMonth);
+    const dbLegends = this.legendsSubject.value
+      .filter(l => {
+         if (sid && sid !== 'MASTER') {
+            return l.schoolId === sid && l.month === currentMonth && l.year === currentYear;
+         }
+         return l.month === currentMonth && l.year === currentYear;
       })
-      .map(([ra, state]) => {
-        const user = this.data.users.find(u => u.ra === ra);
+      .map(l => l.studentId);
+
+    const fallbackLegends: string[] = [];
+    Object.entries(this.data.userStates).forEach(([userId, state]) => {
+      if (state.purchasedItems.includes('monstro_lago') || state.nessiePurchaseDate) {
+        if (state.nessiePurchaseDate) {
+          const [y, m, d] = state.nessiePurchaseDate.split('-');
+          if (parseInt(y) === currentYear && parseInt(m) === currentMonth) {
+             if (!dbLegends.includes(userId)) fallbackLegends.push(userId);
+          }
+        } else {
+          if (!dbLegends.includes(userId)) fallbackLegends.push(userId);
+        }
+      }
+    });
+
+    const allLegendIds = [...dbLegends, ...fallbackLegends];
+
+    return allLegendIds
+      .map(id => {
+        const u = this.data.users.find(user => user.id === id);
+        const dbL = this.legendsSubject.value.find(l => l.studentId === id);
+        const stateDate = this.data.userStates[id]?.nessiePurchaseDate;
+        
+        let dateToUse = dbL?.purchaseDate || new Date().toISOString();
+        if (!dbL?.purchaseDate && stateDate) {
+           dateToUse = stateDate.includes('T') ? stateDate : new Date(`${stateDate}T12:00:00Z`).toISOString();
+        }
+
         return {
-          ra,
-          name: user?.name || 'Agente Desconhecido',
-          purchaseDate: state.nessiePurchaseDate
+          ra: u?.ra || '',
+          name: dbL?.studentName || u?.name || 'Agente Anônimo',
+          avatar: u?.avatar,
+          purchaseDate: dateToUse,
+          schoolId: dbL?.schoolId || u?.schoolId || 'MASTER'
         };
       })
-      .sort((a, b) => new Date(a.purchaseDate!).getTime() - new Date(b.purchaseDate!).getTime())
+      .filter(l => {
+         if (sid && sid !== 'MASTER') return l.schoolId === sid;
+         return true;
+      })
+      .sort((a, b) => new Date(a.purchaseDate).getTime() - new Date(b.purchaseDate).getTime())
       .slice(0, 3);
   }
 
@@ -1350,14 +1466,20 @@ export class EcosystemService {
   }
 
   /**
-   * Marca a missão diária como completa e concede pontos.
+   * Marca a missão diária como completa, concede pontos e RESTAURA VITALIDADE.
    */
   completeDailyMission(points: number) {
     const today = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
     if (this.lastMissionDateSubject.value === today) return false;
+    
     if (this.currentUserRa) {
       const state = this.data?.userStates?.[this.currentUserRa] || this.getDefaultState();
       state.lastMissionDate = today;
+      
+      // Restauração de Vitalidade (+20% por missão cumprida)
+      state.vitality = Math.min(100, state.vitality + 20);
+      this.vitalitySubject.next(state.vitality);
+
       if (this.data?.userStates) this.data.userStates[this.currentUserRa] = state;
 
       this.syncUserPoints(this.currentUserRa, points, points);
@@ -1365,7 +1487,7 @@ export class EcosystemService {
       this.logTelemetry({
         action: 'MISSION_COMPLETED',
         category: 'ECOSYSTEM',
-        details: `Aluno completou missão diária e conquistou ${points} Bio-Coins.`
+        details: `Agente alimentou o ecossistema. Vitalidade restaurada para ${state.vitality}% e conquistou ${points} Bio-Coins.`
       });
     }
     return true;
@@ -1432,10 +1554,13 @@ export class EcosystemService {
       'peixe_2': { price: 100, required: 'limpar_rio' },
       'peixe_3': { price: 100, required: 'limpar_rio' },
       'cachorro': { price: 400, required: 'reparar_grama' },
+      'gato': { price: 400, required: 'reparar_grama' },
       'coelho': { price: 250, required: 'reparar_grama' },
       'borboletas': { price: 150, required: 'reparar_grama' },
       'borboletas_2': { price: 200, required: 'borboletas' },
       'borboletas_3': { price: 250, required: 'borboletas_2' },
+      'borboletas_4': { price: 300, required: 'borboletas_3' },
+      'passaro_3': { price: 150, required: 'arvore_3' },
       'casa': { price: 1500, minVitality: 100, required: 'arvore_1' },
       'barco_1': { price: 500, required: 'limpar_rio' },
       'barco_2': { price: 600, required: 'barco_1' },
@@ -1443,16 +1568,26 @@ export class EcosystemService {
     };
 
     const upgrade = catalog[item];
-    if (this.purchasedItems.includes(item)) return false; // Já possui o item
-    if (upgrade.minVitality && this.vitality < upgrade.minVitality) return false; // Vitalidade insuficiente
+    if (this.purchasedItems.includes(item)) return false;
+    if (upgrade.minVitality && this.vitality < upgrade.minVitality) return false;
 
-    // Lógica para itens lendários (só podem ser comprados se todos os normais já foram)
+    // Regra de Escassez: Nessie (monstro_lago) limitada a 3 por mês
+    if (item === 'monstro_lago' && !this.isNessieAvailable()) {
+      return false;
+    }
+
+    // Itens que bloqueiam os lendários
     const legendaryItems: EcosystemItem[] = ['casa', 'barco_1', 'barco_2', 'monstro_lago'];
     const isLegendary = legendaryItems.includes(item);
 
     if (isLegendary) {
-      const regularItems = Object.keys(catalog).filter(id => !legendaryItems.includes(id as EcosystemItem));
-      if (regularItems.some(id => !this.purchasedItems.includes(id as EcosystemItem))) return false;
+      // Verifica apenas itens essenciais (árvores, limpeza, cachorro, gato)
+      const essentialItems: EcosystemItem[] = [
+        'limpar_rio', 'filtro_ar', 'reparar_grama', 
+        'arvore_1', 'arvore_2', 'arvore_3',
+        'cachorro'
+      ];
+      if (essentialItems.some(id => !this.purchasedItems.includes(id))) return false;
     } else if (upgrade.required && !this.purchasedItems.includes(upgrade.required as EcosystemItem)) {
       return false; // Não possui o item requisito (ex: precisa de árvore para ter pássaro)
     }
@@ -1463,17 +1598,47 @@ export class EcosystemService {
     const newItems = [...this.purchasedItems, item];
     this.purchasedItemsSubject.next(newItems);
 
+    // Persiste a mudança no estado do usuário para o Firestore
+    const student = this.data.users.find(u => u.ra === this.currentUserRa);
+    if (student) {
+      const state = this.data.userStates[student.id] || this.getDefaultState();
+      state.purchasedItems = newItems;
+      this.data.userStates[student.id] = state;
+    }
+
     let balanceAdjust = -upgrade.price;
     let pointsAdjust = 0;
 
-    // Lógica especial para Nessie
+    // Lógica especial para Nessie: Persistência dedicada em coleção própria (ecosystemLegends)
     if (item === 'monstro_lago') {
       if (!this.isNessieAvailable()) return false;
 
       const state = this.data.userStates[this.currentUserRa] || this.getDefaultState();
       const today = new Date();
-      state.nessiePurchaseDate = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+      const month = today.getMonth() + 1;
+      const year = today.getFullYear();
+      const dateStr = today.toISOString();
+      
+      state.nessiePurchaseDate = `${year}-${month}-${today.getDate()}`;
       this.data.userStates[this.currentUserRa] = state;
+
+      if (student) {
+        const legendDoc: EcosystemLegend = {
+          id: `${student.id}-${month}-${year}`,
+          studentId: student.id,
+          studentName: student.name,
+          schoolId: student.schoolId || 'MASTER',
+          month: month,
+          year: year,
+          purchaseDate: dateStr,
+          benefitActive: true
+        };
+
+        // Salva na coleção dedicada solicitada pelo USER
+        setDoc(doc(db, "ecosystemLegends", legendDoc.id), legendDoc).catch(err => {
+          console.error("[FIREBASE] Erro ao salvar lenda dedicada:", err);
+        });
+      }
     }
 
     // Se comprar a 'casa' (item máximo), ganha um bônus especial de pontos
@@ -1513,7 +1678,9 @@ export class EcosystemService {
     }
 
     const currentAdmin = this.data?.users?.find(u => u.ra === this.currentUserRa);
-    if (!currentAdmin || (currentAdmin.role !== 'admin' && currentAdmin.role !== 'super_admin')) {
+    const isSystemAction = adminName === 'SISTEMA' || adminName === 'SchoolGain Security';
+
+    if (!isSystemAction && (!currentAdmin || (currentAdmin.role !== 'admin' && currentAdmin.role !== 'super_admin'))) {
       console.error('[SECURITY] Tentativa de conceder pontos por usuário não autorizado');
       return false;
     }
@@ -1848,7 +2015,7 @@ export class EcosystemService {
       lockoutDate.setMinutes(lockoutDate.getMinutes() + minutes);
       security.lockoutUntil = lockoutDate.toISOString();
 
-      this.grantPoints('SECURITY_ALERT', 0, 'SISTEMA', `BLOQUEIO: ${id} após ${security.failedAttempts} falhas`, 'Antigravity Security');
+      this.grantPoints('SECURITY_ALERT', 0, 'SISTEMA', `BLOQUEIO: ${id} após ${security.failedAttempts} falhas`, 'SchoolGain Security');
     }
 
     this.data.securityState[id] = security;

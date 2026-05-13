@@ -23,6 +23,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useEcosystem } from '@/app/(app)/ecosystem-context';
 import { useSidebar } from '@/components/ui/sidebar';
+import { Separator } from '@/components/ui/separator';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -128,19 +129,7 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-      {isMobile && (
-        <Button
-          size="icon"
-          variant="outline"
-          className="sm:hidden"
-          onClick={toggleSidebar}
-        >
-          <PanelLeft className="h-5 w-5" />
-          <span className="sr-only">Toggle Menu</span>
-        </Button>
-      )}
-
+    <header className="relative z-40 flex h-14 items-center gap-4 border-b bg-background px-4 sm:h-14 sm:bg-background sm:px-6">
       <BreadcrumbNav />
       <h1 className="text-lg font-semibold md:hidden">{title}</h1>
 

@@ -649,12 +649,6 @@ function AdminContent() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {currentUser?.role === 'super_admin' && searchParams.has('schoolId') && (
-        <div className="bg-slate-900 text-white px-6 py-2 flex justify-between items-center sticky top-0 z-50">
-          <p className="text-[10px] font-black uppercase tracking-widest">Modo Super Admin: <span className="text-red-500">{schools.find(s => s.id === targetSchoolId)?.name}</span></p>
-        </div>
-      )}
-
       <div className="p-6 space-y-8 max-w-7xl mx-auto">
         <div className="flex justify-between items-start">
           <div>

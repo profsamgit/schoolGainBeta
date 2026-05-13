@@ -1,4 +1,9 @@
 @import "tailwindcss";
+@plugin "tailwindcss-animate";
+
+@source "../components";
+@source "../lib";
+@source "../hooks";
 
 @theme {
   --font-body: "Poppins", sans-serif;
@@ -54,6 +59,51 @@
 
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-spin-slow: spin 3s linear infinite;
+  --animate-tree-sway: tree-sway 5s ease-in-out infinite;
+  --animate-tail-wag: tail-wag 0.3s linear infinite;
+  --animate-float-boat: float-boat 3s ease-in-out infinite;
+
+  @keyframes tree-sway {
+    0%, 100% { transform: skewX(-1deg); }
+    50% { transform: skewX(1deg); }
+  }
+  @keyframes tail-wag {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(20deg); }
+  }
+  @keyframes float-boat {
+    0%, 100% { transform: translateY(0) rotate(-0.5deg); }
+    50% { transform: translateY(-4px) rotate(0.5deg); }
+  }
+
+  @keyframes sunbeam-move {
+    0% { transform: rotate(25deg) translateX(-20px) translateY(-10px); opacity: 0.15; }
+    100% { transform: rotate(28deg) translateX(20px) translateY(10px); opacity: 0.25; }
+  }
+
+  @keyframes wind-leaf {
+    0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translate(120vw, 50vh) rotate(720deg); opacity: 0; }
+  }
+
+  @keyframes fish-patrol {
+    0% { transform: translateX(0) scaleX(1); }
+    45% { transform: translateX(-200px) scaleX(1); }
+    50% { transform: translateX(-200px) scaleX(-1); }
+    95% { transform: translateX(0) scaleX(-1); }
+    100% { transform: translateX(0) scaleX(1); }
+  }
+
+  @keyframes bird-fly {
+    0% { transform: translate(-20vw, 0); opacity: 0; }
+    10% { opacity: 1; }
+    50% { transform: translate(40vw, -30px); }
+    90% { opacity: 1; }
+    100% { transform: translate(110vw, 0); opacity: 0; }
+  }
 
   @keyframes accordion-down {
     from { height: 0; }

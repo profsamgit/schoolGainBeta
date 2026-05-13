@@ -14,6 +14,9 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
+  SidebarInset,
+  SidebarTrigger,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import {
   BookOpen,
@@ -27,6 +30,7 @@ import {
   Trophy,
   Leaf,
   Info,
+  PanelLeft,
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { ADMIN_MOCK } from '@/lib/data';
@@ -49,6 +53,21 @@ const adminMenuItems = [
 const superAdminMenuItems = [
   { href: '/super-admin', label: 'Central de Rede', icon: Shield, color: 'text-red-500' },
 ];
+
+function SidebarCollapseButton() {
+  const { toggleSidebar } = useSidebar();
+
+  return (
+    <SidebarMenuButton
+      onClick={toggleSidebar}
+      tooltip={{ children: 'Recolher Menu' }}
+      className="w-full"
+    >
+      <PanelLeft className="h-5 w-5" />
+      <span>Recolher</span>
+    </SidebarMenuButton>
+  );
+}
 
 export function AppSidebar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -75,14 +94,20 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider defaultOpen>
-      <Sidebar collapsible="icon">
+      <Sidebar collapsible="icon" variant="sidebar">
         <SidebarHeader>
           <Link
-            href="/"
-            className="flex items-center gap-2 font-semibold text-lg"
+            href={getLink(
+              currentUser?.role === 'super_admin' 
+                ? '/super-admin' 
+                : currentUser?.role === 'admin' 
+                  ? '/admin/dashboard' 
+                  : '/dashboard'
+            )}
+            className="flex items-center gap-2 font-semibold text-lg overflow-hidden group-data-[collapsible=icon]:justify-center transition-all"
           >
-            <Leaf className="h-7 w-7 text-primary" />
-            <span className="font-black tracking-tighter group-data-[collapsible=icon]:hidden">
+            <Leaf className="h-7 w-7 text-primary flex-shrink-0" />
+            <span className="font-black tracking-tighter group-data-[collapsible=icon]:hidden whitespace-nowrap">
               <span className="text-primary">School</span>Gain
             </span>
           </Link>
@@ -98,6 +123,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
                     <SidebarMenuButton
                       isActive={item.exact ? pathname === item.href : pathname.startsWith(item.href)}
                       tooltip={{ children: item.label }}
+                      className="group-data-[collapsible=icon]:mx-auto"
                     >
                       <item.icon />
                       <span>{item.label}</span>
@@ -115,7 +141,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
                     <SidebarMenuButton
                       isActive={pathname.startsWith(item.href)}
                       tooltip={{ children: item.label }}
-                      className="group/btn"
+                      className="group/btn group-data-[collapsible=icon]:mx-auto"
                     >
                       <item.icon className={cn(
                         "transition-all duration-500",
@@ -137,7 +163,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
                       tooltip={{ children: item.label }}
                       className="text-red-600 font-bold bg-red-50/50 hover:bg-red-50"
                     >
-                      <item.icon className="h-4 w-4" />
+                      <item.icon className="h-5 w-5" />
                       <span>{item.label}</span>
                     </SidebarMenuButton>
                   </Link>
@@ -147,22 +173,26 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
           )}
         </SidebarContent>
         <Separator />
-        <SidebarFooter>
-          <SidebarMenu>
+        <SidebarFooter className="p-4">
+          <SidebarMenu className="gap-2">
+            <SidebarMenuItem>
+              <SidebarCollapseButton />
+            </SidebarMenuItem>
 
-            <Link href="/" onClick={() => logout()} className="w-full">
-              <SidebarMenuItem>
+            <SidebarMenuItem>
+              <Link href="/" onClick={() => logout()} className="w-full">
                 <SidebarMenuButton tooltip={{ children: 'Sair' }}>
-                  <LogOut />
+                  <LogOut className="h-5 w-5" />
                   <span>Sair</span>
                 </SidebarMenuButton>
-
-              </SidebarMenuItem>
-            </Link>
+              </Link>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
-      {children}
+      <SidebarInset className="flex flex-col min-w-0 overflow-hidden">
+        {children}
+      </SidebarInset>
     </SidebarProvider>
   );
 }
