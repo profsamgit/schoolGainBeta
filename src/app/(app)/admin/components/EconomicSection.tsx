@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -23,7 +23,7 @@ import {
 import { 
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
 } from '@/components/ui/select';
-import { Reward, AuditLogEntry } from '@/lib/types';
+import { Reward, AuditLogEntry, Turma, Curso } from '@/lib/types';
 
 interface EconomicSectionProps {
   rewards: Reward[];
@@ -59,6 +59,8 @@ interface EconomicSectionProps {
   setUploadingUserId: (id: string | null) => void;
   securityPassword: string;
   setSecurityPassword: (val: string) => void;
+  allTurmas?: Turma[];
+  allCursos?: Curso[];
 }
 
 export function EconomicSection({
@@ -94,12 +96,37 @@ export function EconomicSection({
   uploadingUserId,
   setUploadingUserId,
   securityPassword,
-  setSecurityPassword
+  setSecurityPassword,
+  allTurmas = [],
+  allCursos = []
 }: EconomicSectionProps) {
+  const [grantStudentSearch, setGrantStudentSearch] = useState('');
+  const [grantTurmaFilter, setGrantTurmaFilter] = useState('all');
+  const [grantCursoFilter, setGrantCursoFilter] = useState('all');
 
   const filteredRewards = useMemo(() => {
-    return rewards.filter(r => r.name.toLowerCase().includes(rewardSearch.toLowerCase()));
+    return rewards
+      .filter(r => r.name.toLowerCase().includes(rewardSearch.toLowerCase()))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [rewards, rewardSearch]);
+
+  const sortedStudents = useMemo(() => {
+    // Se não houver filtro de turma, curso ou busca ativa, não mostra alunos (conforme solicitação do usuário)
+    if (grantTurmaFilter === 'all' && grantCursoFilter === 'all' && !grantStudentSearch) {
+      return [];
+    }
+
+    return [...filteredUsersForAdmin]
+      .filter(u => {
+        const matchesSearch = u.name.toLowerCase().includes(grantStudentSearch.toLowerCase()) ||
+                             u.ra?.toLowerCase().includes(grantStudentSearch.toLowerCase());
+        const matchesTurma = grantTurmaFilter === 'all' || u.turma === grantTurmaFilter;
+        const matchesCurso = grantCursoFilter === 'all' || u.curso === grantCursoFilter;
+        
+        return u.role === 'student' && matchesSearch && matchesTurma && matchesCurso;
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [filteredUsersForAdmin, grantStudentSearch, grantTurmaFilter, grantCursoFilter]);
 
   const filteredAuditLogs = useMemo(() => {
     return auditLogs.filter(log => 
@@ -247,29 +274,103 @@ export function EconomicSection({
           {/* RECONHECIMENTO DE MÉRITO */}
           <Card className="border-emerald-100 shadow-sm bg-emerald-50/20">
             <CardHeader className="pb-4"><CardTitle className="flex items-center gap-2 uppercase tracking-tighter text-emerald-700 font-black text-sm"><Leaf className="h-5 w-5" /> Reconhecimento de Mérito</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="md:col-span-1 space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Identificar Aluno</Label>
-                  <Select onValueChange={setGrantRa} value={grantRa}>
-                    <SelectTrigger className="bg-white border-emerald-200"><SelectValue placeholder="Selecione o aluno..." /></SelectTrigger>
-                    <SelectContent>{filteredUsersForAdmin.filter(u => u.role === 'student').map(u => <SelectItem key={u.id} value={u.ra || ''}>{u.name}</SelectItem>)}</SelectContent>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-6">
+                {/* Linha 1: Filtros e Seleção */}
+                <div className="md:col-span-2 space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-emerald-800/70">1. Filtrar por Turma</Label>
+                  <Select value={grantTurmaFilter} onValueChange={setGrantTurmaFilter}>
+                    <SelectTrigger className="bg-white border-emerald-100 h-10 shadow-sm"><SelectValue placeholder="Todas as Turmas" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas as Turmas</SelectItem>
+                      {[...allTurmas].sort((a, b) => a.name.localeCompare(b.name)).map(t => (
+                        <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
                 </div>
-                <div className="md:col-span-1 space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Descrição da Ação</Label>
-                  <Input placeholder="Ex: Ajudou na horta..." value={grantAction} onChange={(e) => setGrantAction(e.target.value)} className="bg-white border-emerald-200" />
+                <div className="md:col-span-2 space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-emerald-800/70">2. Filtrar por Curso</Label>
+                  <Select value={grantCursoFilter} onValueChange={setGrantCursoFilter}>
+                    <SelectTrigger className="bg-white border-emerald-100 h-10 shadow-sm"><SelectValue placeholder="Todos os Cursos" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os Cursos</SelectItem>
+                      {[...allCursos].sort((a, b) => a.name.localeCompare(b.name)).map(c => (
+                        <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div className="md:col-span-1 flex gap-2 items-end">
+                <div className="md:col-span-2 space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-emerald-800/70">3. Identificar Aluno</Label>
+                  <Select onValueChange={setGrantRa} value={grantRa}>
+                    <SelectTrigger className="bg-white border-emerald-200 h-10 shadow-sm">
+                      <SelectValue placeholder="Selecione o aluno..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <div className="p-2 sticky top-0 bg-white z-10 border-b border-emerald-100 mb-1">
+                        <Input 
+                          placeholder="Pesquisar por nome..." 
+                          className="h-8 text-xs" 
+                          value={grantStudentSearch}
+                          onChange={(e) => setGrantStudentSearch(e.target.value)}
+                        />
+                      </div>
+                      {sortedStudents.map(u => (
+                        <SelectItem key={u.id} value={u.ra || ''}>
+                          <div className="flex flex-col">
+                            <span className="font-bold text-xs uppercase">{u.name}</span>
+                            <span className="text-[9px] opacity-60">RA: {u.ra}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                      {sortedStudents.length === 0 && (
+                        <div className="p-4 text-center text-xs text-muted-foreground italic">
+                          {grantTurmaFilter === 'all' && grantCursoFilter === 'all' && !grantStudentSearch 
+                            ? "Selecione uma turma ou curso para listar os alunos." 
+                            : "Nenhum aluno encontrado."}
+                        </div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Linha 2: Ação e Atribuição */}
+                <div className="md:col-span-3 space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-emerald-800/70">4. Descrição da Ação</Label>
+                  <Input 
+                    placeholder="Ex: Ajudou na horta, comportamento exemplar..." 
+                    value={grantAction} 
+                    onChange={(e) => setGrantAction(e.target.value)} 
+                    className="bg-white border-emerald-200 h-10 shadow-sm" 
+                  />
+                </div>
+                <div className="md:col-span-1 space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-emerald-800/70">5. PTS</Label>
+                  <Input 
+                    type="number" 
+                    value={grantPointsValue} 
+                    onChange={(e) => setGrantPointsValue(Number(e.target.value))} 
+                    className="bg-white border-emerald-200 h-10 shadow-sm font-bold text-emerald-700" 
+                  />
+                </div>
+                <div className="md:col-span-2 flex gap-2 items-end">
                   <div className="flex-1 space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">PTS</Label>
-                    <Input type="number" value={grantPointsValue} onChange={(e) => setGrantPointsValue(Number(e.target.value))} className="bg-white border-emerald-200" />
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-emerald-800/70">6. Sua Senha (Gestor)</Label>
+                    <Input 
+                      type="password" 
+                      value={grantPassword} 
+                      onChange={(e) => setGrantPassword(e.target.value)} 
+                      placeholder="Autorizar" 
+                      className="bg-white border-emerald-200 h-10 shadow-sm" 
+                    />
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Sua Senha (Gestor)</Label>
-                    <Input type="password" value={grantPassword} onChange={(e) => setGrantPassword(e.target.value)} placeholder="Confirme para autorizar" className="bg-white border-emerald-200" />
-                  </div>
-                  <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={handleGrantSubmit}><Plus className="h-4 w-4" /></Button>
+                  <Button 
+                    className="bg-emerald-600 hover:bg-emerald-700 h-10 px-6 shadow-lg shadow-emerald-200" 
+                    onClick={handleGrantSubmit}
+                  >
+                    <Plus className="h-5 w-5" />
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -324,7 +425,7 @@ export function EconomicSection({
                       <TableRow key={log.id}>
                         <TableCell className="text-[10px] text-slate-500">{new Date(log.timestamp).toLocaleString('pt-BR')}</TableCell>
                         <TableCell className="font-bold">
-                          {log.studentName || log.metadata?.studentName || 'N/A'}
+                          {log.studentName || log.metadata?.studentName || (log.action === 'ITEM_PURCHASED' ? log.actorName : 'N/A')}
                         </TableCell>
                         <TableCell className="text-xs italic text-slate-600">
                           {log.details || log.action?.replace(/_/g, ' ')}
@@ -335,7 +436,7 @@ export function EconomicSection({
                           </Badge>
                         </TableCell>
                         <TableCell className="italic text-slate-400 text-xs">
-                          {log.adminName || log.actorName || 'Sistema'}
+                          {log.adminName || (log.actorName === (log.studentName || log.metadata?.studentName || (log.action === 'ITEM_PURCHASED' ? log.actorName : '')) ? '-' : log.actorName) || 'Sistema'}
                         </TableCell>
                         <TableCell className="text-right font-black text-emerald-600">
                           {log.points || log.metadata?.points ? `+${log.points || log.metadata?.points} PTS` : 

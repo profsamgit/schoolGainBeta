@@ -11,9 +11,9 @@ import {
   Dog,
   Cat as CatIcon,
   Sparkles,
-  Waves
+  Waves 
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { EcosystemItem } from '@/lib/types';
 import { EcosystemViewer } from '@/components/ecosystem/EcosystemViewer';
 
@@ -38,6 +38,26 @@ export default function MeuEcossistemaPage() {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [isHealing, setIsHealing] = useState(false);
   const [showVitalityWarning, setShowVitalityWarning] = useState(true);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullScreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
+
+  const toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+      containerRef.current?.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  };
 
   const handleBuy = (id: EcosystemItem) => {
     const success = buyUpgrade(id);
@@ -81,7 +101,13 @@ export default function MeuEcossistemaPage() {
   ];
 
   return (
-    <div className="relative flex-1 w-full min-h-[650px] lg:min-h-[750px] overflow-hidden font-sans select-none bg-slate-950 rounded-2xl shadow-2xl animate-in fade-in zoom-in duration-700">
+    <div 
+      ref={containerRef}
+      className={cn(
+        "relative flex-1 w-full overflow-hidden font-sans select-none bg-slate-950 shadow-2xl animate-in fade-in zoom-in duration-700",
+        isFullScreen ? "h-screen rounded-0" : "min-h-[650px] lg:min-h-[750px] rounded-2xl"
+      )}
+    >
       <EcosystemViewer 
         vitality={vitality} 
         purchasedItems={purchasedItems as any} 
@@ -91,7 +117,9 @@ export default function MeuEcossistemaPage() {
       <EcossistemaHUD 
         balance={balance} 
         vitality={vitality} 
-        handleHealAction={handleHealAction} 
+        handleHealAction={handleHealAction}
+        toggleFullScreen={toggleFullScreen}
+        isFullScreen={isFullScreen}
       />
 
       {vitality < 70 && showVitalityWarning && (

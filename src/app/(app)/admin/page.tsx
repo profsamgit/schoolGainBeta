@@ -79,7 +79,7 @@ const rewardSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(3, 'Nome muito curto'),
   description: z.string().min(5, 'Descrição muito curta'),
-  cost: z.number().min(1, 'Custo inválido'),
+  cost: z.union([z.number(), z.string().transform(Number)]).pipe(z.number().min(1, 'Custo inválido')),
   image: z.string().url('URL inválida').optional().or(z.literal('')),
   imageHint: z.string().optional(),
 });
@@ -96,7 +96,14 @@ const articleSchema = z.object({
 
 
 type UserFormValues = z.infer<typeof userSchema>;
-type RewardFormValues = z.infer<typeof rewardSchema>;
+type RewardFormValues = {
+  id?: string;
+  name: string;
+  description: string;
+  cost: number;
+  image?: string;
+  imageHint?: string;
+};
 type ArticleFormValues = z.infer<typeof articleSchema>;
 
 function AdminContent() {
@@ -203,6 +210,7 @@ function AdminContent() {
   // Search and Filters (Moved from page state but passed as props to maintain orchestration)
   const [userSearch, setUserSearch] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState<'student' | 'admin' | 'visitor'>('student');
+
   const [userTurmaFilter, setUserTurmaFilter] = useState('all');
   const [rewardSearch, setRewardSearch] = useState('');
   const [articleSearch, setArticleSearch] = useState('');
@@ -240,7 +248,7 @@ function AdminContent() {
 
   // Forms
   const userForm = useForm<UserFormValues>({ resolver: zodResolver(userSchema), defaultValues: { name: '', email: '', ra: '', rfid: '', turma: '', curso: '', role: 'student', password: '', confirmPassword: '', avatar: '' } });
-  const rewardForm = useForm<RewardFormValues>({ resolver: zodResolver(rewardSchema), defaultValues: { name: '', description: '', cost: 0, image: '', imageHint: '' } });
+  const rewardForm = useForm<RewardFormValues>({ resolver: zodResolver(rewardSchema as any), defaultValues: { name: '', description: '', cost: 0, image: '', imageHint: '' } });
   const articleForm = useForm<ArticleFormValues>({ resolver: zodResolver(articleSchema), defaultValues: { title: '', summary: '', content: '', image: '', imageHint: '', videoUrl: '' } });
 
   // Shared Handlers
@@ -408,7 +416,11 @@ function AdminContent() {
         }
       });
 
-      let payload = { ...sanitizedValues, ra: (values.ra || Math.random().toString(36).substring(2, 14).toUpperCase().padEnd(12, '0')).toUpperCase().trim(), schoolId: targetSchoolId };
+      let payload = { 
+        ...sanitizedValues, 
+        ra: (values.ra || Math.random().toString(36).substring(2, 14).toUpperCase().padEnd(12, '0')).toUpperCase().trim(), 
+        schoolId: targetSchoolId || values.schoolId || currentUser?.schoolId 
+      };
       if (!isNew && itemType === 'user' && !values.password) {
         delete payload.password;
         delete payload.confirmPassword;
@@ -432,22 +444,50 @@ function AdminContent() {
         if (sanitizedPayload.position) sanitizedPayload.position = (sanitizedPayload.position as string).toUpperCase().trim();
         if (sanitizedPayload.rfid) sanitizedPayload.rfid = (sanitizedPayload.rfid as string).toUpperCase().trim();
 
+        // Prefixos padrão para novos IDs
         let prefix = 'user-student';
         if (sanitizedPayload.role === 'super_admin') prefix = 'super';
         else if (sanitizedPayload.role === 'admin') prefix = 'admin';
         else if (sanitizedPayload.role === 'visitor') prefix = 'user-visitante';
 
-        const newId = EcosystemService.generateStandardId(prefix, targetSchoolId || currentUser?.schoolId);
-        const finalUsers = isNew ? [...users, { ...sanitizedPayload, id: newId, points: 0, level: 'Semente' } as unknown as User] : users.map(u => u.id === selectedItem.id ? { ...u, ...sanitizedPayload } as User : u);
-        const result = await updateUsers(finalUsers, targetSchoolId || currentUser?.schoolId);
+        let finalUsers: User[];
+        const targetSid = targetSchoolId || currentUser?.schoolId;
+
+        if (isNew) {
+          const newId = EcosystemService.generateStandardId(prefix, targetSid);
+          finalUsers = [...users, { ...sanitizedPayload, id: newId, points: 0, level: 'Semente', schoolId: targetSid } as unknown as User];
+        } else {
+          // Edição: Localiza e mescla dados
+          if (!selectedItem?.id) {
+            toast({ variant: 'destructive', title: 'Erro de Sessão', description: 'O item selecionado para edição não foi encontrado. Tente reabrir o formulário.' });
+            setIsSubmitting(false);
+            return;
+          }
+
+          finalUsers = users.map(u => {
+            if (u.id === selectedItem.id) {
+              // Preserva campos que não estão no formulário de edição (como pontos, level, ID e schoolId original se não alterado)
+              return { 
+                ...u, 
+                ...sanitizedPayload,
+                id: u.id, // Garante que o ID nunca mude
+                schoolId: u.schoolId || targetSid // Preserva ou garante schoolId
+              } as User;
+            }
+            return u;
+          });
+        }
+
+        const result = await updateUsers(finalUsers, targetSid);
 
         if (!result.success) {
-          toast({ variant: 'destructive', title: 'Erro de Validação', description: result.error || 'Não foi possível salvar. Verifique os dados.' });
+          toast({ variant: 'destructive', title: 'Erro ao Salvar', description: result.error || 'Verifique se há campos obrigatórios vazios ou duplicados.' });
           setIsSubmitting(false);
           return;
         }
 
-        toast({ title: isNew ? 'Aluno Cadastrado!' : 'Dados Atualizados!', description: `${sanitizedPayload.name} foi salvo com sucesso.` });
+        const roleLabel = sanitizedPayload.role === 'admin' ? 'Gestor' : sanitizedPayload.role === 'super_admin' ? 'Super Gestor' : sanitizedPayload.role === 'visitor' ? 'Visitante' : 'Aluno';
+        toast({ title: isNew ? `${roleLabel} Cadastrado!` : 'Dados Atualizados!', description: `${sanitizedPayload.name} foi salvo com sucesso.` });
         closeAllForms();
       } else if (itemType === 'reward') {
         const sanitizedPayload = Object.fromEntries(
@@ -782,6 +822,8 @@ function AdminContent() {
               uploadUserAvatar={uploadUserAvatar}
               uploadingUserId={uploadingUserId}
               setUploadingUserId={setUploadingUserId}
+              allTurmas={allTurmas}
+              allCursos={allCursos}
             />
           </TabsContent>
 

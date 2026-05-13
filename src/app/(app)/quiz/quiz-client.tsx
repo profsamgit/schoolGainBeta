@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -60,11 +60,15 @@ export function QuizClient() {
 
   const { toast } = useToast();
   const { completeDailyMission, allQuizTopics: rawTopics, currentUser } = useEcosystem();
-  const allQuizTopics = rawTopics.filter(t => 
-    !t.schoolId || 
-    t.schoolId === 'global' || 
-    t.schoolId === currentUser?.schoolId
-  );
+  const allQuizTopics = useMemo(() => {
+    return rawTopics
+      .filter(t => 
+        !t.schoolId || 
+        t.schoolId === 'global' || 
+        t.schoolId === currentUser?.schoolId
+      )
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [rawTopics, currentUser?.schoolId]);
   const searchParams = useSearchParams();
 
   const form = useForm<QuizFormValues>({

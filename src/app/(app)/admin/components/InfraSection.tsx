@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -63,6 +63,10 @@ export function InfraSection({
   const [terminalCameraSource, setTerminalCameraSource] = useState<'browser' | 'esp32' | 'url'>('browser');
   const [terminalCameraUrl, setTerminalCameraUrl] = useState('');
 
+  const sortedVideoDevices = useMemo(() => {
+    return [...videoDevices].sort((a, b) => a.label.localeCompare(b.label));
+  }, [videoDevices]);
+
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2">
@@ -116,7 +120,7 @@ export function InfraSection({
                     <SelectTrigger className="bg-white font-bold h-9"><SelectValue placeholder="Selecione a câmera" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="default">Automático (Padrão do Sistema)</SelectItem>
-                      {videoDevices.map(device => (
+                      {sortedVideoDevices.map(device => (
                         <SelectItem key={device.deviceId} value={device.deviceId}>
                           {device.label || `Câmera ${device.deviceId.slice(0, 5)}`}
                         </SelectItem>
@@ -193,7 +197,7 @@ export function InfraSection({
                     <SelectTrigger className="bg-white font-bold h-9"><SelectValue placeholder="Selecione a câmera" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="default">Automático (Padrão do Sistema)</SelectItem>
-                      {videoDevices.map(device => (
+                      {sortedVideoDevices.map(device => (
                         <SelectItem key={device.deviceId} value={device.deviceId}>
                           {device.label || `Câmera ${device.deviceId.slice(0, 5)}`}
                         </SelectItem>
@@ -399,7 +403,7 @@ export function InfraSection({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="default">Automático (Padrão do Sistema)</SelectItem>
-                      {videoDevices.map(device => (
+                      {sortedVideoDevices.map(device => (
                         <SelectItem key={device.deviceId} value={device.deviceId}>
                           {device.label || `Câmera ${device.deviceId.slice(0, 5)}...`}
                         </SelectItem>

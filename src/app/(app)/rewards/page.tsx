@@ -67,11 +67,12 @@ export default function RewardsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
         {schoolRewards.map((reward) => (
           <Card key={reward.id} className="group flex flex-col overflow-hidden border-none shadow-lg hover:shadow-2xl transition-all duration-500 rounded-3xl bg-white relative">
-            <div className="relative h-56 w-full overflow-hidden">
+            <div className="relative h-56 w-full overflow-hidden bg-slate-100">
               <Image
-                src={reward.image}
+                src={reward.image || 'https://images.unsplash.com/photo-1549465220-1d8c9d9c6703?q=80&w=800&auto=format&fit=crop'}
                 alt={reward.name}
                 fill
+                unoptimized={!reward.image}
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
                 className="object-cover transition-transform duration-700 group-hover:scale-110"
                 data-ai-hint={reward.imageHint}

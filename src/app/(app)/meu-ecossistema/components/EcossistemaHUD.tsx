@@ -5,7 +5,9 @@ import {
   Coins, 
   Sparkles,
   ShieldCheck,
-  Infinity
+  Infinity,
+  Maximize,
+  Minimize
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -17,12 +19,16 @@ interface EcossistemaHUDProps {
   balance: number;
   vitality: number;
   handleHealAction: (amount: number) => void;
+  toggleFullScreen: () => void;
+  isFullScreen: boolean;
 }
 
 export function EcossistemaHUD({
   balance,
   vitality,
-  handleHealAction
+  handleHealAction,
+  toggleFullScreen,
+  isFullScreen
 }: EcossistemaHUDProps) {
   const { level, purchasedItems, userStates, currentUserRa } = useEcosystem();
 
@@ -46,10 +52,18 @@ export function EcossistemaHUD({
       )}>
           {/* VOLTAR */}
           <Link href="/dashboard">
-              <button className="w-12 h-12 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-white transition-all hover:scale-105 active:scale-95 flex items-center justify-center group/back">
+              <button className="w-12 h-12 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-white transition-all hover:scale-105 active:scale-95 flex items-center justify-center group/back" title="Voltar ao Painel">
                   <ArrowLeft size={20} className="group-hover/back:-translate-x-1 transition-transform" />
               </button>
           </Link>
+
+          <button 
+            onClick={toggleFullScreen}
+            className="w-12 h-12 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-white transition-all hover:scale-105 active:scale-95 flex items-center justify-center group/fs" 
+            title={isFullScreen ? "Sair da Tela Cheia" : "Tela Cheia Imersiva"}
+          >
+              {isFullScreen ? <Minimize size={20} /> : <Maximize size={20} />}
+          </button>
 
           <div className="h-10 w-px bg-white/10 mx-1" />
 

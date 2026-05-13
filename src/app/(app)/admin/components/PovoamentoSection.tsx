@@ -188,7 +188,7 @@ export function PovoamentoSection({
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {allTurmas?.map((turma, idx) => (
+              {[...allTurmas]?.sort((a, b) => a.name.localeCompare(b.name)).map((turma, idx) => (
                 <div key={turma.id || `turma-${idx}`} className="flex items-center justify-between p-2 bg-slate-50 border border-slate-100 rounded-lg hover:border-indigo-200 transition-all group">
                   <div className="flex items-center gap-3">
                     <span className={`h-1.5 w-1.5 rounded-full ${turma.status === 'active' ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
@@ -233,7 +233,7 @@ export function PovoamentoSection({
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {allCursos?.map((curso, idx) => (
+              {[...allCursos]?.sort((a, b) => a.name.localeCompare(b.name)).map((curso, idx) => (
                 <div key={curso.id || `curso-${idx}`} className="flex items-center justify-between p-2 bg-slate-50 border border-slate-100 rounded-lg hover:border-indigo-200 transition-all group">
                   <div className="flex items-center gap-3">
                     <span className={`h-1.5 w-1.5 rounded-full ${curso.status === 'active' ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
@@ -278,7 +278,7 @@ export function PovoamentoSection({
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {allCargos?.map((cargo, idx) => (
+              {[...allCargos]?.sort((a, b) => a.name.localeCompare(b.name)).map((cargo, idx) => (
                 <div key={cargo.id || `cargo-${idx}`} className="flex items-center justify-between p-2 bg-slate-50 border border-slate-100 rounded-lg hover:border-indigo-200 transition-all group">
                   <div className="flex items-center gap-3">
                     <span className={`h-1.5 w-1.5 rounded-full ${cargo.status === 'active' ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
@@ -323,7 +323,7 @@ export function PovoamentoSection({
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {allSetores?.map((setor, idx) => (
+              {[...allSetores]?.sort((a, b) => a.name.localeCompare(b.name)).map((setor, idx) => (
                 <div key={setor.id || `setor-${idx}`} className="flex items-center justify-between p-2 bg-slate-50 border border-slate-100 rounded-lg hover:border-indigo-200 transition-all group">
                   <div className="flex items-center gap-3">
                     <span className={`h-1.5 w-1.5 rounded-full ${setor.status === 'active' ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>

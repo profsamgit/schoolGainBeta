@@ -149,7 +149,7 @@ export type CycleSnapshot = {
     endDate: string;
     totalWasteKg: number;
     totalPoints: number;
-    topStudents: Array<{ name: string; points: number; ra: string }>;
+    topStudents: Array<{ name: string; points: number; studentId: string }>;
     wasteByType: Record<string, number>;
     schoolId?: string;
 };
@@ -172,7 +172,7 @@ export type WasteEntry = {
     date: string;
     collected: number; // em kg
     type: WasteType;
-    ra?: string;
+    studentId?: string; // ID imutável para rastreamento (Chave Principal)
     schoolId?: string;
 };
 
@@ -239,6 +239,7 @@ export type EcosystemItem =
  * Armazena saldo atual, vitalidade do seu ecossistema e itens comprados.
  */
 export interface EcosystemUserState {
+  id?: string;               // ID único do aluno (vinculado ao users/id)
   balance: number;           // Bio-Coins atuais do aluno
   vitality: number;          // Percentual de saúde do ambiente (0-100)
   purchasedItems: EcosystemItem[]; // Lista de IDs de itens comprados

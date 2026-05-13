@@ -19,12 +19,16 @@ import {
   Shield,
   User as UserIcon,
   Leaf,
+  Trophy,
+  BookOpen,
+  BrainCircuit,
+  Gift,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEcosystem } from '@/app/(app)/ecosystem-context';
 import { useSidebar } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Breadcrumb,
@@ -104,7 +108,36 @@ export function Header() {
     const leader = getGlobalLeader();
     return leader?.ra === currentUserRa;
   }, [getGlobalLeader, currentUserRa]);
-  const isAdminView = pathname.startsWith('/admin');
+  const isAdminView = pathname.startsWith('/admin') || pathname.startsWith('/super-admin');
+
+  const searchParams = useSearchParams();
+  const previewId = searchParams.get('preview');
+
+  // Função auxiliar para injetar o parâmetro de preview nos links
+  const getLink = (href: string) => {
+    if (previewId) {
+      return `${href}?preview=${previewId}`;
+    }
+    return href;
+  };
+
+  const studentMenuItems = [
+    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/meu-ecossistema', label: 'Meu Ecossistema', icon: Leaf },
+    { href: '/leaderboard', label: 'Ranking', icon: Trophy },
+    { href: '/education', label: 'Educação', icon: BookOpen },
+    { href: '/quiz', label: 'Quizzes', icon: BrainCircuit },
+    { href: '/rewards', label: 'Recompensas', icon: Gift },
+  ];
+
+  const adminMenuItems = [
+    { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/admin', label: 'Gerenciamento', icon: Shield },
+  ];
+
+  const superAdminMenuItems = [
+    { href: '/super-admin', label: 'Central de Rede', icon: Shield },
+  ];
   
   // Prioriza o usuário logado do contexto. Fallback apenas se deslogado.
   const displayUser = currentUser || (isAdminView ? ADMIN_MOCK : {
@@ -178,25 +211,44 @@ export function Header() {
                   </p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <Link href="/dashboard">
-                  <DropdownMenuItem>
-                    <LayoutDashboard className="mr-2 h-4 w-4" />
-                    <span>Dashboard</span>
-                  </DropdownMenuItem>
-                </Link>
+                
+                {isAdminView ? (
+                  adminMenuItems.map((item) => (
+                    <Link key={item.href} href={getLink(item.href)}>
+                      <DropdownMenuItem>
+                        <item.icon className="mr-2 h-4 w-4" />
+                        <span>{item.label}</span>
+                      </DropdownMenuItem>
+                    </Link>
+                  ))
+                ) : (
+                  studentMenuItems.map((item) => (
+                    <Link key={item.href} href={getLink(item.href)}>
+                      <DropdownMenuItem>
+                        <item.icon className={cn(
+                          "mr-2 h-4 w-4 transition-all",
+                          item.label === 'Meu Ecossistema' && isLeader && "text-yellow-500"
+                        )} />
+                        <span className={cn(
+                          item.label === 'Meu Ecossistema' && isLeader && "text-yellow-600 font-bold"
+                        )}>{item.label}</span>
+                      </DropdownMenuItem>
+                    </Link>
+                  ))
+                )}
 
-                {(displayUser.role === 'admin' || displayUser.role === 'super_admin') && (
-                  <Link href={displayUser.role === 'super_admin' ? '/super-admin' : '/admin'}>
-                    <DropdownMenuItem>
-                      <Shield className="mr-2 h-4 w-4" />
-                      <span>Gerenciamento</span>
+                {currentUser?.role === 'super_admin' && superAdminMenuItems.map((item) => (
+                  <Link key={item.href} href={getLink(item.href)}>
+                    <DropdownMenuItem className="text-red-600 font-bold">
+                      <item.icon className="mr-2 h-4 w-4" />
+                      <span>{item.label}</span>
                     </DropdownMenuItem>
                   </Link>
-                )}
+                ))}
 
                 <DropdownMenuSeparator />
                 <Link href="/" onClick={() => logout()}>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem className="text-muted-foreground hover:text-red-600">
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Sair</span>
                   </DropdownMenuItem>

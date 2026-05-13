@@ -36,7 +36,7 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function AdminAnalytics() {
-  const { wasteEntries, currentUser, users, turmas, cursos } = useEcosystem();
+  const { wasteEntries, currentUser, users, allTurmas: turmas, allCursos: cursos } = useEcosystem();
   const [isMounted, setIsMounted] = React.useState(false);
 
   React.useEffect(() => {

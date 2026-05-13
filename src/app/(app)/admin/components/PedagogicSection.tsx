@@ -83,10 +83,14 @@ export function PedagogicSection({
 }: PedagogicSectionProps) {
 
   const filteredArticles = useMemo(() => {
-    return articles.filter(a => a.title.toLowerCase().includes(articleSearch.toLowerCase()));
+    return articles
+      .filter(a => a.title.toLowerCase().includes(articleSearch.toLowerCase()))
+      .sort((a, b) => a.title.localeCompare(b.title));
   }, [articles, articleSearch]);
 
-  const filteredQuizTopics = quizTopics; // Já filtrado por schoolId no parent
+  const filteredQuizTopics = useMemo(() => {
+    return [...quizTopics].sort((a, b) => a.name.localeCompare(b.name));
+  }, [quizTopics]);
 
   if (viewMode === 'form' && itemType === 'article') {
     return (
@@ -232,7 +236,7 @@ export function PedagogicSection({
             <Button onClick={handleAddTopic}><Plus className="h-4 w-4" /></Button>
           </div>
           <div className="flex flex-wrap gap-2">
-            {filteredQuizTopics.map((topic, idx) => (
+            {[...filteredQuizTopics].sort((a, b) => a.name.localeCompare(b.name)).map((topic, idx) => (
               <Badge key={`${topic.id}-${idx}`} variant="secondary" className="pr-1 bg-white border border-slate-200 text-slate-700 font-bold">
                 {topic.name}
                 <Button size="icon" variant="ghost" className="h-4 w-4 ml-1 hover:text-red-500" onClick={() => handleDeleteTopic(topic)}>

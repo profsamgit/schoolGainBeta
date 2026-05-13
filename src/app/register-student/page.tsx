@@ -91,7 +91,7 @@ export default function RegisterStudentPage() {
 
     setIsSubmitting(true);
     try {
-      await requestRegistration({
+      const result = await requestRegistration({
         name: formData.name,
         ra: formData.ra.toUpperCase(),
         rfid: formData.rfid.toUpperCase(),
@@ -99,6 +99,15 @@ export default function RegisterStudentPage() {
         curso: formData.curso,
         schoolId: formData.schoolId
       });
+
+      if (!result.success) {
+        toast({
+          variant: 'destructive',
+          title: 'Não foi possível enviar',
+          description: result.error || 'Verifique seus dados e tente novamente.'
+        });
+        return;
+      }
 
       setIsSuccess(true);
       toast({

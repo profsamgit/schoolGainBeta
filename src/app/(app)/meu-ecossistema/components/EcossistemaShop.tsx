@@ -129,7 +129,7 @@ export function EcossistemaShop({
                                             <div 
                                                 key={item.id}
                                                 className={cn(
-                                                    "group/card relative flex flex-col p-5 rounded-[2.5rem] border-2 transition-all duration-700",
+                                                    "group/card relative flex flex-col p-4 rounded-[2rem] border-2 transition-all duration-700",
                                                     isPurchased 
                                                         ? "bg-emerald-500/5 border-emerald-500/20 shadow-[0_20px_40px_rgba(16,185,129,0.05)]" 
                                                         : isLocked 
@@ -140,13 +140,13 @@ export function EcossistemaShop({
                                                 onMouseLeave={() => setHoveredIdx(null)}
                                             >
                                                 {/* ICON CONTAINER */}
-                                                <div className="flex justify-between items-start mb-6">
+                                                <div className="flex justify-between items-start mb-4">
                                                     <div className={cn(
-                                                        "w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-700",
+                                                        "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-700",
                                                         isPurchased ? "bg-emerald-500/20 text-emerald-400" : 
                                                         isLocked ? "bg-white/5 text-white/10" : "bg-white/10 text-white group-hover/card:scale-110"
                                                     )}>
-                                                        <div className="scale-[1.8]">{item.icon}</div>
+                                                        <div className="scale-[1.3]">{item.icon}</div>
                                                     </div>
                                                     
                                                     {!isPurchased && !isLocked && (
@@ -166,12 +166,12 @@ export function EcossistemaShop({
                                                 </div>
 
                                                 {/* INFO */}
-                                                <div className="space-y-2 mb-8">
+                                                <div className="space-y-1 mb-6">
                                                     <h4 className={cn(
-                                                        "font-black text-sm uppercase tracking-wider",
+                                                        "font-black text-xs uppercase tracking-wider",
                                                         isPurchased ? "text-emerald-400" : "text-white"
                                                     )}>{item.name}</h4>
-                                                    <p className="text-white/30 text-[10px] font-medium leading-relaxed min-h-[30px]">
+                                                    <p className="text-white/30 text-[9px] font-medium leading-relaxed min-h-[25px]">
                                                         {item.desc || "Item decorativo para seu mundo virtual."}
                                                     </p>
                                                 </div>
@@ -203,7 +203,7 @@ export function EcossistemaShop({
                                                     disabled={isLocked || isPurchased || !canAfford}
                                                     onClick={() => handleBuy(item.id as EcosystemItem)}
                                                     className={cn(
-                                                        "w-full py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all duration-500 border relative overflow-hidden group/btn",
+                                                        "w-full py-2.5 rounded-xl font-black text-[9px] uppercase tracking-[0.2em] transition-all duration-500 border relative overflow-hidden group/btn",
                                                         isPurchased 
                                                             ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 cursor-default" 
                                                             : isLocked 

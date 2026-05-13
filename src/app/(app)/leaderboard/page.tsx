@@ -70,17 +70,18 @@ const formatDisplayName = (name: string) => {
 };
 
 export default function LeaderboardPage() {
-  const { users, currentUserRa, balance, vitality, purchasedItems, getUserState, getMonthlyLegends, isPreviewMode, currentUser, userStates, legends } = useEcosystem();
+  const { users, currentUserRa, balance, vitality, purchasedItems, getUserState, initUserSpecificSync, getMonthlyLegends, isPreviewMode, currentUser, userStates, legends } = useEcosystem();
 
   const [selectedUser, setSelectedUser] = useState<any>(null);
   
-  const monthlyLegends = useMemo(() => getMonthlyLegends(), [getMonthlyLegends, legends, purchasedItems, userStates]);
+  const monthlyLegends = useMemo(() => getMonthlyLegends(), [getMonthlyLegends, legends, purchasedItems, userStates, users]);
 
   const calculateScore = (u: any) => {
     const p = u.points || 0;
-    const state = userStates[u.ra] || {};
-    const v = u.ra === currentUser?.ra ? vitality : (state.vitality || 100);
-    const items = u.ra === currentUser?.ra ? purchasedItems.length : (state.purchasedItems?.length || 0);
+    const state = userStates[u.id] || {};
+    const isCurrent = u.id === currentUser?.id;
+    const v = isCurrent ? vitality : (state.vitality || 0);
+    const items = isCurrent ? purchasedItems.length : (state.purchasedItems?.length || 0);
 
     return EcosystemService.calculateTotalScore(p, v, items);
   };
@@ -89,14 +90,17 @@ export default function LeaderboardPage() {
     if (!users) return [];
     return users
       .filter(u => u.role === 'student')
-      .map(u => ({
-        ...u,
-        displayPoints: u.points || 0,
-        displayVitality: u.ra === currentUser?.ra ? vitality : (u.vitality || 0),
-        displayItems: u.ra === currentUser?.ra ? purchasedItems.length : (u.itemsCount || 0),
-
-        totalScore: calculateScore(u)
-      }))
+      .map(u => {
+        const isCurrent = u.id === currentUser?.id;
+        const state = userStates[u.id] || {};
+        return {
+          ...u,
+          displayPoints: u.points || 0,
+          displayVitality: isCurrent ? vitality : (state.vitality || 0),
+          displayItems: isCurrent ? purchasedItems.length : (state.purchasedItems?.length || 0),
+          totalScore: calculateScore(u)
+        };
+      })
       .sort((a, b) => b.totalScore - a.totalScore);
   }, [users, currentUserRa, balance, vitality, purchasedItems, userStates]);
 
@@ -186,7 +190,10 @@ export default function LeaderboardPage() {
                         variant="ghost" 
                         size="sm" 
                         className="rounded-full bg-white/10 hover:bg-white/20 text-[10px] uppercase font-black tracking-widest text-white h-10 px-6 transition-all duration-300 hover:scale-110 active:scale-95"
-                        onClick={() => setSelectedUser(user)}
+                        onClick={() => {
+                          setSelectedUser(user);
+                          initUserSpecificSync(user.id);
+                        }}
                       >
                         <Eye size={14} className="mr-2" /> Explorar
                       </Button>
@@ -197,7 +204,7 @@ export default function LeaderboardPage() {
                           <DialogDescription>Progresso ambiental em tempo real.</DialogDescription>
                         </DialogHeader>
                         {selectedUser && (() => {
-                          const state = getUserState(selectedUser.ra);
+                          const state = userStates[selectedUser.id] || getUserState(selectedUser.id);
                           return (
                             <div className="relative w-full h-full">
                               <EcosystemViewer 
@@ -437,7 +444,7 @@ export default function LeaderboardPage() {
                             <DialogDescription>Visualização em tempo real do progresso de restauração ambiental deste agente.</DialogDescription>
                           </DialogHeader>
                           {selectedUser && (() => {
-                            const state = getUserState(selectedUser.ra);
+                            const state = userStates[selectedUser.id] || getUserState(selectedUser.id);
                             return (
                               <div className="relative w-full h-full">
                                 <EcosystemViewer 

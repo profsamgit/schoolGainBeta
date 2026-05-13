@@ -54,7 +54,8 @@ interface EcosystemContextType {
   updateCursos: (newCursos: Curso[], targetSchoolId?: string) => Promise<boolean>;
   updateCargos: (newCargos: Cargo[], targetSchoolId?: string) => Promise<boolean>;
   updateSetores: (newSetores: SetorEscolar[], targetSchoolId?: string) => Promise<boolean>;
-  getUserState: (ra: string) => any;
+  getUserState: (ra: string) => EcosystemUserState;
+  initUserSpecificSync: (userId: string) => void;
   auditLogs: AuditLogEntry[]; // Histórico de pontos dados por admins
   grantPoints: (ra: string, points: number, sector: string, action: string, adminName: string, password?: string, terminalSchoolId?: string) => Promise<boolean>;
   getMonthlyLegends: () => any[]; // Alunos que conseguiram itens raros
@@ -78,7 +79,7 @@ interface EcosystemContextType {
   deleteSchool: (id: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   getLockoutStatus: (id: string) => { isLocked: boolean, remainingSeconds: number };
   registrationRequests: RegistrationRequest[];
-  requestRegistration: (data: any) => Promise<boolean>;
+  requestRegistration: (data: any) => Promise<{ success: boolean, error?: string }>;
   approveRegistration: (id: string) => Promise<boolean>;
   rejectRegistration: (id: string) => Promise<boolean>;
   deleteUser: (userId: string) => Promise<boolean>;
@@ -156,11 +157,11 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   }, [isPreviewMode, previewId, users, currentUserRa]);
 
   const studentState = useMemo(() => {
-    if (isPreviewMode && displayUser?.ra) {
-      return service.getUserState(displayUser.ra);
+    if (isPreviewMode && displayUser?.id) {
+      return userStates[displayUser.id] || service.getUserState(displayUser.id);
     }
     return null;
-  }, [isPreviewMode, displayUser, users]); // users dependência para garantir re-sync
+  }, [isPreviewMode, displayUser, userStates]); // userStates garante que os pontos atualizem em tempo real no preview
 
   // Valores efetivos (overridden se em preview)
   const effectiveBalance = isPreviewMode && studentState ? studentState.balance : balance;
@@ -184,6 +185,13 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const [legends, setLegends] = useState<EcosystemLegend[]>(service.legends);
   const [isMounted, setIsMounted] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
+  
+  // Sincronização sob demanda para modo de auditoria/preview
+  useEffect(() => {
+    if (displayUser?.id) {
+      service.initUserSpecificSync(displayUser.id);
+    }
+  }, [displayUser, service]);
 
   useEffect(() => {
     const balanceSub = service.balance$.subscribe(setBalance);
@@ -413,6 +421,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
       updateSetores,
       userStates,
       getUserState,
+      initUserSpecificSync: (userId: string) => service.initUserSpecificSync(userId),
       auditLogs,
       grantPoints,
       getMonthlyLegends,
