@@ -18,8 +18,6 @@ export const ADMIN_MOCK: User = {
   avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Admin',
   role: 'super_admin',
   password: '', // A senha deve ser configurada diretamente no Firebase Authentication em Produção
-  points: 0,
-  level: 'Semente',
   ra: 'SUPER-ADMIN',
   status: 'active',
 };

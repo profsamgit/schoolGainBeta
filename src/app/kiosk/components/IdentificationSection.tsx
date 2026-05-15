@@ -47,7 +47,6 @@ interface IdentificationSectionProps {
   activeLoginCameraSource: string;
   scannerKey: number;
   loginCameraDeviceId: string | undefined;
-  handleVisitorLogin: () => void;
   onIdentify: (data: string) => void;
   isProcessing: boolean;
 }
@@ -69,7 +68,6 @@ export function IdentificationSection({
   activeLoginCameraSource,
   scannerKey,
   loginCameraDeviceId,
-  handleVisitorLogin,
   onIdentify,
   isProcessing
 }: IdentificationSectionProps) {
@@ -125,11 +123,11 @@ export function IdentificationSection({
                   </div>
                 )}
                 <div className="space-y-2">
-                  <label htmlFor="ra-input" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Identificação Digital (RA)</label>
+                  <label htmlFor="ra-input" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Identificação Digital (RA ou ID Temporário)</label>
                   <Input 
                     id="ra-input"
                     ref={raInputRef}
-                    placeholder="Digite seu RA" 
+                    placeholder="Digite seu RA ou ID Temporário" 
                     value={studentRa}
                     onChange={(e) => setStudentRa(e.target.value.toUpperCase())}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleLogin(studentRa)}}
@@ -222,23 +220,6 @@ export function IdentificationSection({
               </TabsContent>
             </Tabs>
 
-            <div className="relative py-2">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t"></span>
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground font-black tracking-widest">Ou</span>
-              </div>
-            </div>
-
-            <Button 
-              variant="outline" 
-              className="w-full border-primary/20 hover:bg-primary/5 hover:text-primary transition-all duration-300 gap-2 font-black uppercase text-xs tracking-widest h-12"
-              onClick={handleVisitorLogin}
-            >
-              <Sparkles className="h-4 w-4 text-primary" />
-              Sou Visitante
-            </Button>
           </CardContent>
         </Card>
       </main>

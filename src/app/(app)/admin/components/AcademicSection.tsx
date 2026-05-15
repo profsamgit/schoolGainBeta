@@ -106,8 +106,8 @@ export interface AcademicSectionProps {
   handleDownloadBadgeImage: (user: User) => Promise<void>;
   userSearch: string;
   setUserSearch: (val: string) => void;
-  userRoleFilter: 'student' | 'admin' | 'visitor';
-  setUserRoleFilter: (val: 'student' | 'admin' | 'visitor') => void;
+  userRoleFilter: 'student' | 'admin' | 'staff' | 'visitor';
+  setUserRoleFilter: (val: 'student' | 'admin' | 'staff' | 'visitor') => void;
   userTurmaFilter: string;
   setUserTurmaFilter: (val: string) => void;
   isQRScannerOpen: boolean;
@@ -137,6 +137,7 @@ export interface AcademicSectionProps {
   approveRegistration: (item: RegistrationRequest) => void;
   rejectRegistration: (id: string) => Promise<boolean>;
   updateUserStatus: (userId: string, status: 'active' | 'inactive') => Promise<boolean>;
+  userStates: Record<string, any>;
 }
 
 export function AcademicSection({
@@ -193,7 +194,8 @@ export function AcademicSection({
   registrationRequests,
   approveRegistration,
   rejectRegistration,
-  updateUserStatus
+  updateUserStatus,
+  userStates
 }: AcademicSectionProps) {
   const [showInactive, setShowInactive] = useState(false);
   const router = useRouter();
@@ -231,6 +233,9 @@ export function AcademicSection({
   };
 
   const filteredUsers = useMemo(() => {
+    // Para visitantes, não exigimos filtro de turma para mostrar a lista
+    if (userRoleFilter !== 'visitor' && !userTurmaFilter && !userSearch) return [];
+
     return filteredUsersForAdmin
       .filter(u => {
         const matchesSearch = u.name.toLowerCase().includes(userSearch.toLowerCase()) || 
@@ -238,7 +243,13 @@ export function AcademicSection({
         const matchesRole = userRoleFilter === 'admin' 
           ? (u.role === 'admin' || u.role === 'super_admin') 
           : u.role === userRoleFilter;
-        const matchesTurma = userTurmaFilter === 'all' || u.turma === userTurmaFilter;
+        
+        // Se houver filtro de turma/setor, o usuário deve pertencer exatamente a ele
+        // Para visitantes, matchesTurma é sempre true (ignora filtro)
+        const matchesTurma = userRoleFilter === 'visitor' 
+          ? true 
+          : (userTurmaFilter ? (u.turma === userTurmaFilter || u.position === userTurmaFilter) : true);
+
         const matchesStatus = showInactive ? true : u.status !== 'inactive';
         
         return matchesSearch && matchesRole && matchesTurma && matchesStatus;
@@ -314,14 +325,14 @@ export function AcademicSection({
                     variant={user.role === 'admin' || user.role === 'super_admin' ? 'default' : user.role === 'visitor' ? 'outline' : 'secondary'} 
                     className={`w-fit uppercase text-[7px] font-black tracking-tighter h-4 px-1 ${user.role === 'visitor' ? 'text-blue-600 border-blue-200 bg-blue-50/50' : ''}`}
                   >
-                    {user.role === 'super_admin' ? 'Mestre' : user.role === 'admin' ? 'Gestor' : user.role === 'visitor' ? 'Visita' : 'Aluno'}
+                    {user.role === 'super_admin' ? 'Mestre' : user.role === 'admin' ? 'Gestor' : user.role === 'staff' ? 'Funcionário' : user.role === 'visitor' ? 'Visita' : 'Aluno'}
                   </Badge>
                   {user.position && <span className="font-black text-slate-900 text-[9px] uppercase tracking-widest">{user.position}</span>}
-                  <span className="text-[10px] text-slate-500 font-bold">{user.turma || (role === 'visitor' ? 'Visitante' : 'Sem Turma')}</span>
+                  <span className="text-[10px] text-slate-500 font-bold">{user.turma || (user.role === 'visitor' ? 'Visitante' : user.role === 'staff' || user.role === 'admin' ? 'Corporativo' : 'Sem Turma')}</span>
                 </div>
               </TableCell>
               <TableCell>
-                <div className="font-bold text-primary">{(user as any).points || 0}</div>
+                <div className="font-bold text-primary">{userStates[user.id]?.points || 0}</div>
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
@@ -398,7 +409,7 @@ export function AcademicSection({
 
   if (viewMode === 'form' && itemType === 'user') {
     const currentRole = userForm.watch('role');
-    const roleLabel = currentRole === 'admin' || currentRole === 'super_admin' ? 'Gestor' : currentRole === 'visitor' ? 'Visitante' : 'Aluno';
+    const roleLabel = currentRole === 'admin' || currentRole === 'super_admin' ? 'Gestor' : currentRole === 'staff' ? 'Funcionário' : currentRole === 'visitor' ? 'Visitante' : 'Aluno';
 
     return (
       <Card className="border-primary/20 bg-primary/5">
@@ -409,8 +420,8 @@ export function AcademicSection({
               {isNew ? (
                 allTurmas.length === 0 || allCursos.length === 0 || allCargos.length === 0 || allSetores.length === 0 ? (
                   <span className="text-rose-500 font-bold uppercase text-[10px] animate-pulse">Atenção: Povoamento de dados incompleto para novos cadastros.</span>
-                ) : `Preencha as informações de identificação e ${userRoleFilter === 'student' ? 'escolaridade' : 'profissionais'}.`
-              ) : `Preencha as informações de identificação e ${userRoleFilter === 'student' ? 'escolaridade' : 'profissionais'}.`}
+                ) : `Preencha as informações de ${currentRole === 'visitor' ? 'acesso temporário' : 'identificação'}.`
+              ) : `Atualize os dados de ${currentRole === 'visitor' ? 'acesso' : 'identificação'}.`}
             </CardDescription>
           </div>
           <Button variant="ghost" onClick={closeAllForms}><ArrowLeft className="mr-2 h-4 w-4" />Voltar para a Lista</Button>
@@ -419,29 +430,65 @@ export function AcademicSection({
           <Form {...userForm}>
             <form onSubmit={userForm.handleSubmit(onSubmit)} className="space-y-4 max-w-2xl mx-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {userForm.watch('role') !== 'visitor' ? (
-                  <FormField control={userForm.control} name="name" render={({ field }) => (
-                    <FormItem><FormLabel>Nome Completo</FormLabel><FormControl><Input {...field} placeholder="Ex: João Silva" className="bg-white" /></FormControl><FormMessage /></FormItem>
-                  )} />
-                ) : (
-                  <div className="space-y-2">
-                    <Label>Perfil de Visitante</Label>
-                    <Input value="Visitante (Padrão)" disabled className="bg-slate-50 text-muted-foreground" />
-                  </div>
-                )}
-                {userForm.watch('role') === 'admin' && (
+                <FormField control={userForm.control} name="name" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{userForm.watch('role') === 'visitor' ? 'Identificação do Visitante' : 'Nome Completo'}</FormLabel>
+                    <FormControl><Input {...field} placeholder={userForm.watch('role') === 'visitor' ? "Ex: Visitante - João da Silva" : "Ex: João Silva"} className="bg-white" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                {(userForm.watch('role') === 'admin' || userForm.watch('role') === 'staff') && (
                   <FormField control={userForm.control} name="email" render={({ field }) => (
-                    <FormItem><FormLabel>E-mail de Acesso</FormLabel><FormControl><Input {...field} type="email" placeholder="gestor@escola.com" className="bg-white" /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>E-mail de Acesso</FormLabel><FormControl><Input {...field} type="email" placeholder="email@escola.com" className="bg-white" /></FormControl><FormMessage /></FormItem>
                   )} />
                 )}
               </div>
+
+              {userForm.watch('role') !== 'visitor' && (
+                <div className="bg-white/50 p-6 rounded-2xl border border-slate-100 space-y-4">
+                  <div className="flex items-center gap-4">
+                    <Avatar className="h-24 w-24 border-4 border-white shadow-xl">
+                      <AvatarImage src={userForm.watch('avatar')} className="object-cover" />
+                      <AvatarFallback className="bg-slate-100 text-slate-300">
+                        <Camera className="h-8 w-8" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-black uppercase tracking-widest text-slate-500">Foto de Perfil</Label>
+                      <div className="flex gap-2">
+                        <Input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          id="avatar-upload" 
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => userForm.setValue('avatar', reader.result as string);
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                        <Button type="button" variant="outline" onClick={() => document.getElementById('avatar-upload')?.click()} className="bg-white gap-2 font-bold text-[10px] uppercase tracking-wider">
+                          <Camera className="h-4 w-4" /> Enviar Foto
+                        </Button>
+                        {userForm.watch('avatar') && (
+                          <Button type="button" variant="ghost" onClick={() => userForm.setValue('avatar', '')} className="text-red-500 font-bold text-[10px] uppercase tracking-wider">Remover</Button>
+                        )}
+                      </div>
+                      <p className="text-[9px] text-slate-400 font-medium italic">Recomendado: Imagem quadrada 500x500px.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                       <div className="flex gap-2 items-end">
                           <FormField control={userForm.control} name="ra" render={({ field }) => (
                           <FormItem className="flex-1">
-                              <FormLabel>{currentRole === 'student' ? 'RA (Identificação QR)' : 'ID de Acesso (QR)'}</FormLabel>
+                              <FormLabel>{currentRole === 'student' ? 'RA (Identificação QR)' : currentRole === 'staff' ? 'Registro Funcional (QR)' : currentRole === 'visitor' ? 'ID Temporário (Acesso Kiosk)' : 'ID de Acesso (QR)'}</FormLabel>
                               <FormControl><Input {...field} className="bg-white font-mono uppercase" /></FormControl>
                               <FormMessage />
                           </FormItem>
@@ -489,14 +536,14 @@ export function AcademicSection({
                   </div>
 
                   <div className="space-y-4">
-                      {userForm.watch('role') === 'admin' && (
+                      {(userForm.watch('role') === 'admin' || userForm.watch('role') === 'staff') && (
                         <FormField control={userForm.control} name="position" render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Cargo Administrativo</FormLabel>
+                            <FormLabel>{currentRole === 'staff' ? 'Cargo / Função' : 'Cargo Administrativo'}</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value}>
-                              <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione o cargo" /></SelectTrigger>
+                              <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                               <SelectContent>
-                                {sortedCargos.filter(c => c.status === 'active').map(c => (
+                                {allCargos.filter(c => c.status === 'active').map(c => (
                                   <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
                                 ))}
                                 {allCargos.length === 0 && <SelectItem value="none" disabled>Nenhum cargo cadastrado</SelectItem>}
@@ -510,7 +557,7 @@ export function AcademicSection({
                       {userForm.watch('role') !== 'visitor' && (
                         <FormField control={userForm.control} name="turma" render={({ field }) => (
                             <FormItem>
-                                <FormLabel>{currentRole === 'student' ? 'Turma' : 'Setor / Departamento'}</FormLabel>
+                                <FormLabel>{currentRole === 'student' ? 'Turma' : currentRole === 'staff' ? 'Setor / Departamento' : 'Unidade Responsável'}</FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value}>
                                     <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                     <SelectContent>
@@ -539,7 +586,7 @@ export function AcademicSection({
                             </FormItem>
                         )} />
                       )}
-                      {userForm.watch('role') === 'admin' && isNew && (
+                      {(userForm.watch('role') === 'admin' || userForm.watch('role') === 'staff') && isNew && (
                         <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-4">
                           <div className="flex justify-between items-center">
                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Senha Inicial</Label>
@@ -614,7 +661,7 @@ export function AcademicSection({
               />
             </div>
             <Button onClick={() => handleNew('user')} className="bg-primary text-white font-black uppercase text-[10px] tracking-widest gap-2">
-              <UserPlus className="h-4 w-4" /> Novo {userRoleFilter === 'student' ? 'Aluno' : userRoleFilter === 'admin' ? 'Gestor' : 'Visitante'}
+              <UserPlus className="h-4 w-4" /> Novo {userRoleFilter === 'student' ? 'Aluno' : userRoleFilter === 'admin' ? 'Gestor' : userRoleFilter === 'staff' ? 'Funcionário' : 'Visitante'}
             </Button>
           </div>
         </CardHeader>
@@ -631,44 +678,45 @@ export function AcademicSection({
                 />
             </div>
             
-            <div className="w-full md:w-64 space-y-1">
+            {userRoleFilter !== 'visitor' && (
+              <div className="w-full md:w-64 space-y-1">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
-                  {userRoleFilter === 'admin' ? 'Filtrar por Setor' : 'Filtrar por Turma'}
+                  {userRoleFilter === 'admin' || userRoleFilter === 'staff' ? 'Filtrar por Setor' : 'Filtrar por Turma'}
                 </Label>
                 <Select value={userTurmaFilter} onValueChange={setUserTurmaFilter}>
                   <SelectTrigger className="h-12 bg-white">
-                    <SelectValue placeholder={userRoleFilter === 'admin' ? "Todos os Setores" : "Todas as Turmas"} />
+                    <SelectValue placeholder={userRoleFilter === 'admin' || userRoleFilter === 'staff' ? "Todos os Setores" : "Todas as Turmas"} />
                   </SelectTrigger>
-                   <SelectContent>
-                    <SelectItem value="all">{userRoleFilter === 'admin' ? "Todos os Setores" : "Todas as Turmas"}</SelectItem>
-                    {userRoleFilter === 'admin' ? (
-                      sortedSetores.map((s, idx) => (
-                        <SelectItem key={s.id || `filter-s-${idx}`} value={s.name}>{s.name}</SelectItem>
-                      ))
-                    ) : (
-                      sortedTurmas.map((t, idx) => (
-                        <SelectItem key={t.id || `filter-t-${idx}`} value={t.name}>{t.name}</SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
+                    <SelectContent>
+                      {userRoleFilter === 'admin' || userRoleFilter === 'staff' ? (
+                        sortedSetores.filter(s => s.status === 'active').map((s, idx) => (
+                          <SelectItem key={s.id || `filter-s-${idx}`} value={s.name}>{s.name}</SelectItem>
+                        ))
+                      ) : (
+                        sortedTurmas.filter(t => t.status === 'active').map((t, idx) => (
+                          <SelectItem key={t.id || `filter-t-${idx}`} value={t.name}>{t.name}</SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
                 </Select>
             </div>
+            )}
           </div>
 
           <Tabs 
             value={userRoleFilter} 
             onValueChange={(v: any) => {
               setUserRoleFilter(v as any);
-              setUserTurmaFilter('all'); // Reseta o filtro ao trocar de aba para evitar listas vazias
+              setUserTurmaFilter(''); // Força a nova seleção ao trocar de papel
             }} 
             className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-4 mb-4 h-12 bg-slate-100 p-1">
+            <TabsList className="grid w-full grid-cols-5 mb-4 h-12 bg-slate-100 p-1">
               <TabsTrigger value="student" className="gap-2 uppercase font-black text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary">
-                Alunos 
-                <span className="opacity-60 ml-1">
-                  ({userTurmaFilter === 'all' ? filteredUsersForAdmin.filter(u => u.role === 'student').length : `${filteredUsers.filter(u => u.role === 'student').length} de ${filteredUsersForAdmin.filter(u => u.role === 'student').length}`})
-                </span>
+                Alunos ({filteredUsersForAdmin.filter(u => u.role === 'student').length})
+              </TabsTrigger>
+              <TabsTrigger value="staff" className="gap-2 uppercase font-black text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary">
+                Funcionários ({filteredUsersForAdmin.filter(u => u.role === 'staff').length})
               </TabsTrigger>
               <TabsTrigger value="admin" className="gap-2 uppercase font-black text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary">Gestores ({filteredUsersForAdmin.filter(u => u.role === 'admin' || u.role === 'super_admin').length})</TabsTrigger>
               <TabsTrigger value="visitor" className="gap-2 uppercase font-black text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary">Visitantes ({filteredUsersForAdmin.filter(u => u.role === 'visitor').length})</TabsTrigger>
@@ -683,17 +731,17 @@ export function AcademicSection({
             </TabsList>
             
             <TabsContent value="student">
-              {userTurmaFilter === 'all' && !userSearch ? (
-                <div className="flex flex-col items-center justify-center py-20 bg-white/50 border border-dashed rounded-2xl border-slate-200">
+              {!userTurmaFilter && !userSearch ? (
+                <div className="flex flex-col items-center justify-center py-20 bg-white/50 border border-dashed rounded-2xl border-slate-200 italic">
                   <div className="h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-300 mb-4">
                     <Users className="h-8 w-8" />
                   </div>
-                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Selecione uma turma</h3>
-                  <p className="text-[10px] text-slate-400 mt-1">Escolha uma turma no filtro acima para visualizar os alunos.</p>
+                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Aguardando Seleção</h3>
+                  <p className="text-[10px] text-slate-400 mt-1">Escolha uma turma específica acima para visualizar os alunos.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {userTurmaFilter !== 'all' && (
+                  {userTurmaFilter && (
                     <div className="flex items-center gap-2 px-1">
                       <Badge variant="outline" className="bg-white text-[9px] font-black uppercase tracking-widest text-primary border-primary/20 h-6 px-3">
                         {filteredUsers.filter(u => u.role === 'student').length} Alunos na Turma {userTurmaFilter}
@@ -705,12 +753,42 @@ export function AcademicSection({
               )}
             </TabsContent>
 
+            <TabsContent value="staff">
+               {!userTurmaFilter && !userSearch ? (
+                <div className="flex flex-col items-center justify-center py-20 bg-white/50 border border-dashed rounded-2xl border-slate-200 italic">
+                  <div className="h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-300 mb-4">
+                    <Users className="h-8 w-8" />
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Aguardando Seleção</h3>
+                  <p className="text-[10px] text-slate-400 mt-1">Escolha um setor específico acima para visualizar os funcionários.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {userTurmaFilter && (
+                    <div className="flex items-center gap-2 px-1">
+                      <Badge variant="outline" className="bg-white text-[9px] font-black uppercase tracking-widest text-primary border-primary/20 h-6 px-3">
+                        {filteredUsers.filter(u => u.role === 'staff').length} Funcionários no Setor {userTurmaFilter}
+                      </Badge>
+                    </div>
+                  )}
+                  <UserTable data={filteredUsers.filter(u => u.role === 'staff')} role="staff" />
+                </div>
+              )}
+            </TabsContent>
+
             <TabsContent value="admin">
               <UserTable data={filteredUsers.filter(u => u.role === 'admin' || u.role === 'super_admin')} role="admin" />
             </TabsContent>
 
             <TabsContent value="visitor">
-              <UserTable data={filteredUsers.filter(u => u.role === 'visitor')} role="visitor" />
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 px-1">
+                  <Badge variant="outline" className="bg-white text-[9px] font-black uppercase tracking-widest text-primary border-primary/20 h-6 px-3">
+                    {filteredUsers.filter(u => u.role === 'visitor').length} Visitantes Cadastrados
+                  </Badge>
+                </div>
+                <UserTable data={filteredUsers.filter(u => u.role === 'visitor')} role="visitor" />
+              </div>
             </TabsContent>
 
             <TabsContent value="requests">

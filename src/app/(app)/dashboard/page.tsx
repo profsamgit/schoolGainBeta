@@ -250,7 +250,11 @@ export default function DashboardPage() {
                   {(() => {
                     if (!Array.isArray(users) || !currentUser) return 0;
                     const students = users.filter((u: any) => u.role === 'student');
-                    const sorted = [...students].sort((a: any, b: any) => (b.points || 0) - (a.points || 0));
+                    const sorted = [...students].sort((a: any, b: any) => {
+                      const pointsA = userStates[a.id]?.points ?? a.points ?? 0;
+                      const pointsB = userStates[b.id]?.points ?? b.points ?? 0;
+                      return pointsB - pointsA;
+                    });
                     return sorted.findIndex((u: any) => u.ra?.toUpperCase() === currentUser?.ra?.toUpperCase()) + 1;
 
                   })()}
@@ -373,7 +377,8 @@ export default function DashboardPage() {
                   
                   // Lógica para ordenar a tabela em tempo real no dashboard
                   const calculateScore = (u: any) => {
-                    const p = u.points || 0;
+                    const state = userStates[u.id] || {};
+                    const p = state.points ?? u.points ?? 0;
                     const v = u.ra === currentUser?.ra ? vitality : (u.vitality || 0);
                     const items = u.ra === currentUser?.ra ? purchasedItems.length : (u.itemsCount || 0);
 

@@ -40,7 +40,7 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function AdminAnalytics() {
-  const { wasteEntries, currentUser, users, allTurmas: turmas, allCursos: cursos, auditLogs } = useEcosystem();
+  const { wasteEntries, currentUser, users, allTurmas: turmas, allCursos: cursos, auditLogs, userStates } = useEcosystem();
   const [isMounted, setIsMounted] = React.useState(false);
 
   React.useEffect(() => {
@@ -80,7 +80,8 @@ export function AdminAnalytics() {
 
     schoolUsers.forEach(u => {
       if (u.turma) {
-        totals[u.turma] = (totals[u.turma] || 0) + u.points;
+        const points = userStates[u.id]?.points || 0;
+        totals[u.turma] = (totals[u.turma] || 0) + points;
       }
     });
 

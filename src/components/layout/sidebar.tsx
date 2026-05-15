@@ -154,6 +154,22 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
                   </Link>
                 </SidebarMenuItem>
               ))}
+
+              {(currentUser?.role === 'admin' || currentUser?.role === 'super_admin') && (
+                <SidebarMenuItem>
+                  <Link href={getLink('/admin')}>
+                    <SidebarMenuButton
+                      isActive={pathname.startsWith('/admin')}
+                      tooltip={{ children: 'Gestão' }}
+                      className="text-primary font-bold"
+                    >
+                      <Shield className="h-5 w-5" />
+                      <span>Gestão</span>
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+              )}
+
               {currentUser?.role === 'super_admin' && superAdminMenuItems.map((item: any) => (
                 <SidebarMenuItem key={item.href}>
                   <Link href={getLink(item.href)}>

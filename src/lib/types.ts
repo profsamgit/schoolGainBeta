@@ -26,17 +26,13 @@ export type User = {
   name: string;
   email?: string;
   avatar?: string;
-  role: 'student' | 'admin' | 'visitor' | 'super_admin';
+  role: 'student' | 'admin' | 'staff' | 'visitor' | 'super_admin';
   password?: string;
-  points: number;
-  level: UserLevel;
   ra?: string;
   rfid?: string;
   turma?: string;  // Referência ao ID ou Nome da Turma
   curso?: string;  // Referência ao ID ou Nome do Curso
   position?: string; // Cargo administrativo (referência ao Nome do Cargo)
-  vitality?: number;
-  itemsCount?: number;
   schoolId?: string;
   mustChangePassword?: boolean;
   status: 'active' | 'inactive';
@@ -241,14 +237,17 @@ export type EcosystemItem =
  */
 export interface EcosystemUserState {
   id?: string;               // ID único do aluno (vinculado ao users/id)
+  schoolId?: string;         // Unidade escolar do aluno (para filtros de admin)
   balance: number;           // Bio-Coins atuais do aluno
+  points: number;            // Pontos totais (lifetime) do aluno
   vitality: number;          // Percentual de saúde do ambiente (0-100)
-  purchasedItems: EcosystemItem[]; // Lista de IDs de itens comprados
+  purchasedItems: EcosystemItem[]; // Lista de itens comprados
+  itemsCount: number;        // Quantidade de itens
   lastMissionDate: string | null;  // Data da última missão diária completada
   nessiePurchaseDate?: string | null;     // Data de compra do item especial (Nessie/Casa)
   curso?: string;            // Curso do aluno
   level: UserLevel;             // Título do aluno
-  readArticles?: string[];       // IDs dos artigos lidos para evitar duplicidade de pontos
+  readArticles: string[];      // IDs dos artigos lidos
 }
 
 /**
@@ -277,7 +276,12 @@ export interface SystemSettings {
  * Estrutura completa dos dados gerenciados pelo serviço.
  */
 export interface EcosystemData {
-  users: User[]; // Lista de todos os usuários (alunos e admins)
+  users: User[]; // Lista mestre (legado/compatibilidade)
+  students: User[];
+  admins: User[];
+  staff: User[];
+  superAdmins: User[];
+  visitors: User[];
   rewards: Reward[];                       // Prêmios disponíveis para troca
   articles: EducationArticle[];            // Artigos educativos
   quizTopics: QuizTopic[];                    // Tópicos de quiz
@@ -288,7 +292,7 @@ export interface EcosystemData {
   cursos: Curso[];                         // Lista de cursos técnicos
   cargos: Cargo[];                         // Lista de cargos administrativos
   setores: SetorEscolar[];                 // Lista de setores escolares
-  userStates: Record<string, EcosystemUserState>; // Estado de cada aluno indexado pelo RA
+  userStates: Record<string, EcosystemUserState>; // Estado de cada aluno indexado pelo ID (Firestore)
   systemSettings: SystemSettings;          // Configurações de hardware e login
   terminals: Terminal[];                   // Lista de terminais físicos cadastrados
   schools: School[];                       // Lista de escolas parceiras

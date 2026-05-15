@@ -12,6 +12,7 @@ interface PrintableBadgeProps {
 export default function PrintableBadge({ user }: PrintableBadgeProps) {
   const roleConfig = {
     student: { color: 'text-emerald-600', bg: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700' },
+    staff: { color: 'text-violet-600', bg: 'bg-violet-600', badge: 'bg-violet-100 text-violet-700' },
     admin: { color: 'text-blue-600', bg: 'bg-blue-600', badge: 'bg-blue-100 text-blue-700' },
     super_admin: { color: 'text-indigo-600', bg: 'bg-indigo-600', badge: 'bg-indigo-100 text-indigo-700' },
     visitor: { color: 'text-amber-600', bg: 'bg-amber-600', badge: 'bg-amber-100 text-amber-700' },
@@ -22,7 +23,19 @@ export default function PrintableBadge({ user }: PrintableBadgeProps) {
       style={{ 
         printColorAdjust: 'exact',
         WebkitPrintColorAdjust: 'exact',
-        background: `linear-gradient(135deg, ${roleConfig.bg === 'bg-emerald-500' ? '#10b981' : roleConfig.bg === 'bg-blue-600' ? '#2563eb' : roleConfig.bg === 'bg-indigo-600' ? '#4f46e5' : '#d97706'} 0%, #ffffff 40%, #ffffff 60%, ${roleConfig.bg === 'bg-emerald-500' ? '#10b981' : roleConfig.bg === 'bg-blue-600' ? '#2563eb' : roleConfig.bg === 'bg-indigo-600' ? '#4f46e5' : '#d97706'} 100%)`
+        background: `linear-gradient(135deg, ${
+          roleConfig.bg === 'bg-emerald-500' ? '#10b981' : 
+          roleConfig.bg === 'bg-blue-600' ? '#2563eb' : 
+          roleConfig.bg === 'bg-indigo-600' ? '#4f46e5' : 
+          roleConfig.bg === 'bg-violet-600' ? '#7c3aed' : 
+          '#d97706'
+        } 0%, #ffffff 40%, #ffffff 60%, ${
+          roleConfig.bg === 'bg-emerald-500' ? '#10b981' : 
+          roleConfig.bg === 'bg-blue-600' ? '#2563eb' : 
+          roleConfig.bg === 'bg-indigo-600' ? '#4f46e5' : 
+          roleConfig.bg === 'bg-violet-600' ? '#7c3aed' : 
+          '#d97706'
+        } 100%)`
       }}>
       
       {/* Container Interno (Efeito Glass) */}
@@ -92,12 +105,12 @@ export default function PrintableBadge({ user }: PrintableBadgeProps) {
               {/* Turma com largura total para nomes longos */}
               <div className="flex flex-col">
                 <p className="text-[7px] font-black uppercase text-slate-400 print:text-slate-600 tracking-widest mb-0.5">
-                  {user.role === 'student' ? 'Turma' : 'Setor'}
+                  {user.role === 'student' ? 'Turma' : user.role === 'visitor' ? 'Tipo de Acesso' : 'Setor'}
                 </p>
                 <p className={`font-black text-slate-800 print:text-black leading-[1.1] uppercase tracking-tighter 
                   ${(user.turma || user.curso || '').length > 25 ? 'text-[6px]' : 
                     (user.turma || user.curso || '').length > 15 ? 'text-[7px]' : 'text-[9px]'}`}>
-                  {user.turma || user.curso || 'Escola'}
+                  {user.role === 'visitor' ? 'Externo / Kiosk' : (user.turma || user.curso || 'Escola')}
                 </p>
               </div>
             </div>

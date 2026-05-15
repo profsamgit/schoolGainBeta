@@ -61,6 +61,7 @@ interface EconomicSectionProps {
   setSecurityPassword: (val: string) => void;
   allTurmas?: Turma[];
   allCursos?: Curso[];
+  userStates: Record<string, any>;
 }
 
 export function EconomicSection({
@@ -98,7 +99,8 @@ export function EconomicSection({
   securityPassword,
   setSecurityPassword,
   allTurmas = [],
-  allCursos = []
+  allCursos = [],
+  userStates
 }: EconomicSectionProps) {
   const [grantStudentSearch, setGrantStudentSearch] = useState('');
   const [grantTurmaFilter, setGrantTurmaFilter] = useState('all');
@@ -240,7 +242,7 @@ export function EconomicSection({
               </CardHeader>
                <CardContent>
                   <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-black">{filteredUsersForAdmin.reduce((acc, curr) => acc + (curr.points || 0), 0).toLocaleString('pt-BR')}</span>
+                      <span className="text-4xl font-black">{filteredUsersForAdmin.reduce((acc, curr) => acc + ((userStates[curr.id]?.points ?? curr.points) || 0), 0).toLocaleString('pt-BR')}</span>
                       <span className="text-xs font-bold text-emerald-400">BIO-COINS</span>
                   </div>
                   <div className="absolute top-[-20px] right-[-20px] opacity-10 rotate-12"><Leaf className="h-32 w-32" /></div>

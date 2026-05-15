@@ -126,7 +126,7 @@ export default function KioskPage() {
   }, [requestedLocation, selectedSchoolId, generatedTerminalId, terminalExists, generateTerminalId]);
 
   const handleLogin = useCallback(async (targetRa: string) => {
-    const cleanRa = targetRa.replace(/[<>]/g, '').trim();
+    const cleanRa = targetRa.replace(/[<>]/g, '').trim().toUpperCase();
     if (!cleanRa) return;
 
     const lockout = getLockoutStatus(cleanRa);
@@ -137,6 +137,7 @@ export default function KioskPage() {
     }
 
     const student = users.find((user: any) => user.ra === cleanRa || user.rfid === cleanRa);
+    
     if (student) {
         if (student.status === 'inactive') {
             toast({ variant: 'destructive', title: 'Acesso Restrito', description: 'Este registro está inativo. Procure a secretaria.' });
@@ -351,10 +352,6 @@ export default function KioskPage() {
         setShowKeyboard={setShowKeyboard} handleKeyboardInput={handleKeyboardInput}
         handleKeyboardBackspace={handleKeyboardBackspace} activeLoginCameraSource={activeLoginCameraSource}
         scannerKey={scannerKey} loginCameraDeviceId={currentTerminal?.settings?.preferredCamera}
-        handleVisitorLogin={() => {
-          const visitor = users.find(u => u.ra === 'VISITANTE');
-          if (visitor) { setStudentRa('VISITANTE'); setIdentifiedStudent(visitor); setStep('scanning'); }
-        }}
         onIdentify={handleLogin}
         isProcessing={isLoading}
       />

@@ -66,7 +66,7 @@ const userSchema = z.object({
   turma: z.string().optional(),
   curso: z.string().optional(),
   position: z.string().optional(),
-  role: z.enum(['student', 'admin', 'super_admin', 'visitor']),
+  role: z.enum(['student', 'admin', 'staff', 'super_admin', 'visitor']),
   password: z.string().min(6, 'Mínimo 6 caracteres').optional().or(z.literal('')),
   confirmPassword: z.string().optional(),
   avatar: z.string().optional(),
@@ -149,7 +149,12 @@ function AdminContent() {
     deleteReward,
     deleteArticle,
     deleteQuizTopic,
-    service
+    userStates,
+    service,
+    students,
+    admins,
+    staff,
+    visitors
   } = useEcosystem();
 
   const [uploadingUserId, setUploadingUserId] = useState<string | null>(null);
@@ -210,9 +215,9 @@ function AdminContent() {
 
   // Search and Filters (Moved from page state but passed as props to maintain orchestration)
   const [userSearch, setUserSearch] = useState('');
-  const [userRoleFilter, setUserRoleFilter] = useState<'student' | 'admin' | 'visitor'>('student');
+  const [userRoleFilter, setUserRoleFilter] = useState<'student' | 'admin' | 'staff' | 'visitor'>('student');
 
-  const [userTurmaFilter, setUserTurmaFilter] = useState('all');
+  const [userTurmaFilter, setUserTurmaFilter] = useState('');
   const [rewardSearch, setRewardSearch] = useState('');
   const [articleSearch, setArticleSearch] = useState('');
 
@@ -232,9 +237,15 @@ function AdminContent() {
   }, [searchParams, currentUser]);
 
   const filteredUsersForAdmin = useMemo(() => {
-    if (!targetSchoolId) return users;
-    return users.filter((u: User) => u.schoolId === targetSchoolId);
-  }, [users, targetSchoolId]);
+    let baseUsers = users;
+    if (userRoleFilter === 'student') baseUsers = students;
+    else if (userRoleFilter === 'admin') baseUsers = admins;
+    else if (userRoleFilter === 'staff') baseUsers = staff;
+    else if (userRoleFilter === 'visitor') baseUsers = visitors;
+
+    if (!targetSchoolId) return baseUsers;
+    return baseUsers.filter((u: User) => u.schoolId === targetSchoolId);
+  }, [users, students, admins, staff, visitors, targetSchoolId, userRoleFilter]);
 
   const filteredTerminalsForAdmin = useMemo(() => {
     if (!targetSchoolId) return terminals;
@@ -282,7 +293,7 @@ function AdminContent() {
     setIsNew(true);
     setViewMode('form');
     if (type === 'user') {
-      const defaultRole = userRoleFilter === 'admin' ? 'admin' : userRoleFilter === 'visitor' ? 'visitor' : 'student';
+      const defaultRole = userRoleFilter === 'admin' ? 'admin' : userRoleFilter === 'staff' ? 'staff' : userRoleFilter === 'visitor' ? 'visitor' : 'student';
       userForm.reset({ name: defaultRole === 'visitor' ? 'Visitante' : '', role: defaultRole as any, avatar: '' });
     } else if (type === 'reward') {
       rewardForm.reset({ id: `reward-${Date.now()}-${Math.random().toString(36).slice(-4)}`, name: '', description: '', cost: 0, image: '', imageHint: '' });
@@ -678,12 +689,16 @@ function AdminContent() {
 
 
   if (!hasMounted) return null;
+
   if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'super_admin')) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6 max-w-md mx-auto">
-        <ShieldAlert className="h-24 w-24 text-red-100" />
-        <h2 className="text-3xl font-bold">Acesso Restrito</h2>
-        <Button asChild><Link href="/dashboard">Voltar</Link></Button>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 text-center p-6 space-y-6">
+        <div className="h-24 w-24 rounded-full bg-red-100 flex items-center justify-center text-red-600 animate-pulse shadow-[0_0_30px_rgba(220,38,38,0.2)]"><ShieldAlert className="h-12 w-12" /></div>
+        <div className="space-y-2">
+          <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900">Acesso Restrito</h2>
+          <p className="text-slate-500 font-medium max-w-xs mx-auto">Esta área é exclusiva para gestores e administradores da rede SchoolGain.</p>
+        </div>
+        <Button asChild className="bg-slate-900 text-white rounded-full px-8 h-12 font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl"><Link href="/">Voltar para o Dashboard</Link></Button>
       </div>
     );
   }
@@ -760,6 +775,7 @@ function AdminContent() {
               approveRegistration={(item) => handleApproveRequest(item, 'student')}
               rejectRegistration={rejectRegistration}
               updateUserStatus={updateUserStatus}
+              userStates={userStates}
             />
           </TabsContent>
 
@@ -827,6 +843,7 @@ function AdminContent() {
               setUploadingUserId={setUploadingUserId}
               allTurmas={allTurmas}
               allCursos={allCursos}
+              userStates={userStates}
             />
           </TabsContent>
 

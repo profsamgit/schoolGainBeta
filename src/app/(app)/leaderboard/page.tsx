@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -73,12 +74,13 @@ export default function LeaderboardPage() {
   const { users, currentUserRa, balance, vitality, purchasedItems, getUserState, initUserSpecificSync, getMonthlyLegends, isPreviewMode, currentUser, userStates, legends } = useEcosystem();
 
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [rankingRole, setRankingRole] = useState<'student' | 'staff'>(currentUser?.role === 'staff' ? 'staff' : 'student');
   
   const monthlyLegends = useMemo(() => getMonthlyLegends(), [getMonthlyLegends, legends, purchasedItems, userStates, users]);
 
   const calculateScore = (u: any) => {
-    const p = u.points || 0;
     const state = userStates[u.id] || {};
+    const p = state.points || 0;
     const isCurrent = u.id === currentUser?.id;
     const v = isCurrent ? vitality : (state.vitality || 0);
     const items = isCurrent ? purchasedItems.length : (state.purchasedItems?.length || 0);
@@ -89,20 +91,21 @@ export default function LeaderboardPage() {
   const dynamicLeaderboard = useMemo(() => {
     if (!users) return [];
     return users
-      .filter(u => u.role === 'student')
+      .filter(u => u.role === rankingRole)
       .map(u => {
         const isCurrent = u.id === currentUser?.id;
         const state = userStates[u.id] || {};
         return {
           ...u,
-          displayPoints: u.points || 0,
+          displayPoints: state.points || 0,
           displayVitality: isCurrent ? vitality : (state.vitality || 0),
           displayItems: isCurrent ? purchasedItems.length : (state.purchasedItems?.length || 0),
+          level: state.level || 'Semente',
           totalScore: calculateScore(u)
         };
       })
       .sort((a, b) => b.totalScore - a.totalScore);
-  }, [users, currentUserRa, balance, vitality, purchasedItems, userStates]);
+  }, [users, currentUserRa, balance, vitality, purchasedItems, userStates, rankingRole]);
 
   const topThree = dynamicLeaderboard.slice(0, 3);
   const restUsers = dynamicLeaderboard.slice(3);
@@ -339,6 +342,18 @@ export default function LeaderboardPage() {
                  Monitoramento global de agentes
               </CardDescription>
             </div>
+            
+            <Tabs value={rankingRole} onValueChange={(val: any) => setRankingRole(val)} className="w-full md:w-auto">
+              <TabsList className="bg-slate-100 p-1 h-12 rounded-full border border-slate-200">
+                <TabsTrigger value="student" className="rounded-full px-8 font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-md transition-all duration-300">
+                   Alunos
+                </TabsTrigger>
+                <TabsTrigger value="staff" className="rounded-full px-8 font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-md transition-all duration-300">
+                   Equipe
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
             <div className="flex items-center gap-3 bg-slate-100 rounded-full px-5 py-2">
                 <Trophy className="h-4 w-4 text-emerald-600" />
                 <span className="text-xs font-black text-slate-600 uppercase tabular-nums">Total: {dynamicLeaderboard.length} Agentes</span>

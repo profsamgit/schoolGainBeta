@@ -30,12 +30,12 @@ export function EcossistemaHUD({
   toggleFullScreen,
   isFullScreen
 }: EcossistemaHUDProps) {
-  const { level, purchasedItems, userStates, currentUserRa } = useEcosystem();
+  const { level, purchasedItems, userStates, currentUserId } = useEcosystem();
 
   // Verifica proteção lendária
   const hasLegendaryShield = (() => {
-    if (!purchasedItems.includes('monstro_lago') || !currentUserRa) return false;
-    const state = userStates[currentUserRa];
+    if (!purchasedItems.includes('monstro_lago') || !currentUserId) return false;
+    const state = userStates[currentUserId];
     if (!state || !state.nessiePurchaseDate) return false;
     
     const today = new Date();

@@ -29,12 +29,18 @@ interface EcosystemContextType {
   healVitality: (points: number) => boolean;         // Recupera saúde do mundo gastando pontos
   allParticipants: Participant[]; // Lista da equipe do projeto
   updateParticipants: (newParticipants: Participant[]) => Promise<boolean>;
-  users: User[];              // Lista de todos os alunos (para ranking)
+  users: User[];              // Lista mestre (legado/ranking)
+  students: User[];
+  admins: User[];
+  staff: User[];
+  superAdmins: User[];
+  visitors: User[];
   userStates: Record<string, any>;
   allRewards: Reward[];         // Prêmios disponíveis
   allArticles: EducationArticle[];        // Artigos educativos
   allQuizTopics: QuizTopic[];   // Assuntos para o Quiz
   currentUserRa: string | null; // RA do aluno logado
+  currentUserId: string | null; // ID do aluno logado (Firestore)
   currentUser: User | null;      // Dados completos do aluno logado
   login: (ra: string, password?: string) => Promise<boolean>; // Entrar no sistema
   logout: () => void;             // Sair do sistema
@@ -54,7 +60,7 @@ interface EcosystemContextType {
   updateCursos: (newCursos: Curso[], targetSchoolId?: string) => Promise<boolean>;
   updateCargos: (newCargos: Cargo[], targetSchoolId?: string) => Promise<boolean>;
   updateSetores: (newSetores: SetorEscolar[], targetSchoolId?: string) => Promise<boolean>;
-  getUserState: (ra: string) => EcosystemUserState;
+  getUserState: (userId: string) => EcosystemUserState;
   initUserSpecificSync: (userId: string) => void;
   auditLogs: AuditLogEntry[]; // Histórico de pontos dados por admins
   grantPoints: (ra: string, points: number, sector: string, action: string, adminName: string, password?: string, terminalSchoolId?: string) => Promise<boolean>;
@@ -116,7 +122,13 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const [isMissionDone, setIsMissionDone] = useState(service.isMissionDone);
   const [purchasedItems, setPurchasedItems] = useState<EcosystemItem[]>(service.purchasedItems);
   const [currentUserRa, setCurrentUserRa] = useState<string | null>(service.currentUserRa);
-  const [users, setUsers] = useState<any[]>(service.users);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(service.currentUserId);
+  const [users, setUsers] = useState<User[]>(service.users);
+  const [students, setStudents] = useState<User[]>(service.students);
+  const [admins, setAdmins] = useState<User[]>(service.admins);
+  const [staff, setStaff] = useState<User[]>(service.staff);
+  const [superAdmins, setSuperAdmins] = useState<User[]>(service.superAdmins);
+  const [visitors, setVisitors] = useState<User[]>(service.visitors);
   const [level, setLevel] = useState<UserLevel>('Semente');
 
   const [rewards, setRewards] = useState<any[]>(service.allRewards);
@@ -172,7 +184,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const effectiveItems = isPreviewMode && studentState ? studentState.purchasedItems : purchasedItems;
   const effectiveLevel = isPreviewMode && studentState ? studentState.level : level;
 
-  const getUserState = (ra: string) => service.getUserState(ra);
+  const getUserState = (userId: string) => service.getUserState(userId);
 
   const [cursos, setCursos] = useState<Curso[]>(service.allCursos);
   const [cargos, setCargos] = useState<Cargo[]>(service.allCargos);
@@ -200,7 +212,13 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
     const balanceSub = service.balance$.subscribe(setBalance);
     const vitalitySub = service.vitality$.subscribe(setVitality);
     const raSub = service.currentUserRa$.subscribe(setCurrentUserRa);
+    const idSub = service.currentUserId$.subscribe(setCurrentUserId);
     const usersSub = service.users$.subscribe(setUsers);
+    const studentsSub = service.students$.subscribe(setStudents);
+    const adminsSub = service.admins$.subscribe(setAdmins);
+    const staffSub = service.staff$.subscribe(setStaff);
+    const superAdminsSub = service.superAdmins$.subscribe(setSuperAdmins);
+    const visitorsSub = service.visitors$.subscribe(setVisitors);
     const rewardsSub = service.rewards$.subscribe(setRewards);
     const articlesSub = service.articles$.subscribe(setArticles);
     const topicsSub = service.quizTopics$.subscribe(setQuizTopics);
@@ -228,6 +246,9 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
     if (service.currentUserRa) {
       setCurrentUserRa(service.currentUserRa);
     }
+    if (service.currentUserId) {
+      setCurrentUserId(service.currentUserId);
+    }
     setUsers([...service.users]);
 
     // Lógica de liberação de inicialização:
@@ -245,7 +266,13 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
       balanceSub.unsubscribe();
       vitalitySub.unsubscribe();
       raSub.unsubscribe();
+      idSub.unsubscribe();
       usersSub.unsubscribe();
+      studentsSub.unsubscribe();
+      adminsSub.unsubscribe();
+      staffSub.unsubscribe();
+      superAdminsSub.unsubscribe();
+      visitorsSub.unsubscribe();
       rewardsSub.unsubscribe();
       articlesSub.unsubscribe();
       topicsSub.unsubscribe();
@@ -401,10 +428,16 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
       allParticipants: participants,
       updateParticipants,
       users,
+      students,
+      admins,
+      staff,
+      superAdmins,
+      visitors,
       allRewards,
       allArticles,
       allQuizTopics: quizTopics,
       currentUserRa,
+      currentUserId,
       currentUser: displayUser,
       login,
       logout,

@@ -55,7 +55,8 @@ export default function SuperAdminPage() {
     wasteEntries,
     uploadUserAvatar,
     allCargos,
-    allSetores
+    allSetores,
+    userStates
   } = useEcosystem();
 
   const { toast } = useToast();
@@ -294,8 +295,6 @@ export default function SuperAdminPage() {
           ra: userFormData.ra?.toUpperCase().trim() || Math.random().toString(36).substring(2, 14).toUpperCase().padEnd(12, '0'),
           role: userFormData.role,
           password: await EcosystemService.hashPassword(userFormData.password || 'mudar123'),
-          points: 0,
-          level: 'Semente',
           schoolId: userFormData.role === 'super_admin' ? 'global' : userFormData.schoolId,
           rfid: userFormData.rfid?.toUpperCase().trim() || ''
         };
@@ -462,7 +461,7 @@ export default function SuperAdminPage() {
   const superAdminUsers = useMemo(() => users.filter(u => u.role === 'super_admin'), [users]);
   const unitAdminUsers = useMemo(() => users.filter(u => u.role === 'admin'), [users]);
   const students = useMemo(() => users.filter(u => u.role === 'student'), [users]);
-  const totalPoints = useMemo(() => students.reduce((acc, u) => acc + (u.points || 0), 0), [students]);
+  const totalPoints = useMemo(() => students.reduce((acc, u) => acc + (userStates[u.id]?.points || 0), 0), [students, userStates]);
 
   if (!currentUser || currentUser.role !== 'super_admin') {
     return (

@@ -67,12 +67,12 @@ export function ScanningSection({
                   Registro por Câmera
                 </CardTitle>
                 <CardDescription>
-                  Aluno: <span className="font-bold text-primary">{identifiedStudent?.name}</span>
+                  {identifiedStudent?.role === 'visitor' ? 'Visitante (ID Temporário)' : identifiedStudent?.role === 'staff' ? 'Funcionário' : 'Usuário'}: <span className="font-bold text-primary">{identifiedStudent?.name}</span>
                 </CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={handleExit}>
                 <User className="mr-2 h-4 w-4" />
-                Trocar Aluno
+                Trocar Usuário
               </Button>
             </div>
           </CardHeader>
@@ -197,7 +197,7 @@ export function ScanningSection({
                   disabled={!identificationResult || (identificationResult.points === 0 && !identificationResult.isWaste)}
                 >
                   <Check className="mr-2 h-5 w-5" />
-                  Confirmar e Ganhar Pontos
+                  {identifiedStudent?.role === 'visitor' ? 'Confirmar Descarte' : 'Confirmar e Ganhar Bio-Coins'}
                 </Button>
               </>
             )}
