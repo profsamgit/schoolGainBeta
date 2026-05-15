@@ -197,6 +197,7 @@ function AdminContent() {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [itemType, setItemType] = useState<'user' | 'reward' | 'article' | 'turma' | 'curso' | 'cargo' | 'setor' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [previewAvatar, setPreviewAvatar] = useState<string | null>(null);
 
   const [grantRa, setGrantRa] = useState('');
   const [grantAction, setGrantAction] = useState('');
@@ -745,6 +746,8 @@ function AdminContent() {
               generateStrongPassword={generateStrongPassword} isPasswordDialogOpen={isPasswordDialogOpen} setIsPasswordDialogOpen={setIsPasswordDialogOpen}
               targetSchoolId={targetSchoolId} isDeleteConfirmOpen={isDeleteConfirmOpen} selectedItem={selectedItem}
               setSelectedItem={setSelectedItem}
+              previewAvatar={previewAvatar}
+              setPreviewAvatar={setPreviewAvatar}
               uploadUserAvatar={uploadUserAvatar}
               uploadingUserId={uploadingUserId}
               setUploadingUserId={setUploadingUserId}

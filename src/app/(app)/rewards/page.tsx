@@ -16,15 +16,16 @@ import { cn } from '@/lib/utils';
 
 export default function RewardsPage() {
   const { toast } = useToast();
-  const { balance, deductPoints, allRewards, currentUser } = useEcosystem();
+  const { balance, deductPoints, allRewards, currentUser, recordRewardRedemption } = useEcosystem();
 
   const schoolRewards = allRewards.filter(reward => 
     !reward.schoolId || reward.schoolId === currentUser?.schoolId || reward.schoolId === 'school-1'
   );
 
-  const handleRedeem = (rewardName: string, cost: number) => {
+  const handleRedeem = (rewardId: string, rewardName: string, cost: number) => {
     const success = deductPoints(cost);
     if (success) {
+      recordRewardRedemption(rewardId);
       toast({
         title: 'Recompensa Resgatada!',
         description: `Você resgatou "${rewardName}" por ${cost} pontos.`,
@@ -97,7 +98,7 @@ export default function RewardsPage() {
                     ? "bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20" 
                     : "bg-slate-200 text-slate-400 cursor-not-allowed"
                 )}
-                onClick={() => handleRedeem(reward.name, reward.cost)}
+                onClick={() => handleRedeem(reward.id, reward.name, reward.cost)}
                 disabled={balance < reward.cost}
               >
                 {balance >= reward.cost ? (

@@ -78,7 +78,8 @@ export type AuditActionType =
   | 'LOGIN_SUCCESS' | 'LOGIN_FAIL' 
   | 'CRUD_CREATE' | 'CRUD_UPDATE' | 'CRUD_DELETE' 
   | 'SYSTEM_RESET' | 'POINTS_AWARDED' | 'ITEM_PURCHASED'
-  | 'SECURITY_LOCKOUT' | 'CONFIG_CHANGE';
+  | 'SECURITY_LOCKOUT' | 'CONFIG_CHANGE'
+  | 'ARTICLE_READ' | 'QUIZ_COMPLETED' | 'REWARD_REDEEMED';
 
 export type AuditLogEntry = {
     id: string;
@@ -247,6 +248,7 @@ export interface EcosystemUserState {
   nessiePurchaseDate?: string | null;     // Data de compra do item especial (Nessie/Casa)
   curso?: string;            // Curso do aluno
   level: UserLevel;             // Título do aluno
+  readArticles?: string[];       // IDs dos artigos lidos para evitar duplicidade de pontos
 }
 
 /**

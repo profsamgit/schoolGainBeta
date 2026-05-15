@@ -731,9 +731,9 @@ export class EcosystemService {
 
       // 5. Atualiza o Firestore (Usa 'avatar' para pessoas e 'image' para objetos/pedagógico)
       const docRef = doc(db, collectionName, dbId);
-      const updateData = (collectionName === "users" || collectionName === "participants")
-        ? { avatar: downloadURL }
-        : { image: downloadURL };
+      const updateData: any = (collectionName === "users" || collectionName === "participants")
+        ? { avatar: downloadURL, id: dbId }
+        : { image: downloadURL, id: dbId };
 
       await setDoc(docRef, updateData, { merge: true });
 
@@ -750,6 +750,7 @@ export class EcosystemService {
       } else {
         this.data.users = this.data.users.map(u => (u.id === userId || u.ra === userId || u.email === userId) ? { ...u, avatar: downloadURL } : u);
         this.usersSubject.next(this.data.users);
+        this.saveToStorage();
       }
 
       return downloadURL;
@@ -1137,9 +1138,8 @@ export class EcosystemService {
       vitality: 100,
       purchasedItems: [],
       lastMissionDate: null,
-      curso: '',
-      nessiePurchaseDate: null,
-      level: 'Semente'
+      level: 'Semente',
+      readArticles: []
     };
   }
 
@@ -1358,7 +1358,8 @@ export class EcosystemService {
         lastMissionDate: this.lastMissionDateSubject.value,
         level: this.levelSubject.value,
         curso: (user as any).curso,
-        nessiePurchaseDate: this.data.userStates[user.id]?.nessiePurchaseDate || null
+        nessiePurchaseDate: this.data.userStates[user.id]?.nessiePurchaseDate || null,
+        readArticles: this.data.userStates[user.id]?.readArticles || []
       };
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
@@ -1810,6 +1811,94 @@ export class EcosystemService {
     });
 
     this.saveToStorage();
+
+    return true;
+  }
+
+  /**
+   * Registra que um aluno leu um artigo e concede pontos.
+   */
+  async recordArticleRead(articleId: string): Promise<boolean> {
+    const userId = this.data.currentUserId;
+    if (!userId) return false;
+
+    const student = this.data.users.find(u => u.id === userId);
+    const article = this.data.articles.find(a => a.id === articleId);
+    if (!student || !article) return false;
+
+    const state = this.data.userStates[userId] || this.getDefaultState();
+    if (!state.readArticles) state.readArticles = [];
+    
+    // Verifica se já leu para não ganhar pontos repetidos
+    if (state.readArticles.includes(articleId)) return true;
+
+    // Concede 20 pontos por leitura
+    const points = 20;
+    state.readArticles.push(articleId);
+    this.data.userStates[userId] = state;
+    
+    this.syncUserPoints(userId, points, points);
+
+    await this.logTelemetry({
+      action: 'ARTICLE_READ',
+      category: 'ECOSYSTEM',
+      details: `Artigo lido: ${article.title}. Conquistou ${points} Bio-Coins.`,
+      studentName: student.name,
+      targetEntity: 'articles',
+      targetId: articleId,
+      points: points,
+      unitId: student.schoolId
+    });
+
+    return true;
+  }
+
+  /**
+   * Registra a finalização de um quiz.
+   */
+  async recordQuizCompletion(topicId: string, score: number): Promise<boolean> {
+    const userId = this.data.currentUserId;
+    if (!userId) return false;
+
+    const student = this.data.users.find(u => u.id === userId);
+    const topic = this.data.quizTopics.find(t => t.id === topicId);
+    if (!student || !topic) return false;
+
+    await this.logTelemetry({
+      action: 'QUIZ_COMPLETED',
+      category: 'ECOSYSTEM',
+      details: `Quiz finalizado: ${topic.name}. Pontuação: ${score}%`,
+      studentName: student.name,
+      targetEntity: 'quizTopics',
+      targetId: topicId,
+      unitId: student.schoolId,
+      metadata: { score }
+    });
+
+    return true;
+  }
+
+  /**
+   * Registra o resgate de uma recompensa física.
+   */
+  async recordRewardRedemption(rewardId: string): Promise<boolean> {
+    const userId = this.data.currentUserId;
+    if (!userId) return false;
+
+    const student = this.data.users.find(u => u.id === userId);
+    const reward = this.data.rewards.find(r => r.id === rewardId);
+    if (!student || !reward) return false;
+
+    await this.logTelemetry({
+      action: 'REWARD_REDEEMED',
+      category: 'ECOSYSTEM',
+      details: `Recompensa resgatada: ${reward.name}. Custo: ${reward.cost} Bio-Coins.`,
+      studentName: student.name,
+      targetEntity: 'rewards',
+      targetId: rewardId,
+      unitId: student.schoolId,
+      metadata: { cost: reward.cost }
+    });
 
     return true;
   }
@@ -2989,7 +3078,7 @@ export class EcosystemService {
       const globalSettingsSnap = await getDoc(doc(db, "settings", "global"));
       if (globalSettingsSnap.exists()) {
         const globalData = globalSettingsSnap.data();
-        console.log("[MIGRAÇÃO] Dados globais detectados. Iniciando unificação nas unidades...");
+
         
         // Propaga campos do global para todas as escolas cadastradas
         const schools = this.data.schools;
@@ -3008,7 +3097,7 @@ export class EcosystemService {
 
         // Remove o documento global após a unificação bem-sucedida
         await deleteDoc(doc(db, "settings", "global"));
-        console.log("[MIGRAÇÃO] Documento 'global' removido com sucesso.");
+
       }
     } catch (err) {
       console.error("[MIGRAÇÃO] Erro ao unificar configurações:", err);

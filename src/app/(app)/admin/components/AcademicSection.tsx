@@ -78,7 +78,7 @@ const QRScanner = dynamic(() => import('@/components/ui/qr-scanner'), { ssr: fal
 import { useEcosystem } from '@/app/(app)/ecosystem-context';
 import PrintableBadge from '@/components/ecosystem/PrintableBadge';
 
-interface AcademicSectionProps {
+export interface AcademicSectionProps {
   users: User[];
   filteredUsersForAdmin: User[];
   allTurmas: Turma[];
@@ -113,6 +113,8 @@ interface AcademicSectionProps {
   isQRScannerOpen: boolean;
   setIsQRScannerOpen: (open: boolean) => void;
   handleQRDetected: (ra: string) => void;
+  previewAvatar?: string | null;
+  setPreviewAvatar?: (url: string | null) => void;
   uploadUserAvatar: (userId: string, file: File) => Promise<string | null>;
   uploadingUserId: string | null;
   setUploadingUserId: (id: string | null) => void;
@@ -171,6 +173,8 @@ export function AcademicSection({
   setUserTurmaFilter,
   isQRScannerOpen,
   setIsQRScannerOpen,
+  previewAvatar,
+  setPreviewAvatar,
   uploadUserAvatar,
   uploadingUserId,
   setUploadingUserId,
@@ -213,6 +217,19 @@ export function AcademicSection({
     userForm.setValue('ra', result, { shouldValidate: true });
   };
 
+  const handleAvatarUpload = async (userId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingUserId(userId);
+      await uploadUserAvatar(userId, file);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUploadingUserId(null);
+    }
+  };
+
   const filteredUsers = useMemo(() => {
     return filteredUsersForAdmin
       .filter(u => {
@@ -243,26 +260,23 @@ export function AcademicSection({
           <AvatarImage src={user.avatar || undefined} className="object-cover" />
           <AvatarFallback className="text-xs font-black bg-slate-900 text-white">{user.name.charAt(0)}</AvatarFallback>
         </Avatar>
-        <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/avatar:opacity-100 rounded-xl cursor-pointer transition-opacity">
-          {uploadingUserId === user.id ? <Loader2 className="h-4 w-4 text-white animate-spin" /> : <Camera className="h-4 w-4 text-white" />}
-          <input 
-            type="file" 
-            className="hidden" 
-            accept="image/*" 
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              try {
-                setUploadingUserId(user.id);
-                await uploadUserAvatar(user.id, file);
-              } catch (err) {
-                console.error(err);
-              } finally {
-                setUploadingUserId(null);
-              }
-            }} 
-          />
-        </label>
+        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/avatar:opacity-100 rounded-xl transition-opacity gap-2">
+          {uploadingUserId === user.id ? (
+            <Loader2 className="h-4 w-4 text-white animate-spin" />
+          ) : (
+            <>
+              <label className="cursor-pointer hover:scale-110 transition-transform" title="Trocar Foto">
+                <Camera className="h-4 w-4 text-white" />
+                <input type="file" className="hidden" accept="image/*" onChange={(e) => handleAvatarUpload(user.id, e)} />
+              </label>
+              {user.avatar && (
+                <button type="button" onClick={() => setPreviewAvatar!(user.avatar!)} className="cursor-pointer hover:scale-110 transition-transform" title="Visualizar Foto">
+                  <Eye className="h-4 w-4 text-white" />
+                </button>
+              )}
+            </>
+          )}
+        </div>
       </div>
       <div className="flex flex-col">
         <span className="text-sm font-bold text-slate-900">{user.name}</span>
@@ -270,6 +284,7 @@ export function AcademicSection({
           <span className="text-[10px] text-slate-400 font-medium lowercase italic">{user.email}</span>
         )}
       </div>
+
     </div>
   );
 
@@ -796,6 +811,35 @@ export function AcademicSection({
                       O crachá será impresso com as dimensões oficiais (85mm x 55mm).
                     </p>
                   </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+
+          {/* DIÁLOGO DE PREVISÃO DE AVATAR */}
+          <Dialog open={!!previewAvatar} onOpenChange={() => setPreviewAvatar!(null)}>
+            <DialogContent className="max-w-xl border-none bg-transparent shadow-none p-0 overflow-hidden flex items-center justify-center">
+              <div className="sr-only">
+                <DialogHeader>
+                  <DialogTitle>Previsão de Avatar</DialogTitle>
+                  <DialogDescription>Visualização ampliada da foto de perfil</DialogDescription>
+                </DialogHeader>
+              </div>
+              {previewAvatar && (
+                <div className="relative group">
+                  <img 
+                    src={previewAvatar} 
+                    alt="Avatar Preview" 
+                    className="max-h-[80vh] max-w-full rounded-3xl border-4 border-white shadow-2xl animate-in zoom-in-95 duration-200"
+                  />
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="absolute -top-4 -right-4 bg-white text-slate-900 rounded-full shadow-lg hover:bg-slate-100"
+                    onClick={() => setPreviewAvatar!(null)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
               )}
             </DialogContent>

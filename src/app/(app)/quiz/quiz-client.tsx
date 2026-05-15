@@ -59,7 +59,7 @@ export function QuizClient() {
   const [showResults, setShowResults] = useState(false);
 
   const { toast } = useToast();
-  const { completeDailyMission, allQuizTopics: rawTopics, currentUser } = useEcosystem();
+  const { completeDailyMission, allQuizTopics: rawTopics, currentUser, recordQuizCompletion } = useEcosystem();
   const allQuizTopics = useMemo(() => {
     return rawTopics
       .filter(t => 
@@ -133,6 +133,15 @@ export function QuizClient() {
           title: 'Quiz finalizado!',
           description: 'Você já completou sua missão diária hoje, mas continue praticando!',
         });
+      }
+
+      // Registro de atividade pedagógica para o gestor
+      const finalScore = calculateScore();
+      const scorePct = Math.round((finalScore / quizData!.questions.length) * 100);
+      const topicName = form.getValues('topic');
+      const topic = allQuizTopics.find(t => t.name === topicName);
+      if (topic) {
+        recordQuizCompletion(topic.id, scorePct);
       }
     }
   }

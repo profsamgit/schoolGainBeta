@@ -16,6 +16,7 @@ import {
 import { useState, useRef, useEffect } from 'react';
 import { EcosystemItem } from '@/lib/types';
 import { EcosystemViewer } from '@/components/ecosystem/EcosystemViewer';
+import { cn } from '@/lib/utils';
 
 // Componentes Modularizados
 import { EcossistemaHUD } from './components/EcossistemaHUD';

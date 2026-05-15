@@ -33,10 +33,14 @@ const chartConfig = {
     label: 'Coletado (kg)',
     color: 'hsl(var(--primary))',
   },
+  engagement: {
+    label: 'Engajamento',
+    color: 'hsl(var(--primary))',
+  }
 } satisfies ChartConfig;
 
 export function AdminAnalytics() {
-  const { wasteEntries, currentUser, users, allTurmas: turmas, allCursos: cursos } = useEcosystem();
+  const { wasteEntries, currentUser, users, allTurmas: turmas, allCursos: cursos, auditLogs } = useEcosystem();
   const [isMounted, setIsMounted] = React.useState(false);
 
   React.useEffect(() => {
@@ -90,6 +94,16 @@ export function AdminAnalytics() {
   const totalKg = filteredEntries.reduce((sum, e) => sum + e.collected, 0);
   const co2Saved = (totalKg * 1.5).toFixed(1); // 1.5kg CO2 por kg de material (estimado)
   const treesSaved = Math.floor(totalKg / 20); // 20kg material = 1 árvore (estimado)
+
+  // 5. Engajamento Pedagógico
+  const pedagogicStats = useMemo(() => {
+    const logs = auditLogs.filter(log => isSuperAdmin ? true : log.unitId === schoolId);
+    const articles = logs.filter(l => l.action === 'ARTICLE_READ').length;
+    const quizzes = logs.filter(l => l.action === 'QUIZ_COMPLETED').length;
+    const rewards = logs.filter(l => l.action === 'REWARD_REDEEMED').length;
+    
+    return { articles, quizzes, rewards };
+  }, [auditLogs, isSuperAdmin, schoolId]);
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -207,6 +221,48 @@ export function AdminAnalytics() {
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Métricas de Engajamento Pedagógico */}
+      <div className="lg:col-span-3 grid gap-6 md:grid-cols-3">
+        <Card className="border-none shadow-xl bg-white/50 backdrop-blur-md">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-bold flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-blue-500" />
+              Artigos Lidos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-black">{pedagogicStats.articles}</div>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Total de leituras na unidade</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-xl bg-white/50 backdrop-blur-md">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-bold flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-amber-500" />
+              Quizzes Realizados
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-black">{pedagogicStats.quizzes}</div>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Avaliações concluídas</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-xl bg-white/50 backdrop-blur-md">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-bold flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-emerald-500" />
+              Prêmios Resgatados
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-black">{pedagogicStats.rewards}</div>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Trocas de Bio-Coins efetuadas</p>
           </CardContent>
         </Card>
       </div>

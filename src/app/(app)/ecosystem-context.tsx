@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useMemo, Suspens
 import { useSearchParams } from 'next/navigation';
 
 import { EcosystemService } from '@/lib/ecosystem.service';
-import { User, Reward, EducationArticle, Participant, AuditLogEntry, Terminal, TerminalStatus, School, WasteEntry, WasteType, CycleSnapshot, Turma, Curso, Cargo, SetorEscolar, EcosystemItem, QuizTopic, RegistrationRequest, EcosystemLegend, UserLevel } from '@/lib/types';
+import { User, Reward, EducationArticle, Participant, AuditLogEntry, Terminal, TerminalStatus, School, WasteEntry, WasteType, CycleSnapshot, Turma, Curso, Cargo, SetorEscolar, EcosystemItem, QuizTopic, RegistrationRequest, EcosystemLegend, UserLevel, EcosystemUserState } from '@/lib/types';
 
 /**
  * ============================================================================
@@ -94,6 +94,9 @@ interface EcosystemContextType {
   updateMyPassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
   generateTerminalId: () => string;
   uploadUserAvatar: (userId: string, file: File) => Promise<string | null>;
+  recordArticleRead: (articleId: string) => Promise<boolean>;
+  recordQuizCompletion: (topicId: string, score: number) => Promise<boolean>;
+  recordRewardRedemption: (rewardId: string) => Promise<boolean>;
   isPreviewMode: boolean;
   isInitializing: boolean;
   displayUser: User | null;
@@ -374,6 +377,9 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const getLockoutStatus = service.getLockoutStatus.bind(service);
   const generateTerminalId = service.generateTerminalId.bind(service);
   const uploadUserAvatar = (uId: string, f: File) => service.uploadUserAvatar(uId, f);
+  const recordArticleRead = (articleId: string) => service.recordArticleRead(articleId);
+  const recordQuizCompletion = (topicId: string, score: number) => service.recordQuizCompletion(topicId, score);
+  const recordRewardRedemption = (rewardId: string) => service.recordRewardRedemption(rewardId);
   const updateUserStatus = (uId: string, s: 'active' | 'inactive') => service.updateUserStatus(uId, s);
 
   // Evita problemas de renderização no servidor (Next.js)
@@ -457,6 +463,9 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
       updateMyPassword,
       generateTerminalId,
       uploadUserAvatar,
+      recordArticleRead,
+      recordQuizCompletion,
+      recordRewardRedemption,
       updateUserStatus,
       isPreviewMode,
       isInitializing,

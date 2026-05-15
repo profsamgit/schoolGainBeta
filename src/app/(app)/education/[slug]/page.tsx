@@ -4,14 +4,23 @@ import { useEcosystem } from '@/app/(app)/ecosystem-context';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { CheckCircle2, Sparkles, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 export default function EducationArticlePage({
   params,
 }: {
   params: { slug: string };
 }) {
-  const { allArticles } = useEcosystem();
+  const { allArticles, recordArticleRead, userStates, currentUser } = useEcosystem();
+  const { toast } = useToast();
   const article = allArticles.find((a) => a.slug === params.slug);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const hasAlreadyRead = currentUser && userStates[currentUser.id]?.readArticles?.includes(article?.id || '');
 
   if (!article) {
     return (
@@ -80,6 +89,57 @@ export default function EducationArticlePage({
             </div>
           </div>
         )}
+
+        <Separator className="my-12" />
+
+        <div className="flex flex-col items-center justify-center space-y-6 pb-20">
+          <div className="text-center space-y-2">
+            <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Finalizou a leitura?</h3>
+            <p className="text-slate-500 font-medium">Garanta sua recompensa pedagógica de 20 Bio-Coins!</p>
+          </div>
+
+          <Button 
+            size="lg"
+            disabled={hasAlreadyRead || isSubmitting}
+            onClick={async () => {
+              if (!article) return;
+              setIsSubmitting(true);
+              try {
+                const success = await recordArticleRead(article.id);
+                if (success) {
+                  toast({
+                    title: "Leitura Concluída!",
+                    description: "Você conquistou 20 Bio-Coins. Continue assim!",
+                  });
+                }
+              } catch (err) {
+                console.error(err);
+              } finally {
+                setIsSubmitting(false);
+              }
+            }}
+            className={cn(
+              "h-16 px-10 rounded-2xl text-lg font-black uppercase tracking-widest transition-all duration-500",
+              hasAlreadyRead 
+                ? "bg-emerald-500 hover:bg-emerald-500 text-white cursor-default" 
+                : "bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 hover:scale-105 active:scale-95"
+            )}
+          >
+            {isSubmitting ? (
+              <Loader2 className="h-6 w-6 animate-spin" />
+            ) : hasAlreadyRead ? (
+              <><CheckCircle2 className="mr-3 h-6 w-6" /> Recompensa Coletada</>
+            ) : (
+              <><Sparkles className="mr-3 h-6 w-6" /> Coletar Bio-Coins</>
+            )}
+          </Button>
+
+          {hasAlreadyRead && (
+            <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest animate-pulse">
+              Você já recebeu os créditos por este artigo
+            </p>
+          )}
+        </div>
       </div>
     </article>
   );
