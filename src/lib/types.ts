@@ -241,6 +241,7 @@ export interface EcosystemUserState {
   balance: number;           // Bio-Coins atuais do aluno
   points: number;            // Pontos totais (lifetime) do aluno
   vitality: number;          // Percentual de saúde do ambiente (0-100)
+  vitalityActivated: boolean; // Se o ecossistema foi ativado via Quiz
   purchasedItems: EcosystemItem[]; // Lista de itens comprados
   itemsCount: number;        // Quantidade de itens
   lastMissionDate: string | null;  // Data da última missão diária completada

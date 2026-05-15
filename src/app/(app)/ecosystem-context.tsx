@@ -18,7 +18,9 @@ import { User, Reward, EducationArticle, Participant, AuditLogEntry, Terminal, T
  */
 interface EcosystemContextType {
   balance: number;           // Bio-Coins (saldo) do aluno logado
+  points: number;            // Pontos vitalícios (lifetime)
   vitality: number;          // Percentual de saúde do ecossistema (0-100)
+  vitalityActivated: boolean; // Se o ecossistema foi ativado via Quiz
   isMissionDone: boolean;    // Indica se a missão do dia já foi concluída
   purchasedItems: EcosystemItem[]; // Lista de objetos/animais que o aluno já comprou
   level: UserLevel;             // Título do aluno (ex: "Semente", "Árvore")
@@ -39,6 +41,7 @@ interface EcosystemContextType {
   allRewards: Reward[];         // Prêmios disponíveis
   allArticles: EducationArticle[];        // Artigos educativos
   allQuizTopics: QuizTopic[];   // Assuntos para o Quiz
+  recordQuizCompletion: (topicId: string, score: number, difficulty?: string, numQuestions?: number) => Promise<boolean>;
   currentUserRa: string | null; // RA do aluno logado
   currentUserId: string | null; // ID do aluno logado (Firestore)
   currentUser: User | null;      // Dados completos do aluno logado
@@ -101,7 +104,6 @@ interface EcosystemContextType {
   generateTerminalId: () => string;
   uploadUserAvatar: (userId: string, file: File) => Promise<string | null>;
   recordArticleRead: (articleId: string) => Promise<boolean>;
-  recordQuizCompletion: (topicId: string, score: number) => Promise<boolean>;
   recordRewardRedemption: (rewardId: string) => Promise<boolean>;
   isPreviewMode: boolean;
   isInitializing: boolean;
@@ -118,7 +120,9 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const service = useMemo(() => new EcosystemService(), []);
 
   const [balance, setBalance] = useState(service.balance);
+  const [points, setPoints] = useState(service.points);
   const [vitality, setVitality] = useState(service.vitality);
+  const [vitalityActivated, setVitalityActivated] = useState(service.vitalityActivated);
   const [isMissionDone, setIsMissionDone] = useState(service.isMissionDone);
   const [purchasedItems, setPurchasedItems] = useState<EcosystemItem[]>(service.purchasedItems);
   const [currentUserRa, setCurrentUserRa] = useState<string | null>(service.currentUserRa);
@@ -210,7 +214,9 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const balanceSub = service.balance$.subscribe(setBalance);
+    const pointsSub = service.points$.subscribe(setPoints);
     const vitalitySub = service.vitality$.subscribe(setVitality);
+    const vitActSub = service.vitalityActivated$.subscribe(setVitalityActivated);
     const raSub = service.currentUserRa$.subscribe(setCurrentUserRa);
     const idSub = service.currentUserId$.subscribe(setCurrentUserId);
     const usersSub = service.users$.subscribe(setUsers);
@@ -405,7 +411,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const generateTerminalId = service.generateTerminalId.bind(service);
   const uploadUserAvatar = (uId: string, f: File) => service.uploadUserAvatar(uId, f);
   const recordArticleRead = (articleId: string) => service.recordArticleRead(articleId);
-  const recordQuizCompletion = (topicId: string, score: number) => service.recordQuizCompletion(topicId, score);
+  const recordQuizCompletion = (topicId: string, score: number, difficulty?: string, numQuestions?: number) => service.recordQuizCompletion(topicId, score, difficulty, numQuestions);
   const recordRewardRedemption = (rewardId: string) => service.recordRewardRedemption(rewardId);
   const updateUserStatus = (uId: string, s: 'active' | 'inactive') => service.updateUserStatus(uId, s);
 
@@ -415,7 +421,9 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   return (
     <EcosystemContext.Provider value={{
       balance: effectiveBalance,
+      points,
       vitality: effectiveVitality,
+      vitalityActivated,
       isMissionDone,
       purchasedItems: effectiveItems,
       level: effectiveLevel,

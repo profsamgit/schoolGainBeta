@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   Activity,
   ArrowRight,
@@ -94,9 +95,11 @@ export default function DashboardPage() {
    */
   const { 
     balance, 
+    points,
     vitality, 
     purchasedItems, 
     isMissionDone, 
+    vitalityActivated,
     users, 
     currentUser, 
     currentUserRa, 
@@ -141,7 +144,7 @@ export default function DashboardPage() {
   }, [currentUser, router]);
 
   // Score Global: Uma fórmula matemática que soma pontos + bônus por conquistas
-  const globalScore = EcosystemService.calculateTotalScore(balance, vitality, purchasedItems.length);
+  const globalScore = EcosystemService.calculateTotalScore(points, vitality, purchasedItems.length);
   
   // Lógica de Lenda: Verifica se o aluno atual está no Hall das Lendas deste mês
   const isLegend = useMemo(() => {
@@ -168,6 +171,24 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col min-h-[calc(100vh-8rem)]">
       <div className="grid gap-6 flex-grow">
+        
+        {!vitalityActivated && (
+          <Alert className="bg-red-50 border-2 border-red-200 shadow-lg mb-4">
+            <AlertTriangle className="h-6 w-6 text-red-600" />
+            <AlertTitle className="text-lg font-black uppercase tracking-tight text-red-700">Ecossistema Inativo</AlertTitle>
+            <AlertDescription className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mt-3 text-red-600">
+              <span className="text-base font-bold leading-relaxed">
+                Para ativar seu ecossistema e começar com 100% de vitalidade, você precisa completar um <b>Quiz de 10 perguntas</b> no nível <b>Médio</b>.
+              </span>
+              <Button asChild className="bg-red-600 hover:bg-red-700 text-white shadow-md border-none px-8 h-11">
+                <Link href="/quiz?topic=Reciclagem&autoStart=true&difficulty=medium&questions=10">
+                  Ativar Agora
+                  <BrainCircuit className="ml-2 h-5 w-5" />
+                </Link>
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* JORNADA DE NÍVEL PREMIUM */}
         <Card className="overflow-hidden border-none shadow-2xl bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950">
@@ -326,7 +347,7 @@ export default function DashboardPage() {
                   </p>
                   <Button asChild className={cn("w-full gap-2", vitality < 70 ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700")}>
                     {vitality < 70 ? (
-                      <Link href="/quiz?topic=Reciclagem&autoStart=true">
+                      <Link href="/quiz?topic=Reciclagem&autoStart=true&difficulty=medium&questions=5">
                         Fazer Quiz de Emergência
                         <BrainCircuit className="h-4 w-4" />
                       </Link>

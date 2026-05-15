@@ -153,7 +153,9 @@ export class EcosystemService {
    * Os componentes do React se "inscrevem" nesses canais para receber atualizações.
    */
   private balanceSubject = new BehaviorSubject<number>(0);
+  private pointsSubject = new BehaviorSubject<number>(0);
   private vitalitySubject = new BehaviorSubject<number>(100);
+  private vitalityActivatedSubject = new BehaviorSubject<boolean>(false);
   private currentUserRaSubject = new BehaviorSubject<string | null>(null);
   private currentUserIdSubject = new BehaviorSubject<string | null>(null);
   private activeSyncIds = new Set<string>();
@@ -193,7 +195,6 @@ export class EcosystemService {
     if (!schoolId || this.activeSyncIds.has(`admin-${schoolId}`)) return;
     this.activeSyncIds.add(`admin-${schoolId}`);
 
-    console.log(`[ECOSYSTEM] Iniciando Sincronização Administrativa para Unidade: ${schoolId}`);
 
     onSnapshot(query(collection(db, "userStates"), where("schoolId", "==", schoolId)), (snapshot) => {
       const currentStates = { ...this.data.userStates };
@@ -360,7 +361,6 @@ export class EcosystemService {
         const userId = docSnap.id;
         const targetCollection = this.getUserCollection(u.role || 'student');
         
-        console.log(`[MIGRATION] Movendo usuário ${u.name || userId} para ${targetCollection}`);
         
         try {
           await setDoc(doc(db, targetCollection, userId), { ...u, id: userId });
@@ -711,6 +711,7 @@ export class EcosystemService {
     if (userId === this.data.currentUserId) {
       this.balanceSubject.next(userState.balance);
       this.vitalitySubject.next(userState.vitality);
+      this.vitalityActivatedSubject.next(!!userState.vitalityActivated);
       this.purchasedItemsSubject.next(userState.purchasedItems);
       this.lastMissionDateSubject.next(userState.lastMissionDate);
       this.levelSubject.next(userState.level || 'Semente');
@@ -738,7 +739,8 @@ export class EcosystemService {
     
     state.balance += Number(currentBalanceChange);
     state.points = (Number(state.points) || 0) + Number(lifetimePointsGain);
-    state.vitality = state.vitality || 100;
+    state.vitality = (state.vitality !== undefined) ? state.vitality : 100;
+    state.vitalityActivated = state.vitalityActivated ?? false;
     state.itemsCount = state.purchasedItems.length;
 
     const score = EcosystemService.calculateTotalScore(state.points, state.vitality, state.itemsCount);
@@ -750,6 +752,7 @@ export class EcosystemService {
 
     if (userId === this.data.currentUserId || user.ra?.toUpperCase() === this.kioskUserRaSubject.value?.toUpperCase()) {
       this.balanceSubject.next(state.balance);
+      this.pointsSubject.next(state.points);
       this.levelSubject.next(state.level);
     }
 
@@ -792,7 +795,9 @@ export class EcosystemService {
   get superAdmins() { return this.data.superAdmins || []; }
   get visitors() { return this.data.visitors || []; }
   get balance$() { return this.balanceSubject.asObservable(); }
+  get points$() { return this.pointsSubject.asObservable(); }
   get vitality$() { return this.vitalitySubject.asObservable(); }
+  get vitalityActivated$() { return this.vitalityActivatedSubject.asObservable(); }
   get currentUserRa$() { return this.currentUserRaSubject.asObservable(); }
   get currentUserId$() { return this.currentUserIdSubject.asObservable(); }
   get rewards$() { return this.rewardsSubject.asObservable(); }
@@ -819,7 +824,9 @@ export class EcosystemService {
   get legends() { return this.legendsSubject.value; }
 
   get balance() { return this.balanceSubject.value; }
+  get points() { return this.pointsSubject.value; }
   get vitality() { return this.vitalitySubject.value; }
+  get vitalityActivated() { return this.vitalityActivatedSubject.value; }
   get purchasedItems() { return this.purchasedItemsSubject.value; }
   get currentUserRa() { return this.currentUserRaSubject.value; }
   get currentUserId() { return this.currentUserIdSubject.value; }
@@ -1296,7 +1303,8 @@ export class EcosystemService {
     return {
       balance: 0,
       points: 0,
-      vitality: 100,
+      vitality: 0,
+      vitalityActivated: false,
       purchasedItems: [],
       itemsCount: 0,
       lastMissionDate: null,
@@ -1517,6 +1525,7 @@ export class EcosystemService {
         balance: this.balanceSubject.value,
         points: this.data.userStates[user.id]?.points || 0,
         vitality: this.vitalitySubject.value,
+        vitalityActivated: this.vitalityActivatedSubject.value,
         purchasedItems: this.purchasedItemsSubject.value,
         itemsCount: this.purchasedItemsSubject.value.length,
         lastMissionDate: this.lastMissionDateSubject.value,
@@ -2059,7 +2068,7 @@ export class EcosystemService {
   /**
    * Registra a finalização de um quiz.
    */
-  async recordQuizCompletion(topicId: string, score: number): Promise<boolean> {
+  async recordQuizCompletion(topicId: string, score: number, difficulty?: string, numQuestions?: number): Promise<boolean> {
     const userId = this.data.currentUserId;
     if (!userId) return false;
 
@@ -2067,15 +2076,28 @@ export class EcosystemService {
     const topic = this.data.quizTopics.find(t => t.id === topicId);
     if (!student || !topic) return false;
 
+    const userState = this.data.userStates[userId] || this.getDefaultState();
+    
+    // REGRA: Ativação de Vitalidade
+    // 1 quizz de 10 perguntas no médio para ativar a vitalidade 100
+    if (!userState.vitalityActivated && difficulty === 'medium' && (numQuestions || 0) >= 10 && score >= 60) {
+        userState.vitalityActivated = true;
+        userState.vitality = 100;
+        this.data.userStates[userId] = userState;
+        this.syncStateWithUser(userId);
+        // Persiste no Firestore
+        await setDoc(doc(db, "userStates", userId), userState, { merge: true });
+    }
+
     await this.logTelemetry({
       action: 'QUIZ_COMPLETED',
       category: 'ECOSYSTEM',
-      details: `Quiz finalizado: ${topic.name}. Pontuação: ${score}%`,
+      details: `Quiz finalizado: ${topic.name}. Dificuldade: ${difficulty}. Questões: ${numQuestions}. Pontuação: ${score}%`,
       studentName: student.name,
       targetEntity: 'quizTopics',
       targetId: topicId,
       unitId: student.schoolId,
-      metadata: { score }
+      metadata: { score, difficulty, numQuestions }
     });
 
     return true;
@@ -2560,15 +2582,23 @@ export class EcosystemService {
         ]),
 
         // Salva/Atualiza os novos ou modificados
-        ...changedUsers.map(u => {
+        ...changedUsers.flatMap(u => {
           const oldUser = oldData.find(old => old.id === u.id);
+          const isNew = !oldUser;
 
           // Se o RA mudou, precisamos apagar o documento antigo (que usava o RA como ID)
           if (oldUser && oldUser.ra && oldUser.ra !== u.ra) {
             deleteDoc(doc(db, this.getUserCollection(u.role), oldUser.ra)).catch(e => console.error("Erro ao limpar RA antigo:", e));
           }
 
-          return setDoc(doc(db, this.getUserCollection(u.role), u.id), this.sanitizeUserForFirestore(u));
+          const ops = [setDoc(doc(db, this.getUserCollection(u.role), u.id), this.sanitizeUserForFirestore(u))];
+          
+          // Se for novo e for estudante/visitante, inicializa o estado de vitalidade
+          if (isNew && (u.role === 'student' || u.role === 'visitor')) {
+            ops.push(setDoc(doc(db, "userStates", u.id), this.getDefaultState()));
+          }
+          
+          return ops;
         })
       ]);
 
@@ -3489,6 +3519,9 @@ export class EcosystemService {
 
     // 2. Salva o usuário no Firestore (Sanitizado)
     await setDoc(doc(db, this.getUserCollection(newUser.role), newUser.id), this.sanitizeUserForFirestore(newUser));
+
+    // NOVO: Inicializa o estado de vitalidade e Bio-Coins para o novo usuário
+    await setDoc(doc(db, "userStates", newUser.id), this.getDefaultState());
 
     // 3. Remove a solicitação
     await deleteDoc(doc(db, "registrationRequests", requestId));

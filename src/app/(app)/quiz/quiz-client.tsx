@@ -75,8 +75,8 @@ export function QuizClient() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       topic: searchParams.get('topic') || allQuizTopics[0]?.name || 'Reciclagem',
-      difficulty: 'medium',
-      numberOfQuestions: 5,
+      difficulty: (searchParams.get('difficulty') as any) || 'medium',
+      numberOfQuestions: searchParams.get('questions') ? Number(searchParams.get('questions')) : 5,
     },
   });
 
@@ -118,15 +118,23 @@ export function QuizClient() {
       
       // Lógica de Recompensas do Ecossistema
       const isRecovery = form.getValues('topic') === 'Reciclagem';
-      const points = isRecovery ? 20 : 10;
+      const score = calculateScore();
+      const total = quizData!.questions.length;
+      const errors = total - score;
+      const basePoints = isRecovery ? 20 : 10;
+      
+      // Penalidade: -2 pontos por erro
+      const points = Math.max(0, basePoints - (errors * 2));
       
       const success = completeDailyMission(points);
       
       if (success) {
         toast({
           variant: 'success',
-          title: 'Parabéns!',
-          description: 'Você ganhou pontos e manteve sua folha viva! 🌿',
+          title: points > 0 ? 'Parabéns!' : 'Quiz Finalizado',
+          description: points > 0 
+            ? `Você ganhou ${points} pontos e manteve sua folha viva! 🌿`
+            : `Você finalizou o quiz, mas teve muitos erros para ganhar pontos. Tente novamente!`,
         });
       } else {
         toast({
@@ -141,7 +149,7 @@ export function QuizClient() {
       const topicName = form.getValues('topic');
       const topic = allQuizTopics.find(t => t.name === topicName);
       if (topic) {
-        recordQuizCompletion(topic.id, scorePct);
+        recordQuizCompletion(topic.id, scorePct, form.getValues('difficulty'), form.getValues('numberOfQuestions'));
       }
     }
   }
