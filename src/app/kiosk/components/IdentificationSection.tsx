@@ -2,15 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { User as UserData, School } from '@/lib/types';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { School } from '@/lib/types';
 import { 
   Recycle, 
   User, 
@@ -19,12 +11,12 @@ import {
   Lock, 
   Keyboard, 
   ArrowRight, 
-  Sparkles,
-  RefreshCw,
-  AlertTriangle
+  AlertTriangle,
+  RefreshCw
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { VirtualKeyboard } from '@/components/ui/virtual-keyboard';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -95,7 +87,7 @@ export function IdentificationSection({
     const timer = setTimeout(() => {
       setImageLoaded((current) => {
         if (!current) {
-          console.warn("[KIOSK LOGIN CAMERA] Câmera de login não respondeu em 3s. Exibindo painel de reconexão.");
+          // Timeout atingido na câmera
           setStreamError(true);
         }
         return current;
@@ -171,7 +163,7 @@ export function IdentificationSection({
           const decodedText = await html5QrCode!.scanFile(file, false);
           
           if (decodedText && isMounted) {
-            console.log("[QR STREAM] QR Code detectado na Câmera ESP32:", decodedText);
+            // QR Detectado na stream
             onIdentify(decodedText);
           }
         } catch (err) {
@@ -211,208 +203,263 @@ export function IdentificationSection({
   }, [activeLoginCameraSource, activeLoginUrl, activeTab, onIdentify]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <main className="flex-1 w-full flex flex-col items-center justify-center p-4">
-        <Card className="w-full max-w-md animate-in fade-in duration-500">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-center gap-2 text-2xl">
-              <Recycle className="h-8 w-8 text-primary" />
-              Terminal SchoolGain
-            </CardTitle>
-            <CardDescription className="text-center">
-              Identifique-se para registrar um resíduo.
-              {currentSchool && (
-                <span className="block mt-1 text-[10px] text-primary font-black uppercase tracking-widest animate-pulse">
-                  {currentSchool.name} • {currentSchool.city}/{currentSchool.state}
-                </span>
-              )}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="w-full">
-              <TabsList className={cn(
-                "grid w-full mb-4",
-                activeLoginMethod === 'all' ? "grid-cols-3" : "grid-cols-1"
-              )}>
-                {(activeLoginMethod === 'all' || activeLoginMethod === 'manual') && (
-                  <TabsTrigger value="manual" className="gap-2">
-                    <User className="h-4 w-4" /> RA
-                  </TabsTrigger>
-                )}
-                {(activeLoginMethod === 'all' || activeLoginMethod === 'qr') && (
-                  <TabsTrigger value="qr" className="gap-2">
-                    <QrCode className="h-4 w-4" /> QR
-                  </TabsTrigger>
-                )}
-                {(activeLoginMethod === 'all' || activeLoginMethod === 'rfid') && (
-                  <TabsTrigger value="rfid" className="gap-2">
-                    <Cpu className="h-4 w-4" /> RFID
-                  </TabsTrigger>
-                )}
-              </TabsList>
+    <div className="relative flex min-h-screen flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans selection:bg-emerald-500/20 selection:text-emerald-950 dark:selection:text-emerald-500">
+      
+      {/* 🌌 Cosmic Background & Ambient Glow Blobs */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        {/* Blob 1: Emerald glow */}
+        <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-emerald-500/10 dark:bg-emerald-500/5 blur-3xl" />
+        {/* Blob 2: Indigo glow */}
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-indigo-500/10 dark:bg-indigo-500/5 blur-3xl" />
+        {/* Subtle grid pattern overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
+      </div>
 
-              {/* RA LOGIN */}
-              <TabsContent value="manual" className="space-y-4">
-                {lockoutSecs > 0 && (
-                  <div className="bg-destructive/10 border border-destructive/20 p-3 rounded-lg text-destructive text-sm text-center font-medium animate-pulse">
-                    <Lock className="h-4 w-4 inline mr-2" /> 
-                    Acesso suspenso por {lockoutSecs}s
-                  </div>
-                )}
-                <div className="space-y-2">
-                  <label htmlFor="ra-input" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Identificação Digital (RA ou ID Temporário)</label>
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center p-6 w-full max-w-md">
+        
+        {/* 📟 Glassmorphic Unified Console Container */}
+        <div className="w-full backdrop-blur-xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/50 dark:border-slate-800/50 rounded-[2.5rem] shadow-2xl p-8 sm:p-10 transition-all duration-300">
+          
+          {/* Header Section */}
+          <div className="mb-8 text-center flex flex-col items-center">
+            {/* Custom Icon Badge */}
+            <div className="inline-flex items-center justify-center p-3.5 rounded-2xl bg-emerald-100/80 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-500/20 mb-5 shadow-inner">
+              <Recycle className="w-7 h-7" />
+            </div>
+            
+            <h1 className="text-2xl font-black text-slate-900 dark:text-slate-50 mb-1">
+              Terminal SchoolGain
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+              Identifique-se para registrar um resíduo
+            </p>
+
+            {currentSchool && (
+              <span className="inline-flex items-center bg-emerald-100/80 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-500/20 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full animate-pulse">
+                {currentSchool.name} • {currentSchool.city}/{currentSchool.state}
+              </span>
+            )}
+          </div>
+
+          {/* Form & Navigation tabs */}
+          <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="w-full">
+            
+            {/* Pill-Style TabsList */}
+            <TabsList className={cn(
+              "grid w-full mb-6 bg-slate-100/80 dark:bg-slate-950/40 p-1 border border-slate-200/40 dark:border-slate-800/40 rounded-2xl gap-1 h-11",
+              activeLoginMethod === 'all' ? "grid-cols-3" : "grid-cols-1"
+            )}>
+              {(activeLoginMethod === 'all' || activeLoginMethod === 'manual') && (
+                <TabsTrigger 
+                  value="manual" 
+                  className="gap-2 rounded-xl text-slate-600 dark:text-slate-400 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-emerald-600 dark:data-[state=active]:text-emerald-400 data-[state=active]:shadow-sm transition-all duration-200"
+                >
+                  <User className="h-4 w-4" /> RA
+                </TabsTrigger>
+              )}
+              {(activeLoginMethod === 'all' || activeLoginMethod === 'qr') && (
+                <TabsTrigger 
+                  value="qr" 
+                  className="gap-2 rounded-xl text-slate-600 dark:text-slate-400 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-emerald-600 dark:data-[state=active]:text-emerald-400 data-[state=active]:shadow-sm transition-all duration-200"
+                >
+                  <QrCode className="h-4 w-4" /> QR
+                </TabsTrigger>
+              )}
+              {(activeLoginMethod === 'all' || activeLoginMethod === 'rfid') && (
+                <TabsTrigger 
+                  value="rfid" 
+                  className="gap-2 rounded-xl text-slate-600 dark:text-slate-400 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-emerald-600 dark:data-[state=active]:text-emerald-400 data-[state=active]:shadow-sm transition-all duration-200"
+                >
+                  <Cpu className="h-4 w-4" /> RFID
+                </TabsTrigger>
+              )}
+            </TabsList>
+
+            {/* TAB: MANUAL LOGIN */}
+            <TabsContent value="manual" className="space-y-5 animate-in fade-in-50 duration-200">
+              {lockoutSecs > 0 && (
+                <div className="bg-rose-500/10 border border-rose-500/20 p-3.5 rounded-2xl text-rose-600 dark:text-rose-400 text-xs text-center font-bold flex items-center justify-center gap-2 animate-pulse">
+                  <Lock className="h-4 w-4" />
+                  Acesso suspenso por {lockoutSecs}s
+                </div>
+              )}
+              
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label htmlFor="ra-input" className="text-xs font-bold text-slate-500 dark:text-slate-400 ml-1">
+                    Identificação Digital (RA ou ID Temporário)
+                  </label>
                   <Input 
                     id="ra-input"
                     ref={raInputRef}
-                    placeholder="Digite seu RA ou ID Temporário" 
+                    placeholder="Digite seu RA ou ID" 
                     value={studentRa}
                     onChange={(e) => setStudentRa(e.target.value.toUpperCase())}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleLogin(studentRa)}}
-                    className="text-2xl p-4 h-16 text-center font-black tracking-tighter uppercase"
+                    className="text-2xl p-4 h-16 text-center font-black tracking-tighter uppercase bg-slate-900/90 dark:bg-slate-950/60 text-white placeholder:text-slate-400 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:focus:border-emerald-400 rounded-xl"
                     autoFocus
                     disabled={lockoutSecs > 0}
                     inputMode={showKeyboard ? 'none' : 'text'}
                   />
                 </div>
+                
                 {showKeyboard && (
-                  <VirtualKeyboard
-                    layout="alphanumeric"
-                    onInput={handleKeyboardInput}
-                    onBackspace={handleKeyboardBackspace}
-                    onEnter={() => handleLogin(studentRa)}
-                  />
+                  <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                    <VirtualKeyboard
+                      layout="alphanumeric"
+                      onInput={handleKeyboardInput}
+                      onBackspace={handleKeyboardBackspace}
+                      onEnter={() => handleLogin(studentRa)}
+                    />
+                  </div>
                 )}
+                
                 <Button 
-                  className="w-full h-14 text-lg font-bold shadow-md transition-all hover:scale-[1.02] active:scale-95"
-                  size="lg"
+                  className="group w-full h-13 text-base rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 text-slate-100 dark:text-slate-900 font-bold transition-all duration-300"
                   onClick={() => handleLogin(studentRa)}
                   disabled={!studentRa.trim() || lockoutSecs > 0}
                 >
-                  {lockoutSecs > 0 ? `Bloqueado (${lockoutSecs}s)` : (
+                  {lockoutSecs > 0 ? (
+                    `Bloqueado (${lockoutSecs}s)`
+                  ) : (
                     <>
-                      Continuar
-                      <ArrowRight className="ml-2 h-5 w-5" />
+                      <span>Continuar</span>
+                      <ArrowRight className="w-4 h-4 ml-1.5 transform group-hover:translate-x-1 transition-transform duration-200" />
                     </>
                   )}
                 </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full text-muted-foreground"
-                  onClick={() => setShowKeyboard((prev) => !prev)}
-                >
-                  <Keyboard className="mr-2" />
-                  {showKeyboard ? 'Esconder' : 'Mostrar'} Teclado Virtual
-                </Button>
-              </TabsContent>
+              </div>
 
-              {/* QR LOGIN */}
-              <TabsContent value="qr" className="space-y-4">
-                {activeLoginCameraSource === 'browser' ? (
-                  <div className="space-y-4">
+              <Button
+                variant="ghost"
+                className="w-full text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 text-xs font-semibold"
+                onClick={() => setShowKeyboard((prev) => !prev)}
+              >
+                <Keyboard className="mr-2 h-4 w-4" />
+                {showKeyboard ? 'Esconder Teclado Físico' : 'Mostrar Teclado Virtual'}
+              </Button>
+            </TabsContent>
+
+            {/* TAB: QR CODE LOGIN */}
+            <TabsContent value="qr" className="space-y-4 animate-in fade-in-50 duration-200">
+              {activeLoginCameraSource === 'browser' ? (
+                <div className="space-y-4">
+                  <div className="overflow-hidden rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-inner">
                     <QRScanner 
                       key={scannerKey} 
                       onScan={onIdentify} 
                       deviceId={loginCameraDeviceId || systemSettings.studentCaptureDevice}
                     />
-                    <p className="text-xs text-center text-muted-foreground uppercase font-black tracking-widest bg-slate-100 py-2 rounded-full">
-                      Aproxime sua Carteira da câmera
-                    </p>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    {streamUrlWithRetry ? (
-                      <div className="relative aspect-video w-full rounded-2xl overflow-hidden border-2 border-primary/20 shadow-md bg-slate-950 flex items-center justify-center">
-                        {!streamError ? (
-                          <>
-                            <img 
-                              ref={streamImgRef}
-                              src={streamUrlWithRetry} 
-                              className="w-full h-full object-cover" 
-                              alt="Login ESP32 Camera Stream"
-                              crossOrigin="anonymous"
-                              onLoad={() => setImageLoaded(true)}
-                              onError={() => {
-                                setStreamError(true);
-                              }}
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent flex flex-col justify-end p-4">
-                              <p className="text-white text-xs font-black uppercase tracking-widest flex items-center gap-1.5 animate-pulse">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                ESP32-CAM Login Ao Vivo
-                              </p>
-                            </div>
-                          </>
-                        ) : (
-                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 p-6 text-center animate-in fade-in duration-300">
-                            <div className="p-3 bg-amber-500/10 rounded-full border border-amber-500/20 text-amber-400 mb-1">
-                              <AlertTriangle className="h-6 w-6 animate-pulse" />
-                            </div>
-                            <h4 className="text-sm font-black uppercase tracking-tight text-white">Sinal de Login Instável</h4>
-                            <p className="text-[10px] text-slate-400 max-w-xs mt-0.5 mb-3 leading-snug">
-                              Não conseguimos conectar com a câmera de login.
-                            </p>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="h-8 border-white/10 hover:bg-white/5 text-white gap-2 font-bold uppercase tracking-wider text-[9px]"
-                              onClick={() => {
-                                setImageLoaded(false);
-                                setStreamError(false);
-                                setRetryKey(k => k + 1);
-                              }}
-                            >
-                              <RefreshCw className="h-2.5 w-2.5 animate-spin [animation-duration:3s]" />
-                              Reconectar
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg space-y-4 bg-primary/5 animate-pulse">
-                        <QrCode className="h-16 w-16 text-primary" />
-                        <div className="text-center">
-                          <p className="font-bold uppercase tracking-tight">Câmera Externa Ativa</p>
-                          <p className="text-sm text-muted-foreground">O terminal fará a leitura automática via hardware externo.</p>
-                        </div>
-                      </div>
-                    )}
-                    <p className="text-xs text-center text-muted-foreground uppercase font-black tracking-widest bg-slate-100 py-2 rounded-full">
-                      Aproxime sua Carteira do Leitor da Câmera
-                    </p>
-                  </div>
-                )}
-              </TabsContent>
-
-              {/* RFID LOGIN */}
-              <TabsContent value="rfid" className="space-y-4">
-                <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed rounded-2xl space-y-6 bg-primary/5 border-primary/20 relative overflow-hidden group">
-                  <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping"></div>
-                    <Cpu className="h-20 w-20 text-primary relative z-10 transition-transform group-hover:scale-110 duration-500" />
-                  </div>
-                  <div className="text-center space-y-2">
-                    <p className="text-2xl font-black uppercase tracking-tighter">Aproxime seu Cartão</p>
-                    <p className="text-sm text-muted-foreground max-w-[200px] mx-auto font-medium leading-tight">
-                      O sensor RFID está aguardando sua leitura para login instantâneo.
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="w-3 h-3 bg-primary rounded-full animate-bounce"></span>
-                    <span className="w-3 h-3 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                    <span className="w-3 h-3 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                  </div>
+                  <p className="text-[10px] text-center text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-[0.15em] bg-emerald-100/50 dark:bg-emerald-500/10 py-2.5 rounded-xl border border-emerald-200/20 dark:border-emerald-500/20">
+                    Aproxime sua Carteira da câmera
+                  </p>
                 </div>
-              </TabsContent>
-            </Tabs>
+              ) : (
+                <div className="space-y-4">
+                  {streamUrlWithRetry ? (
+                    <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-slate-200/50 dark:border-slate-800/50 shadow-md bg-slate-950 flex items-center justify-center">
+                      {!streamError ? (
+                        <>
+                          <img 
+                            ref={streamImgRef}
+                            src={streamUrlWithRetry} 
+                            className="w-full h-full object-cover" 
+                            alt="Login ESP32 Camera Stream"
+                            crossOrigin="anonymous"
+                            onLoad={() => setImageLoaded(true)}
+                            onError={() => {
+                              setStreamError(true);
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent flex flex-col justify-end p-4">
+                            <p className="text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 animate-pulse">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                              ESP32-CAM Login Ao Vivo
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 p-6 text-center animate-in fade-in duration-300">
+                          <div className="p-3 bg-amber-500/10 rounded-full border border-amber-500/20 text-amber-400 mb-2">
+                            <AlertTriangle className="h-6 w-6 animate-pulse" />
+                          </div>
+                          <h4 className="text-xs font-black uppercase tracking-tight text-white">Sinal de Login Instável</h4>
+                          <p className="text-[10px] text-slate-400 max-w-xs mt-0.5 mb-3 leading-snug">
+                            Não conseguimos conectar com a câmera de login.
+                          </p>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-8 border-white/10 hover:bg-white/5 text-white gap-2 font-bold uppercase tracking-wider text-[9px]"
+                            onClick={() => {
+                              setImageLoaded(false);
+                              setStreamError(false);
+                              setRetryKey(k => k + 1);
+                            }}
+                          >
+                            <RefreshCw className="h-2.5 w-2.5 animate-spin [animation-duration:3s]" />
+                            Reconectar
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg space-y-4 bg-primary/5 animate-pulse">
+                      <QrCode className="h-16 w-16 text-primary" />
+                      <div className="text-center">
+                        <p className="font-bold uppercase tracking-tight">Câmera Externa Ativa</p>
+                        <p className="text-sm text-muted-foreground">O terminal fará a leitura automática via hardware externo.</p>
+                      </div>
+                    </div>
+                  )}
+                  <p className="text-[10px] text-center text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-[0.15em] bg-emerald-100/50 dark:bg-emerald-500/10 py-2.5 rounded-xl border border-emerald-200/20 dark:border-emerald-500/20">
+                    Aproxime sua Carteira do Leitor da Câmera
+                  </p>
+                </div>
+              )}
+            </TabsContent>
 
-          </CardContent>
-        </Card>
+            {/* TAB: RFID LOGIN */}
+            <TabsContent value="rfid" className="space-y-4 animate-in fade-in-50 duration-200">
+              <div className="flex flex-col items-center justify-center p-10 border border-slate-200/50 dark:border-slate-800/50 rounded-3xl space-y-6 bg-slate-50/50 dark:bg-slate-950/20 shadow-inner">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-emerald-500/10 rounded-full animate-ping"></div>
+                  <Cpu className="h-14 w-14 text-emerald-600 dark:text-emerald-400 relative z-10" />
+                </div>
+                
+                <div className="text-center space-y-1">
+                  <p className="text-lg font-extrabold text-slate-800 dark:text-slate-100">Aproxime seu Cartão</p>
+                  <p className="text-xs text-slate-400">
+                    O sensor RFID está aguardando sua leitura para login instantâneo
+                  </p>
+                </div>
+                
+                <div className="flex gap-2">
+                  <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-bounce"></span>
+                  <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                  <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                </div>
+              </div>
+            </TabsContent>
+
+          </Tabs>
+
+        </div>
+
+        {/* Dynamic Footer links */}
+        <div className="mt-8 text-center flex flex-col items-center gap-3">
+          <div className="flex items-center gap-3 text-xs text-slate-400 dark:text-slate-500 font-semibold">
+            <p>Não é um terminal? <Link href="/" className="underline hover:text-emerald-600 dark:hover:text-emerald-400">Voltar para o app</Link></p>
+            <span>•</span>
+            <Link href="/about" className="hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline">
+              TDS 2B 2026 - CETI Frei José Apicella
+            </Link>
+          </div>
+        </div>
+
       </main>
-      <footer className="p-4 text-center text-xs text-muted-foreground space-y-2">
-        <p>Não é um terminal? <Link href="/" className="underline hover:text-primary">Voltar para o app</Link></p>
-        <p><Link href="/about" className="hover:text-primary hover:underline">TDS 2B 2026 - CETI Frei José Apicella</Link></p>
-      </footer>
+
     </div>
   );
 }

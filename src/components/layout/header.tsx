@@ -101,7 +101,7 @@ export function Header() {
   const title =
     pathToTitle[pathname.split('/').pop() || ''] || 'SchoolGain Hub';
   
-  const { balance, vitality, currentUser, logout, currentUserRa, getGlobalLeader } = useEcosystem();
+  const { balance, points, vitality, currentUser, logout, currentUserRa, getGlobalLeader } = useEcosystem();
   
   const isLeader = useMemo(() => {
     if (!currentUserRa) return false;
@@ -168,20 +168,32 @@ export function Header() {
 
       <div className="ml-auto flex items-center gap-4">
         {hasMounted && !isAdminView && (
-          <Link 
-            href="/meu-ecossistema" 
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/50 hover:bg-accent transition-colors"
-          >
-            <div className="flex flex-col items-end">
-              <span className="text-[10px] font-medium text-muted-foreground uppercase leading-none">Pontos</span>
-              <span className="text-sm font-bold text-primary">{balance}</span>
+          <div className="flex items-center gap-2">
+            {/* Pill 1: Pontos de Experiência (XP Acumulado) */}
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 shadow-inner">
+              <div className="flex flex-col items-end">
+                <span className="text-[8px] font-black uppercase text-indigo-600 dark:text-indigo-400 leading-none tracking-wider">Pontos (XP)</span>
+                <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 leading-none mt-0.5">{points}</span>
+              </div>
+              <Trophy className="h-4 w-4 text-indigo-500 animate-pulse" />
             </div>
-            <Leaf 
-              className={cn("h-5 w-5 transition-all duration-500", isLeader && "drop-shadow-[0_0_8px_rgba(250,204,21,0.8)] scale-110")} 
-              fill={getLeafColor(vitality)} 
-              stroke={getLeafColor(vitality)} 
-            />
-          </Link>
+
+            {/* Pill 2: Bio-Coins (Saldo para compras na Bioshop) */}
+            <Link 
+              href="/meu-ecossistema" 
+              className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all shadow-inner group"
+            >
+              <div className="flex flex-col items-end">
+                <span className="text-[8px] font-black uppercase text-emerald-600 dark:text-emerald-400 leading-none tracking-wider">Bio-Coins</span>
+                <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 leading-none mt-0.5">{balance}</span>
+              </div>
+              <Leaf 
+                className={cn("h-4 w-4 transition-all duration-500 group-hover:scale-110", isLeader && "drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]")} 
+                fill={getLeafColor(vitality)} 
+                stroke={getLeafColor(vitality)} 
+              />
+            </Link>
+          </div>
         )}
 
 

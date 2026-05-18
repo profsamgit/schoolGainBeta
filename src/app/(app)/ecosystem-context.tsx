@@ -47,7 +47,7 @@ interface EcosystemContextType {
   currentUser: User | null;      // Dados completos do aluno logado
   login: (ra: string, password?: string) => Promise<boolean>; // Entrar no sistema
   logout: () => void;             // Sair do sistema
-  addPoints: (points: number, studentRa?: string) => void; // Dar pontos
+  addPoints: (points: number, studentRa?: string, description?: string) => void; // Dar pontos
   updateUsers: (newUsers: User[], targetSchoolId?: string) => Promise<{ success: boolean, error?: string }>;
   updateRewards: (newRewards: Reward[], targetSchoolId?: string) => Promise<boolean>;
   updateArticles: (newArticles: EducationArticle[], targetSchoolId?: string) => Promise<boolean>;

@@ -76,7 +76,7 @@ export function ScanningSection({
     const timer = setTimeout(() => {
       setImageLoaded((current) => {
         if (!current) {
-          console.warn("[KIOSK CAMERA] Câmera não respondeu em 3s. Exibindo painel de reconexão.");
+          // Timeout atingido na câmera
           setStreamError(true);
         }
         return current;

@@ -29,7 +29,7 @@ export async function GET(request: Request) {
   const cameraUrl = `${cleanIp}/resolution?val=${resolution.toLowerCase()}`;
 
   try {
-    console.log(`[CAMERA PROXY] Mudando resolução da ESP32-CAM em: ${cameraUrl}`);
+    // Log removido para produção
     
     const controller = new AbortController();
     // Timeout de 1.5s para permitir a alteração física dos registradores do sensor

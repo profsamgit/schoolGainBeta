@@ -183,7 +183,7 @@ export default function LeaderboardPage() {
                     <p className="text-2xl md:text-3xl font-black text-white leading-none tabular-nums tracking-tighter">
                         {user.totalScore.toLocaleString()}
                     </p>
-                    <p className="text-[9px] font-black uppercase text-emerald-400/80 tracking-[0.25em] mt-2">Score Global</p>
+                    <p className="text-[9px] font-black uppercase text-emerald-400/80 tracking-[0.25em] mt-2">Score XP</p>
                 </div>
 
                 <div className="pt-5">
@@ -330,11 +330,11 @@ export default function LeaderboardPage() {
       </div>
 
       {/* TABELA DO RESTANTE DO RANKING */}
-      <Card className="border-none shadow-[0_30px_100px_rgba(0,0,0,0.08)] bg-white/60 backdrop-blur-md rounded-[3rem] overflow-hidden">
+      <Card className="border border-slate-200/60 dark:border-slate-800 shadow-[0_30px_100px_rgba(0,0,0,0.08)] bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 rounded-[3rem] overflow-hidden">
         <CardHeader className="border-b border-slate-100 p-10 md:p-12">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-2">
-              <CardTitle className="flex items-center gap-4 text-3xl font-black uppercase tracking-tighter text-slate-800">
+              <CardTitle className="flex items-center gap-4 text-3xl font-black uppercase tracking-tighter text-slate-800 dark:text-slate-100">
                 <Flame className="h-9 w-9 text-orange-500 animate-pulse" />
                 Corrida Sustentável
               </CardTitle>
@@ -435,10 +435,10 @@ export default function LeaderboardPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex flex-col items-end gap-1">
-                        <span className="font-black text-3xl text-slate-800 tabular-nums tracking-tighter">
+                        <span className="font-black text-3xl text-slate-800 dark:text-white tabular-nums tracking-tighter">
                             {user.totalScore.toLocaleString()}
                         </span>
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Sustentabilidade</span>
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Pontos XP</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-center">

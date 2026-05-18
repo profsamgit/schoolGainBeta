@@ -180,6 +180,7 @@ export type WasteEntry = {
     type: WasteType;
     studentId?: string; // ID imutável para rastreamento (Chave Principal)
     schoolId?: string;
+    points?: number;
 };
 
 export type Turma = {
@@ -255,10 +256,19 @@ export interface EcosystemUserState {
   itemsCount: number;        // Quantidade de itens
   lastMissionDate: string | null;  // Data da última missão diária completada
   nessiePurchaseDate?: string | null;     // Data de compra do item especial (Nessie/Casa)
-  curso?: string;            // Curso do aluno
+  curso?: string | null;            // Curso do aluno
   level: UserLevel;             // Título do aluno
   readArticles: string[];      // IDs dos artigos lidos
+  pointTransactions?: PointTransaction[]; // Histórico de transações de pontos
 }
+
+export type PointTransaction = {
+  id: string;
+  date: string;       // ISO String
+  amount: number;     // Valor positivo (ganho) ou negativo (gasto/expiração)
+  description: string; // Ex: "Descarte de Plástico", "Leitura de Artigo", "Compra de Upgrade", "Expiração de Pontos"
+  expired?: boolean;   // Flag para evitar dupla contabilidade de expirações
+};
 
 /**
  * Estado de segurança para controle de brute-force.

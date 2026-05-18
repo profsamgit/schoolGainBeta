@@ -104,18 +104,18 @@ export function AuthorizationSection({
                  <p className="text-xs text-red-600 mt-1 font-bold">ID: {currentTerminal?.id || terminalIdSetting}</p>
               </div>
            ) : (
-              <div className="space-y-4">
+               <div className="space-y-4">
                   <div className="space-y-2">
                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Unidade Escolar</Label>
                      <Select value={selectedSchoolId} onValueChange={setSelectedSchoolId}>
-                        <SelectTrigger className="h-12 bg-white text-left">
+                        <SelectTrigger className="h-12 bg-slate-900/90 dark:bg-slate-950/60 text-white border border-slate-200/60 dark:border-slate-800/80 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400 text-left">
                            <SelectValue placeholder="Selecione a instituição..." />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="rounded-xl border border-slate-200/50 dark:border-slate-800/50 bg-white text-slate-900 dark:bg-white dark:text-slate-900 shadow-xl z-50">
                            {schools.filter(s => s.status === 'active').map(school => (
-                              <SelectItem key={school.id} value={school.id}>
+                              <SelectItem key={school.id} value={school.id} className="rounded-lg text-slate-800 dark:text-slate-800 focus:bg-slate-100 dark:focus:bg-slate-100 focus:text-slate-900 dark:focus:text-slate-900 cursor-pointer">
                                  <div className="flex items-center gap-2 uppercase font-bold text-[10px] tracking-tighter">
-                                    <SchoolIcon className="h-3 w-3 text-primary" />
+                                    <SchoolIcon className="h-3 w-3 text-indigo-500" />
                                     {school.name}
                                  </div>
                               </SelectItem>
@@ -129,7 +129,7 @@ export function AuthorizationSection({
                         placeholder="Ex: Pátio Principal" 
                         value={requestedLocation}
                         onChange={(e) => setRequestedLocation(e.target.value)}
-                        className="h-12 text-lg"
+                        className="h-12 text-lg bg-slate-900/90 dark:bg-slate-950/60 text-white placeholder:text-slate-400 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400 rounded-xl"
                       />
                    </div>
 

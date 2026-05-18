@@ -29,7 +29,8 @@ import {
   UserLevel,
   USER_LEVELS,
   RegistrationRequest,
-  EcosystemLegend
+  EcosystemLegend,
+  PointTransaction
 } from './types';
 
 
@@ -574,7 +575,7 @@ export class EcosystemService {
     if (this.data.currentUserId) {
       if (!currentInDb && !fromCache) {
         // Se o usuário não existe em NENHUMA das novas coleções, desloga.
-        console.warn("[AUTH] Usuário logado não encontrado em nenhuma coleção de papéis.");
+        // Log removido para produção
         this.logout();
         return;
       }
@@ -653,6 +654,7 @@ export class EcosystemService {
    * Agora inclui lógica de degradação temporal (Tamagotchi).
    */
   private syncStateWithUser(userId: string) {
+    this.recalculatePointsValidity(userId);
     const user = (this.data?.users || []).find(u => u.id === userId);
     const userState = this.data?.userStates?.[userId] || this.getDefaultState(user);
 
@@ -660,6 +662,12 @@ export class EcosystemService {
     if (user && userState.points === undefined) {
       userState.points = 0;
       setDoc(doc(db, "userStates", user.id), userState, { merge: true });
+    }
+
+    // Auto-cura de ativação: Se o aluno já tem vitalidade ativa acima de 20%, garantimos que o flag seja ativado
+    if (userState.vitality > 20 && !userState.vitalityActivated) {
+      userState.vitalityActivated = true;
+      setDoc(doc(db, "userStates", userId), userState, { merge: true });
     }
 
     // Lógica de Degradação Diária (Tamagotchi)
@@ -726,7 +734,7 @@ export class EcosystemService {
    * @param currentBalanceChange Mudança no saldo atual.
    * @param lifetimePointsGain Ganho de pontos vitalícios.
    */
-  private syncUserPoints(identifier: string, currentBalanceChange: number, lifetimePointsGain: number) {
+  private syncUserPoints(identifier: string, currentBalanceChange: number, lifetimePointsGain: number, description?: string) {
     // Resolve o usuário (pode vir por RA do Kiosk ou ID do Admin)
     const user = this.data.users.find(u => 
       u.id === identifier || u.ra?.toUpperCase() === identifier.toUpperCase().trim()
@@ -737,6 +745,48 @@ export class EcosystemService {
     const userId = user.id;
     const state = this.data.userStates[userId] || this.getDefaultState(user);
     
+    if (!state.pointTransactions) {
+      state.pointTransactions = [];
+    }
+
+    // Registra ganho ou gasto no Ledger transacional
+    if (lifetimePointsGain > 0) {
+      const gainTx: PointTransaction = {
+        id: EcosystemService.generateStandardId('wst-gn', user.schoolId),
+        date: new Date().toISOString(),
+        amount: lifetimePointsGain,
+        description: description || "Crédito de Bio-Coins"
+      };
+      state.pointTransactions.push(gainTx);
+    }
+
+    if (currentBalanceChange < 0) {
+      let amountToDeduct = Math.abs(currentBalanceChange);
+      for (const tx of state.pointTransactions) {
+        if (tx.amount > 0 && !tx.expired) {
+          if (tx.amount >= amountToDeduct) {
+            tx.amount -= amountToDeduct;
+            if (tx.amount === 0) tx.expired = true;
+            amountToDeduct = 0;
+            break;
+          } else {
+            amountToDeduct -= tx.amount;
+            tx.amount = 0;
+            tx.expired = true;
+          }
+        }
+      }
+
+      const debitTx: PointTransaction = {
+        id: EcosystemService.generateStandardId('wst-db', user.schoolId),
+        date: new Date().toISOString(),
+        amount: currentBalanceChange,
+        description: description || "Uso de Bio-Coins / Upgrade",
+        expired: true
+      };
+      state.pointTransactions.push(debitTx);
+    }
+
     state.balance += Number(currentBalanceChange);
     state.points = (Number(state.points) || 0) + Number(lifetimePointsGain);
     state.vitality = (state.vitality !== undefined) ? state.vitality : 100;
@@ -762,6 +812,69 @@ export class EcosystemService {
 
     this.usersSubject.next([...this.data.users]);
     this.saveToStorage();
+  }
+
+  /**
+   * Recalcula a validade dos pontos (30 dias) do usuário em tempo real.
+   * Expira o saldo (balance) e os pontos acumulativos (points) se ultrapassarem 30 dias.
+   */
+  private recalculatePointsValidity(userId: string) {
+    const user = this.data.users.find(u => u.id === userId);
+    const userState = this.data.userStates[userId] || this.getDefaultState(user);
+    
+    if (!userState.pointTransactions) {
+      userState.pointTransactions = [];
+    }
+
+    const now = new Date();
+    const expiryThresholdDays = 30; // 30 dias de validade
+    let expiredAmount = 0;
+
+    userState.pointTransactions.forEach((tx: PointTransaction) => {
+      if (tx.amount > 0 && !tx.expired) {
+        const txDate = new Date(tx.date);
+        const diffTime = now.getTime() - txDate.getTime();
+        const diffDays = diffTime / (1000 * 60 * 60 * 24);
+
+        if (diffDays > expiryThresholdDays) {
+          tx.expired = true;
+          expiredAmount += tx.amount;
+        }
+      }
+    });
+
+    if (expiredAmount > 0) {
+      userState.balance = Math.max(0, userState.balance - expiredAmount);
+      userState.points = Math.max(0, userState.points - expiredAmount);
+
+      const expiryTx: PointTransaction = {
+        id: EcosystemService.generateStandardId('wst-exp', user?.schoolId),
+        date: now.toISOString(),
+        amount: -expiredAmount,
+        description: `Expiração de ${expiredAmount} Bio-Coins inativos (30 dias)`,
+        expired: true
+      };
+
+      userState.pointTransactions.push(expiryTx);
+
+      userState.itemsCount = userState.purchasedItems.length;
+      const score = EcosystemService.calculateTotalScore(userState.points, userState.vitality, userState.itemsCount);
+      userState.level = this.calculateLevel(score, userState.purchasedItems);
+
+      this.data.userStates[userId] = userState;
+      
+      if (userId === this.data.currentUserId) {
+        this.balanceSubject.next(userState.balance);
+        this.pointsSubject.next(userState.points);
+        this.levelSubject.next(userState.level);
+      }
+
+      setDoc(doc(db, "userStates", userId), userState, { merge: true }).catch(err => {
+        console.error("[FIREBASE] Erro ao salvar expiração de pontos:", err);
+      });
+      
+      this.saveToStorage();
+    }
   }
 
   // Getters para acessar os dados atuais
@@ -939,7 +1052,7 @@ export class EcosystemService {
     const schoolId = targetSchoolId || currentUser?.schoolId;
 
     if (!schoolId) {
-      console.warn("[ECOSYSTEM] Tentativa de salvar configurações sem unidade definida.");
+      // Log removido para produção
       return;
     }
 
@@ -1301,8 +1414,8 @@ export class EcosystemService {
 
   private getDefaultState(user?: User): EcosystemUserState {
     return {
-      id: user?.id,
-      schoolId: user?.schoolId,
+      id: user?.id || EcosystemService.generateStandardId('ust', user?.schoolId),
+      schoolId: user?.schoolId || 'MASTER',
       balance: 0,
       points: 0,
       vitality: 0,
@@ -1311,7 +1424,9 @@ export class EcosystemService {
       itemsCount: 0,
       lastMissionDate: null,
       level: 'Semente',
-      readArticles: []
+      readArticles: [],
+      pointTransactions: [],
+      curso: user?.curso || null
     };
   }
 
@@ -1534,7 +1649,7 @@ export class EcosystemService {
         itemsCount: this.purchasedItemsSubject.value.length,
         lastMissionDate: this.lastMissionDateSubject.value,
         level: this.levelSubject.value,
-        curso: (user as any).curso,
+        curso: (user as any).curso || null,
         nessiePurchaseDate: this.data.userStates[user.id]?.nessiePurchaseDate || null,
         readArticles: this.data.userStates[user.id]?.readArticles || []
       };
@@ -1746,13 +1861,12 @@ export class EcosystemService {
       const state = this.data?.userStates?.[user.id] || this.getDefaultState(user);
       state.lastMissionDate = today;
       
-      // Restauração de Vitalidade (+20% por missão cumprida)
       state.vitality = Math.min(100, state.vitality + 20);
       this.vitalitySubject.next(state.vitality);
 
       if (this.data?.userStates) this.data.userStates[user.id] = state;
 
-      this.syncUserPoints(user.id, points, points);
+      this.syncUserPoints(user.id, points, points, "Alimentar Ecossistema (Missão Diária)");
       
       this.logTelemetry({
         action: 'MISSION_COMPLETED',
@@ -1769,7 +1883,7 @@ export class EcosystemService {
   deductPoints(points: number) {
     const userId = this.currentUserIdSubject.value;
     if (this.balance < points || !userId) return false;
-    this.syncUserPoints(userId, -points, 0);
+    this.syncUserPoints(userId, -points, 0, "Resgate de Recompensa");
     return true;
   }
 
@@ -1785,15 +1899,10 @@ export class EcosystemService {
       const state = this.data.userStates[user.id] || this.getDefaultState(user);
       const vitalityGain = Math.floor(points / 10);
       state.vitality = Math.min(100, state.vitality + vitalityGain);
-      state.balance -= points;
       this.data.userStates[user.id] = state;
+      this.vitalitySubject.next(state.vitality);
 
-      if (user.id === this.data.currentUserId) {
-        this.vitalitySubject.next(state.vitality);
-        this.balanceSubject.next(state.balance);
-      }
-      
-      this.saveToStorage();
+      this.syncUserPoints(userId, -points, 0, "Restauração de Vitalidade");
       return true;
     }
     return false;
@@ -1918,8 +2027,9 @@ export class EcosystemService {
       balanceAdjust += 5000;
     }
 
+    const itemLabel = item.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     // Sincroniza e salva
-    this.syncUserPoints(this.currentUserRa, balanceAdjust, pointsAdjust);
+    this.syncUserPoints(this.currentUserRa, balanceAdjust, pointsAdjust, `Adquiriu: ${itemLabel}`);
 
     this.logTelemetry({
       action: 'ITEM_PURCHASED',
@@ -1961,7 +2071,7 @@ export class EcosystemService {
     const student = (this.data?.users || []).find(u => u.ra === cleanRa);
     if (!student) return false;
 
-    this.syncUserPoints(ra, points, points);
+    this.syncUserPoints(ra, points, points, `${action} (${sector})`);
 
     // Registra na Telemetria (Rastreabilidade Total)
     await this.logTelemetry({
@@ -1986,7 +2096,7 @@ export class EcosystemService {
     const cleanRa = ra.toUpperCase().trim();
     const student = (this.data?.users || []).find(u => u.ra?.toUpperCase() === cleanRa);
     if (!student) {
-      console.warn(`[ECOSYSTEM] Tentativa de registro de resíduo para RA não encontrado: ${cleanRa}`);
+      // Log removido para produção
       return false;
     }
 
@@ -1996,12 +2106,13 @@ export class EcosystemService {
     const points = weightKg >= 1 ? Math.floor(weightKg * basePoints) : basePoints;
 
     const newEntry: WasteEntry = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: EcosystemService.generateStandardId('wst', student.schoolId),
       date: new Date().toISOString(),
       type: type,
       collected: weightKg,
       studentId: student.id,
-      schoolId: terminalSchoolId || student.schoolId
+      schoolId: terminalSchoolId || student.schoolId,
+      points: points
     };
 
     // Log de registro de resíduos suprimido para produção (Telemetria ativa)
@@ -2016,7 +2127,7 @@ export class EcosystemService {
       unitId: terminalSchoolId || student.schoolId
     });
 
-    this.addPoints(points, cleanRa);
+    this.addPoints(points, cleanRa, `Coleta de ${type} (${weightKg.toFixed(3)} kg)`);
 
     this.data.wasteEntries = [...(this.data.wasteEntries || []), newEntry];
     this.wasteEntriesSubject.next([...this.data.wasteEntries]);
@@ -2053,7 +2164,7 @@ export class EcosystemService {
     state.readArticles.push(articleId);
     this.data.userStates[userId] = state;
     
-    this.syncUserPoints(userId, points, points);
+    this.syncUserPoints(userId, points, points, `Leitura de Artigo: ${article.title}`);
 
     await this.logTelemetry({
       action: 'ARTICLE_READ',
@@ -2263,13 +2374,10 @@ export class EcosystemService {
     return true;
   }
 
-  /**
-   * Adiciona pontos genéricos a um usuário.
-   */
-  addPoints(points: number, studentRa?: string) {
+  addPoints(points: number, studentRa?: string, description?: string) {
     const targetRa = (studentRa || this.currentUserRa)?.toUpperCase().trim();
     if (targetRa) {
-      this.syncUserPoints(targetRa, points, points);
+      this.syncUserPoints(targetRa, points, points, description || "Bônus de Ecossistema");
     }
   }
 
@@ -2277,7 +2385,7 @@ export class EcosystemService {
    * Bônus por avistar um evento especial no sistema.
    */
   grantSightingBonus(ra: string) {
-    this.syncUserPoints(ra, 50, 50);
+    this.syncUserPoints(ra, 50, 50, "Bônus: Nessie Avistada na Biosfera!");
     return true;
   }
 
@@ -2327,14 +2435,14 @@ export class EcosystemService {
     if (user) {
       // 2. Verifica se o usuário ou a escola estão ativos
       if (user.status === 'inactive') {
-        console.warn(`[AUTH] Tentativa de login de usuário inativo: ${user.name}`);
+        // Log removido para produção
         return false;
       }
 
       if (user.schoolId && user.schoolId !== 'global') {
         const school = this.data.schools.find(s => s.id === user.schoolId);
         if (school && (school.status === 'inactive' || school.status === 'suspended')) {
-          console.warn(`[AUTH] Tentativa de login vinculada a unidade inativa/suspensa: ${school.name}`);
+          // Log removido para produção
           return false;
         }
       }

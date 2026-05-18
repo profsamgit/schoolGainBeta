@@ -52,11 +52,11 @@ export default function RewardsPage() {
               Sua dedicação ao planeta vale ouro. Troque suas Bio-Coins por itens exclusivos e experiências únicas.
             </p>
           </div>
-          <div className="bg-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/10 text-right min-w-[200px] shadow-inner">
+          <div className="bg-white/5 backdrop-blur-xl p-6 rounded-3xl border border-white/10 text-right min-w-[200px] shadow-inner">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-1">Seu Saldo Disponível</p>
             <div className="flex items-center justify-end gap-2">
               <span className="text-4xl font-black text-white">{balance.toLocaleString('pt-BR')}</span>
-              <span className="text-xs font-bold text-primary">PTS</span>
+              <span className="text-[10px] font-black text-primary">BIO-COINS</span>
             </div>
           </div>
         </div>
@@ -67,7 +67,7 @@ export default function RewardsPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
         {schoolRewards.map((reward) => (
-          <Card key={reward.id} className="group flex flex-col overflow-hidden border-none shadow-lg hover:shadow-2xl transition-all duration-500 rounded-3xl bg-white relative">
+          <Card key={reward.id} className="group flex flex-col overflow-hidden border border-slate-200/60 dark:border-slate-800 shadow-lg hover:shadow-2xl transition-all duration-500 rounded-3xl bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 relative">
             <div className="relative h-56 w-full overflow-hidden bg-slate-100">
               <Image
                 src={reward.image || 'https://images.unsplash.com/photo-1549465220-1d8c9d9c6703?q=80&w=800&auto=format&fit=crop'}
@@ -78,19 +78,19 @@ export default function RewardsPage() {
                 className="object-cover transition-transform duration-700 group-hover:scale-110"
                 data-ai-hint={reward.imageHint}
               />
-              <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full shadow-lg border border-slate-100">
-                 <span className="text-xs font-black text-primary">{reward.cost} pts</span>
+              <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg border border-slate-100">
+                 <span className="text-xs font-black text-primary flex items-center gap-1">🪙 {reward.cost} Bio-Coins</span>
               </div>
             </div>
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-bold text-slate-900 leading-tight">{reward.name}</CardTitle>
+              <CardTitle className="text-lg font-bold text-slate-900 dark:text-slate-100 leading-tight">{reward.name}</CardTitle>
             </CardHeader>
             <CardContent className="flex-grow pt-0">
               <CardDescription className="text-slate-500 font-medium text-sm line-clamp-2 leading-relaxed">
                 {reward.description}
               </CardDescription>
             </CardContent>
-            <CardFooter className="pt-4 border-t border-slate-50 bg-slate-50/50">
+            <CardFooter className="pt-4 border-t border-slate-100/50 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-950/20">
               <Button
                 className={cn(
                   "w-full rounded-2xl font-black uppercase text-[10px] tracking-widest h-12 transition-all duration-300",
@@ -106,7 +106,7 @@ export default function RewardsPage() {
                     <ShoppingCart className="h-4 w-4" /> Resgatar Prêmio
                   </div>
                 ) : (
-                  "Saldo Insuficiente"
+                  "Bio-Coins Insuficientes"
                 )}
               </Button>
             </CardFooter>

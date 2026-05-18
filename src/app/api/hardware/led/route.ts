@@ -36,7 +36,7 @@ export async function GET(request: Request) {
   const ledUrl = `${cleanIp}/led/${action}`;
 
   try {
-    console.log(`[LED PROXY] Enviando sinal para a ESP32-CAM em: ${ledUrl}`);
+    // Log removido para produção
     
     const controller = new AbortController();
     // Timeout de 4s para maior resiliência de conexões de hardware em rede local

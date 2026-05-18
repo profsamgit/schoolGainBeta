@@ -2,17 +2,18 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useEcosystem } from '@/app/(app)/ecosystem-context';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, CheckCircle2, UserPlus, Send, Loader2, QrCode, Cpu, Eye, X, Wand2, Wifi, BookOpen, GraduationCap, School as SchoolIcon } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, UserPlus, Send, Loader2, QrCode, Wifi, Eye, X, Wand2, BookOpen, GraduationCap, School as SchoolIcon } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { QRCodeSVG } from 'qrcode.react';
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
+import { cn } from '@/lib/utils';
 
 const QRScanner = dynamic(() => import('@/components/ui/qr-scanner'), { ssr: false });
 
@@ -127,221 +128,268 @@ export default function RegisterStudentPage() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-        <Card className="w-full max-w-md border-primary/20 shadow-xl text-center">
-          <CardHeader>
-            <div className="mx-auto w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
-              <CheckCircle2 className="h-10 w-10 text-emerald-600" />
-            </div>
-            <CardTitle className="text-2xl font-black uppercase tracking-tighter">Tudo pronto!</CardTitle>
-            <CardDescription className="text-base text-slate-600">
-              Sua solicitação de cadastro foi enviada com sucesso.<br />
-              Agora é só aguardar a aprovação do seu gestor para começar sua jornada.
-            </CardDescription>
-          </CardHeader>
-          <CardFooter>
-            <Button className="w-full h-12 font-bold" asChild>
-              <Link href="/login/student">Voltar ao Login</Link>
-            </Button>
-          </CardFooter>
-        </Card>
+      <div className="relative flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950 p-6 overflow-hidden selection:bg-emerald-500/20">
+        
+        {/* 🌌 Cosmic Background & Ambient Glow Blobs */}
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+          <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-emerald-500/10 dark:bg-emerald-500/5 blur-3xl" />
+          <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-indigo-500/10 dark:bg-indigo-500/5 blur-3xl" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
+        </div>
+
+        <div className="relative z-10 w-full max-w-md backdrop-blur-xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/50 dark:border-slate-800/50 rounded-[2.5rem] shadow-2xl p-8 sm:p-10 text-center animate-in fade-in duration-500">
+          <div className="mx-auto w-16 h-16 bg-emerald-100 dark:bg-emerald-500/10 rounded-full flex items-center justify-center mb-6 border border-emerald-200/50 dark:border-emerald-500/20">
+            <CheckCircle2 className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <h2 className="text-2xl font-black text-slate-900 dark:text-slate-50 mb-3 tracking-tight">
+            Solicitação Enviada!
+          </h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
+            Seu pedido de cadastro foi encaminhado para aprovação do gestor. Aguarde a validação para iniciar a sua jornada sustentável.
+          </p>
+          
+          <Button className="w-full h-13 text-base rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 text-slate-100 dark:text-slate-900 font-bold transition-all duration-300" asChild>
+            <Link href="/login/student">Voltar ao Login</Link>
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <div className="w-full max-w-lg space-y-6">
-        <div className="flex items-center gap-2 mb-8">
-           <Button variant="ghost" size="icon" asChild className="rounded-full">
-              <Link href="/login/student"><ArrowLeft className="h-5 w-5" /></Link>
-           </Button>
-           <div>
-              <h1 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-2">
-                 <UserPlus className="h-6 w-6 text-primary" /> Solicitar Cadastro
-              </h1>
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Entre para o ecossistema sustentável</p>
-           </div>
+    <div className="relative flex min-h-screen flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans selection:bg-emerald-500/20 selection:text-emerald-950 dark:selection:text-emerald-500">
+      
+      {/* 🌌 Cosmic Background & Ambient Glow Blobs */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        {/* Blob 1: Emerald glow */}
+        <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-emerald-500/10 dark:bg-emerald-500/5 blur-3xl" />
+        {/* Blob 2: Indigo glow */}
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-indigo-500/10 dark:bg-indigo-500/5 blur-3xl" />
+        {/* Subtle grid pattern overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
+      </div>
+
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center p-6 w-full max-w-lg">
+        
+        {/* Header Back Bar */}
+        <div className="w-full flex items-center gap-3 mb-6">
+          <Button variant="ghost" size="icon" asChild className="rounded-full bg-white/40 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800/80">
+            <Link href="/login/student"><ArrowLeft className="h-5 w-5 text-slate-700 dark:text-slate-300" /></Link>
+          </Button>
+          <div>
+            <h1 className="text-xl font-black text-slate-900 dark:text-slate-50 flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-emerald-500" /> Solicitar Cadastro
+            </h1>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">
+              Entre para o ecossistema sustentável
+            </p>
+          </div>
         </div>
 
-        <Card className="border-primary/20 shadow-xl">
-          <CardHeader>
-            <CardTitle>Dados do Aluno</CardTitle>
-            <CardDescription>Preencha seus dados corretamente para validação da sua unidade escolar.</CardDescription>
+        {/* 📟 Glassmorphic Registration Console */}
+        <div className="w-full backdrop-blur-xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/50 dark:border-slate-800/50 rounded-[2.5rem] shadow-2xl p-8 sm:p-10 transition-all duration-300">
+          
+          <CardHeader className="p-0 mb-6">
+            <CardTitle className="text-xl font-extrabold text-slate-950 dark:text-slate-50">Dados do Aluno</CardTitle>
+            <CardDescription className="text-xs text-slate-500 dark:text-slate-300 leading-relaxed">
+              Preencha seus dados corretamente para validação da sua unidade escolar parceira
+            </CardDescription>
           </CardHeader>
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome Completo</Label>
-                <Input 
-                  id="name" 
-                  placeholder="Ex: João Silva" 
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                />
-              </div>
-              {/* RA Field */}
-              <div className="space-y-2">
-                <Label htmlFor="ra" className="font-bold">RA (Identificação QR)</Label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1 group">
-                    <Input 
-                      id="ra" 
-                      placeholder="AGUARDANDO..." 
-                      className="uppercase h-12 pr-12 font-medium"
-                      required
-                      value={formData.ra}
-                      onChange={(e) => setFormData(prev => ({ ...prev, ra: e.target.value.toUpperCase() }))}
-                    />
-                    {formData.ra && (
-                      <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                         <Button 
-                          type="button"
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0"
-                          onClick={() => setShowQRPreview(!showQRPreview)}
-                          title="Ver QR Code"
-                         >
-                           <Eye className="h-4 w-4 text-slate-400" />
-                         </Button>
-                      </div>
-                    )}
-                  </div>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    className="h-12 w-12 p-0 border-slate-200" 
-                    onClick={generateRA}
-                    title="Gerar RA"
-                  >
-                    <Wand2 className="h-5 w-5 text-emerald-500" />
-                  </Button>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    className={`h-12 w-12 p-0 border-slate-200 ${isScanning ? 'bg-primary text-white' : ''}`}
-                    onClick={() => setIsScanning(!isScanning)}
-                    title="Escanear QR"
-                  >
-                    <QrCode className="h-5 w-5" />
-                  </Button>
-                </div>
 
-                {isScanning && (
-                  <div className="mt-4 p-4 bg-slate-900 rounded-2xl relative overflow-hidden">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="absolute top-2 right-2 z-10 text-white hover:bg-white/20"
-                      onClick={() => setIsScanning(false)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                    <QRScanner 
-                      onScan={handleRADetected} 
-                      deviceId={systemSettings.studentCaptureDevice}
-                    />
-                  </div>
-                )}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            
+            {/* Nome Completo */}
+            <div className="space-y-1.5">
+              <Label htmlFor="name" className="text-xs font-bold text-slate-600 dark:text-slate-300 ml-1">Nome Completo</Label>
+              <Input 
+                id="name" 
+                placeholder="Ex: João Silva" 
+                required
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                className="h-12 px-4 rounded-xl bg-slate-900/90 dark:bg-slate-950/60 text-white placeholder:text-slate-400 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:focus:border-emerald-400"
+              />
+            </div>
 
-                {showQRPreview && formData.ra && (
-                  <div className="mt-4 p-6 bg-white border-2 border-primary/20 rounded-2xl flex flex-col items-center gap-4">
-                    <QRCodeSVG value={formData.ra} size={150} />
-                    <p className="text-[10px] font-black uppercase tracking-widest">{formData.ra}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* RFID Field */}
-              <div className="space-y-2">
-                <Label htmlFor="rfid" className="font-bold">ID do Cartão (RFID)</Label>
-                <div className="flex gap-2">
+            {/* RA Field */}
+            <div className="space-y-1.5">
+              <Label htmlFor="ra" className="text-xs font-bold text-slate-600 dark:text-slate-300 ml-1">RA (Identificação QR)</Label>
+              <div className="flex gap-2">
+                <div className="relative flex-1 group">
                   <Input 
-                    id="rfid" 
-                    placeholder={isRFIDCapturing ? "AGUARDANDO..." : "ID DO CARTÃO"} 
-                    className={`uppercase h-12 flex-1 font-medium ${isRFIDCapturing ? 'animate-pulse border-emerald-500 bg-emerald-50' : ''}`}
-                    value={formData.rfid}
-                    onChange={(e) => setFormData(prev => ({ ...prev, rfid: e.target.value.toUpperCase() }))}
+                    id="ra" 
+                    placeholder="AGUARDANDO ID..." 
+                    className="uppercase h-12 pr-12 font-semibold tracking-wide bg-slate-900/90 dark:bg-slate-950/60 text-white placeholder:text-slate-400 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:focus:border-emerald-400 rounded-xl"
+                    required
+                    value={formData.ra}
+                    onChange={(e) => setFormData(prev => ({ ...prev, ra: e.target.value.toUpperCase() }))}
                   />
+                  {formData.ra && (
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                       <Button 
+                        type="button"
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                        onClick={() => setShowQRPreview(!showQRPreview)}
+                        title="Ver QR Code"
+                       >
+                         <Eye className="h-4 w-4" />
+                       </Button>
+                    </div>
+                  )}
+                </div>
+
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="h-12 w-12 p-0 border-slate-200/60 dark:border-slate-800/80 bg-slate-900/90 dark:bg-slate-950/60 text-white hover:bg-slate-800 dark:hover:bg-slate-900 rounded-xl" 
+                  onClick={generateRA}
+                  title="Gerar RA"
+                >
+                  <Wand2 className="h-5 w-5 text-emerald-500" />
+                </Button>
+
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className={cn(
+                    "h-12 w-12 p-0 border-slate-200/60 dark:border-slate-800/80 rounded-xl bg-slate-900/90 dark:bg-slate-950/60 text-white transition-all",
+                    isScanning ? 'bg-emerald-500 hover:bg-emerald-600 border-emerald-500 text-white dark:text-slate-950' : 'hover:bg-slate-800 dark:hover:bg-slate-900'
+                  )}
+                  onClick={() => setIsScanning(!isScanning)}
+                  title="Escanear QR"
+                >
+                  <QrCode className="h-5 w-5" />
+                </Button>
+              </div>
+
+              {isScanning && (
+                <div className="mt-4 p-4 bg-slate-950 border border-slate-800 rounded-2xl relative overflow-hidden animate-in fade-in duration-300">
                   <Button 
-                    type="button" 
-                    variant="outline" 
-                    className={`h-12 w-12 p-0 border-slate-200 ${isRFIDCapturing ? 'bg-emerald-500 text-white border-emerald-500' : ''}`}
-                    onClick={() => setIsRFIDCapturing(!isRFIDCapturing)}
-                    title="Capturar RFID"
+                    variant="ghost" 
+                    size="icon" 
+                    className="absolute top-2 right-2 z-10 text-white hover:bg-white/20 rounded-full"
+                    onClick={() => setIsScanning(false)}
                   >
-                    <Wifi className="h-5 w-5" />
+                    <X className="h-4 w-4" />
                   </Button>
+                  <QRScanner 
+                    onScan={handleRADetected} 
+                    deviceId={systemSettings.studentCaptureDevice}
+                  />
                 </div>
+              )}
+
+              {showQRPreview && formData.ra && (
+                <div className="mt-4 p-6 bg-white border border-slate-200/50 dark:border-slate-800/50 rounded-2xl flex flex-col items-center gap-3 animate-in fade-in duration-300 shadow-sm">
+                  <QRCodeSVG value={formData.ra} size={130} />
+                  <p className="text-[10px] text-slate-555 font-black uppercase tracking-widest">{formData.ra}</p>
+                </div>
+              )}
+            </div>
+
+            {/* RFID Field */}
+            <div className="space-y-1.5">
+              <Label htmlFor="rfid" className="text-xs font-bold text-slate-600 dark:text-slate-300 ml-1">ID do Cartão (RFID)</Label>
+              <div className="flex gap-2">
+                <Input 
+                  id="rfid" 
+                  placeholder={isRFIDCapturing ? "AGUARDANDO APROXIMAÇÃO..." : "ID DO CARTÃO (OPCIONAL)"} 
+                  className={cn(
+                    "uppercase h-12 flex-1 font-semibold tracking-wide bg-slate-900/90 dark:bg-slate-950/60 text-white placeholder:text-slate-400 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:focus:border-emerald-400 rounded-xl",
+                    isRFIDCapturing ? 'animate-pulse border-emerald-500/55 dark:border-emerald-500/55 bg-emerald-500/5' : ''
+                  )}
+                  value={formData.rfid}
+                  onChange={(e) => setFormData(prev => ({ ...prev, rfid: e.target.value.toUpperCase() }))}
+                />
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className={cn(
+                    "h-12 w-12 p-0 border-slate-200/60 dark:border-slate-800/80 rounded-xl bg-slate-900/90 dark:bg-slate-950/60 text-white transition-all",
+                    isRFIDCapturing ? 'bg-emerald-500 hover:bg-emerald-600 border-emerald-500 text-white dark:text-slate-950' : 'hover:bg-slate-800 dark:hover:bg-slate-900'
+                  )}
+                  onClick={() => setIsRFIDCapturing(!isRFIDCapturing)}
+                  title="Capturar RFID"
+                >
+                  <Wifi className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Select fields section */}
+            <div className="space-y-4 pt-3 border-t border-slate-200/40 dark:border-slate-800/40">
+              
+              {/* Escola */}
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 flex items-center gap-2 ml-1">
+                  <SchoolIcon className="h-3 w-3 text-emerald-500" /> Sua Escola / Unidade
+                </Label>
+                <Select onValueChange={(val) => {
+                  setFormData(prev => ({ ...prev, schoolId: val }));
+                  setTargetSchoolId(val);
+                }} required>
+                  <SelectTrigger className="h-13 bg-slate-900/90 dark:bg-slate-950/60 text-white border-slate-200/60 dark:border-slate-800/80 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:focus:border-emerald-400">
+                    <SelectValue placeholder="Selecione sua escola" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border border-slate-200/50 dark:border-slate-800/50 bg-white text-slate-900 dark:bg-white dark:text-slate-900 shadow-xl z-50">
+                    {schools.filter(s => s.status === 'active').map(s => (
+                      <SelectItem key={s.id} value={s.id} className="rounded-lg text-slate-800 dark:text-slate-800 focus:bg-slate-100 dark:focus:bg-slate-100 focus:text-slate-900 dark:focus:text-slate-900 cursor-pointer">{s.name}</SelectItem>
+                    ))}
+                    {schools.length === 0 && <SelectItem value="school-default" className="rounded-lg text-slate-800 dark:text-slate-800 focus:bg-slate-100 dark:focus:bg-slate-100 focus:text-slate-900 dark:focus:text-slate-900 cursor-pointer">Unidade Padrão SchoolGain</SelectItem>}
+                  </SelectContent>
+                </Select>
               </div>
 
-              <div className="space-y-4 pt-2">
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
-                    <SchoolIcon className="h-3 w-3 text-primary" /> Sua Escola / Unidade
-                  </Label>
-                  <Select onValueChange={(val) => {
-                    setFormData(prev => ({ ...prev, schoolId: val }));
-                    setTargetSchoolId(val);
-                  }} required>
-                    <SelectTrigger className="h-14 bg-white border-slate-200 rounded-xl focus:ring-primary/20">
-                      <SelectValue placeholder="Selecione sua escola" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {schools.filter(s => s.status === 'active').map(s => (
-                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              {/* Turma */}
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 flex items-center gap-2 ml-1">
+                  <BookOpen className="h-3 w-3 text-emerald-500" /> Série / Turma
+                </Label>
+                <Select onValueChange={(val) => setFormData(prev => ({ ...prev, turma: val }))} required>
+                  <SelectTrigger className="h-13 bg-slate-900/90 dark:bg-slate-950/60 text-white border-slate-200/60 dark:border-slate-800/80 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:focus:border-emerald-400">
+                    <SelectValue placeholder="Selecione sua turma" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border border-slate-200/50 dark:border-slate-800/50 bg-white text-slate-900 dark:bg-white dark:text-slate-900 shadow-xl z-50">
+                    {allTurmas
+                      .filter(t => t.status === 'active' && (!formData.schoolId || t.schoolId === formData.schoolId))
+                      .map(t => (
+                        <SelectItem key={t.id} value={t.name} className="rounded-lg text-slate-800 dark:text-slate-800 focus:bg-slate-100 dark:focus:bg-slate-100 focus:text-slate-900 dark:focus:text-slate-900 cursor-pointer">{t.name}</SelectItem>
                       ))}
-                      {schools.length === 0 && <SelectItem value="school-default">Unidade Padrão SchoolGain</SelectItem>}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
-                    <BookOpen className="h-3 w-3 text-primary" /> Série / Turma
-                  </Label>
-                  <Select onValueChange={(val) => setFormData(prev => ({ ...prev, turma: val }))} required>
-                    <SelectTrigger className="h-14 bg-white border-slate-200 rounded-xl focus:ring-primary/20">
-                      <SelectValue placeholder="Selecione sua turma" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {allTurmas
-                        .filter(t => t.status === 'active' && (!formData.schoolId || t.schoolId === formData.schoolId))
-                        .map(t => (
-                          <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>
-                        ))}
-                      {allTurmas.length === 0 && <SelectItem value="none" disabled>Selecione a escola primeiro</SelectItem>}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
-                    <GraduationCap className="h-3 w-3 text-primary" /> Curso Técnico
-                  </Label>
-                  <Select onValueChange={(val) => setFormData(prev => ({ ...prev, curso: val }))} required>
-                    <SelectTrigger className="h-14 bg-white border-slate-200 rounded-xl focus:ring-primary/20">
-                      <SelectValue placeholder="Selecione seu curso" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {allCursos
-                        .filter(c => c.status === 'active' && (!formData.schoolId || c.schoolId === formData.schoolId))
-                        .map(c => (
-                          <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
-                        ))}
-                      {allCursos.length === 0 && <SelectItem value="none" disabled>Selecione a escola primeiro</SelectItem>}
-                    </SelectContent>
-                  </Select>
-                </div>
+                    {allTurmas.length === 0 && <SelectItem value="none" disabled className="rounded-lg">Selecione a escola primeiro</SelectItem>}
+                  </SelectContent>
+                </Select>
               </div>
-            </CardContent>
-            <CardFooter>
-              <Button type="submit" className="w-full h-12 font-bold gap-2" disabled={isSubmitting}>
+
+              {/* Curso */}
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 flex items-center gap-2 ml-1">
+                  <GraduationCap className="h-3 w-3 text-emerald-500" /> Curso Técnico
+                </Label>
+                <Select onValueChange={(val) => setFormData(prev => ({ ...prev, curso: val }))} required>
+                  <SelectTrigger className="h-13 bg-slate-900/90 dark:bg-slate-950/60 text-white border-slate-200/60 dark:border-slate-800/80 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:focus:border-emerald-400">
+                    <SelectValue placeholder="Selecione seu curso" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border border-slate-200/50 dark:border-slate-800/50 bg-white text-slate-900 dark:bg-white dark:text-slate-900 shadow-xl z-50">
+                    {allCursos
+                      .filter(c => c.status === 'active' && (!formData.schoolId || c.schoolId === formData.schoolId))
+                      .map(c => (
+                        <SelectItem key={c.id} value={c.name} className="rounded-lg text-slate-800 dark:text-slate-800 focus:bg-slate-100 dark:focus:bg-slate-100 focus:text-slate-900 dark:focus:text-slate-900 cursor-pointer">{c.name}</SelectItem>
+                      ))}
+                    {allCursos.length === 0 && <SelectItem value="none" disabled className="rounded-lg">Selecione a escola primeiro</SelectItem>}
+                  </SelectContent>
+                </Select>
+              </div>
+
+            </div>
+
+            {/* Submit Button */}
+            <div className="pt-3">
+              <Button type="submit" className="w-full h-13 text-base rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 text-slate-100 dark:text-slate-900 font-bold transition-all duration-300 gap-2" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" /> Processando...
+                    <Loader2 className="h-4 w-4 animate-spin" /> Enviando...
                   </>
                 ) : (
                   <>
@@ -349,10 +397,21 @@ export default function RegisterStudentPage() {
                   </>
                 )}
               </Button>
-            </CardFooter>
+            </div>
+
           </form>
-        </Card>
-      </div>
+
+        </div>
+
+        {/* TDS CETI Link */}
+        <div className="mt-8 text-center">
+          <Link href="/about" className="text-xs text-slate-400 dark:text-slate-500 font-semibold hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline">
+            TDS 2B 2026 - CETI Frei José Apicella
+          </Link>
+        </div>
+
+      </main>
+
     </div>
   );
 }

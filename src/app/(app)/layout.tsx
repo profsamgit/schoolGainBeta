@@ -123,17 +123,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           <div className="mx-auto w-full max-w-7xl">
-            <div className="bg-slate-50/50 backdrop-blur-sm border border-slate-200/50 rounded-[2rem] shadow-sm overflow-hidden flex flex-col">
+            <div className="bg-white border border-slate-200/50 dark:border-slate-800/60 rounded-[2rem] shadow-sm overflow-hidden flex flex-col">
               <div className="p-4 sm:p-10">
                 {children}
               </div>
               
-              <footer className="w-full border-t border-slate-200/50 bg-white/40 py-6 text-center text-xs text-muted-foreground">
-                <div className="flex flex-col items-center gap-1">
-                  <Link href="/about" className="hover:text-primary transition-colors font-medium">
-                    TDS 2B 2026 - CETI Frei José Apicella
-                  </Link>
-                  <p className="opacity-50">SchoolGain Hub © 2026</p>
+              <footer className="w-full border-t border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/30 py-8 text-center text-xs">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <Link href="/about" className="text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors font-bold tracking-tight">
+                      TDS 2B 2026 — CETI Frei José Apicella
+                    </Link>
+                  </div>
+                  <p className="text-slate-400 dark:text-slate-500 font-medium tracking-wider text-[10px]">
+                    SCHOOLGAIN HUB &copy; 2026 &bull; TECNOLOGIA E SUSTENTABILIDADE
+                  </p>
                 </div>
               </footer>
             </div>

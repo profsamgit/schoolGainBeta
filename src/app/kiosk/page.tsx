@@ -173,7 +173,7 @@ export default function KioskPage() {
             if (scannerFramerate === 'balanced') targetResolution = 'svga';
             else if (scannerFramerate === 'high_res') targetResolution = 'hd';
 
-            console.log(`[HARDWARE COORDINATOR] Configurando Câmera de Scanner para modo ${scannerFramerate.toUpperCase()} (${targetResolution.toUpperCase()})...`);
+            // Log removido para ambiente de produção
             // Aguarda a resolução ser fisicamente atualizada na placa antes de iniciar a nova transmissão
             await fetch(`/api/hardware/camera?ip=${encodeURIComponent(activeScanningUrl)}&resolution=${targetResolution}`).catch(() => {});
           }
@@ -184,13 +184,13 @@ export default function KioskPage() {
             if (loginFramerate === 'balanced') targetResolution = 'vga';
             else if (loginFramerate === 'high_res') targetResolution = 'svga';
 
-            console.log(`[HARDWARE COORDINATOR] Configurando Câmera de Login para modo ${loginFramerate.toUpperCase()} (${targetResolution.toUpperCase()})...`);
+            // Log removido para ambiente de produção
             // Aguarda a resolução ser fisicamente atualizada na placa antes de iniciar a nova transmissão
             await fetch(`/api/hardware/camera?ip=${encodeURIComponent(activeLoginUrl)}&resolution=${targetResolution}`).catch(() => {});
           }
         }
       } catch (err) {
-        console.warn("[HARDWARE COORDINATOR ERRO] Falha ao disparar configurações da ESP32-CAM:", err);
+        // Ignora erro no hardware na configuração inicial e prossegue
       } finally {
         if (!isCancelled) {
           setIsHardwareReady(true);
