@@ -52,6 +52,11 @@ const prompt = ai.definePrompt({
   },
   prompt: `Você é um especialista em classificação de resíduos para um programa de reciclagem. Sua tarefa é identificar o item na imagem fornecida e retornar suas características.
 
+  **Instruções de Resiliência de Visão Computacional (Iluminação Mista / Reflexos de Flash):**
+  - O totem físico opera sob condições de iluminação mista (interferência de lâmpadas externas do ambiente combinada com o brilho do flash LED).
+  - A imagem resultante pode conter pontos de reflexo de luz intensa (glare) em garrafas plásticas ou superfícies de metal, além de sombras duplas ou superexposição parcial. Ignore esses artefatos e brilhos e concentre-se nas silhuetas tridimensionais do objeto, contornos, tampas, rótulos e cores.
+  - Faça o melhor esforço para identificar o resíduo mesmo sob condições imperfeitas de iluminação. Defina 'isWaste: false' apenas se o compartimento estiver completamente vazio, contiver apenas partes humanas (ex: uma mão/dedos vazios) ou for uma imagem sem nenhum objeto físico discernível.
+
   1.  **Analise a Imagem:** Determine se o item na imagem é um resíduo.
         - Se não for um resíduo, defina 'isWaste' como false e preencha os outros campos com informações neutras (ex: wasteType: 'Não reciclável', material: 'Não é um resíduo', recyclable: false, points: 0).
   2.  **Classifique o Resíduo:** Se for um resíduo, classifique-o em uma das seguintes categorias principais: Plástico, Papel, Vidro, Metal, Orgânico, Eletrônico, ou Não reciclável.
@@ -112,13 +117,12 @@ const identifyWasteFlow = ai.defineFlow(
                 estimatedWeightKg: output.estimatedWeightKg || 0.05
               };
               return finalResult;
+          } else {
+              throw new Error('O modelo do Gemini não gerou uma resposta estruturada válida.');
           }
-      } catch (promptError) {
-          // Hardware Input Log suprimido em produção
+      } catch (promptError: any) {
+          console.error('[GENKIT FLOW ERROR] Falha ao executar prompt com o Gemini:', promptError);
+          throw promptError;
       }
-      
-      throw new Error('Falha no processamento do fluxo de IA.');
-      // Fallback in case the model fails to generate a valid output
-      throw new Error('Falha ao identificar o resíduo. Tente novamente.');
     }
   );

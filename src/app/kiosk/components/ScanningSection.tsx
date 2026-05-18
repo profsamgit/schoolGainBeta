@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { User as UserData } from '@/lib/types';
 import { type IdentifyWasteOutput } from '@/ai/flows/identify-waste';
 import { 
@@ -18,7 +19,9 @@ import {
   Loader2, 
   Sparkles, 
   ArrowLeft, 
-  Check 
+  Check,
+  RefreshCw,
+  AlertTriangle
 } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
@@ -33,6 +36,7 @@ interface ScanningSectionProps {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   hasCameraPermission: boolean | null;
   isLoading: boolean;
+  capturedPhotoUri: string | null;
   identificationResult: IdentifyWasteOutput | null;
   WasteIcon: any;
   handleScan: () => void;
@@ -49,12 +53,53 @@ export function ScanningSection({
   canvasRef,
   hasCameraPermission,
   isLoading,
+  capturedPhotoUri,
   identificationResult,
   WasteIcon,
   handleScan,
   handleReset,
   handleConfirm
 }: ScanningSectionProps) {
+  const [streamError, setStreamError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  const streamUrlWithRetry = activeScanningUrl
+    ? (retryKey > 0 ? (activeScanningUrl.includes('?') ? `${activeScanningUrl}&retry=${retryKey}` : `${activeScanningUrl}?retry=${retryKey}`) : activeScanningUrl)
+    : '';
+
+  useEffect(() => {
+    if (!streamUrlWithRetry || streamError) return;
+
+    // Timer de 3 segundos. Se a imagem do stream não disparar onLoad nesse período,
+    // assumimos que a placa está inacessível ou o socket travou.
+    const timer = setTimeout(() => {
+      setImageLoaded((current) => {
+        if (!current) {
+          console.warn("[KIOSK CAMERA] Câmera não respondeu em 3s. Exibindo painel de reconexão.");
+          setStreamError(true);
+        }
+        return current;
+      });
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [streamUrlWithRetry, streamError]);
+
+  useEffect(() => {
+    return () => {
+      // FORÇA A LIBERAÇÃO FÍSICA E IMEDIATA DO SOCKET DA ESP32 AO SAIR DA TELA DE SCANNER!
+      // Como o React anula a Ref e desmonta o DOM, localizamos e cancelamos o request diretamente.
+      try {
+        const img = document.querySelector('img[alt="External Camera Stream"]') as HTMLImageElement | null;
+        if (img) {
+          img.src = "";
+          img.removeAttribute('src');
+        }
+      } catch (e) {}
+    };
+  }, []);
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <main className="flex-1 w-full flex flex-col items-center justify-center p-4">
@@ -78,39 +123,74 @@ export function ScanningSection({
           </CardHeader>
           <CardContent className="flex flex-col items-center gap-4">
             <div className="w-full aspect-video rounded-md overflow-hidden border bg-muted relative">
-              {activeScanningCameraSource === 'browser' ? (
-                <>
-                  <video 
-                    ref={videoRef} 
-                    className="w-full h-full object-cover" 
-                    muted 
-                    playsInline 
-                  />
-                  <canvas ref={canvasRef} className="hidden" />
-                </>
+              {/* O canvas oculto precisa estar sempre montado para permitir capturas do feed (local ou ESP32) */}
+              <canvas ref={canvasRef} className="hidden" />
+
+              {/* Exibe a foto capturada estática se estiver analisando ou mostrando o resultado.
+                  Isso interrompe o feed de vídeo ao vivo (desmontando as tags video/img) e libera a CPU da ESP32-CAM! */}
+              {capturedPhotoUri && (isLoading || identificationResult) ? (
+                <img 
+                  src={capturedPhotoUri} 
+                  className="w-full h-full object-cover" 
+                  alt="Captured Waste Freeze Frame" 
+                />
+              ) : activeScanningCameraSource === 'browser' ? (
+                <video 
+                  ref={videoRef} 
+                  className="w-full h-full object-cover" 
+                  muted 
+                  playsInline 
+                />
               ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 gap-4 text-white overflow-hidden">
-                  {activeScanningUrl ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 text-white overflow-hidden">
+                  {streamUrlWithRetry && !streamError ? (
                     <img 
-                      src={activeScanningUrl} 
+                      src={streamUrlWithRetry} 
                       className="w-full h-full object-cover" 
                       alt="External Camera Stream"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
+                      crossOrigin="anonymous"
+                      onLoad={() => setImageLoaded(true)}
+                      onError={() => {
+                        setStreamError(true);
                       }}
                     />
+                  ) : streamError ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 p-6 text-center animate-in fade-in duration-300">
+                      <div className="p-4 bg-amber-500/10 rounded-full border border-amber-500/20 text-amber-400 mb-2">
+                        <AlertTriangle className="h-10 w-10 animate-pulse" />
+                      </div>
+                      <h3 className="text-lg font-black uppercase tracking-tight text-white">Sinal de Câmera Instável</h3>
+                      <p className="text-xs text-slate-400 max-w-sm mt-1 mb-4 leading-relaxed">
+                        Não conseguimos receber a transmissão de vídeo do Totem. Verifique a conexão Wi-Fi da placa ESP32-CAM.
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="border-white/10 hover:bg-white/5 text-white gap-2 font-bold uppercase tracking-wider text-[10px]"
+                        onClick={() => {
+                          setImageLoaded(false);
+                          setStreamError(false);
+                          setRetryKey(k => k + 1);
+                        }}
+                      >
+                        <RefreshCw className="h-3 w-3 animate-spin [animation-duration:3s]" />
+                        Tentar Reconectar
+                      </Button>
+                    </div>
                   ) : (
-                    <>
-                      <Cpu className="h-16 w-16 text-primary animate-pulse" />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 p-6 text-center animate-in fade-in">
+                      <Cpu className="h-16 w-16 text-primary animate-pulse mb-2" />
                       <h3 className="text-xl font-bold">Hardware Externo Ativo</h3>
                       <p className="text-sm text-slate-400 p-6 text-center">Aguardando sinal do sensor de imagem do terminal (ESP32-CAM).</p>
-                    </>
+                    </div>
                   )}
-                  <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
-                    <span className="w-2 h-2 bg-primary rounded-full animate-bounce"></span>
-                    <span className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                    <span className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                  </div>
+                  {!streamError && streamUrlWithRetry && (
+                    <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 pointer-events-none">
+                      <span className="w-2 h-2 bg-primary rounded-full animate-bounce"></span>
+                      <span className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                      <span className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                    </div>
+                  )}
                 </div>
               )}
               
@@ -120,33 +200,46 @@ export function ScanningSection({
                 </div>
               )}
               {isLoading && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 gap-4">
-                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                  <p className="text-lg text-white">Identificando resíduo...</p>
+                <div className="absolute inset-0 bg-black/25 backdrop-blur-[1px] flex flex-col items-center justify-center transition-all duration-300">
+                  <div className="flex items-center gap-3 bg-slate-950/90 backdrop-blur-md px-6 py-3.5 rounded-full border border-slate-800 shadow-2xl animate-in zoom-in duration-300">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    <span className="text-sm font-semibold text-white tracking-wide">Analisando com Inteligência Artificial...</span>
+                  </div>
                 </div>
               )}
               {identificationResult && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 gap-3 p-4 text-center">
-                  <Sparkles className="h-10 w-10 text-yellow-400" />
-                  <h3 className="text-2xl font-bold text-white">Resíduo Identificado!</h3>
+                <div className="absolute inset-x-0 bottom-0 max-h-[65%] md:inset-y-0 md:right-0 md:left-auto md:w-80 md:max-h-none bg-slate-950/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-slate-800 p-4 flex flex-col justify-center gap-2.5 overflow-y-auto rounded-b-md md:rounded-b-none md:rounded-r-md shadow-2xl animate-in slide-in-from-bottom md:slide-in-from-right duration-500">
+                  <div className="flex items-center gap-2 text-yellow-400">
+                    <Sparkles className="h-5 w-5 animate-pulse" />
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">Identificado!</h3>
+                  </div>
                   
-                  <div className="flex items-center gap-4 bg-background/20 p-3 rounded-lg">
-                    {WasteIcon && <WasteIcon className="h-12 w-12 text-primary" />}
-                    <div className='text-left'>
-                      <p className="text-lg font-semibold text-white">{identificationResult.material}</p>
-                      <p className="text-sm text-slate-200">{identificationResult.wasteType} ({identificationResult.recyclable ? 'Reciclável' : 'Não Reciclável'})</p>
-                      <p className="text-2xl font-bold text-primary">+{POINTS_MAPPING[identificationResult.wasteType] || 0} pontos</p>
+                  <div className="bg-white/10 p-3 rounded-lg border border-white/5 shadow-inner">
+                    <div className="flex items-center gap-3">
+                      {WasteIcon && (
+                        <div className="p-1.5 bg-primary/20 rounded-md border border-primary/30">
+                          <WasteIcon className="h-8 w-8 text-primary animate-pulse" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-white leading-tight truncate">{identificationResult.material}</p>
+                        <p className="text-xs text-slate-300 capitalize">{identificationResult.wasteType}</p>
+                      </div>
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-white/10 flex justify-between items-center">
+                      <span className="text-xs text-slate-400">Pontuação:</span>
+                      <span className="text-md font-extrabold text-primary">+{POINTS_MAPPING[identificationResult.wasteType] || 0} pts</span>
                     </div>
                   </div>
 
-                  <Alert variant={identificationResult.recyclable && identificationResult.isWaste ? 'default' : 'destructive'} className="text-left bg-background/90 max-w-sm">
-                    <AlertTitle className="font-semibold">{identificationResult.recyclable && identificationResult.isWaste ? 'Instruções de Descarte' : 'Informação'}</AlertTitle>
-                    <AlertDescription>
-                      {identificationResult.recyclingInstructions}
-                    </AlertDescription>
-                  </Alert>
+                  <div className="bg-slate-900/50 p-2.5 rounded-lg border border-slate-800 text-left">
+                    <p className="text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1">Como Descartar:</p>
+                    <p className="text-[11px] text-slate-300 leading-normal">{identificationResult.recyclingInstructions}</p>
+                  </div>
 
-                  <p className="text-xs text-slate-400 max-w-sm">"{identificationResult.justification}"</p>
+                  <p className="text-[10px] text-slate-400 italic leading-snug border-l-2 border-primary/50 pl-2 text-left">
+                    "{identificationResult.justification}"
+                  </p>
                 </div>
               )}
             </div>

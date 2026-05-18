@@ -861,6 +861,7 @@ function AdminContent() {
               currentUser={currentUser}
               targetSchoolId={targetSchoolId}
               toast={toast}
+              schools={schools}
             />
           </TabsContent>
 

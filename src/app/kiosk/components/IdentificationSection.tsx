@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
+import { Html5Qrcode } from 'html5-qrcode';
 import { User as UserData, School } from '@/lib/types';
 import { 
   Card, 
@@ -17,7 +19,9 @@ import {
   Lock, 
   Keyboard, 
   ArrowRight, 
-  Sparkles 
+  Sparkles,
+  RefreshCw,
+  AlertTriangle
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -45,6 +49,7 @@ interface IdentificationSectionProps {
   handleKeyboardInput: (key: string) => void;
   handleKeyboardBackspace: () => void;
   activeLoginCameraSource: string;
+  activeLoginUrl?: string;
   scannerKey: number;
   loginCameraDeviceId: string | undefined;
   onIdentify: (data: string) => void;
@@ -66,12 +71,144 @@ export function IdentificationSection({
   handleKeyboardInput,
   handleKeyboardBackspace,
   activeLoginCameraSource,
+  activeLoginUrl,
   scannerKey,
   loginCameraDeviceId,
   onIdentify,
   isProcessing
 }: IdentificationSectionProps) {
   const { systemSettings } = useEcosystem();
+  const streamImgRef = useRef<HTMLImageElement | null>(null);
+  const [streamError, setStreamError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  const streamUrlWithRetry = activeLoginUrl
+    ? (retryKey > 0 ? (activeLoginUrl.includes('?') ? `${activeLoginUrl}&retry=${retryKey}` : `${activeLoginUrl}?retry=${retryKey}`) : activeLoginUrl)
+    : '';
+
+  useEffect(() => {
+    if (!streamUrlWithRetry || streamError || activeTab !== 'qr') return;
+
+    // Timer de 3 segundos. Se a imagem do stream não disparar onLoad nesse período,
+    // assumimos que a placa está inacessível ou o socket travou.
+    const timer = setTimeout(() => {
+      setImageLoaded((current) => {
+        if (!current) {
+          console.warn("[KIOSK LOGIN CAMERA] Câmera de login não respondeu em 3s. Exibindo painel de reconexão.");
+          setStreamError(true);
+        }
+        return current;
+      });
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [streamUrlWithRetry, streamError, activeTab]);
+
+  useEffect(() => {
+    if (activeLoginCameraSource === 'browser' || !streamUrlWithRetry || activeTab !== 'qr') return;
+
+    let isMounted = true;
+    let html5QrCode: Html5Qrcode | null = null;
+    let intervalId: any = null;
+
+    // Criamos um elemento de scanner invisível no DOM
+    const scannerElementId = 'hidden-qr-scanner-login';
+    let hiddenContainer = document.getElementById(scannerElementId);
+    if (!hiddenContainer) {
+      hiddenContainer = document.createElement('div');
+      hiddenContainer.id = scannerElementId;
+      hiddenContainer.style.display = 'none';
+      document.body.appendChild(hiddenContainer);
+    }
+
+    try {
+      html5QrCode = new Html5Qrcode(scannerElementId);
+    } catch (e) {
+      console.error("[QR STREAM] Falha ao instanciar Html5Qrcode:", e);
+    }
+
+    const canvas = document.createElement('canvas');
+
+    let isScanningFrame = false;
+
+    const scanFrame = async () => {
+      if (!isMounted || !html5QrCode || !streamImgRef.current || isScanningFrame) return;
+      const img = streamImgRef.current;
+      
+      // Garante que a imagem está carregada e tem dimensões válidas
+      if (!img.complete || img.naturalWidth === 0) return;
+
+      isScanningFrame = true;
+
+      // Otimização de Performance Extrema: Redimensiona o canvas para 320px de largura
+      // 320px é perfeitamente nítido para decodificar QR, mas corta o processamento gráfico de renderização pela metade!
+      const targetWidth = 320;
+      const scale = targetWidth / img.naturalWidth;
+      const targetHeight = img.naturalHeight * scale;
+
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        isScanningFrame = false;
+        return;
+      }
+
+      // Desenha com suavização para manter a legibilidade das bordas do QR
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'medium';
+      ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+      // Converte o canvas para Blob JPEG leve (60% qualidade) para agilizar o parse de memória do html5-qrcode
+      canvas.toBlob(async (blob) => {
+        if (!blob || !isMounted) {
+          isScanningFrame = false;
+          return;
+        }
+        try {
+          const file = new File([blob], "frame.jpg", { type: "image/jpeg" });
+          const decodedText = await html5QrCode!.scanFile(file, false);
+          
+          if (decodedText && isMounted) {
+            console.log("[QR STREAM] QR Code detectado na Câmera ESP32:", decodedText);
+            onIdentify(decodedText);
+          }
+        } catch (err) {
+          // Erro esperado se não houver QR Code no frame, silencia
+        } finally {
+          isScanningFrame = false;
+        }
+      }, 'image/jpeg', 0.60);
+    };
+
+    // Roda a decodificação a cada 350ms (quase 3 vezes por segundo - leitura instantânea e CPU fria!)
+    intervalId = setInterval(scanFrame, 350);
+
+    return () => {
+      isMounted = false;
+      if (intervalId) clearInterval(intervalId);
+
+      // FORÇA A LIBERAÇÃO FÍSICA E IMEDIATA DO SOCKET DA ESP32 ANTES DE DESMONTAR!
+      // Como o React anula a Ref antes do cleanup rodar, localizamos o elemento diretamente no DOM.
+      try {
+        const img = document.querySelector('img[alt="Login ESP32 Camera Stream"]') as HTMLImageElement | null;
+        if (img) {
+          img.src = "";
+          img.removeAttribute('src');
+        }
+      } catch (e) {}
+
+      if (html5QrCode) {
+        try {
+          html5QrCode.clear();
+        } catch (e) {}
+      }
+      if (hiddenContainer && hiddenContainer.parentNode) {
+        hiddenContainer.parentNode.removeChild(hiddenContainer);
+      }
+    };
+  }, [activeLoginCameraSource, activeLoginUrl, activeTab, onIdentify]);
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -175,24 +312,73 @@ export function IdentificationSection({
                     <QRScanner 
                       key={scannerKey} 
                       onScan={onIdentify} 
-                      deviceId={systemSettings.studentCaptureDevice}
+                      deviceId={loginCameraDeviceId || systemSettings.studentCaptureDevice}
                     />
                     <p className="text-xs text-center text-muted-foreground uppercase font-black tracking-widest bg-slate-100 py-2 rounded-full">
                       Aproxime sua Carteira da câmera
                     </p>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg space-y-4 bg-primary/5">
-                    <QrCode className="h-16 w-16 text-primary animate-pulse" />
-                    <div className="text-center">
-                      <p className="font-bold uppercase tracking-tight">Câmera Externa Ativa</p>
-                      <p className="text-sm text-muted-foreground">O terminal fará a leitura automática via hardware externo.</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <span className="w-2 h-2 bg-primary rounded-full animate-bounce"></span>
-                      <span className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                      <span className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                    </div>
+                  <div className="space-y-4">
+                    {streamUrlWithRetry ? (
+                      <div className="relative aspect-video w-full rounded-2xl overflow-hidden border-2 border-primary/20 shadow-md bg-slate-950 flex items-center justify-center">
+                        {!streamError ? (
+                          <>
+                            <img 
+                              ref={streamImgRef}
+                              src={streamUrlWithRetry} 
+                              className="w-full h-full object-cover" 
+                              alt="Login ESP32 Camera Stream"
+                              crossOrigin="anonymous"
+                              onLoad={() => setImageLoaded(true)}
+                              onError={() => {
+                                setStreamError(true);
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent flex flex-col justify-end p-4">
+                              <p className="text-white text-xs font-black uppercase tracking-widest flex items-center gap-1.5 animate-pulse">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                ESP32-CAM Login Ao Vivo
+                              </p>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 p-6 text-center animate-in fade-in duration-300">
+                            <div className="p-3 bg-amber-500/10 rounded-full border border-amber-500/20 text-amber-400 mb-1">
+                              <AlertTriangle className="h-6 w-6 animate-pulse" />
+                            </div>
+                            <h4 className="text-sm font-black uppercase tracking-tight text-white">Sinal de Login Instável</h4>
+                            <p className="text-[10px] text-slate-400 max-w-xs mt-0.5 mb-3 leading-snug">
+                              Não conseguimos conectar com a câmera de login.
+                            </p>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-8 border-white/10 hover:bg-white/5 text-white gap-2 font-bold uppercase tracking-wider text-[9px]"
+                              onClick={() => {
+                                setImageLoaded(false);
+                                setStreamError(false);
+                                setRetryKey(k => k + 1);
+                              }}
+                            >
+                              <RefreshCw className="h-2.5 w-2.5 animate-spin [animation-duration:3s]" />
+                              Reconectar
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg space-y-4 bg-primary/5 animate-pulse">
+                        <QrCode className="h-16 w-16 text-primary" />
+                        <div className="text-center">
+                          <p className="font-bold uppercase tracking-tight">Câmera Externa Ativa</p>
+                          <p className="text-sm text-muted-foreground">O terminal fará a leitura automática via hardware externo.</p>
+                        </div>
+                      </div>
+                    )}
+                    <p className="text-xs text-center text-muted-foreground uppercase font-black tracking-widest bg-slate-100 py-2 rounded-full">
+                      Aproxime sua Carteira do Leitor da Câmera
+                    </p>
                   </div>
                 )}
               </TabsContent>

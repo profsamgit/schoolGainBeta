@@ -56,6 +56,7 @@ export default function KioskPage() {
   const streamRef = useRef<MediaStream | null>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [capturedPhotoUri, setCapturedPhotoUri] = useState<string | null>(null);
   const [identificationResult, setIdentificationResult] = useState<IdentifyWasteOutput | null>(null);
   const [step, setStep] = useState<'identification' | 'scanning'>('identification');
   const [studentRa, setStudentRa] = useState('');
@@ -85,6 +86,7 @@ export default function KioskPage() {
   const [scannerKey, setScannerKey] = useState(0);
   const [generatedTerminalId, setGeneratedTerminalId] = useState('');
   const [isMobileDevice, setIsMobileDevice] = useState(false);
+  const [isHardwareReady, setIsHardwareReady] = useState(false);
 
   const currentTerminal = terminals.find(t => t.hardwareId === hardwareId);
   const currentSchool = schools.find(s => s.id === currentTerminal?.schoolId);
@@ -104,13 +106,38 @@ export default function KioskPage() {
     setIsMobileDevice(checkMobile());
   }, []);
 
-  const getCameraUrl = (source?: string, url?: string) => {
+  const getCameraUrl = (source?: string, url?: string, purpose?: 'login' | 'scan') => {
     if (!url) return '';
-    if (source === 'esp32') return url.startsWith('http') ? url : `http://${url}/stream`;
+    if (source === 'esp32') {
+      let base = url.startsWith('http') ? url : `http://${url}/stream`;
+      if (purpose === 'scan') {
+        const flashEnabled = currentTerminal?.settings?.scanningCameraFlash !== false;
+        if (flashEnabled) {
+          base = base.includes('?') ? `${base}&flash=on` : `${base}?flash=on`;
+        }
+      } else if (purpose === 'login') {
+        const flashEnabled = currentTerminal?.settings?.loginCameraFlash === true;
+        if (flashEnabled) {
+          base = base.includes('?') ? `${base}&flash=on` : `${base}?flash=on`;
+        }
+      }
+      return base;
+    }
     return url;
   };
 
-  const activeScanningUrl = getCameraUrl(currentTerminal?.settings?.scanningCameraSource, currentTerminal?.settings?.cameraUrl);
+  const activeLoginUrl = getCameraUrl(
+    currentTerminal?.settings?.loginCameraSource || systemSettings.studentCaptureSource,
+    currentTerminal?.settings?.loginCameraUrl || currentTerminal?.settings?.cameraUrl || systemSettings.studentCaptureUrl,
+    'login'
+  );
+
+  const activeScanningUrl = getCameraUrl(
+    currentTerminal?.settings?.scanningCameraSource || systemSettings.studentCaptureSource, 
+    currentTerminal?.settings?.scanningCameraUrl || currentTerminal?.settings?.cameraUrl || systemSettings.studentCaptureUrl,
+    'scan'
+  );
+
 
   useEffect(() => {
     if (lockoutSecs > 0) {
@@ -118,6 +145,65 @@ export default function KioskPage() {
       return () => clearInterval(timer);
     }
   }, [lockoutSecs]);
+
+  // Controle de Resolução Dinâmica e Sincronização Inteligente de Hardware:
+  // - Login: Câmera em velocidade máxima com resolução CIF (~50 FPS) para leitura instantânea de QR.
+  // - Scanner: Câmera configurada dinamicamente conforme a taxa de quadros (framerate) escolhida no painel.
+  useEffect(() => {
+    let isCancelled = false;
+
+    // Reseta o estado pronto de hardware ao transicionar de tela, garantindo que o stream seja temporariamente desmontado
+    setIsHardwareReady(false);
+
+    const coordinateHardware = async () => {
+      // Se for a mesma ESP32-CAM física compartilhada para ambas as funções,
+      // estendemos o cooldown para 800ms para dar tempo do chip reciclar o socket único de stream.
+      const isSameCamera = activeLoginUrl && activeScanningUrl && 
+        activeLoginUrl.split('?')[0].replace(/\/stream\/?$/i, '') === activeScanningUrl.split('?')[0].replace(/\/stream\/?$/i, '');
+      const cooldownMs = isSameCamera ? 800 : 350;
+
+      await new Promise((resolve) => setTimeout(resolve, cooldownMs));
+      if (isCancelled) return;
+
+      try {
+        if (step === 'scanning') {
+          if (activeScanningUrl && activeScanningCameraSource === 'esp32') {
+            const scannerFramerate = currentTerminal?.settings?.scannerFramerate || 'fluid';
+            let targetResolution = 'vga';
+            if (scannerFramerate === 'balanced') targetResolution = 'svga';
+            else if (scannerFramerate === 'high_res') targetResolution = 'hd';
+
+            console.log(`[HARDWARE COORDINATOR] Configurando Câmera de Scanner para modo ${scannerFramerate.toUpperCase()} (${targetResolution.toUpperCase()})...`);
+            // Aguarda a resolução ser fisicamente atualizada na placa antes de iniciar a nova transmissão
+            await fetch(`/api/hardware/camera?ip=${encodeURIComponent(activeScanningUrl)}&resolution=${targetResolution}`).catch(() => {});
+          }
+        } else if (step === 'identification') {
+          if (activeLoginUrl && activeLoginCameraSource === 'esp32') {
+            const loginFramerate = currentTerminal?.settings?.loginCameraFramerate || 'fluid';
+            let targetResolution = 'cif';
+            if (loginFramerate === 'balanced') targetResolution = 'vga';
+            else if (loginFramerate === 'high_res') targetResolution = 'svga';
+
+            console.log(`[HARDWARE COORDINATOR] Configurando Câmera de Login para modo ${loginFramerate.toUpperCase()} (${targetResolution.toUpperCase()})...`);
+            // Aguarda a resolução ser fisicamente atualizada na placa antes de iniciar a nova transmissão
+            await fetch(`/api/hardware/camera?ip=${encodeURIComponent(activeLoginUrl)}&resolution=${targetResolution}`).catch(() => {});
+          }
+        }
+      } catch (err) {
+        console.warn("[HARDWARE COORDINATOR ERRO] Falha ao disparar configurações da ESP32-CAM:", err);
+      } finally {
+        if (!isCancelled) {
+          setIsHardwareReady(true);
+        }
+      }
+    };
+
+    coordinateHardware();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [step, activeLoginUrl, activeScanningUrl, activeLoginCameraSource, activeScanningCameraSource, currentTerminal?.settings?.scannerFramerate, currentTerminal?.settings?.loginCameraFramerate]);
 
   useEffect(() => {
     if (requestedLocation && selectedSchoolId && !generatedTerminalId && !terminalExists) {
@@ -222,11 +308,16 @@ export default function KioskPage() {
 
     let isCancelled = false;
     async function getCameraPermission() {
+      // Pequeno atraso estratégico para garantir que a câmera do login liberou completamente o hardware
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      if (isCancelled) return;
+
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         try {
           const videoConstraints: any = { width: { ideal: 1280 }, height: { ideal: 720 } };
-          if (currentTerminal?.settings?.preferredCamera && currentTerminal.settings.preferredCamera !== 'default') {
-            videoConstraints.deviceId = { exact: currentTerminal.settings.preferredCamera };
+          const scanningCameraDevice = currentTerminal?.settings?.scanningCameraDevice || currentTerminal?.settings?.preferredCamera;
+          if (scanningCameraDevice && scanningCameraDevice !== 'default') {
+            videoConstraints.deviceId = { exact: scanningCameraDevice };
           } else {
             videoConstraints.facingMode = 'environment';
           }
@@ -251,31 +342,134 @@ export default function KioskPage() {
     }
     getCameraPermission();
     return () => { isCancelled = true; stopCamera(); };
-  }, [step, identificationResult, activeScanningCameraSource, toast, currentTerminal?.settings?.preferredCamera]);
+  }, [step, identificationResult, activeScanningCameraSource, toast, currentTerminal?.settings?.preferredCamera, currentTerminal?.settings?.scanningCameraDevice]);
 
   const handleKeyboardInput = (key: string) => { setStudentRa((prev) => (prev + key).toUpperCase()); raInputRef.current?.focus(); };
   const handleKeyboardBackspace = () => { setStudentRa((prev) => prev.slice(0, -1)); raInputRef.current?.focus(); };
 
   const handleScan = async () => {
-    if (!videoRef.current || !canvasRef.current) return;
+    if (!canvasRef.current) return;
     setIsLoading(true);
     setIdentificationResult(null);
-    const video = videoRef.current;
+    setCapturedPhotoUri(null); // Reseta a foto anterior
+
     const canvas = canvasRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const context = canvas.getContext('2d');
-    if(context) {
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const dataUri = canvas.toDataURL('image/jpeg');
-        try {
-            const result = await identifyWasteAction({ photoDataUri: dataUri });
-            setIdentificationResult(result);
-        } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Falha na Identificação', description: error.message || 'Tente novamente.' });
-        } finally {
-            setIsLoading(false);
+    let sourceElement: HTMLVideoElement | HTMLImageElement | null = null;
+    const isEsp32 = activeScanningCameraSource === 'esp32' || activeScanningCameraSource === 'url';
+    // Calcula o IP base da ESP32 de forma robusta e resiliente
+    let esp32BaseUrl = '';
+    if (activeScanningUrl) {
+      let cleaned = activeScanningUrl.replace(/\/stream\/?$/i, '').trim();
+      if (cleaned && !cleaned.startsWith('http://') && !cleaned.startsWith('https://')) {
+        cleaned = `http://${cleaned}`;
+      }
+      esp32BaseUrl = cleaned;
+    }
+
+    // Helper para fazer requisições HTTP com tempo limite (timeout) para evitar travamentos
+    const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 4000) => {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const response = await fetch(url, { ...options, signal: controller.signal });
+        clearTimeout(id);
+        return response;
+      } catch (err) {
+        clearTimeout(id);
+        throw err;
+      }
+    };
+
+    try {
+      // 1. Seleciona o elemento de origem correto (Webcam Local ou ESP32-CAM)
+      if (activeScanningCameraSource === 'browser') {
+        sourceElement = videoRef.current;
+      } else {
+        sourceElement = document.querySelector('img[alt="External Camera Stream"]') as HTMLImageElement | null;
+      }
+
+      if (!sourceElement) {
+        throw new Error('Câmera não encontrada ou fluxo de vídeo indisponível.');
+      }
+
+      // 2. Define dimensões do canvas com redimensionamento inteligente client-side (Max 1024px)
+      let originalWidth = 640;
+      let originalHeight = 480;
+
+      if (activeScanningCameraSource === 'browser') {
+        const video = sourceElement as HTMLVideoElement;
+        originalWidth = video.videoWidth || 640;
+        originalHeight = video.videoHeight || 480;
+      } else {
+        const img = sourceElement as HTMLImageElement;
+        originalWidth = img.naturalWidth || 1280;
+        originalHeight = img.naturalHeight || 720;
+      }
+
+      // Limita a largura ou altura máxima a 1024px mantendo a proporção (Aspect Ratio)
+      const MAX_DIMENSION = 1024;
+      let targetWidth = originalWidth;
+      let targetHeight = originalHeight;
+
+      if (originalWidth > MAX_DIMENSION || originalHeight > MAX_DIMENSION) {
+        if (originalWidth > originalHeight) {
+          targetWidth = MAX_DIMENSION;
+          targetHeight = Math.round((originalHeight * MAX_DIMENSION) / originalWidth);
+        } else {
+          targetHeight = MAX_DIMENSION;
+          targetWidth = Math.round((originalWidth * MAX_DIMENSION) / originalHeight);
         }
+      }
+
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+
+      // 3. Captura o frame no Canvas instantaneamente
+      const context = canvas.getContext('2d');
+      if (!context) {
+        throw new Error('Falha ao inicializar o processador gráfico da imagem.');
+      }
+
+      // Aplica suavização na imagem antes de desenhar (evita serrilhado ao diminuir o tamanho)
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = 'high';
+
+      // Filtros Gráficos Dinâmicos: Otimizados para compensar reflexos de flash e iluminação externa.
+      // Reduzimos ligeiramente o brilho (0.96) para recuperar realces superexpostos (glare) e aumentamos o contraste (1.06)
+      // para destacar letras de rótulos e silhuetas físicas sob iluminação mista.
+      context.filter = 'contrast(1.06) brightness(0.96)';
+
+      context.drawImage(sourceElement, 0, 0, canvas.width, canvas.height);
+      
+      // Reseta o filtro para evitar qualquer efeito colateral em desenhos futuros no Totem
+      context.filter = 'none';
+      
+      // Exporta em JPEG com compressão de 85% para reduzir drasticamente o tamanho do payload
+      const dataUri = canvas.toDataURL('image/jpeg', 0.85);
+      setCapturedPhotoUri(dataUri); // Guarda a imagem congelada localmente
+
+      // 4. Liberação síncrona de socket da ESP32: Limpar a imagem 'src' força o navegador a encerrar 
+      // a conexão de stream física com a ESP32. O firmware C++ detecta o encerramento do socket e 
+      // desliga o Flash LED físico de forma 100% AUTOMÁTICA e instantânea!
+      if (activeScanningCameraSource !== 'browser') {
+        const activeStreamImg = document.querySelector('img[alt="External Camera Stream"]') as HTMLImageElement | null;
+        if (activeStreamImg) {
+          activeStreamImg.src = "";
+        }
+      }
+
+      // 5. Envia para o modelo de Inteligência Artificial processar e classificar o resíduo
+      const result = await identifyWasteAction({ photoDataUri: dataUri });
+      setIdentificationResult(result);
+
+    } catch (error: any) {
+      toast({ 
+        variant: 'destructive', 
+        title: 'Falha na Identificação', 
+        description: error.message || 'Tente novamente.' 
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -297,10 +491,12 @@ export default function KioskPage() {
         setStep('identification'); setStudentRa(''); setIdentifiedStudent(null); setIdentificationResult(null);
     }
     setIdentificationResult(null);
+    setCapturedPhotoUri(null); // Reseta foto
   }
   
   const handleExit = () => {
     setStudentRa(''); setIdentifiedStudent(null); setStep('identification'); setIdentificationResult(null); setShowKeyboard(false); setSuccessMessage(null);
+    setCapturedPhotoUri(null); // Reseta foto
   };
 
   if (isMobileDevice) {
@@ -351,6 +547,7 @@ export default function KioskPage() {
         raInputRef={raInputRef} handleLogin={handleLogin} showKeyboard={showKeyboard}
         setShowKeyboard={setShowKeyboard} handleKeyboardInput={handleKeyboardInput}
         handleKeyboardBackspace={handleKeyboardBackspace} activeLoginCameraSource={activeLoginCameraSource}
+        activeLoginUrl={isHardwareReady ? activeLoginUrl : undefined}
         scannerKey={scannerKey} loginCameraDeviceId={currentTerminal?.settings?.preferredCamera}
         onIdentify={handleLogin}
         isProcessing={isLoading}
@@ -361,11 +558,11 @@ export default function KioskPage() {
   return (
     <ScanningSection 
       identifiedStudent={identifiedStudent} handleExit={handleExit}
-      activeScanningCameraSource={activeScanningCameraSource} activeScanningUrl={activeScanningUrl}
+      activeScanningCameraSource={activeScanningCameraSource} activeScanningUrl={isHardwareReady ? activeScanningUrl : ''}
       videoRef={videoRef} canvasRef={canvasRef} hasCameraPermission={hasCameraPermission}
-      isLoading={isLoading} identificationResult={identificationResult}
+      isLoading={isLoading} capturedPhotoUri={capturedPhotoUri} identificationResult={identificationResult}
       WasteIcon={identificationResult ? wasteIcons[identificationResult.wasteType] : null}
-      handleScan={handleScan} handleReset={() => setIdentificationResult(null)} handleConfirm={handleConfirm}
+      handleScan={handleScan} handleReset={() => { setIdentificationResult(null); setCapturedPhotoUri(null); }} handleConfirm={handleConfirm}
     />
   );
 }

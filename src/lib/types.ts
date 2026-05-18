@@ -121,10 +121,19 @@ export type Terminal = {
   schoolId?: string; // Escola onde o terminal está fisicamente
   settings?: {
     preferredCamera?: string;
+    scanningCameraDevice?: string;
     loginMethod?: 'manual' | 'qr' | 'rfid' | 'all';
     loginCameraSource?: 'browser' | 'esp32' | 'url';
     scanningCameraSource?: 'browser' | 'esp32' | 'url';
     cameraUrl?: string;
+    loginCameraUrl?: string;
+    scanningCameraUrl?: string;
+    scannerFramerate?: 'fluid' | 'balanced' | 'high_res';
+    loginCameraFramerate?: 'fluid' | 'balanced' | 'high_res';
+    loginCameraFlash?: boolean;
+    scanningCameraFlash?: boolean;
+    schoolgainServer?: string;
+    hardwareToken?: string;
   };
 };
 
