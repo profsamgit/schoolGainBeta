@@ -541,7 +541,7 @@ export class EcosystemService {
     const visitors = this.usersByRole['visitors'] || [];
 
     const allUsers = [...students, ...admins, ...staff, ...superAdmins, ...visitors].map(u => {
-      const state = this.data.userStates[u.id] || this.getDefaultState();
+      const state = this.data.userStates[u.id] || this.getDefaultState(u);
       return {
         ...u,
         points: state.points,
@@ -653,8 +653,8 @@ export class EcosystemService {
    * Agora inclui lógica de degradação temporal (Tamagotchi).
    */
   private syncStateWithUser(userId: string) {
-    const userState = this.data?.userStates?.[userId] || this.getDefaultState();
     const user = (this.data?.users || []).find(u => u.id === userId);
+    const userState = this.data?.userStates?.[userId] || this.getDefaultState(user);
 
     // Sincronização de Pontos (Agora centralizada no userState)
     if (user && userState.points === undefined) {
@@ -735,7 +735,7 @@ export class EcosystemService {
     if (!user) return;
 
     const userId = user.id;
-    const state = this.data.userStates[userId] || this.getDefaultState();
+    const state = this.data.userStates[userId] || this.getDefaultState(user);
     
     state.balance += Number(currentBalanceChange);
     state.points = (Number(state.points) || 0) + Number(lifetimePointsGain);
@@ -1296,11 +1296,13 @@ export class EcosystemService {
       u.id === identifier || u.ra?.toUpperCase() === identifier.toUpperCase().trim()
     );
     if (!user) return this.getDefaultState();
-    return this.data.userStates[user.id] || this.getDefaultState();
+    return this.data.userStates[user.id] || this.getDefaultState(user);
   }
 
-  private getDefaultState(): EcosystemUserState {
+  private getDefaultState(user?: User): EcosystemUserState {
     return {
+      id: user?.id,
+      schoolId: user?.schoolId,
       balance: 0,
       points: 0,
       vitality: 0,
@@ -1505,7 +1507,7 @@ export class EcosystemService {
     // Garantia de que todo usuário tenha um estado inicial vinculado ao seu ID
     this.data.users.forEach(user => {
       if (!this.data.userStates[user.id]) {
-        this.data.userStates[user.id] = this.getDefaultState();
+        this.data.userStates[user.id] = this.getDefaultState(user);
         hasChanges = true;
       }
     });
@@ -1522,6 +1524,8 @@ export class EcosystemService {
     const user = this.data.users.find(u => u.id === (this.data.currentUserId || ''));
     if (user) {
       this.data.userStates[user.id] = {
+        id: user.id,
+        schoolId: user.schoolId,
         balance: this.balanceSubject.value,
         points: this.data.userStates[user.id]?.points || 0,
         vitality: this.vitalitySubject.value,
@@ -1703,7 +1707,7 @@ export class EcosystemService {
 
     const ranked = candidates
       .map(u => {
-        const state = this.data.userStates[u.id] || this.getDefaultState();
+        const state = this.data.userStates[u.id] || this.getDefaultState(u);
         const score = EcosystemService.calculateTotalScore(state.points || 0, state.vitality || 0, state.itemsCount || 0);
         return { ...u, totalScore: score };
       })
@@ -1721,7 +1725,7 @@ export class EcosystemService {
 
     const ranked = candidates
       .map(u => {
-        const state = this.data.userStates[u.id] || this.getDefaultState();
+        const state = this.data.userStates[u.id] || this.getDefaultState(u);
         const score = EcosystemService.calculateTotalScore(state.points || 0, state.vitality || 0, state.itemsCount || 0);
         return { ...u, totalScore: score };
       })
@@ -1739,7 +1743,7 @@ export class EcosystemService {
     
     const user = this.data.users.find(u => u.id === this.currentUserIdSubject.value);
     if (user) {
-      const state = this.data?.userStates?.[user.id] || this.getDefaultState();
+      const state = this.data?.userStates?.[user.id] || this.getDefaultState(user);
       state.lastMissionDate = today;
       
       // Restauração de Vitalidade (+20% por missão cumprida)
@@ -1778,7 +1782,7 @@ export class EcosystemService {
     
     const user = this.data.users.find(u => u.id === userId);
     if (user) {
-      const state = this.data.userStates[user.id] || this.getDefaultState();
+      const state = this.data.userStates[user.id] || this.getDefaultState(user);
       const vitalityGain = Math.floor(points / 10);
       state.vitality = Math.min(100, state.vitality + vitalityGain);
       state.balance -= points;
@@ -1875,7 +1879,7 @@ export class EcosystemService {
     let pointsAdjust = 0;
 
     if (student) {
-      const state = this.data.userStates[student.id] || this.getDefaultState();
+      const state = this.data.userStates[student.id] || this.getDefaultState(student);
       state.purchasedItems = newItems;
       this.data.userStates[student.id] = state;
 
@@ -2038,7 +2042,7 @@ export class EcosystemService {
     const article = this.data.articles.find(a => a.id === articleId);
     if (!student || !article) return false;
 
-    const state = this.data.userStates[userId] || this.getDefaultState();
+    const state = this.data.userStates[userId] || this.getDefaultState(student);
     if (!state.readArticles) state.readArticles = [];
     
     // Verifica se já leu para não ganhar pontos repetidos
@@ -2076,7 +2080,7 @@ export class EcosystemService {
     const topic = this.data.quizTopics.find(t => t.id === topicId);
     if (!student || !topic) return false;
 
-    const userState = this.data.userStates[userId] || this.getDefaultState();
+    const userState = this.data.userStates[userId] || this.getDefaultState(student);
     
     // REGRA: Ativação de Vitalidade
     // 1 quizz de 10 perguntas no médio para ativar a vitalidade 100
@@ -2160,18 +2164,18 @@ export class EcosystemService {
       endDate: new Date().toISOString(),
       totalWasteKg: relevantWaste.reduce((acc, curr) => acc + curr.collected, 0),
       totalPoints: participants.reduce((acc, curr) => {
-        const state = this.data.userStates[curr.id] || this.getDefaultState();
+        const state = this.data.userStates[curr.id] || this.getDefaultState(curr);
         return acc + (state.points || 0);
       }, 0),
       topStudents: [...participants]
         .sort((a, b) => {
-          const stateA = this.data.userStates[a.id] || this.getDefaultState();
-          const stateB = this.data.userStates[b.id] || this.getDefaultState();
+          const stateA = this.data.userStates[a.id] || this.getDefaultState(a);
+          const stateB = this.data.userStates[b.id] || this.getDefaultState(b);
           return (stateB.points || 0) - (stateA.points || 0);
         })
         .slice(0, 5)
         .map(s => {
-          const state = this.data.userStates[s.id] || this.getDefaultState();
+          const state = this.data.userStates[s.id] || this.getDefaultState(s);
           return { name: s.name, points: state.points || 0, studentId: s.id };
         }),
       wasteByType: relevantWaste.reduce((acc, curr) => {
@@ -2196,7 +2200,7 @@ export class EcosystemService {
     // 3. LIMPEZA DE DADOS (RESET)
     // Zera pontos e níveis dos usuários no userStates
     for (const u of participants) {
-      const state = this.data.userStates[u.id] || this.getDefaultState();
+      const state = this.data.userStates[u.id] || this.getDefaultState(u);
       state.points = 0;
       state.level = 'Semente';
       state.id = u.id;
@@ -2223,7 +2227,7 @@ export class EcosystemService {
     Object.keys(this.data.userStates).forEach(id => {
       const user = this.data.users.find(u => u.id === id);
       if (user && (!schoolId || user.schoolId === schoolId)) {
-        this.data.userStates[id] = this.getDefaultState();
+        this.data.userStates[id] = this.getDefaultState(user);
       }
     });
 
@@ -2595,7 +2599,7 @@ export class EcosystemService {
           
           // Se for novo e for estudante/visitante, inicializa o estado de vitalidade
           if (isNew && (u.role === 'student' || u.role === 'visitor')) {
-            ops.push(setDoc(doc(db, "userStates", u.id), this.getDefaultState()));
+            ops.push(setDoc(doc(db, "userStates", u.id), this.getDefaultState(u)));
           }
           
           return ops;
@@ -3521,7 +3525,7 @@ export class EcosystemService {
     await setDoc(doc(db, this.getUserCollection(newUser.role), newUser.id), this.sanitizeUserForFirestore(newUser));
 
     // NOVO: Inicializa o estado de vitalidade e Bio-Coins para o novo usuário
-    await setDoc(doc(db, "userStates", newUser.id), this.getDefaultState());
+    await setDoc(doc(db, "userStates", newUser.id), this.getDefaultState(newUser));
 
     // 3. Remove a solicitação
     await deleteDoc(doc(db, "registrationRequests", requestId));
