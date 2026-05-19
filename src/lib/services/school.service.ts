@@ -7,6 +7,46 @@ export class SchoolService {
   constructor(private service: any) {}
 
   /**
+   * Solicita um novo cadastro de interesse de escola (status pending).
+   */
+  async requestSchoolRegistration(schoolData: Omit<School, 'id' | 'status' | 'joinedDate'>, initialPassword?: string): Promise<boolean> {
+    const resolvedPassword = initialPassword || schoolData.initialManagerPassword;
+
+    if (!schoolData.managerEmail || !resolvedPassword) {
+      return false;
+    }
+
+    // Validação de E-mail Único na Rede
+    const emailLower = schoolData.managerEmail.toLowerCase().trim();
+    if (this.service.data.users.some((u: User) => u.email?.toLowerCase() === emailLower)) {
+      return false;
+    }
+
+    const newSchool: School = {
+      ...schoolData,
+      id: EcosystemService.generateStandardId('school', undefined, { name: schoolData.name, city: schoolData.city }),
+      status: 'pending',
+      joinedDate: new Date().toISOString().split('T')[0],
+      initialManagerPassword: resolvedPassword
+    };
+
+    this.service.data.schools.push(newSchool);
+    this.service.schoolsSubject.next([...this.service.data.schools]);
+
+    // Sincroniza Escola no Firestore como Pendente
+    await setDoc(doc(db, "schools", newSchool.id), newSchool);
+
+    // Inicializa configurações de hardware da unidade
+    await setDoc(doc(db, "settings", newSchool.id), this.service.data.systemSettings || {
+      studentLoginMethod: 'all',
+      adminLoginMethod: 'all'
+    });
+
+    this.service.saveToStorage();
+    return true;
+  }
+
+  /**
    * Registra uma nova escola diretamente como ativa (uso do Super Admin).
    */
   async registerSchool(schoolData: Omit<School, 'id' | 'status' | 'joinedDate'>, initialPassword?: string): Promise<boolean> {

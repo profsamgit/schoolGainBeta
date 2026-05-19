@@ -696,6 +696,15 @@ export class EcosystemService {
   get systemSettings() { return this.systemSettingsSubject.value; }
   get legends() { return this.legendsSubject.value; }
 
+  get isMissionDone(): boolean {
+    const today = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    return this.lastMissionDate === today;
+  }
+
+  get lastMissionDate() { return this.lastMissionDateSubject.value; }
+
+  get userStates() { return this.userStatesSubject.value; }
+
   get hardwareId(): string {
     if (typeof window === 'undefined') return 'SG-VIRTUAL-HW';
     if (this._hardwareId) return this._hardwareId;
@@ -883,6 +892,9 @@ export class EcosystemService {
   }
 
   // 3. Multi-Tenant e Escolas (SchoolService)
+  async requestSchoolRegistration(schoolData: Omit<School, 'id' | 'status' | 'joinedDate'>, initialPassword?: string) {
+    return this.schoolService.requestSchoolRegistration(schoolData, initialPassword);
+  }
   async registerSchool(schoolData: Omit<School, 'id' | 'status' | 'joinedDate'>, initialPassword?: string) {
     return this.schoolService.registerSchool(schoolData, initialPassword);
   }
@@ -1368,8 +1380,8 @@ export class EcosystemService {
   }
 
   // CRUD & Users (UserService)
-  updateParticipants(newParticipants: Participant[]) {
-    this.userService.updateParticipants(newParticipants);
+  async updateParticipants(newParticipants: Participant[]) {
+    return await this.userService.updateParticipants(newParticipants);
   }
 
   // Pedagogical CRUD (PedagogicalService)

@@ -299,10 +299,29 @@ export class UserService {
     return false;
   }
 
-  updateParticipants(newParticipants: Participant[]): void {
-    if (!this.service.checkAdminAuth()) return;
-    this.service.data.participants = newParticipants;
-    this.service.participantsSubject.next(newParticipants);
-    this.service.saveToStorage();
+  async updateParticipants(newParticipants: Participant[]): Promise<boolean> {
+    if (!this.service.checkAdminAuth()) return false;
+    
+    try {
+      const oldIds = (this.service.data.participants || []).map((p: Participant) => p.id);
+      const newIds = newParticipants.map((p: Participant) => p.id);
+      const deletedIds = oldIds.filter((id: string) => !newIds.includes(id));
+
+      for (const p of newParticipants) {
+        await setDoc(doc(db, "participants", p.id), p);
+      }
+
+      for (const id of deletedIds) {
+        await deleteDoc(doc(db, "participants", id));
+      }
+
+      this.service.data.participants = newParticipants;
+      this.service.participantsSubject.next([...newParticipants]);
+      this.service.saveToStorage();
+      return true;
+    } catch (error) {
+      console.error("[USER SERVICE] Erro ao atualizar participantes:", error);
+      return false;
+    }
   }
 }

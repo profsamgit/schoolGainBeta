@@ -337,24 +337,106 @@ export class PedagogicalService {
     }
   }
 
-  async updateRewards(newRewards: any[], sid?: string): Promise<void> {
-    if (!this.service.checkAdminAuth()) return;
-    this.service.data.rewards = newRewards;
-    this.service.rewardsSubject.next([...newRewards]);
-    this.service.saveToStorage();
+  async updateRewards(newRewards: Reward[], sid?: string): Promise<boolean> {
+    if (!this.service.checkAdminAuth()) return false;
+
+    try {
+      const targetSid = sid || 'global';
+      const oldRewardsOfSchool = (this.service.data.rewards || []).filter((r: Reward) => r.schoolId === targetSid);
+      const oldIds = oldRewardsOfSchool.map((r: Reward) => r.id);
+      
+      const newRewardsOfSchool = newRewards.filter((r: Reward) => r.schoolId === targetSid);
+      const newIds = newRewardsOfSchool.map((r: Reward) => r.id);
+      
+      const deletedIds = oldIds.filter((id: string) => !newIds.includes(id));
+
+      for (const r of newRewardsOfSchool) {
+        await setDoc(doc(db, "rewards", r.id), r);
+      }
+
+      for (const id of deletedIds) {
+        await deleteDoc(doc(db, "rewards", id));
+      }
+
+      // Mescla de volta no array global da memória cache
+      const otherRewards = (this.service.data.rewards || []).filter((r: Reward) => r.schoolId !== targetSid);
+      const updatedRewards = [...otherRewards, ...newRewardsOfSchool];
+
+      this.service.data.rewards = updatedRewards;
+      this.service.rewardsSubject.next(updatedRewards);
+      this.service.saveToStorage();
+      return true;
+    } catch (error) {
+      console.error("[PEDAGOGICAL SERVICE] Erro ao atualizar recompensas:", error);
+      return false;
+    }
   }
 
-  async updateArticles(newArticles: any[], sid?: string): Promise<void> {
-    if (!this.service.checkAdminAuth()) return;
-    this.service.data.articles = newArticles;
-    this.service.articlesSubject.next([...newArticles]);
-    this.service.saveToStorage();
+  async updateArticles(newArticles: EducationArticle[], sid?: string): Promise<boolean> {
+    if (!this.service.checkAdminAuth()) return false;
+
+    try {
+      const targetSid = sid || 'global';
+      const oldArticlesOfSchool = (this.service.data.articles || []).filter((a: EducationArticle) => a.schoolId === targetSid);
+      const oldIds = oldArticlesOfSchool.map((a: EducationArticle) => a.id);
+      
+      const newArticlesOfSchool = newArticles.filter((a: EducationArticle) => a.schoolId === targetSid);
+      const newIds = newArticlesOfSchool.map((a: EducationArticle) => a.id);
+      
+      const deletedIds = oldIds.filter((id: string) => !newIds.includes(id));
+
+      for (const a of newArticlesOfSchool) {
+        await setDoc(doc(db, "articles", a.id), a);
+      }
+
+      for (const id of deletedIds) {
+        await deleteDoc(doc(db, "articles", id));
+      }
+
+      const otherArticles = (this.service.data.articles || []).filter((a: EducationArticle) => a.schoolId !== targetSid);
+      const updatedArticles = [...otherArticles, ...newArticlesOfSchool];
+
+      this.service.data.articles = updatedArticles;
+      this.service.articlesSubject.next(updatedArticles);
+      this.service.saveToStorage();
+      return true;
+    } catch (error) {
+      console.error("[PEDAGOGICAL SERVICE] Erro ao atualizar artigos:", error);
+      return false;
+    }
   }
 
-  async updateQuizTopics(newTopics: any[], sid?: string): Promise<void> {
-    if (!this.service.checkAdminAuth()) return;
-    this.service.data.quizTopics = newTopics;
-    this.service.quizTopicsSubject.next([...newTopics]);
-    this.service.saveToStorage();
+  async updateQuizTopics(newTopics: QuizTopic[], sid?: string): Promise<boolean> {
+    if (!this.service.checkAdminAuth()) return false;
+
+    try {
+      const targetSid = sid || 'global';
+      const oldTopicsOfSchool = (this.service.data.quizTopics || []).filter((t: QuizTopic) => t.schoolId === targetSid);
+      const oldIds = oldTopicsOfSchool.map((t: QuizTopic) => t.id);
+      
+      const newTopicsOfSchool = newTopics.filter((t: QuizTopic) => t.schoolId === targetSid);
+      const newIds = newTopicsOfSchool.map((t: QuizTopic) => t.id);
+      
+      const deletedIds = oldIds.filter((id: string) => !newIds.includes(id));
+
+      for (const t of newTopicsOfSchool) {
+        await setDoc(doc(db, "quizTopics", t.id), t);
+      }
+
+      for (const id of deletedIds) {
+        await deleteDoc(doc(db, "quizTopics", id));
+      }
+
+      const otherTopics = (this.service.data.quizTopics || []).filter((t: QuizTopic) => t.schoolId !== targetSid);
+      const updatedTopics = [...otherTopics, ...newTopicsOfSchool];
+
+      this.service.data.quizTopics = updatedTopics;
+      this.service.quizTopicsSubject.next(updatedTopics);
+      this.service.saveToStorage();
+      return true;
+    } catch (error) {
+      console.error("[PEDAGOGICAL SERVICE] Erro ao atualizar tópicos de quiz:", error);
+      return false;
+    }
   }
 }
