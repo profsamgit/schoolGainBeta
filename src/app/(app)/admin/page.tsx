@@ -447,7 +447,7 @@ function AdminContent() {
         // Limpeza profunda do objeto para evitar 'undefined' no Firestore
         const sanitizedPayload = Object.fromEntries(
           Object.entries(payload).filter(([_, v]) => v !== undefined && v !== null && _ !== 'confirmPassword')
-        );
+        ) as any;
 
         // Normalização Obrigatória (Caixa Alta)
         if (sanitizedPayload.name) sanitizedPayload.name = (sanitizedPayload.name as string).toUpperCase().trim();
@@ -462,12 +462,21 @@ function AdminContent() {
         if (sanitizedPayload.role === 'super_admin') prefix = 'super';
         else if (sanitizedPayload.role === 'admin') prefix = 'admin';
         else if (sanitizedPayload.role === 'visitor') prefix = 'user-visitante';
+        else if (sanitizedPayload.role === 'staff') {
+          const cleanPosition = (sanitizedPayload.position || 'staff')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]/g, '')
+            .substring(0, 15);
+          prefix = `staff-${cleanPosition}`;
+        }
 
         let finalUsers: User[];
         const targetSid = targetSchoolId || currentUser?.schoolId;
 
         if (isNew) {
-          const newId = EcosystemService.generateStandardId(prefix, targetSid);
+          const newId = EcosystemService.generateStandardId(prefix, targetSid, { name: sanitizedPayload.name });
           finalUsers = [...users, { ...sanitizedPayload, id: newId, points: 0, level: 'Semente', schoolId: targetSid } as unknown as User];
         } else {
           // Edição: Localiza e mescla dados

@@ -1,5 +1,6 @@
-import { auth } from '../firebase';
+import { auth, db } from '../firebase';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 import { EcosystemService } from '../ecosystem.service';
 import type { User } from '../types';
 
@@ -64,6 +65,20 @@ export class AuthService {
 
       // 3. Lógica diferenciada por cargo
       if (cleanPassword) {
+        // INTERCEPTADOR PROATIVO: Auto-Recovery
+        // Se o login for por e-mail, tentamos obrigatoriamente o Firebase Auth primeiro.
+        // Se a senha e e-mail forem do Super Admin real, o Firebase autoriza.
+        // Isso resolve o conflito se o usuário também tiver um perfil 'admin' com o mesmo e-mail.
+        if (cleanId.includes('@')) {
+          try {
+            await signInWithEmailAndPassword(auth, cleanId, cleanPassword);
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            return true; // O listener onAuthStateChanged assumirá o controle
+          } catch (e) {
+            // Não é um Super Admin no Firebase, prossegue para validação local normal.
+          }
+        }
+
         if (user.role === 'super_admin') {
           // Super Admins continuam usando a segurança nativa do Firebase Auth
           try {
@@ -109,6 +124,22 @@ export class AuthService {
 
       this.service.saveToStorage();
       return true;
+    }
+
+    // FALLBACK: Auto-Recovery de Super Admin
+    // Se o usuário não foi encontrado no cache local, mas forneceu um email e senha,
+    // tentamos autenticar diretamente no Firebase Auth.
+    // Se o Firebase autorizar, o listener onAuthStateChanged cuidará da criação dinâmica.
+    if (cleanPassword && cleanId.includes('@')) {
+      try {
+        await signInWithEmailAndPassword(auth, cleanId, cleanPassword);
+        
+        // Aguarda brevemente para que o listener global injete o perfil e sincronize
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        return true;
+      } catch (err) {
+        // Falhou no firebase também, prossegue para o log de erro padrão abaixo
+      }
     }
 
     await this.service.logTelemetry({
@@ -192,5 +223,57 @@ export class AuthService {
 
     const hashedInput = await EcosystemService.hashPassword(password);
     return user.password === hashedInput;
+  }
+
+  /**
+   * Altera a senha de um usuário (principalmente gestores).
+   */
+  async changePassword(ra: string, newPassword: string): Promise<boolean> {
+    const userIndex = this.service.data.users.findIndex((u: User) => u.ra === ra);
+    if (userIndex !== -1) {
+      const hashedPassword = await EcosystemService.hashPassword(newPassword);
+      const user = this.service.data.users[userIndex];
+      user.password = hashedPassword;
+      user.mustChangePassword = false;
+
+      this.service.usersSubject.next([...this.service.data.users]);
+
+      // Sincroniza no Firestore usando ID único
+      await setDoc(doc(db, this.service.getUserCollection(user.role), user.id), this.service.sanitizeUserForFirestore(user));
+
+      this.service.saveToStorage();
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Altera a própria senha, exigindo a senha atual.
+   */
+  async updateMyPassword(currentPassword: string, newPassword: string): Promise<boolean> {
+    const ra = this.service.currentUserRaSubject.value;
+    if (!ra) return false;
+    
+    const user = this.service.data.users.find((u: User) => u.ra === ra);
+    if (!user) return false;
+
+    const hashedCurrent = await EcosystemService.hashPassword(currentPassword);
+    const isStoredHashed = user.password && user.password.length === 64;
+    
+    const isMatch = isStoredHashed 
+      ? user.password === hashedCurrent 
+      : user.password === currentPassword;
+
+    if (isMatch) {
+      user.password = await EcosystemService.hashPassword(newPassword);
+      this.service.usersSubject.next([...this.service.data.users]);
+      
+      // Sincroniza no Firestore usando ID único
+      await setDoc(doc(db, this.service.getUserCollection(user.role), user.id), this.service.sanitizeUserForFirestore(user));
+      
+      this.service.saveToStorage();
+      return true;
+    }
+    return false;
   }
 }

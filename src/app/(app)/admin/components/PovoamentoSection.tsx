@@ -59,16 +59,17 @@ export function PovoamentoSection({
     if (e) e.preventDefault();
     let newTurmas;
     const sid = targetSchoolId || 'global';
+    const upperName = turmaFormData.name.toUpperCase().trim();
     
     if (editingTurma) {
-      newTurmas = allTurmas.map(t => t.id === editingTurma.id ? { ...t, ...turmaFormData } : t);
+      newTurmas = allTurmas.map(t => t.id === editingTurma.id ? { ...t, name: upperName, status: turmaFormData.status } : t);
     } else {
-      if (allTurmas.some(t => t.name.toLowerCase() === turmaFormData.name.toLowerCase())) {
+      if (allTurmas.some(t => t.name.toLowerCase() === upperName.toLowerCase())) {
         toast({ title: "Aviso", description: "Esta turma já existe.", variant: "destructive" });
         return;
       }
       const id = EcosystemService.generateStandardId('trm', targetSchoolId);
-      newTurmas = [...allTurmas, { id: id, name: turmaFormData.name, status: turmaFormData.status, schoolId: sid }];
+      newTurmas = [...allTurmas, { id: id, name: upperName, status: turmaFormData.status, schoolId: sid }];
     }
 
     const success = await updateTurmas(newTurmas, sid);
@@ -87,16 +88,17 @@ export function PovoamentoSection({
     if (e) e.preventDefault();
     let newCursos;
     const sid = targetSchoolId || 'global';
+    const upperName = cursoFormData.name.toUpperCase().trim();
 
     if (editingCurso) {
-      newCursos = allCursos.map(c => c.id === editingCurso.id ? { ...c, ...cursoFormData } : c);
+      newCursos = allCursos.map(c => c.id === editingCurso.id ? { ...c, name: upperName, status: cursoFormData.status } : c);
     } else {
-      if (allCursos.some(c => c.name.toLowerCase() === cursoFormData.name.toLowerCase())) {
+      if (allCursos.some(c => c.name.toLowerCase() === upperName.toLowerCase())) {
         toast({ title: "Aviso", description: "Este curso já existe.", variant: "destructive" });
         return;
       }
       const id = EcosystemService.generateStandardId('cur', targetSchoolId);
-      newCursos = [...allCursos, { id: id, name: cursoFormData.name, status: cursoFormData.status, schoolId: sid }];
+      newCursos = [...allCursos, { id: id, name: upperName, status: cursoFormData.status, schoolId: sid }];
     }
 
     const success = await updateCursos(newCursos, sid);
@@ -115,16 +117,17 @@ export function PovoamentoSection({
     if (e) e.preventDefault();
     let newCargos;
     const sid = targetSchoolId || 'global';
+    const upperName = cargoFormData.name.toUpperCase().trim();
 
     if (editingCargo) {
-      newCargos = allCargos.map(c => c.id === editingCargo.id ? { ...c, ...cargoFormData } : c);
+      newCargos = allCargos.map(c => c.id === editingCargo.id ? { ...c, name: upperName, status: cargoFormData.status } : c);
     } else {
-      if (allCargos.some(c => c.name.toLowerCase() === cargoFormData.name.toLowerCase())) {
+      if (allCargos.some(c => c.name.toLowerCase() === upperName.toLowerCase())) {
         toast({ title: "Aviso", description: "Este cargo já existe.", variant: "destructive" });
         return;
       }
       const id = EcosystemService.generateStandardId('crg', targetSchoolId);
-      newCargos = [...allCargos, { id: id, name: cargoFormData.name, status: cargoFormData.status, schoolId: sid }];
+      newCargos = [...allCargos, { id: id, name: upperName, status: cargoFormData.status, schoolId: sid }];
     }
 
     const success = await updateCargos(newCargos, sid);
@@ -143,16 +146,17 @@ export function PovoamentoSection({
     if (e) e.preventDefault();
     let newSetores;
     const sid = targetSchoolId || 'global';
+    const upperName = setorFormData.name.toUpperCase().trim();
 
     if (editingSetor) {
-      newSetores = allSetores.map(s => s.id === editingSetor.id ? { ...s, ...setorFormData } : s);
+      newSetores = allSetores.map(s => s.id === editingSetor.id ? { ...s, name: upperName, status: setorFormData.status } : s);
     } else {
-      if (allSetores.some(s => s.name.toLowerCase() === setorFormData.name.toLowerCase())) {
+      if (allSetores.some(s => s.name.toLowerCase() === upperName.toLowerCase())) {
         toast({ title: "Aviso", description: "Este setor já existe.", variant: "destructive" });
         return;
       }
       const id = EcosystemService.generateStandardId('str', targetSchoolId);
-      newSetores = [...allSetores, { id: id, name: setorFormData.name, status: setorFormData.status, schoolId: sid }];
+      newSetores = [...allSetores, { id: id, name: upperName, status: setorFormData.status, schoolId: sid }];
     }
 
     const success = await updateSetores(newSetores, sid);

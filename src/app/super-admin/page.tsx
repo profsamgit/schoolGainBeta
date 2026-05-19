@@ -279,7 +279,7 @@ export default function SuperAdminPage() {
         );
       } else {
         let prefix = 'user';
-        if (userFormData.role === 'super_admin') prefix = 'super';
+        if (userFormData.role === 'super_admin') prefix = 'super-admin';
         else if (userFormData.role === 'admin') prefix = 'admin';
 
         if (!editingUser && userFormData.password !== userFormData.confirmPassword) {

@@ -125,6 +125,20 @@ export class SchoolService {
   }
 
   /**
+   * Atualiza as configurações de hardware do sistema.
+   */
+  async updateSystemSettings(settings: any, targetSchoolId?: string): Promise<void> {
+    this.service.data.systemSettings = settings;
+    this.service.systemSettingsSubject.next(settings);
+    
+    const sid = targetSchoolId || this.service.data.users.find((u: any) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa)?.schoolId;
+    if (sid) {
+      await setDoc(doc(db, "settings", sid), settings, { merge: true });
+    }
+    this.service.saveToStorage();
+  }
+
+  /**
    * Atualiza a lista completa de escolas.
    */
   updateSchools(newSchools: School[]): void {
@@ -170,31 +184,87 @@ export class SchoolService {
     }
   }
 
-  async updateTurmas(newTurmas: Turma[], sid?: string): Promise<void> {
-    if (!this.service.checkAdminAuth()) return;
+  async updateTurmas(newTurmas: Turma[], sid?: string): Promise<boolean> {
+    if (!this.service.checkAdminAuth()) return false;
+    
+    const oldIds = (this.service.data.turmas || []).map((t: Turma) => t.id);
+    const newIds = newTurmas.map((t: Turma) => t.id);
+    const deletedIds = oldIds.filter((id: string) => !newIds.includes(id));
+    
+    for (const t of newTurmas) {
+      await setDoc(doc(db, "turmas", t.id), t);
+    }
+    
+    for (const id of deletedIds) {
+      await deleteDoc(doc(db, "turmas", id));
+    }
+
     this.service.data.turmas = newTurmas;
     this.service.turmasSubject.next([...newTurmas]);
     this.service.saveToStorage();
+    return true;
   }
 
-  async updateCursos(newCursos: Curso[], sid?: string): Promise<void> {
-    if (!this.service.checkAdminAuth()) return;
+  async updateCursos(newCursos: Curso[], sid?: string): Promise<boolean> {
+    if (!this.service.checkAdminAuth()) return false;
+
+    const oldIds = (this.service.data.cursos || []).map((c: Curso) => c.id);
+    const newIds = newCursos.map((c: Curso) => c.id);
+    const deletedIds = oldIds.filter((id: string) => !newIds.includes(id));
+
+    for (const c of newCursos) {
+      await setDoc(doc(db, "cursos", c.id), c);
+    }
+
+    for (const id of deletedIds) {
+      await deleteDoc(doc(db, "cursos", id));
+    }
+
     this.service.data.cursos = newCursos;
     this.service.cursosSubject.next([...newCursos]);
     this.service.saveToStorage();
+    return true;
   }
 
-  async updateCargos(newCargos: Cargo[], sid?: string): Promise<void> {
-    if (!this.service.checkAdminAuth()) return;
+  async updateCargos(newCargos: Cargo[], sid?: string): Promise<boolean> {
+    if (!this.service.checkAdminAuth()) return false;
+
+    const oldIds = (this.service.data.cargos || []).map((c: Cargo) => c.id);
+    const newIds = newCargos.map((c: Cargo) => c.id);
+    const deletedIds = oldIds.filter((id: string) => !newIds.includes(id));
+
+    for (const c of newCargos) {
+      await setDoc(doc(db, "cargos", c.id), c);
+    }
+
+    for (const id of deletedIds) {
+      await deleteDoc(doc(db, "cargos", id));
+    }
+
     this.service.data.cargos = newCargos;
     this.service.cargosSubject.next([...newCargos]);
     this.service.saveToStorage();
+    return true;
   }
 
-  async updateSetores(newSetores: SetorEscolar[], sid?: string): Promise<void> {
-    if (!this.service.checkAdminAuth()) return;
+  async updateSetores(newSetores: SetorEscolar[], sid?: string): Promise<boolean> {
+    if (!this.service.checkAdminAuth()) return false;
+
+    const oldIds = (this.service.data.setores || []).map((s: SetorEscolar) => s.id);
+    const newIds = newSetores.map((s: SetorEscolar) => s.id);
+    const deletedIds = oldIds.filter((id: string) => !newIds.includes(id));
+
+    for (const s of newSetores) {
+      await setDoc(doc(db, "setores", s.id), s);
+    }
+
+    for (const id of deletedIds) {
+      await deleteDoc(doc(db, "setores", id));
+    }
+
     this.service.data.setores = newSetores;
     this.service.setoresSubject.next([...newSetores]);
     this.service.saveToStorage();
+    return true;
   }
 }

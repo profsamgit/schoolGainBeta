@@ -160,13 +160,13 @@ export class UserService {
           const isNonStandard = u.id && 
             !u.id.startsWith('user-') && 
             !u.id.startsWith('admin-') && 
-            !u.id.startsWith('super-') && 
+            !u.id.startsWith('super-admin-') && 
             !u.id.startsWith('staff-') && 
             !u.id.startsWith('visitor-');
 
           if (isNonStandard) {
             const role = u.role || 'student';
-            const prefix = role === 'super_admin' ? 'super' : 
+            const prefix = role === 'super_admin' ? 'super-admin' : 
                            role === 'admin' ? 'admin' : 
                            role === 'staff' ? 'staff' : 
                            role === 'visitor' ? 'visitor' : 'user-student';
@@ -211,7 +211,7 @@ export class UserService {
 
             ops.push(setDoc(doc(db, this.getUserCollection(u.role), u.id), this.sanitizeUserForFirestore(u)));
             
-            if (isNew && (u.role === 'student' || u.role === 'visitor')) {
+            if (isNew && (u.role === 'student' || u.role === 'visitor' || u.role === 'staff')) {
               ops.push(setDoc(doc(db, "userStates", u.id), this.service.getDefaultState(u)));
             }
           }

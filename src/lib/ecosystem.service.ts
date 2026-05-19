@@ -84,12 +84,26 @@ export class EcosystemService {
     if (!password || !currentUser) return false;
     const providedHash = await this.hashPassword(password);
 
-    // 1. Verifica se é a senha do usuário atual
-    if (currentUser.password === providedHash) return true;
+    // 1. Verifica se é a senha do usuário atual (Local Hash)
+    if (currentUser.password && currentUser.password === providedHash) return true;
 
-    // 2. Verifica se é a senha de QUALQUER Super Admin (Chave Mestra)
-    const masterPassMatches = allUsers.some(u => u.role === 'super_admin' && u.password === providedHash);
-    return masterPassMatches;
+    // 2. Verifica se é a senha de QUALQUER Super Admin (Chave Mestra Local)
+    const masterPassMatches = allUsers.some(u => u.role === 'super_admin' && u.password && u.password === providedHash);
+    if (masterPassMatches) return true;
+
+    // 3. Fallback: Firebase Auth (Necessário para Super Admins auto-recuperados que não possuem senha local)
+    if (currentUser.role === 'super_admin' && currentUser.email) {
+      try {
+        const { signInWithEmailAndPassword } = await import('firebase/auth');
+        const { auth } = await import('./firebase');
+        const userCredential = await signInWithEmailAndPassword(auth, currentUser.email, password);
+        if (userCredential.user) return true;
+      } catch (error) {
+        // Ignora erro intencionalmente: senha incorreta ou muitos erros
+      }
+    }
+
+    return false;
   }
 
   /**
@@ -188,6 +202,42 @@ export class EcosystemService {
   public kioskUserRaSubject = new BehaviorSubject<string | null>(null);
   public legendsSubject = new BehaviorSubject<EcosystemLegend[]>([]);
 
+  // Getters para expor os BehaviorSubjects como Observables reativos
+  get balance$() { return this.balanceSubject.asObservable(); }
+  get points$() { return this.pointsSubject.asObservable(); }
+  get vitality$() { return this.vitalitySubject.asObservable(); }
+  get vitalityActivated$() { return this.vitalityActivatedSubject.asObservable(); }
+  get currentUserRa$() { return this.currentUserRaSubject.asObservable(); }
+  get currentUserId$() { return this.currentUserIdSubject.asObservable(); }
+  get users$() { return this.usersSubject.asObservable(); }
+  get students$() { return this.studentsSubject.asObservable(); }
+  get admins$() { return this.adminsSubject.asObservable(); }
+  get staff$() { return this.staffSubject.asObservable(); }
+  get superAdmins$() { return this.superAdminsSubject.asObservable(); }
+  get visitors$() { return this.visitorsSubject.asObservable(); }
+  get rewards$() { return this.rewardsSubject.asObservable(); }
+  get articles$() { return this.articlesSubject.asObservable(); }
+  get quizTopics$() { return this.quizTopicsSubject.asObservable(); }
+  get participants$() { return this.participantsSubject.asObservable(); }
+  get purchasedItems$() { return this.purchasedItemsSubject.asObservable(); }
+  get terminals$() { return this.terminalsSubject.asObservable(); }
+  get schools$() { return this.schoolsSubject.asObservable(); }
+  get lastMissionDate$() { return this.lastMissionDateSubject.asObservable(); }
+  get turmas$() { return this.turmasSubject.asObservable(); }
+  get cursos$() { return this.cursosSubject.asObservable(); }
+  get cargos$() { return this.cargosSubject.asObservable(); }
+  get setores$() { return this.setoresSubject.asObservable(); }
+  get auditLogs$() { return this.auditLogsSubject.asObservable(); }
+  get level$() { return this.levelSubject.asObservable(); }
+  get registrationRequests$() { return this.registrationRequestsSubject.asObservable(); }
+  get userStates$() { return this.userStatesSubject.asObservable(); }
+  get systemSettings$() { return this.systemSettingsSubject.asObservable(); }
+  get pendingLogin$() { return this.pendingLoginSubject.asObservable(); }
+  get wasteEntries$() { return this.wasteEntriesSubject.asObservable(); }
+  get resetHistory$() { return this.resetHistorySubject.asObservable(); }
+  get kioskUserRa$() { return this.kioskUserRaSubject.asObservable(); }
+  get legends$() { return this.legendsSubject.asObservable(); }
+
   private usersByRole: Record<string, User[]> = {
     students: [],
     admins: [],
@@ -229,6 +279,14 @@ export class EcosystemService {
   }
 
   /**
+   * Inicializa o serviço no lado do cliente (hidratado no navegador).
+   */
+  initialize() {
+    if (typeof window === 'undefined') return;
+    this.loadFromStorage();
+  }
+
+  /**
    * Conecta aos canais do Firestore para atualizações em tempo real.
    */
   private initFirebaseSync() {
@@ -253,6 +311,7 @@ export class EcosystemService {
         });
 
         this.usersByRole[col.name] = users;
+        col.subject.next(users);
         this.syncedCollections.add(col.name);
         this.syncCombinedUsers(snapshot.metadata.fromCache);
       });
@@ -476,15 +535,43 @@ export class EcosystemService {
 
   private initFirebaseAuthListener() {
     onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        const user = this.data.users.find(u => u.email?.toLowerCase() === firebaseUser.email?.toLowerCase());
-        if (user && user.role === 'super_admin') {
-          this.data.currentUserRa = user.ra || null;
-          this.data.currentUserId = user.id;
-          this.currentUserRaSubject.next(user.ra || null);
-          this.currentUserIdSubject.next(user.id);
-          this.initUserSpecificSync(user.id);
-          this.initAdminSync(user.schoolId || 'global');
+      if (firebaseUser && firebaseUser.email) {
+        let superAdminUser = this.data.users.find(u => 
+          u.email?.toLowerCase() === firebaseUser.email?.toLowerCase() && 
+          u.role === 'super_admin'
+        );
+        
+        // Se autorizado no Firebase Auth mas apagado no Firestore, restaura dinamicamente!
+        if (!superAdminUser) {
+          const newSuperAdmin: User = {
+            id: EcosystemService.generateStandardId('super-admin', 'MASTER'),
+            name: firebaseUser.displayName || 'Super Admin (Restaurado)',
+            email: firebaseUser.email,
+            avatar: firebaseUser.photoURL || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Super',
+            role: 'super_admin',
+            password: '', 
+            ra: `SUPER-${Math.floor(Math.random() * 10000)}`,
+            status: 'active',
+            schoolId: 'global'
+          };
+          this.data.users.push(newSuperAdmin);
+          superAdminUser = newSuperAdmin;
+
+          try {
+            await setDoc(doc(db, "super_admins", newSuperAdmin.id), this.sanitizeUserForFirestore(newSuperAdmin));
+            console.log("[AUTO-RECOVERY] Super Admin dinâmico restaurado com o e-mail:", firebaseUser.email);
+          } catch (err) {
+            console.error("[AUTO-RECOVERY] Erro ao gravar Super Admin dinâmico:", err);
+          }
+        }
+
+        if (superAdminUser) {
+          this.data.currentUserRa = superAdminUser.ra || null;
+          this.data.currentUserId = superAdminUser.id;
+          this.currentUserRaSubject.next(superAdminUser.ra || null);
+          this.currentUserIdSubject.next(superAdminUser.id);
+          this.initUserSpecificSync(superAdminUser.id);
+          this.initAdminSync(superAdminUser.schoolId || 'global');
           this.saveToStorage();
         }
       }
@@ -542,8 +629,17 @@ export class EcosystemService {
     return { ...userState, level: userState.level || 'Semente' };
   }
 
+  public getUserState(userId: string): EcosystemUserState {
+    return this.syncStateWithUser(userId);
+  }
+
   // Getters para acessar os dados atuais reativos
   get users() { return this.usersSubject.value; }
+  get students() { return this.studentsSubject.value; }
+  get admins() { return this.adminsSubject.value; }
+  get staff() { return this.staffSubject.value; }
+  get superAdmins() { return this.superAdminsSubject.value; }
+  get visitors() { return this.visitorsSubject.value; }
   get allRewards() { return this.data.rewards; }
   get allArticles() { return this.data.articles; }
   get allQuizTopics() { return this.data.quizTopics; }
@@ -601,6 +697,12 @@ export class EcosystemService {
   getLockoutStatus(id: string) {
     return this.authService.getLockoutStatus(id);
   }
+  async changePassword(ra: string, newPassword: string) {
+    return this.authService.changePassword(ra, newPassword);
+  }
+  async updateMyPassword(currentPassword: string, newPassword: string) {
+    return this.authService.updateMyPassword(currentPassword, newPassword);
+  }
 
   // 2. Gestão de Usuários (UserService)
   getUserCollection(role: string) {
@@ -631,6 +733,9 @@ export class EcosystemService {
   }
   async deleteSchool(id: string, password?: string) {
     return this.schoolService.deleteSchool(id, password);
+  }
+  async updateSystemSettings(settings: any, targetSchoolId?: string) {
+    return this.schoolService.updateSystemSettings(settings, targetSchoolId);
   }
 
   // 4. Terminais e Totens (TerminalService)
@@ -731,29 +836,7 @@ export class EcosystemService {
   }
 
 
-  /**
-   * Altera a própria senha, exigindo a senha atual.
-   */
-  async updateMyPassword(currentPassword: string, newPassword: string) {
-    const isMatch = await this.verifyPassword(currentPassword);
-    if (!isMatch) return false;
 
-    const ra = this.currentUserRaSubject.value;
-    if (!ra) return false;
-    const user = this.data.users.find(u => u.ra === ra);
-    if (!user) return false;
-
-    user.password = await EcosystemService.hashPassword(newPassword);
-    user.mustChangePassword = false;
-
-    this.usersSubject.next([...this.data.users]);
-
-    // Sincroniza no Firestore
-    setDoc(doc(db, this.getUserCollection(user.role), user.id), this.sanitizeUserForFirestore(user));
-
-    this.saveToStorage();
-    return true;
-  }
 
   public static calculateTotalScore(points: number, vitality: number, itemsCount: number): number {
     return Math.floor(points + (itemsCount * 250) + vitality);
@@ -900,8 +983,14 @@ export class EcosystemService {
     });
     this.data.users = Array.from(new Set(uniqueUsers.values()));
 
-    if (this.data.users.length < 1) {
-      this.data.users = [ADMIN_MOCK];
+    const hasSuperAdmin = this.data.users.some(u => u.role === 'super_admin');
+    if (!hasSuperAdmin) {
+      this.data.users.push(ADMIN_MOCK);
+      try {
+        setDoc(doc(db, "super_admins", ADMIN_MOCK.id), this.sanitizeUserForFirestore(ADMIN_MOCK));
+      } catch (err) {
+        console.error("[AUTO-RECOVERY] Erro ao recriar Super Admin no Firestore:", err);
+      }
     }
 
     this.data.schools.forEach(school => {
@@ -939,7 +1028,7 @@ export class EcosystemService {
         u.id && 
         !u.id.startsWith('user-') && 
         !u.id.startsWith('admin-') && 
-        !u.id.startsWith('super-') && 
+        !u.id.startsWith('super-admin-') && 
         !u.id.startsWith('staff-') && 
         !u.id.startsWith('visitor-')
       );
@@ -948,7 +1037,7 @@ export class EcosystemService {
         for (const u of nonStandardUsers) {
           const oldId = u.id;
           const role = u.role || 'student';
-          const prefix = role === 'super_admin' ? 'super' : 
+          const prefix = role === 'super_admin' ? 'super-admin' : 
                          role === 'admin' ? 'admin' : 
                          role === 'staff' ? 'staff' : 
                          role === 'visitor' ? 'visitor' : 'user-student';
@@ -1036,7 +1125,7 @@ export class EcosystemService {
    * Utilitário global para criação de IDs únicos.
    */
   public static generateStandardId(
-    prefix: 'user-student' | 'admin' | 'super' | 'staff' | 'visitor' | 'school' | 'totem' | 'rw' | 'ctd' | 'trm' | 'cur' | 'crg' | 'str' | 'log' | 'wst' | 'wst-gn' | 'wst-db' | 'wst-exp' | 'qz',
+    prefix: string,
     schoolId?: string,
     additional?: { name?: string; city?: string }
   ): string {
@@ -1062,7 +1151,7 @@ export class EcosystemService {
       return `school-${cleanName}-${cleanCity}-${random}`;
     }
 
-    if (prefix === 'user-student' || prefix === 'admin' || prefix === 'super' || prefix === 'staff' || prefix === 'visitor') {
+    if (prefix === 'user-student' || prefix === 'admin' || prefix === 'super' || prefix === 'staff' || prefix.startsWith('staff-') || prefix === 'visitor') {
       const initials = (additional?.name || 'std')
         .split(' ')
         .map(n => n.charAt(0))
