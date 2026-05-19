@@ -151,6 +151,14 @@ export class UserService {
           const isNew = !oldUser;
           const ops: Promise<any>[] = [];
 
+          // Se o usuário alterado for o usuário logado atualmente, e o RA mudou, atualiza a sessão local
+          if (this.service.data.currentUserId === u.id) {
+            if (u.ra && this.service.data.currentUserRa !== u.ra) {
+              this.service.data.currentUserRa = u.ra;
+              this.service.currentUserRaSubject.next(u.ra);
+            }
+          }
+
           // 1. Se o papel mudou, remove o documento da coleção anterior para evitar cadastros duplicados
           if (oldUser && oldUser.role && oldUser.role !== u.role) {
             ops.push(deleteDoc(doc(db, this.getUserCollection(oldUser.role), u.id)).catch(e => console.error("Erro ao limpar role anterior:", e)));

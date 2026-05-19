@@ -11,31 +11,23 @@ interface PrintableBadgeProps {
 
 export default function PrintableBadge({ user }: PrintableBadgeProps) {
   const roleConfig = {
-    student: { color: 'text-emerald-600', bg: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700' },
-    staff: { color: 'text-violet-600', bg: 'bg-violet-600', badge: 'bg-violet-100 text-violet-700' },
-    admin: { color: 'text-blue-600', bg: 'bg-blue-600', badge: 'bg-blue-100 text-blue-700' },
-    super_admin: { color: 'text-indigo-600', bg: 'bg-indigo-600', badge: 'bg-indigo-100 text-indigo-700' },
-    visitor: { color: 'text-amber-600', bg: 'bg-amber-600', badge: 'bg-amber-100 text-amber-700' },
-  }[user.role as string] || { color: 'text-primary', bg: 'bg-primary', badge: 'bg-slate-100 text-slate-700' };
+    student: { color: 'text-emerald-600', bg: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700', hex: '#10b981' },
+    staff: { color: 'text-violet-600', bg: 'bg-violet-600', badge: 'bg-violet-100 text-violet-700', hex: '#7c3aed' },
+    admin: { color: 'text-blue-600', bg: 'bg-blue-600', badge: 'bg-blue-100 text-blue-700', hex: '#2563eb' },
+    super_admin: { color: 'text-indigo-600', bg: 'bg-indigo-600', badge: 'bg-indigo-100 text-indigo-700', hex: '#4f46e5' },
+    visitor: { color: 'text-amber-600', bg: 'bg-amber-600', badge: 'bg-amber-100 text-amber-700', hex: '#d97706' },
+  }[user.role as string] || { color: 'text-primary', bg: 'bg-primary', badge: 'bg-slate-100 text-slate-700', hex: '#10b981' };
+
+  const avatarSrc = user.role === 'visitor'
+    ? '/visitor-avatar.png'
+    : user.avatar;
 
   return (
     <div id={`badge-${user.id}`} className="print-area bg-white w-[85mm] h-[55mm] rounded-[16px] p-[2px] flex flex-col justify-between relative overflow-hidden shadow-xl mx-auto my-4 print:m-0 print:shadow-none transition-all duration-500"
       style={{ 
         printColorAdjust: 'exact',
         WebkitPrintColorAdjust: 'exact',
-        background: `linear-gradient(135deg, ${
-          roleConfig.bg === 'bg-emerald-500' ? '#10b981' : 
-          roleConfig.bg === 'bg-blue-600' ? '#2563eb' : 
-          roleConfig.bg === 'bg-indigo-600' ? '#4f46e5' : 
-          roleConfig.bg === 'bg-violet-600' ? '#7c3aed' : 
-          '#d97706'
-        } 0%, #ffffff 40%, #ffffff 60%, ${
-          roleConfig.bg === 'bg-emerald-500' ? '#10b981' : 
-          roleConfig.bg === 'bg-blue-600' ? '#2563eb' : 
-          roleConfig.bg === 'bg-indigo-600' ? '#4f46e5' : 
-          roleConfig.bg === 'bg-violet-600' ? '#7c3aed' : 
-          '#d97706'
-        } 100%)`
+        background: `linear-gradient(135deg, ${roleConfig.hex} 0%, #ffffff 40%, #ffffff 60%, ${roleConfig.hex} 100%)`
       }}>
       
       {/* Container Interno (Efeito Glass) */}
@@ -52,12 +44,16 @@ export default function PrintableBadge({ user }: PrintableBadgeProps) {
         {/* Cabeçalho */}
         <div className="flex items-center justify-between border-b border-slate-100/50 pb-2 z-10">
           <div className="flex items-center gap-2">
-            <div className={`${roleConfig.bg} rounded-lg p-1.5 shadow-lg shadow-black/5`}>
-              <Shield className="h-5 w-5 text-white" />
+            <div className="p-1 bg-indigo-500/10 rounded-lg border border-indigo-500/20 text-indigo-400">
+              <Leaf className="h-4.5 w-4.5 text-indigo-400 fill-indigo-500/20 animate-pulse print:animate-none" />
             </div>
             <div className="flex flex-col">
-              <span className="font-black text-[12px] tracking-tighter text-slate-800 uppercase leading-none">SchoolGain</span>
-              <span className={`text-[8px] font-bold ${roleConfig.color} uppercase tracking-widest leading-none`}>Ecosystem</span>
+              <span className="font-black text-[12px] tracking-[0.15em] uppercase bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-400 text-transparent bg-clip-text leading-none pb-0.5">
+                SchoolGain
+              </span>
+              <span className={`text-[6px] font-black ${roleConfig.color} uppercase tracking-[0.2em] leading-none`}>
+                Ecosystem
+              </span>
             </div>
           </div>
           <div className={`${roleConfig.badge} px-2.5 py-1 rounded-full border border-current/10 flex items-center gap-1 shadow-sm`}>
@@ -72,7 +68,7 @@ export default function PrintableBadge({ user }: PrintableBadgeProps) {
           {/* FOTO COM GLOW */}
           <div className={`h-24 w-20 rounded-xl border-2 ${roleConfig.color.replace('text-', 'border-')}/30 overflow-hidden bg-slate-50 flex items-center justify-center shadow-md relative`}>
               <Avatar className="h-full w-full rounded-none">
-                  <AvatarImage src={user.avatar} className="object-cover" />
+                  <AvatarImage src={avatarSrc} className="object-cover" />
                   <AvatarFallback className="bg-slate-100 text-slate-300">
                       <UserIcon className="h-8 w-8" />
                   </AvatarFallback>
@@ -123,9 +119,9 @@ export default function PrintableBadge({ user }: PrintableBadgeProps) {
               size={65} 
               level="H"
               includeMargin={false}
-              fgColor={roleConfig.bg === 'bg-primary' ? '#0ea5e9' : roleConfig.bg.replace('bg-', '#').replace('emerald-500', '10b981').replace('blue-600', '2563eb').replace('indigo-600', '4f46e5').replace('amber-600', 'd97706')}
+              fgColor={roleConfig.hex}
               imageSettings={{
-                src: "/logo-shield.png", // Usando um placeholder conceitual ou o ícone do sistema
+                src: "/logo-shield.svg", // Usando um placeholder conceitual ou o ícone do sistema
                 height: 15,
                 width: 15,
                 excavate: true,

@@ -8,7 +8,8 @@ import {
   Plus,
   ArrowLeft,
   ShieldAlert,
-  Activity
+  Activity,
+  Leaf
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -56,7 +57,8 @@ export default function SuperAdminPage() {
     uploadUserAvatar,
     allCargos,
     allSetores,
-    userStates
+    userStates,
+    logout
   } = useEcosystem();
 
   const { toast } = useToast();
@@ -389,8 +391,14 @@ export default function SuperAdminPage() {
     }
 
     if (userId === currentUser?.id) {
-      toast({ title: "Ação Negada", description: "Você não pode se excluir.", variant: "destructive" });
-      return;
+      const activeSuperAdmins = users.filter(u => u.role === 'super_admin');
+      if (activeSuperAdmins.length <= 1) {
+        toast({ title: "Ação Negada", description: "Você é o único Super Admin ativo. Crie ou ative outro antes de remover sua conta.", variant: "destructive" });
+        return;
+      }
+      
+      const confirmSelf = window.confirm("ATENÇÃO: Você está prestes a EXCLUIR SUA PRÓPRIA CONTA! Você será deslogado imediatamente. Tem certeza que deseja prosseguir?");
+      if (!confirmSelf) return;
     }
 
     const roleName = userToDelete.role === 'super_admin' ? "Mestre Global" : "Gestor de Unidade";
@@ -406,9 +414,16 @@ export default function SuperAdminPage() {
       return;
     }
 
-    await updateUsers(users.filter(u => u.id !== userId));
+    const result = await updateUsers(users.filter(u => u.id !== userId));
     setAdminPasswordForAction('');
-    toast({ title: "Removido", description: `${roleName} removido com sucesso.` });
+    if (result && !result.success) {
+      toast({ title: "Erro na Exclusão", description: result.error || "Não foi possível excluir o usuário.", variant: "destructive" });
+    } else {
+      toast({ title: "Removido", description: `${roleName} removido com sucesso.` });
+      if (userId === currentUser?.id) {
+        logout();
+      }
+    }
   };
 
   const handleMasterReset = async (user: any) => {
@@ -458,8 +473,18 @@ export default function SuperAdminPage() {
     });
   };
 
-  const superAdminUsers = useMemo(() => users.filter(u => u.role === 'super_admin'), [users]);
-  const unitAdminUsers = useMemo(() => users.filter(u => u.role === 'admin'), [users]);
+  const isValidStandardId = (id: string) => {
+    return id && (
+      id.startsWith('super-admin-') || 
+      id.startsWith('admin-') || 
+      id.startsWith('user-') || 
+      id.startsWith('staff-') || 
+      id.startsWith('visitor-')
+    );
+  };
+
+  const superAdminUsers = useMemo(() => users.filter(u => u.role === 'super_admin' && isValidStandardId(u.id)), [users]);
+  const unitAdminUsers = useMemo(() => users.filter(u => u.role === 'admin' && isValidStandardId(u.id)), [users]);
   const students = useMemo(() => users.filter(u => u.role === 'student'), [users]);
   const totalPoints = useMemo(() => students.reduce((acc, u) => acc + (userStates[u.id]?.points || 0), 0), [students, userStates]);
 
@@ -516,10 +541,10 @@ export default function SuperAdminPage() {
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-white/5 pb-6">
           <div className="space-y-1.5">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-indigo-500/10 rounded-xl border border-indigo-500/20 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.15)]">
-                <Globe className="h-7 w-7 animate-spin [animation-duration:18s]" />
+              <div className="p-2.5 bg-indigo-500/10 rounded-xl border border-indigo-500/20 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.15)] select-none">
+                <Leaf className="h-7 w-7 text-indigo-400 fill-indigo-500/20 animate-pulse" />
               </div>
-              <h1 className="text-3xl font-black uppercase tracking-tight text-white bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-black uppercase tracking-[0.1em] bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-400 text-transparent bg-clip-text">
                 Central de Rede Global
               </h1>
             </div>

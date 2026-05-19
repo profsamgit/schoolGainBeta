@@ -8,7 +8,7 @@ import {
   CardTitle 
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Check, PartyPopper } from 'lucide-react';
+import { Sparkles, Check, PartyPopper, Leaf } from 'lucide-react';
 
 interface SuccessSectionProps {
   successMessage: string;
@@ -59,6 +59,12 @@ export function SuccessSection({
           <div className="h-2 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
           
           <CardHeader className="text-center pb-2 pt-8">
+            <div className="flex items-center gap-2 mb-3 select-none justify-center">
+              <Leaf className="h-4 w-4 text-emerald-400 fill-emerald-500/20 animate-pulse shrink-0" />
+              <span className="text-xs font-black tracking-[0.3em] uppercase bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-400 text-transparent bg-clip-text">
+                SchoolGain Kiosk
+              </span>
+            </div>
             {/* Glowing Success Badge */}
             <div className="mx-auto w-24 h-24 bg-gradient-to-br from-emerald-500/20 to-teal-500/5 rounded-full flex items-center justify-center mb-6 border border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.15)] animate-[success-pulse_3s_infinite]">
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-[0_0_20px_rgba(52,211,153,0.35)] border border-emerald-400/30">

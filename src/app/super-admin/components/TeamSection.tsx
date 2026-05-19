@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Participant } from '@/lib/types';
 import { 
   Card, 
@@ -17,7 +18,8 @@ import {
   Trash2, 
   Camera, 
   Loader2,
-  X 
+  X,
+  Eye
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -62,6 +64,7 @@ export function TeamSection({
   setUploadingUserId
 }: TeamSectionProps) {
   const { toast } = useToast();
+  const [previewAvatar, setPreviewAvatar] = useState<string | null>(null);
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <Card className="border border-white/10 shadow-2xl bg-slate-900/40 backdrop-blur-xl text-white rounded-[2rem] overflow-hidden">
@@ -126,14 +129,28 @@ export function TeamSection({
                 <div className="space-y-1.5">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Foto do Membro</Label>
                   <div className="flex items-center gap-4 p-4 bg-slate-950/60 rounded-2xl border border-dashed border-white/10">
-                    <Avatar className="h-12 w-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black border border-white/5">
-                      <AvatarImage src={devFormData.avatar || undefined} />
-                      <AvatarFallback className="bg-indigo-600 text-white">{devFormData.initials || '?'}</AvatarFallback>
-                    </Avatar>
+                    <div className="relative group/form-avatar h-12 w-12 rounded-xl bg-indigo-600 overflow-hidden border border-white/5 shadow-md shrink-0">
+                      <Avatar className="h-full w-full rounded-none">
+                        <AvatarImage src={devFormData.avatar || undefined} className="object-cover" />
+                        <AvatarFallback className="bg-indigo-600 text-white font-black">{devFormData.initials || '?'}</AvatarFallback>
+                      </Avatar>
+                      {devFormData.avatar && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover/form-avatar:opacity-100 transition-opacity">
+                          <button 
+                            type="button" 
+                            onClick={() => setPreviewAvatar(devFormData.avatar!)} 
+                            className="cursor-pointer hover:scale-110 transition-transform" 
+                            title="Visualizar Foto"
+                          >
+                            <Eye className="h-4 w-4 text-white" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                     <div className="flex-1">
                       <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest">Ideal: 200x200px (Quadrada)</p>
-                      <div className="relative mt-2">
-                        <Button type="button" variant="outline" size="sm" className="w-full h-8 text-[10px] font-black uppercase tracking-widest gap-2 relative border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10">
+                      <div className="relative mt-2 flex gap-1.5">
+                        <Button type="button" variant="outline" size="sm" className="flex-1 h-8 text-[10px] font-black uppercase tracking-widest gap-2 relative border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10">
                           {uploadingUserId === 'new-dev' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}
                           {devFormData.avatar ? 'Trocar Foto' : 'Subir Foto'}
                           <input 
@@ -156,6 +173,18 @@ export function TeamSection({
                             }} 
                           />
                         </Button>
+                        {devFormData.avatar && (
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-8 w-8 p-0 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 rounded-lg"
+                            title="Visualizar Foto"
+                            onClick={() => setPreviewAvatar(devFormData.avatar!)}
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -179,32 +208,48 @@ export function TeamSection({
                       <AvatarImage src={dev.avatar || undefined} alt={dev.name} className="object-cover" />
                       <AvatarFallback className="font-black text-xl bg-indigo-500/10 text-indigo-400">{dev.initials}</AvatarFallback>
                     </Avatar>
-                    <label className="absolute inset-0 flex items-center justify-center bg-slate-950/60 opacity-0 group-hover/avatar:opacity-100 rounded-xl cursor-pointer transition-opacity border border-indigo-500/30">
-                      {uploadingUserId === dev.id ? <Loader2 className="h-4 w-4 text-white animate-spin" /> : <Camera className="h-4 w-4 text-white" />}
-                      <input 
-                        type="file" 
-                        className="hidden" 
-                        accept="image/*" 
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          try {
-                            setUploadingUserId(dev.id);
-                            const url = await uploadUserAvatar(dev.id, file);
-                            if (url) {
-                              // Sucesso
-                            } else {
-                              toast({ title: "Falha no Upload", description: "Verifique sua conexão ou o tamanho do arquivo.", variant: "destructive" });
-                            }
-                          } catch (err) {
-                            console.error(err);
-                            toast({ title: "Erro Crítico", description: "Ocorreu um erro inesperado durante o upload.", variant: "destructive" });
-                          } finally {
-                            setUploadingUserId(null);
-                          }
-                        }} 
-                      />
-                    </label>
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-950/60 opacity-0 group-hover/avatar:opacity-100 rounded-xl transition-opacity gap-2 border border-indigo-500/30">
+                      {uploadingUserId === dev.id ? (
+                        <Loader2 className="h-4 w-4 text-white animate-spin" />
+                      ) : (
+                        <>
+                          <label className="cursor-pointer hover:scale-110 transition-transform" title="Trocar Foto">
+                            <Camera className="h-4 w-4 text-white" />
+                            <input 
+                              type="file" 
+                              className="hidden" 
+                              accept="image/*" 
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                try {
+                                  setUploadingUserId(dev.id);
+                                  const url = await uploadUserAvatar(dev.id, file);
+                                  if (!url) {
+                                    toast({ title: "Falha no Upload", description: "Verifique sua conexão ou o tamanho do arquivo.", variant: "destructive" });
+                                  }
+                                } catch (err) {
+                                  console.error(err);
+                                  toast({ title: "Erro Crítico", description: "Ocorreu um erro inesperado durante o upload.", variant: "destructive" });
+                                } finally {
+                                  setUploadingUserId(null);
+                                }
+                              }} 
+                            />
+                          </label>
+                          {dev.avatar && (
+                            <button 
+                              type="button" 
+                              onClick={() => setPreviewAvatar(dev.avatar!)} 
+                              className="cursor-pointer hover:scale-110 transition-transform" 
+                              title="Visualizar Foto"
+                            >
+                              <Eye className="h-4 w-4 text-white" />
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <h4 className="font-bold text-white leading-tight">{dev.name}</h4>
@@ -246,6 +291,25 @@ export function TeamSection({
           </div>
         </CardContent>
       </Card>
+
+      {/* DIÁLOGO DE PREVISÃO DE AVATAR */}
+      <Dialog open={!!previewAvatar} onOpenChange={(open) => !open && setPreviewAvatar(null)}>
+        <DialogContent className="max-w-sm bg-[#0a0f24]/95 backdrop-blur-3xl border border-white/10 text-white rounded-[2rem] p-6 shadow-2xl flex flex-col items-center justify-center gap-4">
+          <DialogHeader className="w-full text-center">
+            <DialogTitle className="text-sm font-black uppercase tracking-widest text-indigo-400">Visualizar Foto</DialogTitle>
+          </DialogHeader>
+          <div className="relative w-64 h-64 rounded-2xl overflow-hidden border-2 border-indigo-500/30 bg-slate-950/60 flex items-center justify-center">
+            {previewAvatar ? (
+              <img src={previewAvatar} alt="Preview Avatar" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-xs text-slate-500">Nenhuma foto selecionada</span>
+            )}
+          </div>
+          <DialogFooter className="w-full pt-2">
+            <Button type="button" onClick={() => setPreviewAvatar(null)} className="w-full h-11 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase text-[10px] tracking-widest rounded-xl">Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -15,7 +15,8 @@ import {
   RefreshCw,
   Sparkles,
   Zap,
-  Fingerprint
+  Fingerprint,
+  Leaf
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -251,9 +252,15 @@ export function IdentificationSection({
               <Recycle className="w-7 h-7 text-emerald-400 animate-spin [animation-duration:12s]" />
             </div>
             
-            <h1 className="text-2xl font-black tracking-tight text-white mb-1.5 uppercase bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
-              Terminal SchoolGain
-            </h1>
+            <div className="flex items-center gap-2 mb-2 select-none justify-center">
+              <Leaf className="h-4.5 w-4.5 text-indigo-400 fill-indigo-500/20 animate-pulse shrink-0" />
+              <h1 className="text-xl font-black tracking-[0.25em] uppercase bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-400 text-transparent bg-clip-text">
+                SchoolGain
+              </h1>
+            </div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">
+              Terminal de Autoatendimento
+            </p>
             <p className="text-xs text-slate-400 font-medium tracking-wide">
               Identifique-se para registrar um resíduo
             </p>

@@ -162,6 +162,14 @@ export function Header() {
         {title}
       </h1>
 
+      {/* Nome do Projeto Centralizado no Meio da Barra */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none select-none">
+        <Leaf className="h-4 w-4 text-indigo-400 fill-indigo-500/20 animate-pulse" />
+        <span className="text-xs font-black tracking-[0.3em] uppercase bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-400 text-transparent bg-clip-text">
+          SchoolGain
+        </span>
+      </div>
+
       <div className="ml-auto flex items-center gap-4">
         {hasMounted && !isAdminView && (
           <div className="flex items-center gap-2">

@@ -38,6 +38,7 @@ export function VirtualKeyboard({ onInput, onBackspace, onEnter, className, layo
             {row.map((key) => (
               <Button 
                 key={key} 
+                type="button"
                 onClick={() => handleKeyPress(key)} 
                 variant="outline" 
                 className="w-16 h-16 text-xl font-black bg-slate-950/40 border-white/5 hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:text-emerald-400 text-slate-200 rounded-2xl transition-all duration-200 active:scale-95 shadow-md"
@@ -49,6 +50,7 @@ export function VirtualKeyboard({ onInput, onBackspace, onEnter, className, layo
         ))}
         <div className="flex justify-center gap-3">
           <Button 
+            type="button"
             onClick={() => handleKeyPress('0')} 
             variant="outline" 
             className="w-16 h-16 text-xl font-black bg-slate-950/40 border-white/5 hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:text-emerald-400 text-slate-200 rounded-2xl transition-all duration-200 active:scale-95 shadow-md"
@@ -56,6 +58,7 @@ export function VirtualKeyboard({ onInput, onBackspace, onEnter, className, layo
             0
           </Button>
           <Button 
+            type="button"
             onClick={onBackspace} 
             variant="outline" 
             className="w-16 h-16 text-xl font-black bg-rose-500/10 border-rose-500/20 hover:bg-rose-500/20 hover:border-rose-500/30 text-rose-400 rounded-2xl transition-all duration-200 active:scale-95 shadow-md"
@@ -74,6 +77,7 @@ export function VirtualKeyboard({ onInput, onBackspace, onEnter, className, layo
           {row.map((key) => (
             <Button 
               key={key} 
+              type="button"
               onClick={() => handleKeyPress(key)} 
               variant="outline" 
               className="h-12 flex-1 text-sm font-black bg-slate-950/40 border-white/5 hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:text-emerald-400 text-slate-200 rounded-xl transition-all duration-200 active:scale-95 uppercase shadow-md"
@@ -85,6 +89,7 @@ export function VirtualKeyboard({ onInput, onBackspace, onEnter, className, layo
       ))}
       <div className="flex justify-center gap-1.5 pt-1">
          <Button 
+           type="button"
            onClick={onBackspace} 
            variant="outline" 
            className="h-12 w-28 bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 hover:border-rose-500/30 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all duration-250 active:scale-95 shadow-md"
@@ -92,6 +97,7 @@ export function VirtualKeyboard({ onInput, onBackspace, onEnter, className, layo
             <Delete className="mr-1.5 h-4 w-4"/> Apagar
           </Button>
           <Button 
+            type="button"
             onClick={() => handleKeyPress(' ')} 
             variant="outline" 
             className="h-12 flex-1 bg-slate-950/40 border-white/5 text-slate-300 hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:text-emerald-400 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all duration-250 active:scale-95 shadow-md"
@@ -99,6 +105,7 @@ export function VirtualKeyboard({ onInput, onBackspace, onEnter, className, layo
             Espaço
           </Button>
           <Button 
+            type="button"
             onClick={onEnter} 
             className="h-12 w-28 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl text-[10px] uppercase tracking-wider shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:shadow-[0_0_25px_rgba(16,185,129,0.3)] transition-all duration-250 active:scale-95"
           >

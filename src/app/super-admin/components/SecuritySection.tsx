@@ -32,6 +32,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, School, Cargo, SetorEscolar } from '@/lib/types';
 import dynamic from 'next/dynamic';
 import { useEcosystem } from '@/app/(app)/ecosystem-context';
+import { EcosystemService } from '@/lib/ecosystem.service';
 
 const QRScanner = dynamic(() => import('@/components/ui/qr-scanner'), { ssr: false });
 
@@ -108,12 +109,45 @@ export function SecuritySection({
   isRFIDCapturing,
   setIsRFIDCapturing
 }: SecuritySectionProps) {
-  const { systemSettings } = useEcosystem();
+  const { systemSettings, verifyPassword, updateUsers, users } = useEcosystem();
 
   const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [previewAvatar, setPreviewAvatar] = useState<string | null>(null);
+
+  // Estados locais para o Diálogo de Reset de Senha
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [userToReset, setUserToReset] = useState<User | null>(null);
+  const [resetGeneratedPass, setResetGeneratedPass] = useState<string | null>(null);
+  const [resettingSubmitting, setResettingSubmitting] = useState(false);
+
+  const handleConfirmReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userToReset || !adminPasswordForAction) return;
+    setResettingSubmitting(true);
+    try {
+      const isAuth = await verifyPassword(adminPasswordForAction);
+      if (!isAuth) {
+        toast({ title: "Erro de Autorização", description: "Sua senha master está incorreta.", variant: "destructive" });
+        return;
+      }
+      const tempPass = `SG-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+      const hashedTemp = await EcosystemService.hashPassword(tempPass);
+      const success = await updateUsers(users.map((u: any) => u.id === userToReset.id ? { ...u, password: hashedTemp, mustChangePassword: true } : u));
+      if (success) {
+        setResetGeneratedPass(tempPass);
+        setAdminPasswordForAction('');
+        toast({ title: "Sucesso", description: "Nova senha gerada!" });
+      } else {
+        toast({ title: "Erro na Operação", description: "Falha ao salvar a nova senha no banco.", variant: "destructive" });
+      }
+    } catch (err) {
+      toast({ title: "Erro", description: "Ocorreu um erro ao redefinir a senha.", variant: "destructive" });
+    } finally {
+      setResettingSubmitting(false);
+    }
+  };
 
   const generateRandomRA = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -224,7 +258,12 @@ export function SecuritySection({
                     </TableCell>
                     <TableCell className="text-right px-8">
                       <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded-lg" title="Reset de Senha" onClick={() => handleMasterReset(user)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded-lg" title="Reset de Senha" onClick={() => {
+                            setUserToReset(user);
+                            setResetGeneratedPass(null);
+                            setAdminPasswordForAction('');
+                            setIsResetModalOpen(true);
+                        }}>
                             <Lock className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-indigo-400 hover:bg-white/5 rounded-lg" onClick={() => {
@@ -235,7 +274,7 @@ export function SecuritySection({
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg" onClick={() => {
                             setUserToDelete(user);
                             setIsDeleteModalOpen(true);
-                        }} disabled={user.id === currentUser.id}><Trash2 className="h-4 w-4" /></Button>
+                        }} disabled={user.id === currentUser.id && superAdminUsers.length <= 1}><Trash2 className="h-4 w-4" /></Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -311,7 +350,12 @@ export function SecuritySection({
                     </TableCell>
                     <TableCell className="text-right px-8">
                       <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded-lg" title="Reset de Senha" onClick={() => handleMasterReset(user)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded-lg" title="Reset de Senha" onClick={() => {
+                            setUserToReset(user);
+                            setResetGeneratedPass(null);
+                            setAdminPasswordForAction('');
+                            setIsResetModalOpen(true);
+                        }}>
                             <Lock className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-indigo-400 hover:bg-white/5 rounded-lg" onClick={() => {
@@ -364,7 +408,20 @@ export function SecuritySection({
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">E-mail Corporativo</Label>
-                  <Input value={userFormData.email} onChange={(e) => setUserFormData({ ...userFormData, email: e.target.value })} placeholder="mestre@escola.com" type="email" className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold" required />
+                  <Input 
+                    disabled={!!editingUser && userFormData.role === 'super_admin'}
+                    value={userFormData.email} 
+                    onChange={(e) => setUserFormData({ ...userFormData, email: e.target.value })} 
+                    placeholder="mestre@escola.com" 
+                    type="email" 
+                    className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold" 
+                    required 
+                  />
+                  {editingUser && userFormData.role === 'super_admin' && (
+                    <p className="text-[9px] text-slate-500 mt-1 italic font-bold">
+                      * O e-mail de um Super Admin não pode ser alterado para evitar a perda de acesso com o Firebase Authentication.
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Perfil de Acesso</Label>
@@ -595,6 +652,88 @@ export function SecuritySection({
                 <X className="h-4 w-4" />
               </Button>
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* DIÁLOGO DE CONFIRMAÇÃO DE RESET DE SENHA */}
+      <Dialog open={isResetModalOpen} onOpenChange={(open) => {
+        if (!open && resettingSubmitting) return; // Prevent closing while submitting
+        setIsResetModalOpen(open);
+        if (!open) {
+          setUserToReset(null);
+          setResetGeneratedPass(null);
+          setAdminPasswordForAction('');
+        }
+      }}>
+        <DialogContent className="max-w-md bg-[#0a0f24]/95 backdrop-blur-3xl border border-white/10 text-white rounded-[2rem] p-0 overflow-hidden shadow-2xl">
+          <DialogHeader className="bg-amber-950/40 text-white p-8 border-b border-amber-500/20 relative">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                <Lock className="h-6 w-6 animate-pulse" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-black uppercase tracking-tight text-white">Reset de Senha</DialogTitle>
+                <DialogDescription className="text-amber-300/80 font-bold uppercase text-[9px] tracking-widest mt-1">Gerador de Credencial Temporária</DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {resetGeneratedPass ? (
+            <div className="p-8 space-y-6">
+              <div className="flex flex-col items-center justify-center p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-center space-y-3">
+                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Senha Temporária Gerada</span>
+                <div className="text-3xl font-mono font-black text-white select-all tracking-widest bg-slate-950 px-6 py-3 rounded-xl border border-white/5">{resetGeneratedPass}</div>
+                <p className="text-[9px] text-slate-400 font-bold max-w-[250px] leading-relaxed">
+                  Copie e envie esta senha para o usuário <span className="text-indigo-400 font-extrabold">{userToReset?.name}</span>. Ele deverá alterá-la no primeiro acesso.
+                </p>
+                <Button 
+                  type="button" 
+                  onClick={() => {
+                    navigator.clipboard.writeText(resetGeneratedPass);
+                    toast({ title: "Copiado!", description: "Senha copiada para a área de transferência." });
+                  }}
+                  className="mt-2 bg-emerald-500 hover:bg-emerald-600 text-white border border-emerald-400/20 font-black uppercase text-[10px] tracking-widest px-6 h-10 rounded-xl hover:scale-105 transition-all shadow-lg shadow-emerald-500/25"
+                >
+                  Copiar Senha
+                </Button>
+              </div>
+
+              <DialogFooter>
+                <Button 
+                  type="button" 
+                  onClick={() => setIsResetModalOpen(false)} 
+                  className="w-full h-11 bg-slate-800 hover:bg-slate-700 text-white border border-white/10 font-black uppercase text-[10px] tracking-widest rounded-xl"
+                >
+                  Concluir e Fechar
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <form onSubmit={handleConfirmReset} className="p-8 space-y-6">
+              <p className="text-sm font-bold text-slate-300">
+                Você está gerando uma nova senha temporária para o usuário <span className="text-amber-400">{(userToReset as any)?.name}</span>. A senha antiga será revogada imediatamente.
+              </p>
+
+              <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 space-y-3">
+                 <Label className="text-[10px] font-black uppercase tracking-widest text-amber-400 block ml-1">Senha Master (Sua Senha)</Label>
+                 <Input 
+                   type="password" 
+                   value={adminPasswordForAction} 
+                   onChange={(e) => setAdminPasswordForAction(e.target.value)}
+                   className="h-11 bg-slate-950 border-white/10 text-white rounded-xl focus:border-amber-500/50 font-bold" 
+                   placeholder="Confirme sua identidade" 
+                   required 
+                 />
+              </div>
+
+              <DialogFooter className="gap-3 pt-2">
+                <Button type="button" variant="ghost" onClick={() => setIsResetModalOpen(false)} className="h-11 font-bold uppercase text-[10px] tracking-widest text-slate-400 hover:text-white hover:bg-white/5 rounded-xl">Cancelar</Button>
+                <Button type="submit" disabled={resettingSubmitting} className="h-11 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black uppercase text-[10px] tracking-widest px-8 rounded-xl hover:scale-[1.03] transition-all">
+                  {resettingSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirmar Reset'}
+                </Button>
+              </DialogFooter>
+            </form>
           )}
         </DialogContent>
       </Dialog>

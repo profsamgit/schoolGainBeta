@@ -20,7 +20,8 @@ import {
   Recycle, 
   ArrowLeft,
   ShieldAlert,
-  ServerCrash
+  ServerCrash,
+  Leaf
 } from 'lucide-react';
 import { 
   Select, 
@@ -95,6 +96,12 @@ export function AuthorizationSection({
           <div className={`h-2 bg-gradient-to-r ${isBlocked ? 'from-red-600 to-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]' : isPending ? 'from-amber-500 to-yellow-400 shadow-[0_0_15px_rgba(245,158,11,0.5)]' : 'from-indigo-500 to-cyan-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]'}`} />
           
           <CardHeader className="text-center pb-5 pt-8">
+            <div className="flex items-center gap-2 mb-3 select-none justify-center">
+              <Leaf className="h-4 w-4 text-indigo-400 fill-indigo-500/20 animate-pulse shrink-0" />
+              <span className="text-xs font-black tracking-[0.3em] uppercase bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-400 text-transparent bg-clip-text">
+                SchoolGain Kiosk
+              </span>
+            </div>
             <div className={`mx-auto w-20 h-20 rounded-full flex items-center justify-center mb-5 border shadow-inner ${
               isBlocked 
                 ? 'bg-red-500/10 border-red-500/30 text-red-400 shadow-[0_0_20px_rgba(239,68,68,0.15)] animate-pulse' 

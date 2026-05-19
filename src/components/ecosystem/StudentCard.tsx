@@ -170,6 +170,14 @@ export default function StudentCard() {
     }
   };
 
+  const roleConfig = {
+    student: { glow: 'shadow-[0_0_50px_rgba(16,185,129,0.35)] border-emerald-500/20 text-emerald-400', text: 'text-emerald-400' },
+    staff: { glow: 'shadow-[0_0_50px_rgba(124,58,237,0.35)] border-violet-500/20 text-violet-400', text: 'text-violet-400' },
+    admin: { glow: 'shadow-[0_0_50px_rgba(37,99,235,0.35)] border-blue-500/20 text-blue-400', text: 'text-blue-400' },
+    super_admin: { glow: 'shadow-[0_0_50px_rgba(79,70,229,0.35)] border-indigo-500/20 text-indigo-400', text: 'text-indigo-400' },
+    visitor: { glow: 'shadow-[0_0_50px_rgba(217,119,6,0.35)] border-amber-500/20 text-amber-400', text: 'text-amber-400' },
+  }[currentUser.role as string] || { glow: 'shadow-[0_0_50px_rgba(16,185,129,0.35)] border-emerald-500/20 text-emerald-400', text: 'text-emerald-400' };
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -178,39 +186,42 @@ export default function StudentCard() {
           Minha Carteira
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md bg-[#070913] border-white/5 text-white">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-white">
-            <UserIcon className="h-5 w-5 text-emerald-400 animate-pulse" />
+      <DialogContent className="sm:max-w-[480px] bg-[#070913]/95 backdrop-blur-2xl border-white/10 text-white shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden">
+        <DialogHeader className="pb-2">
+          <DialogTitle className="flex items-center gap-2 text-white text-lg font-black tracking-tight">
+            <UserIcon className={`h-5 w-5 animate-pulse shrink-0 ${roleConfig.text || 'text-emerald-400'}`} />
             Carteira Digital SchoolGain
           </DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogDescription className="text-slate-400 text-xs">
             Use esta Carteira virtual para identificação e registro de resíduos.
           </DialogDescription>
         </DialogHeader>
         
-        <div className="py-6 flex justify-center">
+        {/* Container Premium tridimensional com escala de visualização de 1.15 */}
+        <div className="py-8 my-2 flex justify-center items-center overflow-visible [perspective:1000px]">
+          <div className={`transform scale-[1.18] hover:scale-[1.25] hover:rotate-y-[6deg] hover:rotate-x-[4deg] transition-all duration-500 ease-out origin-center cursor-pointer select-none rounded-[16px] border ${roleConfig.glow}`}>
             <PrintableBadge user={currentUser} />
+          </div>
         </div>
 
-        <div className="mt-2 text-center text-[10px] text-slate-400 uppercase font-bold tracking-widest px-4">
-            Aponte o QR Code acima nos terminais Kiosk da escola para login automático.
+        <div className="mt-4 text-center text-[10px] text-slate-400 uppercase font-black tracking-widest px-6 leading-relaxed">
+          Aponte o QR Code acima nos terminais Kiosk da escola para login automático.
         </div>
 
         <div className="mt-6 flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-3">
-            <Button className="gap-2 shadow-lg bg-emerald-600 hover:bg-emerald-700 text-white border-none" onClick={handleDownloadImage}>
+            <Button className="gap-2 shadow-lg bg-emerald-600 hover:bg-emerald-700 text-white border-none font-bold uppercase tracking-wider text-[10px] h-10 rounded-xl" onClick={handleDownloadImage}>
               <ImageIcon className="h-4 w-4" />
               Salvar Imagem
             </Button>
-            <Button className="gap-2 shadow-lg border-white/10 hover:bg-white/5 text-white" variant="outline" onClick={handlePrint}>
+            <Button className="gap-2 shadow-lg border-white/10 hover:bg-white/5 hover:text-white text-slate-300 font-bold uppercase tracking-wider text-[10px] h-10 rounded-xl" variant="outline" onClick={handlePrint}>
               <Download className="h-4 w-4" />
               PDF / Imprimir
             </Button>
           </div>
 
           {typeof navigator !== 'undefined' && !!navigator.share && (
-            <Button className="w-full gap-2 shadow-lg bg-indigo-600 hover:bg-indigo-700 text-white border-none" onClick={handleShare}>
+            <Button className="w-full gap-2 shadow-lg bg-indigo-600 hover:bg-indigo-700 text-white border-none font-bold uppercase tracking-wider text-[10px] h-10 rounded-xl" onClick={handleShare}>
               <Share2 className="h-4 w-4" />
               Compartilhar Carteirinha
             </Button>

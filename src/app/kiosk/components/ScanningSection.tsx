@@ -195,6 +195,17 @@ export function ScanningSection({
         <Card className="w-full max-w-2xl backdrop-blur-3xl bg-slate-950/40 border border-white/10 rounded-[2.5rem] shadow-[0_25px_60px_rgba(0,0,0,0.8)] ring-1 ring-white/5 overflow-hidden animate-in zoom-in duration-500">
           
           <CardHeader className="border-b border-white/5 pb-5">
+            <div className="w-full flex justify-between items-center mb-3 pb-2 border-b border-white/5">
+              <div className="flex items-center gap-1.5 select-none">
+                <Leaf className="h-3.5 w-3.5 text-emerald-400 fill-emerald-500/20 animate-pulse shrink-0" />
+                <span className="text-[10px] font-black uppercase tracking-[0.25em] bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-400 text-transparent bg-clip-text">
+                  SchoolGain Kiosk
+                </span>
+              </div>
+              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">
+                Módulo de Escaneamento
+              </span>
+            </div>
             <div className="flex justify-between items-center flex-wrap gap-4">
               
               {/* HUD do Usuário Identificado */}

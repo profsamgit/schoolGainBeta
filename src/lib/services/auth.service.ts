@@ -66,10 +66,14 @@ export class AuthService {
       // 3. Lógica diferenciada por cargo
       if (cleanPassword) {
         // INTERCEPTADOR PROATIVO: Auto-Recovery
-        // Se o login for por e-mail, tentamos obrigatoriamente o Firebase Auth primeiro.
-        // Se a senha e e-mail forem do Super Admin real, o Firebase autoriza.
-        // Isso resolve o conflito se o usuário também tiver um perfil 'admin' com o mesmo e-mail.
-        if (cleanId.includes('@')) {
+        // Só tentamos o Firebase Auth primeiro se o e-mail pertencer a um Super Admin no banco,
+        // ou se for o e-mail padrão do administrador mock, para evitar erros 400 desnecessários no console para Gestores/Usuários.
+        const isSuperAdminEmail = cleanId.toLowerCase() === 'super-admin@schoolgain.com' || 
+          (this.service.data?.users || []).some((u: User) => 
+            u.role === 'super_admin' && u.email && u.email.toLowerCase() === cleanId.toLowerCase()
+          );
+
+        if (cleanId.includes('@') && isSuperAdminEmail) {
           try {
             await signInWithEmailAndPassword(auth, cleanId, cleanPassword);
             await new Promise(resolve => setTimeout(resolve, 1500));
@@ -84,9 +88,15 @@ export class AuthService {
           try {
             await signInWithEmailAndPassword(auth, user.email!, cleanPassword);
           } catch (firebaseError: any) {
-            console.error("[FIREBASE] Falha no login do Super Admin:", firebaseError);
-            this.handleFailedLogin(securityKey);
-            return false;
+            console.warn("[FIREBASE] Falha no login do Super Admin no Firebase Auth, tentando local fallback:", firebaseError);
+            
+            // Fallback Local Hash para Super Admins (essencial se criados localmente, se o e-mail mudou, ou se a senha foi resetada localmente)
+            const hashedInput = await EcosystemService.hashPassword(cleanPassword);
+            const isMatch = user.password === hashedInput || user.password === cleanPassword;
+            if (!isMatch) {
+              this.handleFailedLogin(securityKey);
+              return false;
+            }
           }
         } else {
           // Gestores e Usuários utilizam a lógica SHA-256 customizada
@@ -174,8 +184,12 @@ export class AuthService {
    */
   checkAdminAuth(): boolean {
     const ra = this.service.currentUserRa;
-    if (!ra) return false;
-    const user = this.service.data.users.find((u: User) => u.ra?.toUpperCase() === ra.toUpperCase());
+    const userId = this.service.currentUserId;
+    if (!ra && !userId) return false;
+    const user = this.service.data.users.find((u: User) => 
+      (ra && u.ra?.toUpperCase() === ra.toUpperCase()) || 
+      (userId && u.id === userId)
+    );
     return !!(user && (user.role === 'admin' || user.role === 'super_admin'));
   }
 

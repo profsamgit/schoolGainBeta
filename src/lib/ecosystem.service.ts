@@ -1,11 +1,12 @@
 import { BehaviorSubject } from 'rxjs';
-import { db, auth } from './firebase';
+import { db, auth, storage } from './firebase';
 import { 
   collection, 
   doc, 
   setDoc, 
   deleteDoc, 
   getDoc, 
+  getDocs,
   onSnapshot, 
   query, 
   where, 
@@ -84,11 +85,11 @@ export class EcosystemService {
     if (!password || !currentUser) return false;
     const providedHash = await this.hashPassword(password);
 
-    // 1. Verifica se é a senha do usuário atual (Local Hash)
-    if (currentUser.password && currentUser.password === providedHash) return true;
+    // 1. Verifica se é a senha do usuário atual (Local Hash ou Plaintext)
+    if (currentUser.password && (currentUser.password === providedHash || currentUser.password === password)) return true;
 
-    // 2. Verifica se é a senha de QUALQUER Super Admin (Chave Mestra Local)
-    const masterPassMatches = allUsers.some(u => u.role === 'super_admin' && u.password && u.password === providedHash);
+    // 2. Verifica se é a senha de QUALQUER Super Admin (Chave Mestra Local ou Plaintext)
+    const masterPassMatches = allUsers.some(u => u.role === 'super_admin' && u.password && (u.password === providedHash || u.password === password));
     if (masterPassMatches) return true;
 
     // 3. Fallback: Firebase Auth (Necessário para Super Admins auto-recuperados que não possuem senha local)
@@ -541,7 +542,28 @@ export class EcosystemService {
           u.role === 'super_admin'
         );
         
-        // Se autorizado no Firebase Auth mas apagado no Firestore, restaura dinamicamente!
+        // Se não encontrado em memória cache (condição de corrida inicial)
+        if (!superAdminUser) {
+          try {
+            // Consulta direta no Firestore antes de tentar criar um novo
+            const q = query(collection(db, "super_admins"), where("email", "==", firebaseUser.email));
+            const querySnapshot = await getDocs(q);
+            
+            if (!querySnapshot.empty) {
+              const docSnap = querySnapshot.docs[0];
+              superAdminUser = { id: docSnap.id, ...docSnap.data() } as User;
+              // Sincroniza localmente
+              if (!this.data.users.some(u => u.id === superAdminUser!.id)) {
+                this.data.users.push(superAdminUser);
+              }
+              console.log("[AUTO-RECOVERY] Super Admin encontrado no Firestore durante inicialização.");
+            }
+          } catch (err) {
+            console.error("[AUTO-RECOVERY] Erro ao buscar Super Admin no Firestore:", err);
+          }
+        }
+
+        // Se autorizado no Firebase Auth mas REALMENTE apagado no Firestore, restaura dinamicamente!
         if (!superAdminUser) {
           const newSuperAdmin: User = {
             id: EcosystemService.generateStandardId('super-admin', 'MASTER'),
@@ -583,7 +605,16 @@ export class EcosystemService {
    */
   public syncCombinedUsers(isCacheUpdate = false) {
     const allUsersMap = new Map<string, User>();
-    allUsersMap.set(ADMIN_MOCK.id, ADMIN_MOCK);
+    
+    // Procura se existe algum outro Super Admin vindo do Firestore
+    const hasDbSuperAdmin = Object.values(this.usersByRole).some(usersList => 
+      usersList.some(u => u.role === 'super_admin' && u.id !== ADMIN_MOCK.id)
+    );
+
+    // Adiciona o administrador inicial como âncora/recuperação apenas se não houver outro real no banco
+    if (!hasDbSuperAdmin) {
+      allUsersMap.set(ADMIN_MOCK.id, ADMIN_MOCK);
+    }
 
     Object.values(this.usersByRole).forEach(usersList => {
       usersList.forEach(u => {
@@ -719,6 +750,136 @@ export class EcosystemService {
   }
   async updateUserStatus(userId: string, status: 'active' | 'inactive') {
     return this.userService.updateUserStatus(userId, status);
+  }
+
+  private static async compressImageToBase64(file: File, maxW = 400, maxH = 400, quality = 0.7): Promise<string> {
+    if (typeof window === 'undefined') return '';
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          // Redimensionamento proporcional
+          if (width > height) {
+            if (width > maxW) {
+              height = Math.round((height * maxW) / width);
+              width = maxW;
+            }
+          } else {
+            if (height > maxH) {
+              width = Math.round((width * maxH) / height);
+              height = maxH;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error("Não foi possível obter o contexto 2D do Canvas"));
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Salva como JPEG com compressão
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve(dataUrl);
+        };
+        img.onerror = reject;
+        img.src = event.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async uploadUserAvatar(id: string, file: File): Promise<string | null> {
+    let downloadURL: string | null = null;
+    
+    // Converte e comprime diretamente para Base64 (evita estourar o limite de 1MB do Firestore e resolve CORS)
+    try {
+      const isLargeEntity = id.startsWith('article-') || id.startsWith('reward-');
+      const maxDim = isLargeEntity ? 500 : 300;
+      const quality = isLargeEntity ? 0.75 : 0.6;
+      
+      downloadURL = await EcosystemService.compressImageToBase64(file, maxDim, maxDim, quality);
+      console.log(`[STORAGE] Imagem comprimida para Base64 com sucesso! Tamanho final aproximado: ${Math.round(downloadURL.length / 1024)} KB`);
+    } catch (compressErr) {
+      console.error("[STORAGE] Falha ao comprimir imagem, tentando Base64 sem perdas:", compressErr);
+      try {
+        downloadURL = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      } catch (base64Err) {
+        console.error("[STORAGE] Falha absoluta ao converter para Base64:", base64Err);
+        return null;
+      }
+    }
+
+    if (!downloadURL) return null;
+
+    // 3. Identifica a entidade pelo ID e atualiza no Firestore e em Memória Cache
+    try {
+      // Caso A: Artigo
+      if (id.startsWith('article-')) {
+        const articleIndex = this.data.articles.findIndex(a => a.id === id);
+        if (articleIndex !== -1) {
+          const article = { ...this.data.articles[articleIndex], image: downloadURL };
+          this.data.articles[articleIndex] = article;
+          await setDoc(doc(db, "articles", id), article);
+          this.articlesSubject.next([...this.data.articles]);
+          console.log("[STORAGE] Imagem do artigo atualizada no Firestore!");
+        }
+      }
+      // Caso B: Recompensa (Reward)
+      else if (id.startsWith('reward-')) {
+        const rewardIndex = this.data.rewards.findIndex(r => r.id === id);
+        if (rewardIndex !== -1) {
+          const reward = { ...this.data.rewards[rewardIndex], image: downloadURL };
+          this.data.rewards[rewardIndex] = reward;
+          await setDoc(doc(db, "rewards", id), reward);
+          this.rewardsSubject.next([...this.data.rewards]);
+          console.log("[STORAGE] Imagem da recompensa atualizada no Firestore!");
+        }
+      }
+      // Caso C: Participante/Desenvolvedor (Equipe)
+      else if (id.startsWith('dev-') || this.data.participants.some(p => p.id === id)) {
+        const participantIndex = this.data.participants.findIndex(p => p.id === id);
+        if (participantIndex !== -1) {
+          const participant = { ...this.data.participants[participantIndex], avatar: downloadURL };
+          this.data.participants[participantIndex] = participant;
+          await setDoc(doc(db, "participants", id), participant);
+          this.participantsSubject.next([...this.data.participants]);
+          console.log("[STORAGE] Avatar do participante atualizado no Firestore!");
+        }
+      }
+      // Caso D: Usuário Geral (student, admin, super_admin, etc.)
+      else {
+        const userIndex = this.data.users.findIndex(u => u.id === id);
+        if (userIndex !== -1) {
+          const user = { ...this.data.users[userIndex], avatar: downloadURL };
+          this.data.users[userIndex] = user;
+          await setDoc(doc(db, this.getUserCollection(user.role), user.id), this.sanitizeUserForFirestore(user));
+          this.usersSubject.next([...this.data.users]);
+          console.log("[STORAGE] Avatar do usuário atualizado no Firestore!");
+        }
+      }
+
+      this.saveToStorage();
+      return downloadURL;
+    } catch (err) {
+      console.error("[STORAGE] Erro ao sincronizar nova imagem no banco:", err);
+      return null;
+    }
   }
 
   // 3. Multi-Tenant e Escolas (SchoolService)

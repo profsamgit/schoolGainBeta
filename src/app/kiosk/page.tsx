@@ -75,7 +75,8 @@ export default function KioskPage() {
     registerWaste,
     identifyKioskUser,
     generateTerminalId,
-    hardwareId
+    hardwareId,
+    initUserSpecificSync
   } = useEcosystem();
   const { toast } = useToast();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -99,6 +100,7 @@ export default function KioskPage() {
   const activeScanningCameraSource = currentTerminal?.settings?.scanningCameraSource || systemSettings.studentCaptureSource || 'browser';
 
   useEffect(() => {
+    document.title = "Terminal Kiosk • SchoolGain";
     const checkMobile = () => {
       const ua = navigator.userAgent.toLowerCase();
       return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua);
@@ -262,6 +264,7 @@ export default function KioskPage() {
         }
         const actualRa = student.ra || cleanRa;
         identifyKioskUser(actualRa);
+        initUserSpecificSync(student.id);
         setIdentifiedStudent(student);
         setStudentRa(actualRa);
         setStep('scanning');
@@ -272,7 +275,7 @@ export default function KioskPage() {
         setIdentifiedStudent(null);
         setStudentRa('');
     }
-  }, [identifyKioskUser, users, toast, getLockoutStatus]);
+  }, [identifyKioskUser, users, toast, getLockoutStatus, initUserSpecificSync]);
 
   // Polling e Hardware
   useEffect(() => {

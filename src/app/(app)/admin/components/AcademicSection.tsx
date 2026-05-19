@@ -23,7 +23,7 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { RegistrationRequest, User, Turma, Curso, Cargo, SetorEscolar } from '@/lib/types';
-import { Power, Shield, UserX, UserCheck } from 'lucide-react';
+import { Power, Shield, UserX, UserCheck, User as UserIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { UseFormReturn } from 'react-hook-form';
 
@@ -456,12 +456,26 @@ export function AcademicSection({
               {userForm.watch('role') !== 'visitor' && (
                 <div className="bg-slate-950/50 p-6 rounded-2xl border border-white/5 space-y-4">
                   <div className="flex items-center gap-4">
-                    <Avatar className="h-24 w-24 border-4 border-slate-950 shadow-xl rounded-2xl overflow-hidden">
-                      <AvatarImage src={userForm.watch('avatar')} className="object-cover" />
-                      <AvatarFallback className="bg-slate-900 text-slate-400 flex items-center justify-center">
-                        <Camera className="h-8 w-8" />
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="relative group/form-avatar h-24 w-24 border-4 border-slate-950 shadow-xl rounded-2xl overflow-hidden bg-slate-900 shrink-0">
+                      <Avatar className="h-full w-full rounded-none">
+                        <AvatarImage src={userForm.watch('avatar')} className="object-cover" />
+                        <AvatarFallback className="bg-slate-900 text-slate-400 flex items-center justify-center">
+                          <Camera className="h-8 w-8" />
+                        </AvatarFallback>
+                      </Avatar>
+                      {userForm.watch('avatar') && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover/form-avatar:opacity-100 transition-opacity">
+                          <button 
+                            type="button" 
+                            onClick={() => setPreviewAvatar!(userForm.watch('avatar'))} 
+                            className="cursor-pointer hover:scale-110 transition-transform" 
+                            title="Visualizar Foto"
+                          >
+                            <Eye className="h-6 w-6 text-white" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                     <div className="space-y-2">
                       <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block ml-1">Foto de Perfil</Label>
                       <div className="flex gap-2">
@@ -483,7 +497,18 @@ export function AcademicSection({
                           <Camera className="h-4 w-4" /> Enviar Foto
                         </Button>
                         {userForm.watch('avatar') && (
-                          <Button type="button" variant="ghost" onClick={() => userForm.setValue('avatar', '')} className="text-rose-400 hover:text-rose-300 font-bold text-[10px] uppercase tracking-wider h-10 px-4">Remover</Button>
+                          <>
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              onClick={() => setPreviewAvatar!(userForm.watch('avatar'))} 
+                              className="bg-slate-950 border-white/10 text-slate-300 hover:text-white rounded-xl h-10 w-10 p-0 flex items-center justify-center"
+                              title="Visualizar Foto"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button type="button" variant="ghost" onClick={() => userForm.setValue('avatar', '')} className="text-rose-400 hover:text-rose-300 font-bold text-[10px] uppercase tracking-wider h-10 px-4">Remover</Button>
+                          </>
                         )}
                       </div>
                       <p className="text-[9px] text-slate-500 font-medium italic">Recomendado: Imagem quadrada 500x500px.</p>
@@ -876,39 +901,57 @@ export function AcademicSection({
           </Tabs>
 
           <Dialog open={isBadgeOpen} onOpenChange={setIsBadgeOpen}>
-            <DialogContent className="sm:max-w-md p-0 overflow-hidden border-none bg-transparent shadow-none">
-              <div className="sr-only">
-                <DialogHeader>
-                  <DialogTitle>Visualização de Crachá Premium</DialogTitle>
-                  <DialogDescription>Carteira de identificação estudantil de {badgeUser?.name}</DialogDescription>
-                </DialogHeader>
-              </div>
-
+            <DialogContent className="sm:max-w-[480px] bg-[#070913]/95 backdrop-blur-2xl border-white/10 text-white shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden">
               {badgeUser && (
-                <div className="space-y-6 flex flex-col items-center">
-                  <div id="badge-container" className="printable-badge rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl">
-                    <PrintableBadge user={badgeUser} />
-                  </div>
-                  
-                  <div className="bg-[#0a0f24]/95 backdrop-blur-3xl p-6 rounded-3xl shadow-2xl border border-white/10 w-full max-w-[320px] mx-auto space-y-4">
-                    <div className="text-center">
-                      <h3 className="font-black uppercase tracking-tighter text-lg text-slate-200">Visualização de Crachá</h3>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Design Premium Ativo</p>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-3">
-                      <Button onClick={() => handleDownloadBadgeImage(badgeUser)} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-black uppercase text-[10px] tracking-widest h-12 shadow-lg shadow-emerald-600/10 transition-all rounded-xl border border-emerald-400/20">
-                        <ImageIcon className="h-4 w-4" /> Salvar Imagem
-                      </Button>
-                      <Button onClick={() => handleBadgePrint(badgeUser)} variant="outline" className="bg-slate-950 border border-white/10 text-slate-300 hover:text-white gap-2 font-black uppercase text-[10px] tracking-widest h-12 shadow-lg transition-all rounded-xl">
-                        <Printer className="h-4 w-4" /> Imprimir / PDF
-                      </Button>
-                    </div>
-                    <p className="text-[9px] text-center text-slate-500 font-medium px-4">
-                      O crachá será impresso com as dimensões oficiais (85mm x 55mm).
-                    </p>
-                  </div>
-                </div>
+                <>
+                  {(() => {
+                    const roleConfig = {
+                      student: { glow: 'shadow-[0_0_50px_rgba(16,185,129,0.35)] border-emerald-500/20 text-emerald-400', text: 'text-emerald-400' },
+                      staff: { glow: 'shadow-[0_0_50px_rgba(124,58,237,0.35)] border-violet-500/20 text-violet-400', text: 'text-violet-400' },
+                      admin: { glow: 'shadow-[0_0_50px_rgba(37,99,235,0.35)] border-blue-500/20 text-blue-400', text: 'text-blue-400' },
+                      super_admin: { glow: 'shadow-[0_0_50px_rgba(79,70,229,0.35)] border-indigo-500/20 text-indigo-400', text: 'text-indigo-400' },
+                      visitor: { glow: 'shadow-[0_0_50px_rgba(217,119,6,0.35)] border-amber-500/20 text-amber-400', text: 'text-amber-400' },
+                    }[badgeUser.role as string] || { glow: 'shadow-[0_0_50px_rgba(16,185,129,0.35)] border-emerald-500/20 text-emerald-400', text: 'text-emerald-400' };
+
+                    return (
+                      <>
+                        <DialogHeader className="pb-2">
+                          <DialogTitle className="flex items-center gap-2 text-white text-lg font-black tracking-tight">
+                            <UserIcon className={`h-5 w-5 animate-pulse shrink-0 ${roleConfig.text}`} />
+                            Carteira Digital SchoolGain
+                          </DialogTitle>
+                          <DialogDescription className="text-slate-400 text-xs">
+                            Visualização de crachá de identificação para {badgeUser.name}.
+                          </DialogDescription>
+                        </DialogHeader>
+
+                        {/* Container Premium tridimensional com escala de visualização de 1.18 */}
+                        <div className="py-8 my-2 flex justify-center items-center overflow-visible [perspective:1000px]">
+                          <div id={`badge-${badgeUser.id}`} className={`transform scale-[1.18] hover:scale-[1.25] hover:rotate-y-[6deg] hover:rotate-x-[4deg] transition-all duration-500 ease-out origin-center cursor-pointer select-none rounded-[16px] border ${roleConfig.glow}`}>
+                            <PrintableBadge user={badgeUser} />
+                          </div>
+                        </div>
+
+                        <div className="mt-4 text-center text-[10px] text-slate-400 uppercase font-black tracking-widest px-6 leading-relaxed">
+                          Use o arquivo digital ou imprima o crachá físico para identificação nos totens.
+                        </div>
+
+                        <div className="mt-6 flex flex-col gap-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <Button onClick={() => handleDownloadBadgeImage(badgeUser)} className="gap-2 shadow-lg bg-emerald-600 hover:bg-emerald-700 text-white border-none font-bold uppercase tracking-wider text-[10px] h-10 rounded-xl">
+                              <ImageIcon className="h-4 w-4" />
+                              Salvar Imagem
+                            </Button>
+                            <Button onClick={() => handleBadgePrint(badgeUser)} variant="outline" className="gap-2 shadow-lg border-white/10 hover:bg-white/5 hover:text-white text-slate-300 font-bold uppercase tracking-wider text-[10px] h-10 rounded-xl">
+                              <Printer className="h-4 w-4" />
+                              PDF / Imprimir
+                            </Button>
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </>
               )}
             </DialogContent>
           </Dialog>

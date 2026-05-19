@@ -4,9 +4,12 @@ import { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
-  BookOpen, Plus, Trash2, Edit, MoreHorizontal, ArrowLeft, Camera, Loader2, Lock
+  BookOpen, Plus, Trash2, Edit, MoreHorizontal, ArrowLeft, Camera, Loader2, Lock, Eye
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { 
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter 
+} from '@/components/ui/dialog';
 import {
   Form, FormControl, FormField, FormItem, FormLabel, FormMessage
 } from '@/components/ui/form';
@@ -82,6 +85,8 @@ export function PedagogicSection({
   setSecurityPassword
 }: PedagogicSectionProps) {
 
+  const [previewAvatar, setPreviewAvatar] = useState<string | null>(null);
+
   const filteredArticles = useMemo(() => {
     return articles
       .filter(a => a.title.toLowerCase().includes(articleSearch.toLowerCase()))
@@ -130,45 +135,72 @@ export function PedagogicSection({
               <div className="space-y-4">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Imagem de Capa</Label>
                 <div className="flex items-center gap-4">
-                  <Avatar className="h-24 w-24 rounded-xl border-4 border-slate-950 bg-slate-900 flex items-center justify-center overflow-hidden shadow-lg">
-                    <AvatarImage src={articleForm.watch('image')} className="object-cover" />
-                    <AvatarFallback className="text-2xl font-black bg-slate-900 text-slate-300">
-                      {articleForm.watch('title')?.charAt(0) || '📄'}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className="relative group/avatar h-24 w-24 rounded-xl border-4 border-slate-950 bg-slate-900 overflow-hidden shadow-lg shrink-0">
+                    <Avatar className="h-full w-full rounded-none">
+                      <AvatarImage src={articleForm.watch('image')} className="object-cover" />
+                      <AvatarFallback className="text-2xl font-black bg-slate-900 text-slate-300">
+                        {articleForm.watch('title')?.charAt(0) || '📄'}
+                      </AvatarFallback>
+                    </Avatar>
+                    {articleForm.watch('image') && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover/avatar:opacity-100 transition-opacity">
+                        <button 
+                          type="button" 
+                          onClick={() => setPreviewAvatar(articleForm.watch('image'))} 
+                          className="cursor-pointer hover:scale-110 transition-transform" 
+                          title="Visualizar Foto"
+                        >
+                          <Eye className="h-6 w-6 text-white" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                   <div className="flex-1 space-y-2">
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Resolução ideal: 200x200px (Quadrada).</p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="relative overflow-hidden bg-slate-950 border-white/10 text-slate-300 hover:text-white rounded-xl gap-2 font-bold text-[10px] uppercase tracking-wider h-10 px-4"
-                      disabled={uploadingUserId === 'new-article'}
-                    >
-                      {uploadingUserId === 'new-article' ? (
-                        <><Loader2 className="mr-2 h-4 w-4 animate-spin text-indigo-400" /> Subindo...</>
-                      ) : (
-                        <><Camera className="mr-2 h-4 w-4" /> Subir Capa</>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="relative overflow-hidden bg-slate-950 border-white/10 text-slate-300 hover:text-white rounded-xl gap-2 font-bold text-[10px] uppercase tracking-wider h-10 px-4 flex-1"
+                        disabled={uploadingUserId === 'new-article'}
+                      >
+                        {uploadingUserId === 'new-article' ? (
+                          <><Loader2 className="mr-2 h-4 w-4 animate-spin text-indigo-400" /> Subindo...</>
+                        ) : (
+                          <><Camera className="mr-2 h-4 w-4" /> Subir Capa</>
+                        )}
+                        <input
+                          type="file"
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                          accept="image/*"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            const articleId = articleForm.getValues('id');
+                            try {
+                              setUploadingUserId('new-article');
+                              const url = await uploadUserAvatar(articleId, file);
+                              if (url) articleForm.setValue('image', url);
+                            } catch (err) {
+                              console.error(err);
+                            } finally {
+                              setUploadingUserId(null);
+                            }
+                          }}
+                        />
+                      </Button>
+                      {articleForm.watch('image') && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="bg-slate-950 border-white/10 text-slate-300 hover:text-white rounded-xl h-10 w-10 p-0 flex items-center justify-center"
+                          title="Visualizar Foto"
+                          onClick={() => setPreviewAvatar(articleForm.watch('image'))}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                       )}
-                      <input
-                        type="file"
-                        className="absolute inset-0 opacity-0 cursor-pointer"
-                        accept="image/*"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          const articleId = articleForm.getValues('id');
-                          try {
-                            setUploadingUserId('new-article');
-                            const url = await uploadUserAvatar(articleId, file);
-                            if (url) articleForm.setValue('image', url);
-                          } catch (err) {
-                            console.error(err);
-                          } finally {
-                            setUploadingUserId(null);
-                          }
-                        }}
-                      />
-                    </Button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -306,7 +338,29 @@ export function PedagogicSection({
               <TableBody>
                 {filteredArticles.length > 0 ? filteredArticles.map((article) => (
                   <TableRow key={article.id} className={isDeleteConfirmOpen && selectedItem?.id === article.id ? 'bg-rose-950/20 hover:bg-rose-950/30' : 'hover:bg-indigo-500/5 border-b border-white/5 transition-colors group'}>
-                    <TableCell className="font-bold text-sm text-slate-200 px-6 py-4">{article.title}</TableCell>
+                    <TableCell className="font-bold text-sm text-slate-200 px-6 py-4 flex items-center gap-3">
+                      <div className="relative group/avatar">
+                        <Avatar className="h-10 w-10 rounded-xl bg-slate-950 border border-white/10 group-hover/avatar:border-indigo-500/50 transition-all overflow-hidden shadow-md shrink-0">
+                          <AvatarImage src={article.image || undefined} className="object-cover" />
+                          <AvatarFallback className="text-xs font-black bg-slate-900 text-slate-300">
+                            {article.imageHint || '📄'}
+                          </AvatarFallback>
+                        </Avatar>
+                        {article.image && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover/avatar:opacity-100 rounded-xl transition-opacity">
+                            <button 
+                              type="button" 
+                              onClick={() => setPreviewAvatar(article.image!)} 
+                              className="cursor-pointer hover:scale-110 transition-transform" 
+                              title="Visualizar Capa"
+                            >
+                              <Eye className="h-4 w-4 text-white" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <span>{article.title}</span>
+                    </TableCell>
                     <TableCell className="text-right px-6 py-4">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -329,6 +383,25 @@ export function PedagogicSection({
           </div>
         </CardContent>
       </Card>
+
+      {/* DIÁLOGO DE PREVISÃO DE CAPA DO ARTIGO */}
+      <Dialog open={!!previewAvatar} onOpenChange={(open) => !open && setPreviewAvatar(null)}>
+        <DialogContent className="max-w-sm bg-[#0a0f24]/95 backdrop-blur-3xl border border-white/10 text-white rounded-[2rem] p-6 shadow-2xl flex flex-col items-center justify-center gap-4">
+          <DialogHeader className="w-full text-center">
+            <DialogTitle className="text-sm font-black uppercase tracking-widest text-indigo-400">Visualizar Capa</DialogTitle>
+          </DialogHeader>
+          <div className="relative w-64 h-64 rounded-2xl overflow-hidden border-2 border-indigo-500/30 bg-slate-950/60 flex items-center justify-center">
+            {previewAvatar ? (
+              <img src={previewAvatar} alt="Preview Cover" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-xs text-slate-500">Nenhuma imagem cadastrada</span>
+            )}
+          </div>
+          <DialogFooter className="w-full pt-2">
+            <Button type="button" onClick={() => setPreviewAvatar(null)} className="w-full h-11 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase text-[10px] tracking-widest rounded-xl">Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

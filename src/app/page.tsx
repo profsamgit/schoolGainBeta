@@ -1,4 +1,4 @@
-import { ArrowRight, Laptop, Shield, User, CircleDot } from "lucide-react";
+import { ArrowRight, Laptop, Shield, User, CircleDot, Leaf } from "lucide-react";
 import Link from "next/link";
 
 export default function Home() {
@@ -33,12 +33,12 @@ export default function Home() {
             </div>
 
             {/* Main Premium Gradient Headline */}
-            <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-slate-900 dark:text-slate-50 mb-3">
-              Bem-vindo ao{" "}
-              <span className="bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
-                SchoolGain Hub
-              </span>
-            </h1>
+            <div className="flex items-center gap-3.5 mb-4 select-none justify-center">
+              <Leaf className="h-8 w-8 text-indigo-500 dark:text-indigo-400 fill-indigo-500/20 animate-pulse shrink-0" />
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-[0.25em] uppercase bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 dark:from-indigo-400 dark:via-purple-400 dark:to-indigo-400 text-transparent bg-clip-text">
+                SchoolGain
+              </h1>
+            </div>
             <p className="text-slate-600 dark:text-slate-400 max-w-lg text-sm sm:text-base leading-relaxed">
               Plataforma inteligente de engajamento, sustentabilidade escolar e reconhecimento de mérito em tempo real.
             </p>

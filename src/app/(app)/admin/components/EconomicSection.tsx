@@ -4,9 +4,12 @@ import { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
-  Leaf, Gift, History, Plus, ArrowLeft, Edit, Trash2, MoreHorizontal, Camera, Loader2, Lock 
+  Leaf, Gift, History, Plus, ArrowLeft, Edit, Trash2, MoreHorizontal, Camera, Loader2, Lock, Eye 
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { 
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter 
+} from '@/components/ui/dialog';
 import { 
   Form, FormControl, FormField, FormItem, FormLabel, FormMessage 
 } from '@/components/ui/form';
@@ -105,6 +108,7 @@ export function EconomicSection({
   const [grantStudentSearch, setGrantStudentSearch] = useState('');
   const [grantTurmaFilter, setGrantTurmaFilter] = useState('all');
   const [grantCursoFilter, setGrantCursoFilter] = useState('all');
+  const [previewAvatar, setPreviewAvatar] = useState<string | null>(null);
 
   const filteredRewards = useMemo(() => {
     return rewards
@@ -184,45 +188,72 @@ export function EconomicSection({
             <div className="space-y-4">
               <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Imagem do Prêmio</Label>
               <div className="flex items-center gap-6 p-6 bg-slate-950 border border-white/5 rounded-2xl shadow-md">
-                <Avatar className="h-24 w-24 rounded-xl border-4 border-slate-950 bg-slate-900 flex items-center justify-center overflow-hidden shadow-lg">
-                  <AvatarImage src={rewardForm.watch('image')} className="object-cover" />
-                  <AvatarFallback className="text-2xl font-black bg-slate-900 text-slate-300">
-                    {rewardForm.watch('name')?.charAt(0) || '🎁'}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="relative group/avatar h-24 w-24 rounded-xl border-4 border-slate-950 bg-slate-900 overflow-hidden shadow-lg shrink-0">
+                  <Avatar className="h-full w-full rounded-none">
+                    <AvatarImage src={rewardForm.watch('image')} className="object-cover" />
+                    <AvatarFallback className="text-2xl font-black bg-slate-900 text-slate-300">
+                      {rewardForm.watch('name')?.charAt(0) || '🎁'}
+                    </AvatarFallback>
+                  </Avatar>
+                  {rewardForm.watch('image') && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover/avatar:opacity-100 transition-opacity">
+                      <button 
+                        type="button" 
+                        onClick={() => setPreviewAvatar(rewardForm.watch('image'))} 
+                        className="cursor-pointer hover:scale-110 transition-transform" 
+                        title="Visualizar Foto"
+                      >
+                        <Eye className="h-6 w-6 text-white" />
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <div className="space-y-2 flex-1">
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Suba uma imagem clara do prêmio. Resolução ideal: 200x200px (Quadrada).</p>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    className="relative overflow-hidden bg-slate-950 border-white/10 text-slate-300 hover:text-white rounded-xl gap-2 font-bold text-[10px] uppercase tracking-wider h-10 px-4"
-                    disabled={uploadingUserId === 'new-reward'}
-                  >
-                    {uploadingUserId === 'new-reward' ? (
-                      <><Loader2 className="mr-2 h-4 w-4 animate-spin text-indigo-400" /> Subindo...</>
-                    ) : (
-                      <><Camera className="mr-2 h-4 w-4" /> Escolher Imagem</>
+                  <div className="flex gap-2">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="relative overflow-hidden bg-slate-950 border-white/10 text-slate-300 hover:text-white rounded-xl gap-2 font-bold text-[10px] uppercase tracking-wider h-10 px-4 flex-1"
+                      disabled={uploadingUserId === 'new-reward'}
+                    >
+                      {uploadingUserId === 'new-reward' ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin text-indigo-400" /> Subindo...</>
+                      ) : (
+                        <><Camera className="mr-2 h-4 w-4" /> Escolher Imagem</>
+                      )}
+                      <input 
+                        type="file" 
+                        className="absolute inset-0 opacity-0 cursor-pointer" 
+                        accept="image/*" 
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const rewardId = rewardForm.getValues('id');
+                          try {
+                            setUploadingUserId('new-reward');
+                            const url = await uploadUserAvatar(rewardId, file);
+                            if (url) rewardForm.setValue('image', url);
+                          } catch (err) {
+                            console.error(err);
+                          } finally {
+                            setUploadingUserId(null);
+                          }
+                        }} 
+                      />
+                    </Button>
+                    {rewardForm.watch('image') && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="bg-slate-950 border-white/10 text-slate-300 hover:text-white rounded-xl h-10 w-10 p-0 flex items-center justify-center"
+                        title="Visualizar Foto"
+                        onClick={() => setPreviewAvatar(rewardForm.watch('image'))}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
                     )}
-                    <input 
-                      type="file" 
-                      className="absolute inset-0 opacity-0 cursor-pointer" 
-                      accept="image/*" 
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        const rewardId = rewardForm.getValues('id');
-                        try {
-                          setUploadingUserId('new-reward');
-                          const url = await uploadUserAvatar(rewardId, file);
-                          if (url) rewardForm.setValue('image', url);
-                        } catch (err) {
-                          console.error(err);
-                        } finally {
-                          setUploadingUserId(null);
-                        }
-                      }} 
-                    />
-                  </Button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -430,7 +461,29 @@ export function EconomicSection({
                   <TableBody>
                     {filteredRewards.length > 0 ? filteredRewards.map((reward) => (
                       <TableRow key={reward.id} className={isDeleteConfirmOpen && selectedItem?.id === reward.id ? 'bg-rose-950/20 hover:bg-rose-950/30' : 'hover:bg-indigo-500/5 border-b border-white/5 transition-colors group'}>
-                        <TableCell className="font-bold text-sm text-slate-200 px-6 py-4">{reward.name}</TableCell>
+                        <TableCell className="font-bold text-sm text-slate-200 px-6 py-4 flex items-center gap-3">
+                          <div className="relative group/avatar">
+                            <Avatar className="h-10 w-10 rounded-xl bg-slate-950 border border-white/10 group-hover/avatar:border-indigo-500/50 transition-all overflow-hidden shadow-md shrink-0">
+                              <AvatarImage src={reward.image || undefined} className="object-cover" />
+                              <AvatarFallback className="text-xs font-black bg-slate-900 text-slate-300">
+                                {reward.imageHint || '🎁'}
+                              </AvatarFallback>
+                            </Avatar>
+                            {reward.image && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover/avatar:opacity-100 rounded-xl transition-opacity">
+                                <button 
+                                  type="button" 
+                                  onClick={() => setPreviewAvatar(reward.image!)} 
+                                  className="cursor-pointer hover:scale-110 transition-transform" 
+                                  title="Visualizar Foto"
+                                >
+                                  <Eye className="h-4 w-4 text-white" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                          <span>{reward.name}</span>
+                        </TableCell>
                         <TableCell className="font-black text-indigo-400 px-3">{reward.cost} Bio-Coins</TableCell>
                         <TableCell className="text-right px-6 py-4">
                           <DropdownMenu>
@@ -507,6 +560,25 @@ export function EconomicSection({
               </CardContent>
           </Card>
       </div>
+
+      {/* DIÁLOGO DE PREVISÃO DE IMAGEM DA RECOMPENSA */}
+      <Dialog open={!!previewAvatar} onOpenChange={(open) => !open && setPreviewAvatar(null)}>
+        <DialogContent className="max-w-sm bg-[#0a0f24]/95 backdrop-blur-3xl border border-white/10 text-white rounded-[2rem] p-6 shadow-2xl flex flex-col items-center justify-center gap-4">
+          <DialogHeader className="w-full text-center">
+            <DialogTitle className="text-sm font-black uppercase tracking-widest text-indigo-400">Visualizar Recompensa</DialogTitle>
+          </DialogHeader>
+          <div className="relative w-64 h-64 rounded-2xl overflow-hidden border-2 border-indigo-500/30 bg-slate-950/60 flex items-center justify-center">
+            {previewAvatar ? (
+              <img src={previewAvatar} alt="Preview Reward" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-xs text-slate-500">Nenhuma imagem cadastrada</span>
+            )}
+          </div>
+          <DialogFooter className="w-full pt-2">
+            <Button type="button" onClick={() => setPreviewAvatar(null)} className="w-full h-11 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase text-[10px] tracking-widest rounded-xl">Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
