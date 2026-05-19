@@ -11,6 +11,7 @@ import {
   Lock, 
   Keyboard, 
   ArrowRight, 
+  ArrowLeft,
   AlertTriangle,
   RefreshCw,
   Sparkles,
@@ -22,7 +23,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { VirtualKeyboard } from '@/components/ui/virtual-keyboard';
-import { cn } from '@/lib/utils';
+import { playBeep, cn } from '@/lib/utils';
+import { EcosystemService } from '@/lib/ecosystem.service';
 import Link from 'next/link';
 
 // Importação dinâmica do Scanner para evitar erros de SSR
@@ -73,8 +75,88 @@ export function IdentificationSection({
   onIdentify,
   isProcessing
 }: IdentificationSectionProps) {
-  const { systemSettings } = useEcosystem();
+  const { systemSettings, users } = useEcosystem();
   const streamImgRef = useRef<HTMLImageElement | null>(null);
+  const [isLocked, setIsLocked] = useState(false);
+
+  // States para o Dialog de autenticação administrativo
+  const [showLockAuth, setShowLockAuth] = useState(false);
+  const [authUsername, setAuthUsername] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [showAuthKeyboard, setShowAuthKeyboard] = useState(false);
+  const [activeAuthInput, setActiveAuthInput] = useState<'username' | 'password'>('username');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('kiosk_locked');
+      if (stored === 'true') {
+        setIsLocked(true);
+      }
+    }
+  }, []);
+
+  const handleToggleLock = () => {
+    setShowLockAuth(true);
+    setAuthUsername('');
+    setAuthPassword('');
+    setAuthError('');
+  };
+
+  const handleAdminAuth = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (authLoading) return;
+    setAuthLoading(true);
+    setAuthError('');
+
+    try {
+      const cleanUser = authUsername.trim();
+      const cleanPass = authPassword.trim();
+
+      if (!cleanUser || !cleanPass) {
+        setAuthError('Preencha todos os campos.');
+        playBeep('error');
+        setAuthLoading(false);
+        return;
+      }
+
+      const user = users.find((u: any) =>
+        (u.email && u.email.toLowerCase() === cleanUser.toLowerCase()) ||
+        (u.ra && u.ra.toUpperCase() === cleanUser.toUpperCase())
+      );
+
+      if (user && (user.role === 'admin' || user.role === 'super_admin')) {
+        const hashed = await EcosystemService.hashPassword(cleanPass);
+        const isMatch = user.password === hashed || user.password === cleanPass;
+
+        if (isMatch) {
+          const nextState = !isLocked;
+          setIsLocked(nextState);
+          localStorage.setItem('kiosk_locked', nextState ? 'true' : 'false');
+
+          playBeep('success');
+
+          // Fecha e limpa
+          setShowLockAuth(false);
+          setAuthUsername('');
+          setAuthPassword('');
+          setAuthError('');
+        } else {
+          setAuthError('Senha incorreta!');
+          playBeep('error');
+        }
+      } else {
+        setAuthError('Não autorizado ou usuário inexistente!');
+        playBeep('error');
+      }
+    } catch (err) {
+      setAuthError('Erro interno na validação.');
+      playBeep('error');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
   const [streamError, setStreamError] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -271,6 +353,12 @@ export function IdentificationSection({
                 {currentSchool.name} • {currentSchool.city}/{currentSchool.state}
               </span>
             )}
+            {isLocked && (
+              <span className="mt-2 inline-flex items-center bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[9px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.05)]">
+                <Lock className="w-2.5 h-2.5 mr-1.5 text-rose-400" />
+                Kiosk Bloqueado Administrador
+              </span>
+            )}
           </div>
 
           {/* Form & Navigation tabs */}
@@ -332,6 +420,10 @@ export function IdentificationSection({
                     autoFocus
                     disabled={lockoutSecs > 0}
                     inputMode={showKeyboard ? 'none' : 'text'}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
                   />
                 </div>
                 
@@ -509,16 +601,165 @@ export function IdentificationSection({
 
         {/* Dynamic Footer links */}
         <div className="mt-8 text-center flex flex-col items-center gap-3">
-          <div className="flex items-center gap-3 text-xs text-slate-500 font-bold uppercase tracking-wider">
-            <p>Não é um terminal? <Link href="/" className="text-emerald-400 hover:text-emerald-300 underline underline-offset-4">Voltar para o app</Link></p>
-            <span className="text-slate-700">•</span>
+          <div className="flex flex-col sm:flex-row items-center gap-3 text-xs text-slate-500 font-bold uppercase tracking-wider">
+            {!isLocked ? (
+              <Link 
+                href="/" 
+                className="group inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-slate-400 hover:text-emerald-400 hover:bg-white/10 hover:border-emerald-500/30 hover:scale-105 active:scale-95 shadow-sm font-black text-[10px] tracking-widest uppercase transition-all duration-300 backdrop-blur-md"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 transform group-hover:-translate-x-1 transition-transform duration-200" />
+                <span>Voltar</span>
+              </Link>
+            ) : (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-500/20 bg-rose-500/10 text-rose-400 text-[9px] font-black uppercase tracking-widest animate-pulse">
+                <Lock className="w-3 h-3 text-rose-500" />
+                Terminal Travado
+              </div>
+            )}
+            <span className="hidden sm:inline-block text-slate-700">•</span>
             <Link href="/about" className="hover:text-emerald-300 hover:underline transition-all">
               TDS 2B 2026 - CETI Frei José Apicella
             </Link>
+            <span className="hidden sm:inline-block text-slate-700">•</span>
+            <button 
+              onClick={handleToggleLock}
+              className="inline-flex items-center gap-1.5 text-slate-500 hover:text-emerald-400 transition-colors"
+              title={isLocked ? "Destravar Terminal" : "Travar Terminal"}
+            >
+              <Lock className={cn("w-3.5 h-3.5", isLocked ? "text-rose-500 animate-pulse" : "text-slate-500")} />
+              <span>{isLocked ? "Destravar" : "Travar"}</span>
+            </button>
           </div>
         </div>
 
       </main>
+
+      {/* 🔐 CARD DE AUTENTICAÇÃO DO DIALOG DE BLOQUEIO */}
+      {showLockAuth && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-300">
+          <div className="relative w-full max-w-md backdrop-blur-2xl bg-slate-950/80 border border-white/10 rounded-[2rem] shadow-[0_25px_60px_rgba(0,0,0,0.8)] overflow-hidden ring-1 ring-white/5 animate-in zoom-in-95 duration-300">
+            {/* Linha decorativa de neon */}
+            <div className="h-1.5 bg-gradient-to-r from-emerald-500 to-indigo-600 shadow-[0_0_15px_rgba(16,185,129,0.3)]"></div>
+            
+            <form onSubmit={handleAdminAuth} className="p-8 space-y-6">
+              
+              {/* Header do Dialog */}
+              <div className="text-center flex flex-col items-center">
+                <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-emerald-500/5 text-indigo-400 border border-indigo-500/30 mb-4 shadow-[0_0_15px_rgba(99,102,241,0.15)]">
+                  <Lock className="w-6 h-6 animate-pulse" />
+                </div>
+                <h3 className="text-lg font-black uppercase tracking-wider text-white">
+                  Controle Administrativo
+                </h3>
+                <p className="text-[10px] text-slate-400 font-medium tracking-wide mt-1">
+                  {isLocked ? "Autentique-se para DESTRAVAR o Kiosk" : "Autentique-se para TRAVAR o Kiosk"}
+                </p>
+              </div>
+
+              {/* Erro de Feedback */}
+              {authError && (
+                <div className="bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl text-rose-400 text-xs text-center font-bold">
+                  {authError}
+                </div>
+              )}
+
+              {/* Campos */}
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label htmlFor="auth-username" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                    Login (RA ou E-mail)
+                  </label>
+                  <Input
+                    id="auth-username"
+                    placeholder="Gestor ou Super Admin"
+                    value={authUsername}
+                    onChange={(e) => setAuthUsername(e.target.value)}
+                    onFocus={() => setActiveAuthInput('username')}
+                    className="h-12 bg-[#090b14]/90 text-white placeholder:text-slate-600 border border-white/10 focus:border-indigo-500/50 focus:ring-indigo-500/10 focus:ring-4 rounded-xl px-4 text-sm"
+                    disabled={authLoading}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    autoFocus
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="auth-password" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                    Senha de Gestão
+                  </label>
+                  <Input
+                    id="auth-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    onFocus={() => setActiveAuthInput('password')}
+                    className="h-12 bg-[#090b14]/90 text-white placeholder:text-slate-600 border border-white/10 focus:border-indigo-500/50 focus:ring-indigo-500/10 focus:ring-4 rounded-xl px-4 text-sm"
+                    disabled={authLoading}
+                    autoComplete="off"
+                  />
+                </div>
+              </div>
+
+              {/* Teclado Virtual no Dialog */}
+              {showAuthKeyboard && (
+                <div className="animate-in fade-in slide-in-from-top-2 duration-300 bg-slate-950/60 p-4 border border-white/5 rounded-2xl shadow-inner">
+                  <VirtualKeyboard
+                    layout="alphanumeric"
+                    onInput={(key) => activeAuthInput === 'username' ? setAuthUsername(p => p + key) : setAuthPassword(p => p + key)}
+                    onBackspace={() => activeAuthInput === 'username' ? setAuthUsername(p => p.slice(0, -1)) : setAuthPassword(p => p.slice(0, -1))}
+                    onEnter={handleAdminAuth}
+                  />
+                </div>
+              )}
+
+              {/* Ações */}
+              <div className="space-y-3 pt-2">
+                <Button
+                  type="submit"
+                  className="w-full h-14 rounded-xl bg-gradient-to-r from-indigo-500 to-emerald-600 hover:from-indigo-400 hover:to-emerald-500 text-white font-bold transition-all duration-300 shadow-[0_0_20px_rgba(99,102,241,0.15)] hover:scale-[1.01] active:scale-95 border border-indigo-400/20"
+                  disabled={authLoading}
+                >
+                  {authLoading ? (
+                    <RefreshCw className="animate-spin mr-2 h-4 w-4" />
+                  ) : (
+                    <span>Confirmar Ação</span>
+                  )}
+                </Button>
+
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setShowAuthKeyboard(p => !p)}
+                    className="flex-1 h-11 text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 rounded-xl border border-white/5"
+                  >
+                    <Keyboard className="mr-2 h-4.5 w-4.5 text-indigo-400" />
+                    Teclado
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      setShowLockAuth(false);
+                      setAuthUsername('');
+                      setAuthPassword('');
+                      setAuthError('');
+                    }}
+                    className="flex-1 h-11 text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl border border-rose-500/10"
+                    disabled={authLoading}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );

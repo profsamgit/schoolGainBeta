@@ -10,7 +10,7 @@ export default function AboutPage() {
   const { allParticipants } = useEcosystem();
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans selection:bg-emerald-500/20 selection:text-emerald-950 dark:selection:text-emerald-500">
+    <div className="relative flex min-h-screen flex-col items-center justify-start bg-slate-50 dark:bg-slate-950 overflow-y-auto py-12 px-4 md:py-20 font-sans selection:bg-emerald-500/20 selection:text-emerald-950 dark:selection:text-emerald-500">
       
       {/* 🌌 Cosmic Background & Ambient Glow Blobs */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
@@ -22,7 +22,7 @@ export default function AboutPage() {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
       </div>
 
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center p-6 w-full max-w-4xl">
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-start w-full max-w-4xl">
         
         {/* 📟 Glassmorphic Unified Console Container */}
         <div className="w-full backdrop-blur-xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/50 dark:border-slate-800/50 rounded-[2.5rem] shadow-2xl p-8 md:p-12 transition-all duration-300">
@@ -94,15 +94,13 @@ export default function AboutPage() {
 
           {/* 🔙 Interactive Return Action Bar */}
           <div className="mt-12 flex justify-center border-t border-slate-200/30 dark:border-slate-800/30 pt-8">
-            <Button 
-              asChild 
-              className="group rounded-full bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 text-slate-100 dark:text-slate-900 font-semibold px-6 py-5 shadow-lg shadow-slate-950/10 transition-all duration-300 hover:scale-[1.03]"
+            <Link 
+              href="/" 
+              className="group inline-flex items-center gap-2 px-6 py-3 rounded-full border border-slate-200/50 dark:border-slate-800/80 bg-white/40 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 hover:border-emerald-500/30 dark:hover:border-emerald-500/20 hover:scale-105 active:scale-95 shadow-md font-bold text-xs tracking-wider uppercase transition-all duration-300 backdrop-blur-md"
             >
-              <Link href="/">
-                <ArrowLeft className="mr-2 h-4 w-4 transform group-hover:-translate-x-1 transition-transform duration-200" />
-                Voltar para o Início
-              </Link>
-            </Button>
+              <ArrowLeft className="w-4 h-4 transform group-hover:-translate-x-1 transition-transform duration-200 text-emerald-500" />
+              <span>Voltar para o Início</span>
+            </Link>
           </div>
 
         </div>
