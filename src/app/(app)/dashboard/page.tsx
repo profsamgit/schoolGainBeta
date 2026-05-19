@@ -213,18 +213,18 @@ export default function DashboardPage() {
   const progressToNextLevel = Math.min(100, (globalScore / nextLevelScore) * 100);
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-8rem)]">
+    <div className="p-6 space-y-8 max-w-7xl mx-auto relative z-10 text-white">
       <div className="grid gap-6 flex-grow">
         
         {pointsExpiringSoon > 0 && (
-          <Alert className="bg-amber-50 border-2 border-amber-200 shadow-lg mb-4">
-            <AlertTriangle className="h-6 w-6 text-amber-600 animate-bounce" />
-            <AlertTitle className="text-lg font-black uppercase tracking-tight text-amber-700">Bio-Coins Próximos da Expiração</AlertTitle>
-            <AlertDescription className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mt-3 text-amber-600">
+          <Alert className="bg-amber-950/20 border border-amber-500/30 shadow-lg shadow-amber-500/5 text-amber-400 rounded-[2rem] mb-4">
+            <AlertTriangle className="h-6 w-6 text-amber-550 animate-bounce" />
+            <AlertTitle className="text-lg font-black uppercase tracking-tight text-amber-450">Bio-Coins Próximos da Expiração</AlertTitle>
+            <AlertDescription className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mt-3 text-amber-300">
               <span className="text-base font-bold leading-relaxed">
-                Você tem <b className="text-amber-800 underline decoration-amber-400 decoration-2">{pointsExpiringSoon} Bio-Coins</b> que expirarão em até 7 dias! Visite a Bioshop e aproveite-os antes do prazo.
+                Você tem <b className="text-amber-500 underline decoration-amber-500/30 decoration-2">{pointsExpiringSoon} Bio-Coins</b> que expirarão em até 7 dias! Visite a Bioshop e aproveite-os antes do prazo.
               </span>
-              <Button asChild className="bg-amber-600 hover:bg-amber-700 text-white shadow-md border-none px-8 h-11">
+              <Button asChild className="bg-amber-600 hover:bg-amber-700 text-white shadow-md border-none px-8 h-11 rounded-xl">
                 <Link href="/meu-ecossistema">
                   Visitar Bioshop
                   <ArrowRight className="ml-2 h-5 w-5 animate-pulse" />
@@ -235,17 +235,17 @@ export default function DashboardPage() {
         )}
 
         {!vitalityActivated && vitality <= 20 && (
-          <Alert className="bg-red-50 border-2 border-red-200 shadow-lg mb-4">
-            <AlertTriangle className="h-6 w-6 text-red-600" />
-            <AlertTitle className="text-lg font-black uppercase tracking-tight text-red-700">Ecossistema Inativo</AlertTitle>
-            <AlertDescription className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mt-3 text-red-600">
+          <Alert className="bg-red-950/20 border border-red-500/30 shadow-lg shadow-red-500/5 text-red-400 rounded-[2rem] mb-4">
+            <AlertTriangle className="h-6 w-6 text-red-500" />
+            <AlertTitle className="text-lg font-black uppercase tracking-tight text-red-450">Ecossistema Inativo</AlertTitle>
+            <AlertDescription className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mt-3 text-red-300">
               <span className="text-base font-bold leading-relaxed">
                 Para ativar seu ecossistema e começar com 100% de vitalidade, você precisa completar um <b>Quiz de 10 perguntas</b> no nível <b>Médio</b>.
               </span>
-              <Button asChild className="bg-red-600 hover:bg-red-700 text-white shadow-md border-none px-8 h-11">
+              <Button asChild className="bg-red-600 hover:bg-red-700 text-white shadow-md border-none px-8 h-11 rounded-xl">
                 <Link href="/quiz?topic=Reciclagem&autoStart=true&difficulty=medium&questions=10">
                   Ativar Agora
-                  <BrainCircuit className="ml-2 h-5 w-5" />
+                  <BrainCircuit className="ml-2 h-5 w-5 animate-pulse" />
                 </Link>
               </Button>
             </AlertDescription>
@@ -253,19 +253,18 @@ export default function DashboardPage() {
         )}
 
         {/* JORNADA DE NÍVEL PREMIUM */}
-        <Card className="overflow-hidden rounded-3xl border-none shadow-2xl bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950">
+        <Card className="overflow-hidden rounded-[2rem] border border-white/5 bg-slate-900/40 shadow-2xl backdrop-blur-xl">
            <LevelJourney currentLevel={currentLevel} totalScore={globalScore} />
         </Card>
         
         {/* CARD DE BOAS-VINDAS E RESUMO */}
-        <Card className="border border-slate-200/60 dark:border-slate-800 rounded-3xl bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 shadow-sm">
+        <Card className="border border-white/5 rounded-[2rem] bg-slate-900/40 shadow-2xl backdrop-blur-xl text-white">
           <CardHeader className="flex flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-6">
               <div className="relative group/avatar">
-                <Avatar className="h-16 w-16 rounded-2xl border-4 border-white shadow-xl bg-slate-900 text-white flex items-center justify-center text-xl font-black uppercase transition-transform group-hover/avatar:scale-105">
+                <Avatar className="h-16 w-16 rounded-2xl border-4 border-white/10 shadow-xl bg-slate-900 text-white flex items-center justify-center text-xl font-black uppercase transition-transform group-hover/avatar:scale-105">
                    <AvatarImage src={currentUser?.avatar || undefined} className="object-cover" />
                    <AvatarFallback className="bg-slate-900 text-white">{currentUser?.name?.charAt(0) || '?'}</AvatarFallback>
-
                 </Avatar>
                   {!isPreviewMode && (
                     <div className="flex flex-col gap-2">
@@ -280,27 +279,24 @@ export default function DashboardPage() {
                       <Button 
                         variant="secondary" 
                         size="icon" 
-                        className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full border-2 border-white shadow-lg z-20 opacity-0 group-hover/avatar:opacity-100 transition-opacity"
+                        className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full border-2 border-white/10 shadow-lg z-20 opacity-0 group-hover/avatar:opacity-100 transition-opacity"
                         onClick={() => setIsCameraOpen(true)}
                         disabled={isUploading}
                       >
-                        <Camera className="h-4 w-4" />
+                        <Camera className="h-4 w-4 text-slate-800" />
                       </Button>
                     </div>
                   )}
-
               </div>
               <div className="space-y-1">
                 <CardTitle className={cn(
-                  "text-2xl transition-all",
-                  isLegend ? "text-amber-600 dark:text-amber-400 flex items-center gap-2" : ""
+                  "text-2xl transition-all font-black uppercase tracking-tight",
+                  isLegend ? "text-amber-400 flex items-center gap-2" : ""
                 )}>
                   Olá, {currentUser?.name?.split(' ')[0] || 'Agente'}!
-                  {isLegend && <Sparkles className="h-5 w-5 animate-pulse" />}
+                  {isLegend && <Sparkles className="h-5 w-5 text-amber-400 animate-pulse" />}
                 </CardTitle>
-
-
-                <CardDescription className="font-medium text-slate-500">
+                <CardDescription className="font-semibold text-slate-400">
                   Seu progresso na jornada sustentável hoje.
                 </CardDescription>
               </div>
@@ -310,25 +306,25 @@ export default function DashboardPage() {
           <CardContent className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             
             {/* Bloco de Saldo */}
-            <Card className="bg-emerald-500/5 border-emerald-500/20 rounded-3xl">
+            <Card className="bg-emerald-550/10 border border-emerald-500/20 rounded-[1.5rem] shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Bio-Coins</CardTitle>
-                <Target className="h-4 w-4 text-emerald-500" />
+                <CardTitle className="text-xs font-black uppercase tracking-wider text-emerald-400">Bio-Coins</CardTitle>
+                <Target className="h-4 w-4 text-emerald-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-black text-slate-900 dark:text-white">{balance.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground font-medium">Saldo disponível para upgrades</p>
+                <div className="text-3xl font-black text-white">{balance.toLocaleString()}</div>
+                <p className="text-xs text-slate-400 font-medium">Saldo disponível para upgrades</p>
               </CardContent>
             </Card>
 
             {/* Bloco de Ranking */}
-            <Card className="bg-indigo-500/5 border-indigo-500/20 rounded-3xl">
+            <Card className="bg-indigo-550/10 border border-indigo-500/20 rounded-[1.5rem] shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400">Sua Posição</CardTitle>
-                <Trophy className="h-4 w-4 text-indigo-500" />
+                <CardTitle className="text-xs font-black uppercase tracking-wider text-indigo-400">Sua Posição</CardTitle>
+                <Trophy className="h-4 w-4 text-indigo-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-black text-slate-900 dark:text-white">
+                <div className="text-3xl font-black text-white">
                   #
                   {(() => {
                     if (!Array.isArray(users) || !currentUser) return 0;
@@ -339,22 +335,21 @@ export default function DashboardPage() {
                       return pointsB - pointsA;
                     });
                     return sorted.findIndex((u: any) => u.ra?.toUpperCase() === currentUser?.ra?.toUpperCase()) + 1;
-
                   })()}
                 </div>
-                <p className="text-xs text-muted-foreground font-medium">de {users.filter(u => u.role === 'student').length} alunos</p>
+                <p className="text-xs text-slate-400 font-medium">de {users.filter(u => u.role === 'student').length} alunos</p>
               </CardContent>
             </Card>
 
             {/* Bloco de Vitalidade */}
-            <Card className="bg-rose-500/5 border-rose-500/20 rounded-3xl">
+            <Card className="bg-rose-550/10 border border-rose-500/20 rounded-[1.5rem] shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-black uppercase tracking-widest text-rose-600 dark:text-rose-400">Vitalidade</CardTitle>
-                <Activity className="h-4 w-4 text-rose-500" />
+                <CardTitle className="text-xs font-black uppercase tracking-wider text-rose-400">Vitalidade</CardTitle>
+                <Activity className="h-4 w-4 text-rose-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-black text-slate-900 dark:text-white">{vitality}%</div>
-                <p className="text-xs text-muted-foreground font-medium">Saúde do seu ecossistema</p>
+                <div className="text-3xl font-black text-white">{vitality}%</div>
+                <p className="text-xs text-slate-400 font-medium">Saúde do seu ecossistema</p>
               </CardContent>
             </Card>
 
@@ -363,13 +358,13 @@ export default function DashboardPage() {
           {/* BARRA DE PROGRESSO DE NÍVEL */}
           <CardFooter>
             <div className="w-full">
-              <div className="flex justify-between text-sm text-muted-foreground mb-1">
+              <div className="flex justify-between text-xs text-slate-400 mb-1">
                 <span>Rumo ao próximo nível</span>
-                <span>
+                <span className="text-emerald-400 font-black">
                   {globalScore.toLocaleString()} / {nextLevelScore.toLocaleString()} Score XP
                 </span>
               </div>
-              <Progress value={progressToNextLevel} className="h-2" />
+              <Progress value={progressToNextLevel} className="h-2 bg-slate-950/60 [&>div]:bg-gradient-to-r [&>div]:from-emerald-500 [&>div]:to-teal-400" />
             </div>
           </CardFooter>
         </Card>
@@ -379,23 +374,23 @@ export default function DashboardPage() {
           {/* CARD DE MISSÃO DIÁRIA */}
           {/* Ele muda de cor (fica laranja) se a vitalidade do aluno estiver baixa! */}
           <Card className={cn(
-            "relative overflow-hidden transition-all duration-500 rounded-3xl border border-slate-200/60 dark:border-slate-800",
+            "relative overflow-hidden transition-all duration-500 rounded-[2rem] border",
             isMissionDone 
-              ? "opacity-60 bg-slate-50/50 dark:bg-slate-900/50" 
+              ? "opacity-65 bg-slate-950/20 border-white/5" 
               : (vitality < 70 
-                  ? "border-amber-500/50 bg-gradient-to-br from-amber-50/30 to-slate-50/10 dark:from-amber-950/10 dark:to-slate-950" 
-                  : "bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 shadow-sm")
+                  ? "border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-transparent shadow-[0_0_20px_rgba(245,158,11,0.05)] text-white" 
+                  : "bg-slate-900/40 border-white/5 shadow-2xl backdrop-blur-xl text-white")
           )}>
             <CardHeader>
               <div className="flex items-center gap-2">
                 {isMissionDone ? (
-                  <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                  <CheckCircle2 className="h-5 w-5 text-emerald-400 animate-pulse" />
                 ) : (
-                  vitality < 70 ? <AlertTriangle className="h-5 w-5 text-amber-500" /> : <Target className="h-5 w-5 text-primary" />
+                  vitality < 70 ? <AlertTriangle className="h-5 w-5 text-amber-400" /> : <Target className="h-5 w-5 text-emerald-400 animate-pulse" />
                 )}
-                <CardTitle className="text-slate-900 dark:text-slate-100">Missão Diária</CardTitle>
+                <CardTitle className="text-white font-black uppercase tracking-tight text-lg">Missão Diária</CardTitle>
               </div>
-              <CardDescription className="text-slate-500 dark:text-slate-400">
+              <CardDescription className="text-slate-400 text-xs">
                 {isMissionDone 
                   ? "Parabéns! Missão cumprida por hoje." 
                   : (vitality < 70 ? "Alerta! Seu ecossistema está fraco. Recupere vitalidade." : "Complete um desafio para ganhar Bio-Coins.")
@@ -405,13 +400,13 @@ export default function DashboardPage() {
             <CardContent>
               {!isMissionDone && (
                 <div className="space-y-4">
-                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <p className="text-sm font-semibold text-slate-200">
                     {vitality < 70 
                       ? "O rio está poluído! Faça um Quiz sobre Reciclagem para limpar o ambiente." 
                       : "Aprenda sobre energia limpa para fortalecer sua base."
                     }
                   </p>
-                  <Button asChild className={cn("w-full gap-2 rounded-xl", vitality < 70 ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700")}>
+                  <Button asChild className={cn("w-full gap-2 rounded-xl border-none shadow-lg", vitality < 70 ? "bg-amber-600 hover:bg-amber-700 text-white" : "bg-emerald-600 hover:bg-emerald-700 text-white")}>
                     {vitality < 70 ? (
                       <Link href="/quiz?topic=Reciclagem&autoStart=true&difficulty=medium&questions=5">
                         Fazer Quiz de Emergência
@@ -428,22 +423,22 @@ export default function DashboardPage() {
               )}
               {isMissionDone && (
                 <div className="flex flex-col items-center justify-center py-4 text-center">
-                  <div className="h-12 w-12 rounded-full bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center mb-2">
-                    <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+                  <div className="h-12 w-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mb-2 animate-bounce">
+                    <CheckCircle2 className="h-6 w-6 text-emerald-450" />
                   </div>
-                  <p className="text-sm font-bold text-emerald-600">Missão Concluída</p>
-                  <p className="text-xs text-muted-foreground mt-1">Sua recompensa foi creditada.</p>
+                  <p className="text-sm font-black uppercase tracking-tight text-emerald-400">Missão Concluída</p>
+                  <p className="text-xs text-slate-400 mt-1">Sua recompensa foi creditada.</p>
                 </div>
               )}
             </CardContent>
           </Card>
 
           {/* CARD DE RANKING RÁPIDO */}
-          <Card className="border border-slate-200/60 dark:border-slate-800 rounded-3xl bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 shadow-sm">
-            <CardHeader className="flex flex-row items-center">
-              <CardTitle className="text-slate-900 dark:text-slate-100">Top 3 Alunos</CardTitle>
-              <Button asChild size="sm" className="ml-auto rounded-full text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white" variant="ghost">
-                <Link href="/leaderboard" className="gap-1">
+          <Card className="border border-white/5 rounded-[2rem] bg-slate-900/40 shadow-2xl backdrop-blur-xl text-white">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-white font-black uppercase tracking-tight text-lg">Top 3 Alunos</CardTitle>
+              <Button asChild size="sm" className="rounded-full text-slate-400 hover:text-white hover:bg-white/5" variant="ghost">
+                <Link href="/leaderboard" className="gap-1 flex items-center">
                   Ver Ranking de XP
                   <ArrowRight className="h-4 w-4" />
                 </Link>
@@ -452,10 +447,10 @@ export default function DashboardPage() {
             <CardContent>
               <Table>
                 <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="w-12 text-center text-slate-500 dark:text-slate-400 font-bold">Pos</TableHead>
-                    <TableHead className="text-slate-500 dark:text-slate-400 font-bold">Nome</TableHead>
-                    <TableHead className="text-right text-slate-500 dark:text-slate-400 font-bold">Score XP</TableHead>
+                  <TableRow className="hover:bg-transparent border-white/5">
+                    <TableHead className="w-12 text-center text-slate-400 font-bold uppercase text-[9px] tracking-wider">Pos</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Nome</TableHead>
+                    <TableHead className="text-right text-slate-400 font-bold uppercase text-[9px] tracking-wider">Score XP</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -482,14 +477,14 @@ export default function DashboardPage() {
                     
                     return dynamicLeaderboard.slice(0, 3).map((user: any, index: number) => (
                       <TableRow key={user.id} className={cn(
-                        "transition-colors",
+                        "transition-colors border-white/5",
                         user.ra === currentUser?.ra 
-                          ? "bg-primary/10 dark:bg-primary/20 hover:bg-primary/15 dark:hover:bg-primary/25" 
-                          : "hover:bg-slate-100/50 dark:hover:bg-slate-900/30"
+                          ? "bg-emerald-500/10 hover:bg-emerald-500/15" 
+                          : "hover:bg-white/5"
                       )}>
-                        <TableCell className="font-bold text-center text-slate-700 dark:text-slate-300">{index + 1}º</TableCell>
-                        <TableCell className="font-medium text-slate-700 dark:text-slate-300">{user.name}</TableCell>
-                        <TableCell className="text-right font-bold text-emerald-600 dark:text-emerald-400">
+                        <TableCell className="font-bold text-center text-slate-200">{index + 1}º</TableCell>
+                        <TableCell className="font-medium text-slate-200">{user.name}</TableCell>
+                        <TableCell className="text-right font-black text-emerald-400">
                           {user.totalScore.toLocaleString()}
                         </TableCell>
                       </TableRow>
@@ -501,43 +496,43 @@ export default function DashboardPage() {
           </Card>
 
           {/* CARD DE CÁLCULO DE PONTOS */}
-          <Card className="border border-slate-200/60 dark:border-slate-800 rounded-3xl bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 shadow-sm flex flex-col justify-between">
+          <Card className="border border-white/5 rounded-[2rem] bg-slate-900/40 shadow-2xl backdrop-blur-xl text-white flex flex-col justify-between">
             <CardHeader>
-              <div className="flex items-center gap-2 text-primary">
-                <BrainCircuit className="h-5 w-5 text-primary animate-pulse" />
-                <CardTitle>Cálculo de Pontos</CardTitle>
+              <div className="flex items-center gap-2 text-emerald-400">
+                <BrainCircuit className="h-5 w-5 text-emerald-400 animate-pulse" />
+                <CardTitle className="text-white font-black uppercase tracking-tight text-lg">Cálculo de Pontos</CardTitle>
               </div>
-              <CardDescription>
+              <CardDescription className="text-slate-400 text-xs">
                 Entenda como é calculado o seu Score Global.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4 text-slate-700 dark:text-slate-300 flex-1 flex flex-col justify-between">
+            <CardContent className="space-y-4 text-slate-300 flex-1 flex flex-col justify-between">
               {/* Fórmula Visual */}
-              <div className="bg-primary/5 border border-primary/10 rounded-xl p-3 text-center">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Fórmula do Score Global</p>
-                <div className="text-sm font-extrabold text-primary tracking-tight mt-1 flex flex-wrap items-center justify-center gap-1">
+              <div className="bg-slate-950/40 border border-white/5 rounded-2xl p-3 text-center shadow-inner">
+                <p className="text-[9px] font-black uppercase tracking-wider text-slate-450">Fórmula do Score Global</p>
+                <div className="text-xs font-black text-emerald-400 tracking-tight mt-1 flex flex-wrap items-center justify-center gap-1">
                   <span>Pontos XP</span>
-                  <span className="text-slate-400 font-normal">+</span>
-                  <span className="whitespace-nowrap">(Upgrades × 250)</span>
-                  <span className="text-slate-400 font-normal">+</span>
-                  <span>Vitalidade</span>
+                  <span className="text-slate-500 font-normal">+</span>
+                  <span className="whitespace-nowrap font-black text-indigo-400">(Upgrades × 250)</span>
+                  <span className="text-slate-500 font-normal">+</span>
+                  <span className="font-black text-rose-450">Vitalidade</span>
                 </div>
               </div>
 
               {/* Detalhes dos Fatores */}
-              <div className="space-y-3 text-xs flex-1 py-1">
+              <div className="space-y-3 text-xs flex-1 py-1 text-slate-300">
                 <div className="flex gap-2">
                   <span className="text-lg">♻️</span>
                   <div>
-                    <p className="font-bold text-slate-900 dark:text-white leading-tight">Descarte no Totem</p>
-                    <p className="text-slate-500 font-medium leading-relaxed">
+                    <p className="font-bold text-slate-100 leading-tight">Descarte no Totem</p>
+                    <p className="text-slate-400 font-medium leading-relaxed">
                       Pontos ganhos por resíduo coletado:
                     </p>
                     <div className="flex flex-wrap gap-1 mt-1">
-                      <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] font-bold text-slate-600 dark:text-slate-400">Metal: +15</span>
-                      <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] font-bold text-slate-600 dark:text-slate-400">Vidro: +12</span>
-                      <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] font-bold text-slate-600 dark:text-slate-400">Plástico: +10</span>
-                      <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] font-bold text-slate-600 dark:text-slate-400">Papel: +8</span>
+                      <span className="bg-slate-950 border border-white/5 px-2 py-0.5 rounded text-[9px] font-bold text-slate-300 shadow-sm">Metal: +15</span>
+                      <span className="bg-slate-950 border border-white/5 px-2 py-0.5 rounded text-[9px] font-bold text-slate-300 shadow-sm">Vidro: +12</span>
+                      <span className="bg-slate-950 border border-white/5 px-2 py-0.5 rounded text-[9px] font-bold text-slate-300 shadow-sm">Plástico: +10</span>
+                      <span className="bg-slate-950 border border-white/5 px-2 py-0.5 rounded text-[9px] font-bold text-slate-300 shadow-sm">Papel: +8</span>
                     </div>
                   </div>
                 </div>
@@ -545,9 +540,9 @@ export default function DashboardPage() {
                 <div className="flex gap-2">
                   <span className="text-lg">🛍️</span>
                   <div>
-                    <p className="font-bold text-slate-900 dark:text-white leading-tight">Itens da Bioshop</p>
-                    <p className="text-slate-500 font-medium leading-relaxed">
-                      Cada upgrade/planta adquirido no Bio-Shop adiciona <b className="text-primary font-bold">+250 pontos</b> permanentes.
+                    <p className="font-bold text-slate-100 leading-tight">Itens da Bioshop</p>
+                    <p className="text-slate-400 font-medium leading-relaxed">
+                      Cada upgrade adquirido no Bio-Shop adiciona <b className="text-emerald-450 font-bold">+250 pontos</b> permanentes.
                     </p>
                   </div>
                 </div>
@@ -555,18 +550,18 @@ export default function DashboardPage() {
                 <div className="flex gap-2">
                   <span className="text-lg">🌱</span>
                   <div>
-                    <p className="font-bold text-slate-900 dark:text-white leading-tight">Saúde da Biosfera</p>
-                    <p className="text-slate-500 font-medium leading-relaxed">
-                      A porcentagem de vitalidade entra como bônus direto de até <b className="text-emerald-600 font-bold">+100 pontos</b>.
+                    <p className="font-bold text-slate-100 leading-tight">Saúde da Biosfera</p>
+                    <p className="text-slate-400 font-medium leading-relaxed">
+                      A porcentagem de vitalidade entra como bônus direto de até <b className="text-emerald-450 font-bold">+100 pontos</b>.
                     </p>
                   </div>
                 </div>
               </div>
             </CardContent>
             <CardFooter className="pt-0">
-              <div className="w-full flex items-center justify-between text-[10px] bg-slate-100 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800">
-                <span className="font-bold text-slate-500 uppercase tracking-wider">Sua Conta (XP + Upgrades + Vit):</span>
-                <span className="font-black text-primary text-[11px] tracking-tight">
+              <div className="w-full flex items-center justify-between text-[9px] bg-slate-950/40 px-3 py-2.5 rounded-2xl border border-white/5 shadow-inner">
+                <span className="font-bold text-slate-450 uppercase tracking-wider">Sua Conta (XP + Upgrades + Vit):</span>
+                <span className="font-black text-emerald-400 text-[10px] tracking-tight">
                   {points} XP + ({purchasedItems.length} × 250) + {vitality}% = {globalScore} XP
                 </span>
               </div>
@@ -575,42 +570,42 @@ export default function DashboardPage() {
         </div>
 
         {/* CARD DE HISTÓRICO DE DESCARTES */}
-        <Card className="border border-slate-200/60 dark:border-slate-800 rounded-3xl bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 shadow-sm overflow-hidden mt-2">
+        <Card className="border border-white/5 rounded-[2rem] bg-slate-900/40 shadow-2xl backdrop-blur-xl overflow-hidden mt-2 text-white">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div>
-              <CardTitle className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                <span className="text-2xl">♻️</span>
+              <CardTitle className="text-lg font-black text-white flex items-center gap-2 uppercase tracking-tight">
+                <span className="text-xl">♻️</span>
                 Histórico Recente de Descartes
               </CardTitle>
-              <CardDescription className="text-slate-500 font-medium mt-1">
+              <CardDescription className="text-slate-400 font-medium mt-1 text-xs">
                 Acompanhe suas pesagens e os Bio-Coins creditados em cada coleta válida.
               </CardDescription>
             </div>
-            <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm">
+            <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               {studentDiscards.length} {studentDiscards.length === 1 ? 'Pesagem' : 'Pesagens'}
             </div>
           </CardHeader>
           <CardContent>
             {studentDiscards.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-slate-900/30">
-                <div className="h-16 w-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4 text-3xl">
+              <div className="flex flex-col items-center justify-center py-10 text-center border border-dashed border-white/10 rounded-2xl bg-slate-950/20">
+                <div className="h-16 w-16 rounded-2xl bg-slate-900/40 border border-white/5 flex items-center justify-center mb-4 text-3xl">
                   🍃
                 </div>
-                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">Nenhum descarte registrado ainda</p>
-                <p className="text-xs text-slate-500 mt-1 max-w-xs leading-relaxed font-medium">
+                <p className="text-sm font-bold text-slate-200">Nenhum descarte registrado ainda</p>
+                <p className="text-xs text-slate-400 mt-1 max-w-xs leading-relaxed font-medium">
                   Seus descartes e pesagens aparecerão aqui em tempo real assim que você usar o Totem Kiosk da escola!
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-slate-200/60 dark:border-slate-800 bg-white/50 dark:bg-slate-900/30">
+              <div className="overflow-x-auto rounded-xl border border-white/5 bg-slate-950/20">
                 <Table>
-                  <TableHeader className="bg-slate-50/75 dark:bg-slate-900/50">
-                    <TableRow>
-                      <TableHead className="font-bold text-slate-700 dark:text-slate-300">Data e Hora</TableHead>
-                      <TableHead className="font-bold text-slate-700 dark:text-slate-300">Material Descartado</TableHead>
-                      <TableHead className="font-bold text-slate-700 dark:text-slate-300 text-center">Peso Coletado</TableHead>
-                      <TableHead className="font-bold text-slate-700 dark:text-slate-300 text-right">Recompensa</TableHead>
+                  <TableHeader className="bg-slate-950/40">
+                    <TableRow className="border-white/5">
+                      <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider">Data e Hora</TableHead>
+                      <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider">Material Descartado</TableHead>
+                      <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider text-center">Peso Coletado</TableHead>
+                      <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider text-right">Recompensa</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -626,20 +621,20 @@ export default function DashboardPage() {
                       });
 
                       const materialColorMap: Record<string, string> = {
-                        'Plástico': 'bg-red-500/10 text-red-600 border-red-500/20 dark:bg-red-950/30 dark:text-red-400',
-                        'Papel': 'bg-blue-500/10 text-blue-600 border-blue-500/20 dark:bg-blue-950/30 dark:text-blue-400',
-                        'Vidro': 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:bg-emerald-950/30 dark:text-emerald-400',
-                        'Metal': 'bg-amber-500/10 text-amber-600 border-amber-500/20 dark:bg-amber-950/30 dark:text-amber-400',
-                        'Orgânico': 'bg-stone-500/10 text-stone-600 border-stone-500/20 dark:bg-stone-950/30 dark:text-stone-400',
-                        'Eletrônico': 'bg-purple-500/10 text-purple-600 border-purple-500/20 dark:bg-purple-950/30 dark:text-purple-400',
-                        'Não reciclável': 'bg-slate-500/10 text-slate-600 border-slate-500/20 dark:bg-slate-950/30 dark:text-slate-400',
+                        'Plástico': 'bg-red-500/10 text-red-400 border-red-500/20',
+                        'Papel': 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+                        'Vidro': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+                        'Metal': 'bg-amber-500/10 text-amber-450 border-amber-500/20',
+                        'Orgânico': 'bg-stone-500/10 text-stone-400 border-stone-500/20',
+                        'Eletrônico': 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+                        'Não reciclável': 'bg-slate-500/10 text-slate-400 border-slate-500/20',
                       };
 
-                      const materialPillClass = materialColorMap[entry.type] || 'bg-slate-100 text-slate-800';
+                      const materialPillClass = materialColorMap[entry.type] || 'bg-slate-900 border-white/5 text-slate-350';
 
                       return (
-                        <TableRow key={entry.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors">
-                          <TableCell className="font-medium text-slate-600 dark:text-slate-400 text-xs">
+                        <TableRow key={entry.id} className="hover:bg-white/5 transition-colors border-white/5">
+                          <TableCell className="font-medium text-slate-300 text-xs">
                             {formattedDate}
                           </TableCell>
                           <TableCell>
@@ -647,10 +642,10 @@ export default function DashboardPage() {
                               {entry.type}
                             </span>
                           </TableCell>
-                          <TableCell className="text-center font-bold text-slate-700 dark:text-slate-300 text-xs">
+                          <TableCell className="text-center font-bold text-slate-200 text-xs">
                             {entry.collected.toFixed(3)} kg
                           </TableCell>
-                          <TableCell className="text-right font-black text-emerald-600 dark:text-emerald-400 text-xs">
+                          <TableCell className="text-right font-black text-emerald-400 text-xs">
                             +{earnedPoints} Bio-Coins
                           </TableCell>
                         </TableRow>
@@ -664,40 +659,40 @@ export default function DashboardPage() {
         </Card>
 
         {/* EXTRATO E LEDGER DE BIO-COINS */}
-        <Card className="border border-slate-200/60 dark:border-slate-800 rounded-3xl bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 shadow-sm mt-2">
+        <Card className="border border-white/5 rounded-[2rem] bg-slate-900/40 shadow-2xl backdrop-blur-xl mt-2 text-white">
           <CardHeader className="flex flex-row items-center justify-between gap-4">
             <div>
-              <CardTitle className="text-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
+              <CardTitle className="text-lg font-black text-white flex items-center gap-2 uppercase tracking-tight">
                 🪙 Extrato Detalhado de Bio-Coins
               </CardTitle>
-              <CardDescription className="text-slate-500 font-medium mt-1">
+              <CardDescription className="text-slate-400 font-medium mt-1 text-xs">
                 Acompanhe o histórico de créditos, resgates e a validade de suas moedas em tempo real.
               </CardDescription>
             </div>
-            <div className="bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm">
+            <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm">
               Validade: 30 dias
             </div>
           </CardHeader>
           <CardContent>
             {pointTransactions.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-slate-900/30">
-                <div className="h-16 w-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4 text-3xl">
+              <div className="flex flex-col items-center justify-center py-10 text-center border border-dashed border-white/10 rounded-2xl bg-slate-950/20">
+                <div className="h-16 w-16 rounded-2xl bg-slate-900/40 border border-white/5 flex items-center justify-center mb-4 text-3xl">
                   🪙
                 </div>
-                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">Seu extrato está vazio</p>
-                <p className="text-xs text-slate-500 mt-1 max-w-xs leading-relaxed font-medium">
+                <p className="text-sm font-bold text-slate-200">Seu extrato está vazio</p>
+                <p className="text-xs text-slate-400 mt-1 max-w-xs leading-relaxed font-medium">
                   Seus créditos de moedas e movimentações aparecerão aqui assim que você realizar descartes ou missões!
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-slate-200/60 dark:border-slate-800 bg-white/50 dark:bg-slate-900/30">
+              <div className="overflow-x-auto rounded-xl border border-white/5 bg-slate-950/20">
                 <Table>
-                  <TableHeader className="bg-slate-50/75 dark:bg-slate-900/50">
-                    <TableRow>
-                      <TableHead className="font-bold text-slate-700 dark:text-slate-300">Data</TableHead>
-                      <TableHead className="font-bold text-slate-700 dark:text-slate-300">Histórico / Origem</TableHead>
-                      <TableHead className="font-bold text-slate-700 dark:text-slate-300 text-center">Validade / Estado</TableHead>
-                      <TableHead className="font-bold text-slate-700 dark:text-slate-300 text-right">Lançamento</TableHead>
+                  <TableHeader className="bg-slate-950/40">
+                    <TableRow className="border-white/5">
+                      <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider">Data</TableHead>
+                      <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider">Histórico / Origem</TableHead>
+                      <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider text-center">Validade / Estado</TableHead>
+                      <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider text-right">Lançamento</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -716,20 +711,20 @@ export default function DashboardPage() {
                       if (isDebit) {
                         if (tx.description.includes("Expiração")) {
                           statusBadge = (
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold border bg-red-500/10 text-red-600 border-red-500/20 dark:bg-red-950/30 dark:text-red-400">
+                            <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-red-500/10 text-red-400 border-red-500/20">
                               Expirado
                             </span>
                           );
                         } else {
                           statusBadge = (
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold border bg-slate-500/10 text-slate-600 border-slate-500/20 dark:bg-slate-950/30 dark:text-slate-400">
+                            <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-slate-950 text-slate-400 border-white/5">
                               Consumido / Resgate
                             </span>
                           );
                         }
                       } else if (tx.expired) {
                         statusBadge = (
-                          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold border bg-slate-500/10 text-slate-400 border-slate-500/10 dark:bg-slate-950/20 dark:text-slate-500">
+                          <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-slate-950 text-slate-555 border-white/5">
                             Amortizado
                           </span>
                         );
@@ -741,13 +736,13 @@ export default function DashboardPage() {
 
                         if (daysLeft <= 7) {
                           statusBadge = (
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold border bg-amber-500/10 text-amber-600 border-amber-500/20 dark:bg-amber-950/30 dark:text-amber-400 animate-pulse">
+                            <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse">
                               Expira em {daysLeft}d
                             </span>
                           );
                         } else {
                           statusBadge = (
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold border bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:bg-emerald-950/30 dark:text-emerald-400">
+                            <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-emerald-500/10 text-emerald-450 border-emerald-500/20">
                               Ativo ({daysLeft}d restantes)
                             </span>
                           );
@@ -755,11 +750,11 @@ export default function DashboardPage() {
                       }
 
                       return (
-                        <TableRow key={tx.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors">
-                          <TableCell className="font-medium text-slate-600 dark:text-slate-400 text-xs">
+                        <TableRow key={tx.id} className="hover:bg-white/5 transition-colors border-white/5">
+                          <TableCell className="font-medium text-slate-300 text-xs">
                             {formattedDate}
                           </TableCell>
-                          <TableCell className="font-bold text-slate-700 dark:text-slate-300 text-xs">
+                          <TableCell className="font-bold text-slate-200 text-xs">
                             {tx.description}
                           </TableCell>
                           <TableCell className="text-center">
@@ -767,7 +762,7 @@ export default function DashboardPage() {
                           </TableCell>
                           <TableCell className={cn(
                             "text-right font-black text-xs",
-                            isDebit ? "text-red-500 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"
+                            isDebit ? "text-red-400" : "text-emerald-400"
                           )}>
                             {isDebit ? "" : "+"}{tx.amount} Bio-Coins
                           </TableCell>
@@ -783,13 +778,13 @@ export default function DashboardPage() {
       </div>
 
       {/* RODAPÉ INFORMATIVO */}
-      <footer className="mt-8 border border-slate-200/60 dark:border-slate-800 py-6 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 rounded-t-3xl shadow-inner">
+      <footer className="mt-8 border border-white/5 py-6 bg-slate-950/40 rounded-t-[2rem] shadow-inner text-white">
         <div className="container px-4 flex flex-col items-center text-center gap-3">
-          <p className="text-sm text-slate-600 dark:text-slate-400 font-semibold flex items-center gap-2">
+          <p className="text-xs text-slate-400 font-semibold flex items-center gap-2">
             <span className="text-xl">♻️</span>
             Dica: Ganhe Bio-Coins descartando materiais recicláveis nos totens da escola.
           </p>
-          <p className="text-[10px] text-slate-500 dark:text-slate-400 px-4 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full uppercase tracking-widest font-black shadow-sm flex items-center justify-center">
+          <p className="text-[9px] text-slate-400 px-4 py-1.5 bg-slate-950 border border-white/5 rounded-full uppercase tracking-widest font-black shadow-lg flex items-center justify-center">
             Powered by SchoolGain Technology
           </p>
         </div>

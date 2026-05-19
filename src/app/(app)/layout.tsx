@@ -3,11 +3,12 @@ import { Header } from '@/components/layout/header';
 import { AppSidebar } from '@/components/layout/sidebar';
 import Link from 'next/link';
 import { useEcosystem } from './ecosystem-context';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -75,6 +76,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
+  const pathname = usePathname();
+  // Todas as rotas autenticadas compartilham o layout espacial escuro full-bleed (área do aluno e do gestor)
+  const isAdminView = true;
+
   return (
     <AppSidebar>
       <div className="flex flex-1 flex-col h-full min-w-0 overflow-hidden">
@@ -121,22 +126,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <Header />
         </div>
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <main className={cn("flex-1 overflow-y-auto", isAdminView ? "bg-[#070913]" : "p-4 sm:p-6 lg:p-8")}>
           <div className="mx-auto w-full max-w-7xl">
-            <div className="bg-white border border-slate-200/50 dark:border-slate-800/60 rounded-[2rem] shadow-sm overflow-hidden flex flex-col">
-              <div className="p-4 sm:p-10">
+            <div className={cn(isAdminView ? "bg-transparent border-none shadow-none flex flex-col w-full" : "bg-white border border-slate-200/50 dark:border-slate-800/60 rounded-[2rem] shadow-sm overflow-hidden flex flex-col")}>
+              <div className={cn(isAdminView ? "p-0" : "p-4 sm:p-10")}>
                 {children}
               </div>
               
-              <footer className="w-full border-t border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/30 py-8 text-center text-xs">
+              <footer className={cn("w-full border-t py-8 text-center text-xs", isAdminView ? "border-white/5 bg-slate-950/40 text-slate-500 mt-12 rounded-[2rem]" : "border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/30")}>
                 <div className="flex flex-col items-center gap-2">
                   <div className="flex items-center gap-2">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <Link href="/about" className="text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors font-bold tracking-tight">
+                    <Link href="/about" className={cn("font-bold tracking-tight transition-colors", isAdminView ? "text-slate-400 hover:text-emerald-400" : "text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400")}>
                       TDS 2B 2026 — CETI Frei José Apicella
                     </Link>
                   </div>
-                  <p className="text-slate-400 dark:text-slate-500 font-medium tracking-wider text-[10px]">
+                  <p className={cn("font-medium tracking-wider text-[10px]", isAdminView ? "text-slate-500" : "text-slate-400 dark:text-slate-500")}>
                     SCHOOLGAIN HUB &copy; 2026 &bull; TECNOLOGIA E SUSTENTABILIDADE
                   </p>
                 </div>

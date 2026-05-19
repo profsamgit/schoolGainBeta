@@ -260,8 +260,8 @@ export default function AdminLoginPage() {
                   />
                 </div>
                 
-                {showKeyboard && !lockoutSecs && (
-                  <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                 {showKeyboard && !lockoutSecs && (
+                  <div className="animate-in fade-in slide-in-from-top-2 duration-300 bg-slate-100/50 dark:bg-slate-950/40 p-4 border border-slate-200/50 dark:border-white/5 rounded-2xl shadow-inner">
                     <VirtualKeyboard 
                       layout="alphanumeric" 
                       onInput={(key) => activeInput === 'username' ? setUsername(p => p + key) : setPassword(p => p + key)} 

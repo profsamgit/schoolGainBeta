@@ -14,7 +14,8 @@ import {
   Lock,
   ShieldCheck,
   Trash2,
-  CheckCircle
+  CheckCircle,
+  X
 } from 'lucide-react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
@@ -685,44 +686,58 @@ function AdminContent() {
 
 
 
-
-
-
   if (!hasMounted) return null;
 
   if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'super_admin')) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 text-center p-6 space-y-6">
-        <div className="h-24 w-24 rounded-full bg-red-100 flex items-center justify-center text-red-600 animate-pulse shadow-[0_0_30px_rgba(220,38,38,0.2)]"><ShieldAlert className="h-12 w-12" /></div>
-        <div className="space-y-2">
-          <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900">Acesso Restrito</h2>
-          <p className="text-slate-500 font-medium max-w-xs mx-auto">Esta área é exclusiva para gestores e administradores da rede SchoolGain.</p>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#070913] text-center p-6 space-y-6 relative overflow-hidden">
+        {/* Background decorative neon blobs */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-rose-500/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="h-24 w-24 rounded-[2rem] bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500 animate-pulse shadow-[0_0_30px_rgba(239,68,68,0.1)] relative z-10">
+          <ShieldAlert className="h-12 w-12" />
         </div>
-        <Button asChild className="bg-slate-900 text-white rounded-full px-8 h-12 font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl"><Link href="/">Voltar para o Dashboard</Link></Button>
+        <div className="space-y-2 relative z-10">
+          <h2 className="text-3xl font-black uppercase tracking-tighter text-white">Acesso Restrito</h2>
+          <p className="text-slate-400 font-bold uppercase tracking-wider text-xs max-w-xs mx-auto">Esta área é exclusiva para gestores e administradores da rede SchoolGain.</p>
+        </div>
+        <Button asChild className="bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-400 hover:to-red-500 text-white border border-rose-400/20 font-black uppercase text-xs tracking-widest h-12 px-8 rounded-xl shadow-xl relative z-10"><Link href="/">Voltar para o Dashboard</Link></Button>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="p-6 space-y-8 max-w-7xl mx-auto">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-black uppercase tracking-tighter flex items-center gap-2"><Shield className="h-8 w-8 text-primary" /> Painel do Gestor</h1>
-            <p className="text-muted-foreground font-medium">{schools.find(s => s.id === currentUser.schoolId)?.name || 'Unidade SchoolGain'}</p>
+    <div className="min-h-screen bg-[#070913] text-white relative overflow-hidden font-sans pb-12">
+      {/* Background decorative neon blobs */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/10 rounded-full blur-[130px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-500/10 rounded-full blur-[130px] pointer-events-none" />
+      {/* Fine futuristic digital grid overlay */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
+
+      <div className="p-6 space-y-8 max-w-7xl mx-auto relative z-10 animate-in fade-in duration-500">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900/40 p-6 rounded-[2rem] border border-white/10 shadow-2xl backdrop-blur-xl">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-lg">
+              <Shield className="h-6 w-6" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-black uppercase tracking-tighter bg-gradient-to-r from-white via-indigo-100 to-indigo-300 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(99,102,241,0.2)]">Painel do Gestor</h1>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 mt-1">{schools.find(s => s.id === currentUser.schoolId)?.name || 'Unidade SchoolGain'}</p>
+            </div>
           </div>
           {currentUser.role === 'super_admin' && (
-            <Button asChild variant="outline" size="sm" className="bg-slate-900 text-white"><Link href="/super-admin" className="flex gap-2 items-center"><Globe className="h-4 w-4" /> Rede</Link></Button>
+            <Button asChild className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white border border-indigo-400/20 font-black uppercase text-[10px] tracking-widest gap-2 h-11 px-6 rounded-xl hover:scale-105 transition-transform shadow-lg shadow-indigo-500/10">
+              <Link href="/super-admin" className="flex gap-2 items-center"><Globe className="h-4 w-4" /> Rede Global</Link>
+            </Button>
           )}
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 w-full">
-          <TabsList className="!flex !w-full h-16 bg-slate-200/40 p-1.5 rounded-2xl border border-white/50 shadow-sm backdrop-blur-sm">
-            <TabsTrigger value="povoamento" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300"><Database className="mr-2 h-4 w-4" /> Povoamento</TabsTrigger>
-            <TabsTrigger value="academic" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300"><Users className="mr-2 h-4 w-4" /> Acadêmico</TabsTrigger>
-            <TabsTrigger value="pedagogic" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300"><BookOpen className="mr-2 h-4 w-4" /> Pedagógico</TabsTrigger>
-            <TabsTrigger value="economic" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300"><Gift className="mr-2 h-4 w-4" /> Econômico</TabsTrigger>
-            <TabsTrigger value="infra" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300"><Cpu className="mr-2 h-4 w-4" /> Infra</TabsTrigger>
+          <TabsList className="!flex !w-full h-16 bg-slate-950/80 p-1.5 rounded-2xl border border-white/5 shadow-2xl backdrop-blur-xl">
+            <TabsTrigger value="povoamento" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-indigo-500 data-[state=active]:text-slate-950 font-black uppercase text-[10px] tracking-widest transition-all duration-300 text-slate-400 hover:text-white"><Database className="mr-2 h-4 w-4" /> Povoamento</TabsTrigger>
+            <TabsTrigger value="academic" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-indigo-500 data-[state=active]:text-slate-950 font-black uppercase text-[10px] tracking-widest transition-all duration-300 text-slate-400 hover:text-white"><Users className="mr-2 h-4 w-4" /> Acadêmico</TabsTrigger>
+            <TabsTrigger value="pedagogic" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-indigo-500 data-[state=active]:text-slate-950 font-black uppercase text-[10px] tracking-widest transition-all duration-300 text-slate-400 hover:text-white"><BookOpen className="mr-2 h-4 w-4" /> Pedagógico</TabsTrigger>
+            <TabsTrigger value="economic" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-indigo-500 data-[state=active]:text-slate-950 font-black uppercase text-[10px] tracking-widest transition-all duration-300 text-slate-400 hover:text-white"><Gift className="mr-2 h-4 w-4" /> Econômico</TabsTrigger>
+            <TabsTrigger value="infra" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-indigo-500 data-[state=active]:text-slate-950 font-black uppercase text-[10px] tracking-widest transition-all duration-300 text-slate-400 hover:text-white"><Cpu className="mr-2 h-4 w-4" /> Infra</TabsTrigger>
           </TabsList>
 
           <TabsContent value="povoamento">
@@ -870,65 +885,93 @@ function AdminContent() {
 
       {/* Shared Dialogs */}
       <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md bg-[#0a0f24]/95 backdrop-blur-3xl border border-white/10 text-white rounded-3xl p-6 shadow-2xl">
           <DialogHeader>
-            <DialogTitle>Alterar Senha: {selectedItem?.name}</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-xl font-black uppercase tracking-tight text-indigo-400">Alterar Senha: {selectedItem?.name}</DialogTitle>
+            <DialogDescription className="text-slate-400 text-xs mt-1">
               Defina uma nova senha para este usuário. Ele será notificado na próxima tentativa de acesso.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleUpdateUserPassword} className="space-y-4 pt-4">
-            <Input type="password" required value={passFormData.currentPass} onChange={e => setPassFormData({ ...passFormData, currentPass: e.target.value })} placeholder="Sua senha de Gestor" />
-            <div className="grid grid-cols-2 gap-4">
-              <Input type="password" required value={passFormData.newPass} onChange={e => setPassFormData({ ...passFormData, newPass: e.target.value })} placeholder="Nova Senha" />
-              <Input type="password" required value={passFormData.confirmPass} onChange={e => setPassFormData({ ...passFormData, confirmPass: e.target.value })} placeholder="Confirmar" />
+            <div className="space-y-1">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Sua Senha de Gestor</Label>
+              <Input type="password" required value={passFormData.currentPass} onChange={e => setPassFormData({ ...passFormData, currentPass: e.target.value })} className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold" />
             </div>
-            <Button type="submit" disabled={isSubmitting} className="w-full">Confirmar</Button>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Nova Senha</Label>
+                <Input type="password" required value={passFormData.newPass} onChange={e => setPassFormData({ ...passFormData, newPass: e.target.value })} className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Confirmar</Label>
+                <Input type="password" required value={passFormData.confirmPass} onChange={e => setPassFormData({ ...passFormData, confirmPass: e.target.value })} className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold" />
+              </div>
+            </div>
+            <DialogFooter className="pt-2">
+              <Button type="submit" disabled={isSubmitting} className="w-full h-12 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white border border-indigo-400/20 font-black uppercase text-xs tracking-widest rounded-xl shadow-xl transition-all">
+                {isSubmitting ? 'Salvando...' : 'Confirmar Alteração'}
+              </Button>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
       <Dialog open={mustChangePass} onOpenChange={() => { }}>
-        <DialogContent>
+        <DialogContent className="max-w-md bg-[#0a0f24]/95 backdrop-blur-3xl border border-white/10 text-white rounded-3xl p-6 shadow-2xl">
           <DialogHeader>
-            <DialogTitle>Segurança: Primeiro Acesso</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-xl font-black uppercase tracking-tight text-indigo-400">Segurança: Primeiro Acesso</DialogTitle>
+            <DialogDescription className="text-slate-400 text-xs mt-1">
               Para sua segurança, você deve definir uma senha pessoal antes de continuar.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleUpdateUserPassword} className="space-y-4 pt-2">
-            <Input type="password" required value={passFormData.newPass} onChange={e => setPassFormData({ ...passFormData, newPass: e.target.value })} placeholder="Nova Senha Pessoal" />
-            <Input type="password" required value={passFormData.confirmPass} onChange={e => setPassFormData({ ...passFormData, confirmPass: e.target.value })} placeholder="Confirmar Nova Senha" />
-            <Button type="submit" disabled={isSubmitting} className="w-full h-12">Definir e Acessar</Button>
+          <form onSubmit={handleUpdateUserPassword} className="space-y-4 pt-4">
+            <div className="space-y-1">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Nova Senha Pessoal</Label>
+              <Input type="password" required value={passFormData.newPass} onChange={e => setPassFormData({ ...passFormData, newPass: e.target.value })} className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Confirmar Nova Senha</Label>
+              <Input type="password" required value={passFormData.confirmPass} onChange={e => setPassFormData({ ...passFormData, confirmPass: e.target.value })} className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold" />
+            </div>
+            <DialogFooter className="pt-2">
+              <Button type="submit" disabled={isSubmitting} className="w-full h-12 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white border border-indigo-400/20 font-black uppercase text-xs tracking-widest rounded-xl shadow-xl transition-all">Definir e Acessar</Button>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
       {/* Approval Confirm Dialog */}
       <Dialog open={isApproveConfirmOpen} onOpenChange={closeAllForms}>
-        <DialogContent>
+        <DialogContent className="max-w-md bg-[#0a0f24]/95 backdrop-blur-3xl border border-white/10 text-white rounded-3xl p-6 shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><CheckCircle className="text-green-500" /> Confirmar Aprovação</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-xl font-black uppercase tracking-tight text-indigo-400 flex items-center gap-2">
+              <CheckCircle className="text-emerald-400" /> Confirmar Aprovação
+            </DialogTitle>
+            <DialogDescription className="text-slate-400 text-xs mt-1">
               Você está prestes a aprovar uma requisição de {pendingApprovalType}. Digite sua senha de segurança para confirmar.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={(e) => { e.preventDefault(); confirmApproval(); }} className="space-y-4">
-            <Input type="password" placeholder="Senha de Segurança" value={securityPassword} onChange={e => setSecurityPassword(e.target.value)} />
-            <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">Confirmar Aprovação</Button>
+          <form onSubmit={(e) => { e.preventDefault(); confirmApproval(); }} className="space-y-4 pt-4">
+            <div className="space-y-1">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Sua Senha de Segurança</Label>
+              <Input type="password" placeholder="Senha de Segurança" value={securityPassword} onChange={e => setSecurityPassword(e.target.value)} className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold" required />
+            </div>
+            <DialogFooter className="pt-2">
+              <Button type="submit" className="w-full h-12 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white border border-indigo-400/20 font-black uppercase text-xs tracking-widest rounded-xl shadow-xl transition-all">Confirmar Aprovação</Button>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
       {isDeleteConfirmOpen && selectedItem && (
-        <div className="fixed bottom-6 right-6 z-50 w-full max-w-sm p-6 border-2 border-red-500 bg-white rounded-2xl shadow-2xl animate-in slide-in-from-bottom-10 space-y-4">
+        <div className="fixed bottom-6 right-6 z-50 w-full max-w-sm p-6 border border-rose-500/20 bg-rose-950/20 backdrop-blur-xl rounded-[2rem] shadow-[0_0_50px_rgba(239,68,68,0.1)] animate-in slide-in-from-bottom-10 space-y-4 text-white">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
-              <Trash2 className="h-6 w-6 text-red-600" />
+            <div className="h-10 w-10 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
+              <Trash2 className="h-6 w-6 text-rose-500" />
             </div>
             <div>
-              <p className="font-black uppercase text-red-600">Confirmar Exclusão?</p>
-              <p className="text-[11px] font-bold">"{selectedItem.name || selectedItem.title}"</p>
+              <p className="font-black uppercase text-rose-400 text-xs tracking-wider">Confirmar Exclusão?</p>
+              <p className="text-[11px] font-bold text-slate-300">"{selectedItem.name || selectedItem.title}"</p>
             </div>
           </div>
 
@@ -940,20 +983,21 @@ function AdminContent() {
             className="space-y-4"
           >
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Senha de Segurança</Label>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-rose-300 ml-1">Senha de Segurança</Label>
               <Input
                 type="password"
                 value={securityPassword}
                 onChange={e => setSecurityPassword(e.target.value)}
                 placeholder="Sua senha ou Master"
-                className="border-red-200"
+                className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-rose-500/50 font-bold"
                 autoFocus
+                required
               />
             </div>
 
             <div className="flex gap-2">
-              <Button type="button" variant="outline" className="flex-1" onClick={() => { setIsDeleteConfirmOpen(false); setSecurityPassword(''); }}>Cancelar</Button>
-              <Button type="submit" variant="destructive" className="flex-1" disabled={!securityPassword || isSubmitting}>
+              <Button type="button" variant="outline" className="flex-1 bg-slate-950 border-white/10 text-slate-300 hover:text-white rounded-xl h-11 text-xs font-bold uppercase tracking-wider" onClick={() => { setIsDeleteConfirmOpen(false); setSecurityPassword(''); }}>Cancelar</Button>
+              <Button type="submit" className="flex-1 bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-400 hover:to-red-500 text-white border border-rose-400/20 font-black uppercase text-xs tracking-widest rounded-xl h-11" disabled={!securityPassword || isSubmitting}>
                 {isSubmitting ? '...' : 'Sim, Excluir'}
               </Button>
             </div>

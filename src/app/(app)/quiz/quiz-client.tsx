@@ -169,10 +169,10 @@ export function QuizClient() {
 
   if (isLoading) {
     return (
-      <Card className="w-full max-w-2xl mx-auto">
-        <CardContent className="p-10 flex flex-col items-center justify-center gap-4">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          <p className="text-lg text-muted-foreground">Gerando seu quiz personalizado...</p>
+      <Card className="w-full max-w-2xl mx-auto border border-white/5 shadow-2xl bg-slate-900/40 text-white backdrop-blur-xl rounded-[2rem]">
+        <CardContent className="p-12 flex flex-col items-center justify-center gap-6">
+          <Loader2 className="h-12 w-12 animate-spin text-emerald-400" />
+          <p className="text-base text-slate-350 font-bold uppercase tracking-wider">Gerando seu quiz personalizado...</p>
         </CardContent>
       </Card>
     );
@@ -181,103 +181,129 @@ export function QuizClient() {
   if (quizData && !showResults) {
     const question = quizData.questions[currentQuestionIndex];
     return (
-      <Card className="w-full max-w-2xl mx-auto">
-        <CardHeader>
-          <CardTitle className="text-xl">{quizData.quizTitle}</CardTitle>
-          <CardDescription>
-            Pergunta {currentQuestionIndex + 1} de {quizData.questions.length}
+      <Card className="w-full max-w-2xl mx-auto border border-white/5 shadow-2xl bg-slate-900/40 text-white backdrop-blur-xl rounded-[2rem] overflow-hidden animate-in fade-in zoom-in-95 duration-500">
+        <CardHeader className="border-b border-white/5 p-6 md:p-8">
+          <CardTitle className="text-xl font-black text-white uppercase tracking-tight leading-snug">{quizData.quizTitle}</CardTitle>
+          <CardDescription className="text-slate-450 font-black text-[9px] mt-1.5 flex justify-between items-center uppercase tracking-wider">
+            <span>Pergunta {currentQuestionIndex + 1} de {quizData.questions.length}</span>
+            <span className="text-emerald-400">{Math.round(((currentQuestionIndex + 1) / quizData.questions.length) * 100)}% concluído</span>
           </CardDescription>
-          <Progress value={((currentQuestionIndex + 1) / quizData.questions.length) * 100} className="mt-2"/>
+          <Progress value={((currentQuestionIndex + 1) / quizData.questions.length) * 100} className="h-1.5 bg-slate-950/60 [&>div]:bg-gradient-to-r [&>div]:from-emerald-500 [&>div]:to-teal-400 mt-4"/>
         </CardHeader>
-        <CardContent>
-          <p className="text-lg font-semibold mb-4">{question.questionText}</p>
-          <RadioGroup value={selectedAnswers[currentQuestionIndex]} onValueChange={handleAnswerSelect} className="space-y-2">
+        <CardContent className="p-6 md:p-8 space-y-6">
+          <p className="text-base font-bold text-slate-100 leading-snug">{question.questionText}</p>
+          <RadioGroup value={selectedAnswers[currentQuestionIndex]} onValueChange={handleAnswerSelect} className="space-y-3">
             {question.options.map((option, index) => {
               const optionId = `option-${currentQuestionIndex}-${index}`;
+              const isSelected = selectedAnswers[currentQuestionIndex] === option;
               return (
-                <div key={optionId} className="flex items-center space-x-3">
-                  <RadioGroupItem value={option} id={optionId} />
-                  <Label htmlFor={optionId} className="font-normal text-base">{option}</Label>
+                <div 
+                  key={optionId} 
+                  className={cn(
+                    "flex items-center space-x-3 p-4 rounded-2xl border transition-all duration-300 cursor-pointer select-none",
+                    isSelected 
+                      ? "bg-emerald-500/10 border-emerald-500/30 text-white shadow-[0_0_15px_rgba(16,185,129,0.05)]" 
+                      : "bg-slate-950/40 border-white/5 hover:bg-white/5 text-slate-350"
+                  )}
+                  onClick={() => handleAnswerSelect(option)}
+                >
+                  <RadioGroupItem value={option} id={optionId} className="border-white/20 text-emerald-450 focus:ring-emerald-500 focus:ring-offset-0 bg-transparent" />
+                  <Label htmlFor={optionId} className="font-medium text-xs leading-relaxed cursor-pointer flex-grow text-slate-350">{option}</Label>
                 </div>
               )
             })}
           </RadioGroup>
         </CardContent>
-        <CardFooter>
-          <Button onClick={handleNextQuestion} disabled={!selectedAnswers[currentQuestionIndex]}>
+        <CardFooter className="border-t border-white/5 bg-slate-950/20 p-6 md:p-8 flex justify-end">
+          <Button onClick={handleNextQuestion} disabled={!selectedAnswers[currentQuestionIndex]} className="h-11 px-8 rounded-2xl text-[9px] font-black uppercase tracking-widest bg-emerald-500 hover:bg-emerald-600 text-white disabled:opacity-40 transition-all duration-300">
             {currentQuestionIndex < quizData.questions.length - 1 ? 'Próxima Pergunta' : 'Ver Resultados'}
           </Button>
         </CardFooter>
       </Card>
     );
   }
-  
+
   if (quizData && showResults) {
     const score = calculateScore();
     const totalQuestions = quizData.questions.length;
     return (
-      <Card className="w-full max-w-2xl mx-auto">
-        <CardHeader className="items-center">
-            <PartyPopper className="h-12 w-12 text-yellow-500" />
-            <CardTitle className="text-2xl">Resultados do Quiz!</CardTitle>
-            <CardDescription>Você acertou {score} de {totalQuestions} perguntas.</CardDescription>
+      <Card className="w-full max-w-2xl mx-auto border border-white/5 shadow-2xl bg-slate-900/40 text-white backdrop-blur-xl rounded-[2rem] overflow-hidden">
+        <CardHeader className="items-center p-8 border-b border-white/5 text-center">
+            <div className="w-16 h-16 rounded-full bg-yellow-500/10 border border-yellow-500/20 shadow-[0_0_20px_rgba(234,179,8,0.1)] flex items-center justify-center mb-4">
+              <PartyPopper className="h-8 w-8 text-yellow-400 animate-bounce" />
+            </div>
+            <CardTitle className="text-2xl font-black uppercase tracking-tight text-white">Resultados do Quiz!</CardTitle>
+            <CardDescription className="text-slate-400 font-bold uppercase tracking-wider text-xs mt-1.5">
+              Você acertou <span className="text-emerald-400 font-black">{score}</span> de <span className="text-white font-black">{totalQuestions}</span> perguntas.
+            </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="p-6 md:p-8 space-y-4 max-h-[50vh] overflow-y-auto custom-scrollbar">
           {quizData.questions.map((q, i) => {
             const isCorrect = selectedAnswers[i] === q.correctAnswer;
             return (
-              <div key={i} className={cn("p-4 rounded-lg border", isCorrect ? 'border-green-500 bg-green-500/10' : 'border-red-500 bg-red-500/10' )}>
-                <p className="font-semibold">{i+1}. {q.questionText}</p>
-                <div className='flex items-center gap-2 mt-2'>
-                  {isCorrect ? <CheckCircle className="h-5 w-5 text-green-600" /> : <XCircle className="h-5 w-5 text-red-600" />}
-                  <p>Sua resposta: {selectedAnswers[i] || 'Não respondida'}</p>
+              <div key={i} className={cn("p-5 rounded-2xl border transition-all duration-300", isCorrect ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-rose-500/20 bg-rose-500/5' )}>
+                <p className="font-bold text-slate-100 text-sm">{i+1}. {q.questionText}</p>
+                <div className='flex items-center gap-2 mt-3 text-xs'>
+                  {isCorrect ? <CheckCircle className="h-4.5 w-4.5 text-emerald-400" /> : <XCircle className="h-4.5 w-4.5 text-rose-400" />}
+                  <p className="font-semibold text-slate-350">Sua resposta: <span className={isCorrect ? 'text-emerald-400 font-bold' : 'text-rose-450 font-bold'}>{selectedAnswers[i] || 'Não respondida'}</span></p>
                 </div>
-                {!isCorrect && <p className='mt-1 text-sm'>Resposta correta: {q.correctAnswer}</p>}
-                {q.explanation && <Alert className="mt-2 text-sm"><AlertDescription>{q.explanation}</AlertDescription></Alert>}
+                {!isCorrect && (
+                  <p className='mt-2 text-xs text-slate-400 font-medium pl-6.5'>
+                    Resposta correta: <span className="text-emerald-400 font-bold">{q.correctAnswer}</span>
+                  </p>
+                )}
+                {q.explanation && (
+                  <Alert className="mt-4 border-white/5 bg-slate-950/40 text-slate-400 text-xs rounded-xl py-3 pl-4">
+                    <AlertDescription className="font-medium leading-relaxed">{q.explanation}</AlertDescription>
+                  </Alert>
+                )}
               </div>
             );
           })}
         </CardContent>
-        <CardFooter className='flex-col gap-4'>
-           <Button onClick={() => setQuizData(null)}>Gerar Novo Quiz</Button>
+        <CardFooter className='border-t border-white/5 bg-slate-950/20 p-6 md:p-8 flex justify-center'>
+           <Button onClick={() => setQuizData(null)} className="h-12 px-8 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-emerald-500 hover:bg-emerald-600 text-white transition-all duration-300">
+             Gerar Novo Quiz
+           </Button>
         </CardFooter>
       </Card>
     );
   }
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <BrainCircuit className="h-6 w-6 text-primary" />
+    <Card className="w-full max-w-2xl mx-auto border border-white/5 shadow-2xl bg-slate-900/40 text-white backdrop-blur-xl rounded-[2rem] overflow-hidden animate-in fade-in duration-500">
+      <CardHeader className="border-b border-white/5 p-6 md:p-8">
+        <CardTitle className="flex items-center gap-3 text-2xl font-black uppercase tracking-tight text-white">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.15)] flex items-center justify-center">
+            <BrainCircuit className="h-5 w-5 text-emerald-400" />
+          </div>
           Gerador de Quiz Sustentável
         </CardTitle>
-        <CardDescription>
-          Teste seus conhecimentos e ganhe pontos! Escolha um tópico e a
-          dificuldade.
+        <CardDescription className="text-slate-455 font-bold text-[9px] mt-1.5 leading-relaxed uppercase tracking-widest">
+          Teste seus conhecimentos e ganhe pontos! Escolha um tópico e a dificuldade.
         </CardDescription>
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <CardContent className="space-y-6">
+          <CardContent className="p-6 md:p-8 space-y-6">
             <FormField
               control={form.control}
               name="topic"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tópico</FormLabel>
+                <FormItem className="space-y-2">
+                  <FormLabel className="text-[9px] font-black uppercase tracking-wider text-slate-400">Tópico</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-slate-950/40 border-white/5 text-slate-200 h-12 rounded-2xl focus:ring-emerald-500/50">
                         <SelectValue placeholder="Selecione um tópico ambiental" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
+                    <SelectContent className="bg-slate-950 border-white/10 text-slate-200 rounded-2xl">
                       {allQuizTopics.map((topic, idx) => (
-                        <SelectItem key={topic.id || `topic-${idx}`} value={topic.name}>
+                        <SelectItem key={topic.id || `topic-${idx}`} value={topic.name} className="focus:bg-emerald-500 focus:text-white rounded-xl">
                           {topic.name}
                         </SelectItem>
                       ))}
@@ -292,21 +318,21 @@ export function QuizClient() {
                 control={form.control}
                 name="difficulty"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Dificuldade</FormLabel>
+                  <FormItem className="space-y-2">
+                    <FormLabel className="text-[9px] font-black uppercase tracking-wider text-slate-400">Dificuldade</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-slate-950/40 border-white/5 text-slate-200 h-12 rounded-2xl focus:ring-emerald-500/50">
                           <SelectValue placeholder="Selecione a dificuldade" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="easy">Fácil</SelectItem>
-                        <SelectItem value="medium">Médio</SelectItem>
-                        <SelectItem value="hard">Difícil</SelectItem>
+                      <SelectContent className="bg-slate-950 border-white/10 text-slate-200 rounded-2xl">
+                        <SelectItem value="easy" className="focus:bg-emerald-500 focus:text-white rounded-xl">Fácil</SelectItem>
+                        <SelectItem value="medium" className="focus:bg-emerald-500 focus:text-white rounded-xl">Médio</SelectItem>
+                        <SelectItem value="hard" className="focus:bg-emerald-500 focus:text-white rounded-xl">Difícil</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -317,21 +343,21 @@ export function QuizClient() {
                 control={form.control}
                 name="numberOfQuestions"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nº de Perguntas</FormLabel>
+                  <FormItem className="space-y-2">
+                    <FormLabel className="text-[9px] font-black uppercase tracking-wider text-slate-400">Nº de Perguntas</FormLabel>
                     <Select
                       onValueChange={(val) => field.onChange(Number(val))}
                       defaultValue={String(field.value)}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-slate-950/40 border-white/5 text-slate-200 h-12 rounded-2xl focus:ring-emerald-500/50">
                           <SelectValue placeholder="Número de perguntas" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="3">3 Perguntas</SelectItem>
-                        <SelectItem value="5">5 Perguntas</SelectItem>
-                        <SelectItem value="10">10 Perguntas</SelectItem>
+                      <SelectContent className="bg-slate-950 border-white/10 text-slate-200 rounded-2xl">
+                        <SelectItem value="3" className="focus:bg-emerald-500 focus:text-white rounded-xl">3 Perguntas</SelectItem>
+                        <SelectItem value="5" className="focus:bg-emerald-500 focus:text-white rounded-xl">5 Perguntas</SelectItem>
+                        <SelectItem value="10" className="focus:bg-emerald-500 focus:text-white rounded-xl">10 Perguntas</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -340,15 +366,16 @@ export function QuizClient() {
               />
             </div>
             {error && (
-              <p className="text-sm font-medium text-destructive">{error}</p>
+              <p className="text-xs font-black text-rose-400 uppercase tracking-widest mt-2">{error}</p>
             )}
           </CardContent>
-          <CardFooter>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading && (
+          <CardFooter className="border-t border-white/5 bg-slate-950/20 p-6 md:p-8">
+            <Button type="submit" className="h-12 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-emerald-500 hover:bg-emerald-600 text-white disabled:opacity-40 transition-all duration-300 w-full" disabled={isLoading}>
+              {isLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                'Gerar Quiz'
               )}
-              Gerar Quiz
             </Button>
           </CardFooter>
         </form>

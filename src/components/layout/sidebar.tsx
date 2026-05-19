@@ -92,6 +92,18 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
   }, [getGlobalLeader, currentUser]);
 
 
+  const isSuperAdminView = pathname.startsWith('/super-admin');
+
+  if (!isSuperAdminView) {
+    return (
+      <SidebarProvider defaultOpen={false}>
+        <SidebarInset className="flex flex-col min-w-0 overflow-hidden">
+          {children}
+        </SidebarInset>
+      </SidebarProvider>
+    );
+  }
+
   return (
     <SidebarProvider defaultOpen>
       <Sidebar collapsible="icon" variant="sidebar">

@@ -32,6 +32,10 @@ export default function PhotoCaptureDialog({ isOpen, onClose, onCapture }: Photo
     if (source === 'esp32') {
       return rawUrl.startsWith('http') ? rawUrl : `http://${rawUrl}/stream`;
     }
+    if (source === 'esp32_https') {
+      let cleanUrl = rawUrl.split('?')[0].replace(/\/stream\/?$/i, '').replace(/^https?:\/\//i, '').trim();
+      return `http://localhost:9005/stream?target=${cleanUrl}`;
+    }
     return rawUrl;
   };
 
@@ -85,7 +89,7 @@ export default function PhotoCaptureDialog({ isOpen, onClose, onCapture }: Photo
       canvas.width = videoRef.current.videoWidth;
       canvas.height = videoRef.current.videoHeight;
       ctx.drawImage(videoRef.current, 0, 0);
-    } else if ((source === 'esp32' || source === 'url') && imgRef.current) {
+    } else if ((source === 'esp32' || source === 'esp32_https' || source === 'url') && imgRef.current) {
       // Para streams de imagem (MJPEG)
       canvas.width = imgRef.current.naturalWidth;
       canvas.height = imgRef.current.naturalHeight;

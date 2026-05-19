@@ -18,7 +18,9 @@ import {
   School as SchoolIcon, 
   Trash2, 
   Recycle, 
-  ArrowLeft 
+  ArrowLeft,
+  ShieldAlert,
+  ServerCrash
 } from 'lucide-react';
 import { 
   Select, 
@@ -67,100 +69,156 @@ export function AuthorizationSection({
   toast
 }: AuthorizationSectionProps) {
   return (
-    <div className="flex min-h-screen flex-col bg-background items-center justify-center p-4">
-      <Card className="w-full max-w-lg border-primary/20 shadow-xl overflow-hidden">
-        <div className={`h-2 ${isBlocked ? 'bg-red-500' : isPending ? 'bg-amber-500' : 'bg-slate-300'}`}></div>
-        <CardHeader className="text-center">
-           <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${isBlocked ? 'bg-red-100 text-red-600' : isPending ? 'bg-amber-100 text-amber-600 animate-pulse' : 'bg-slate-100 text-slate-400'}`}>
-              {isBlocked ? <Lock className="h-8 w-8" /> : isPending ? <Clock className="h-8 w-8" /> : <MonitorOff className="h-8 w-8" />}
-           </div>
-           <CardTitle className="text-2xl font-black uppercase tracking-tighter">
-              {isBlocked ? 'Terminal Bloqueado' : isPending ? 'Aguardando Aprovação' : 'Terminal não Cadastrado'}
-           </CardTitle>
-           <CardDescription>
-              {isBlocked ? 'Este dispositivo foi desativado por um administrador.' : 
-               isPending ? 'Sua solicitação de acesso está sendo analisada.' : 
-               'Este totem precisa ser autorizado para operar o sistema.'}
-           </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-           {isPending ? (
-              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg space-y-3">
-                 <div className="flex justify-between items-center text-xs">
-                    <span className="font-bold text-amber-700 uppercase">ID do Terminal:</span>
-                    <code className="bg-white px-2 py-1 rounded border font-mono font-black text-amber-900">{currentTerminal?.id}</code>
-                 </div>
-                 <div className="flex justify-between items-center text-xs">
-                    <span className="font-bold text-amber-700 uppercase">Localização Informada:</span>
-                    <span className="text-amber-900">{currentTerminal?.location}</span>
-                 </div>
-                 <p className="text-[10px] text-amber-600 text-center font-medium">
-                    Por favor, contate o administrador da escola para liberar este terminal.
-                 </p>
-              </div>
-           ) : isBlocked ? (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-center">
-                 <p className="text-sm font-bold text-red-800">O acesso deste terminal foi revogado.</p>
-                 <p className="text-xs text-red-600 mt-1 font-bold">ID: {currentTerminal?.id || terminalIdSetting}</p>
-              </div>
-           ) : (
-               <div className="space-y-4">
-                  <div className="space-y-2">
-                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Unidade Escolar</Label>
-                     <Select value={selectedSchoolId} onValueChange={setSelectedSchoolId}>
-                        <SelectTrigger className="h-12 bg-slate-900/90 dark:bg-slate-950/60 text-white border border-slate-200/60 dark:border-slate-800/80 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400 text-left">
-                           <SelectValue placeholder="Selecione a instituição..." />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl border border-slate-200/50 dark:border-slate-800/50 bg-white text-slate-900 dark:bg-white dark:text-slate-900 shadow-xl z-50">
-                           {schools.filter(s => s.status === 'active').map(school => (
-                              <SelectItem key={school.id} value={school.id} className="rounded-lg text-slate-800 dark:text-slate-800 focus:bg-slate-100 dark:focus:bg-slate-100 focus:text-slate-900 dark:focus:text-slate-900 cursor-pointer">
-                                 <div className="flex items-center gap-2 uppercase font-bold text-[10px] tracking-tighter">
-                                    <SchoolIcon className="h-3 w-3 text-indigo-500" />
-                                    {school.name}
-                                 </div>
-                              </SelectItem>
-                           ))}
-                        </SelectContent>
-                     </Select>
-                  </div>
-                   <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Localização do Terminal (Ex: Pátio, Entrada)</Label>
-                      <Input 
-                        placeholder="Ex: Pátio Principal" 
-                        value={requestedLocation}
-                        onChange={(e) => setRequestedLocation(e.target.value)}
-                        className="h-12 text-lg bg-slate-900/90 dark:bg-slate-950/60 text-white placeholder:text-slate-400 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400 rounded-xl"
-                      />
-                   </div>
+    <div className="relative flex min-h-screen flex-col bg-[#070913] items-center justify-center p-4 text-slate-100 overflow-hidden font-sans">
+      
+      {/* Estilos e Grids de Fundo */}
+      <style>{`
+        .cyber-grid {
+          background-size: 30px 30px;
+          background-image: 
+            linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+        }
+      `}</style>
 
-                   {generatedTerminalId && (
-                     <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg animate-in fade-in slide-in-from-top-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-primary mb-1 block">ID do Terminal Gerado pelo Sistema</Label>
-                        <div className="flex items-center justify-between">
-                           <code className="text-xl font-black font-mono text-primary">{generatedTerminalId}</code>
-                           <Badge className="bg-primary text-white">Único & Imutável</Badge>
-                        </div>
-                        <p className="text-[9px] text-slate-500 mt-2 font-medium uppercase tracking-wider italic">Este ID será a identidade permanente deste totem no ecossistema.</p>
-                     </div>
-                   )}
-               </div>
-           )}
-        </CardContent>
-        <CardFooter className="flex flex-col gap-3">
-           {!terminalExists && (
+      {/* Orbes e Grids de Fundo */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-slate-500/5 blur-[120px] animate-pulse" />
+        <div className={`absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full ${isBlocked ? 'bg-red-500/10' : isPending ? 'bg-amber-500/10' : 'bg-indigo-600/10'} blur-[120px] animate-pulse`} />
+        <div className="absolute inset-0 cyber-grid [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_80%,transparent_100%)]" />
+      </div>
+
+      <main className="relative z-10 w-full max-w-md">
+        <Card className="w-full backdrop-blur-3xl bg-slate-950/40 border border-white/10 rounded-[2.5rem] shadow-[0_25px_60px_rgba(0,0,0,0.8)] ring-1 ring-white/5 overflow-hidden animate-in zoom-in duration-500">
+          
+          {/* Top Line Glowing Indicator */}
+          <div className={`h-2 bg-gradient-to-r ${isBlocked ? 'from-red-600 to-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]' : isPending ? 'from-amber-500 to-yellow-400 shadow-[0_0_15px_rgba(245,158,11,0.5)]' : 'from-indigo-500 to-cyan-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]'}`} />
+          
+          <CardHeader className="text-center pb-5 pt-8">
+            <div className={`mx-auto w-20 h-20 rounded-full flex items-center justify-center mb-5 border shadow-inner ${
+              isBlocked 
+                ? 'bg-red-500/10 border-red-500/30 text-red-400 shadow-[0_0_20px_rgba(239,68,68,0.15)] animate-pulse' 
+                : isPending 
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.15)] animate-pulse' 
+                : 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.15)] animate-pulse'
+            }`}>
+              {isBlocked ? <Lock className="h-9 w-9" /> : isPending ? <Clock className="h-9 w-9" /> : <MonitorOff className="h-9 w-9" />}
+            </div>
+            
+            <CardTitle className="text-2xl font-black uppercase tracking-wider text-white">
+              {isBlocked ? 'Terminal Bloqueado' : isPending ? 'Aguardando Aprovação' : 'Terminal não Cadastrado'}
+            </CardTitle>
+            
+            <CardDescription className="text-slate-400 text-xs font-semibold px-4 mt-2">
+              {isBlocked ? 'Este dispositivo foi desativado temporariamente por um administrador.' : 
+               isPending ? 'Sua solicitação de acesso foi enviada e está sendo analisada.' : 
+               'Este totem de autoatendimento físico precisa ser autorizado para operar.'}
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent className="space-y-5 px-8 pb-6">
+            {isPending ? (
+              <div className="p-5 bg-slate-950/60 border border-white/5 rounded-2xl space-y-4 shadow-inner">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold text-slate-400 uppercase tracking-widest text-[9px]">ID do Terminal:</span>
+                  <code className="bg-[#090b14] px-3 py-1.5 rounded-lg border border-white/5 font-mono font-black text-amber-400 tracking-wider">
+                    {currentTerminal?.id}
+                  </code>
+                </div>
+                
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold text-slate-400 uppercase tracking-widest text-[9px]">Localização:</span>
+                  <span className="text-white font-bold">{currentTerminal?.location}</span>
+                </div>
+                
+                <p className="text-[10px] text-amber-400/80 text-center font-bold uppercase tracking-wider bg-amber-500/5 py-2.5 rounded-xl border border-amber-500/10 animate-pulse">
+                  Contate o administrador da escola para aprovação
+                </p>
+              </div>
+            ) : isBlocked ? (
+              <div className="p-5 bg-red-500/5 border border-red-500/10 rounded-2xl text-center space-y-3 shadow-inner">
+                <p className="text-sm font-extrabold text-red-400 uppercase tracking-wide">O acesso deste terminal foi revogado.</p>
+                <div className="flex justify-center items-center gap-2 text-xs">
+                  <span className="text-slate-400 uppercase tracking-widest text-[9px]">ID Físico:</span>
+                  <code className="bg-[#090b14] px-2.5 py-1 rounded-lg border border-white/5 font-mono font-black text-red-400">
+                    {currentTerminal?.id || terminalIdSetting}
+                  </code>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4 animate-in fade-in duration-300">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 block">Unidade Escolar</Label>
+                  <Select value={selectedSchoolId} onValueChange={setSelectedSchoolId}>
+                    <SelectTrigger className="h-12 bg-[#090b14] text-white border border-white/10 rounded-xl focus:border-indigo-500/50 focus:ring-indigo-500/10 focus:ring-4 transition-all text-left">
+                      <SelectValue placeholder="Selecione a instituição..." />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border border-white/10 bg-[#0c0f1d] text-white shadow-2xl z-50">
+                      {schools.filter(s => s.status === 'active').map(school => (
+                        <SelectItem 
+                          key={school.id} 
+                          value={school.id} 
+                          className="rounded-lg text-slate-300 focus:bg-white/5 focus:text-white cursor-pointer uppercase font-bold text-[10px] tracking-tight p-3"
+                        >
+                          <div className="flex items-center gap-2">
+                            <SchoolIcon className="h-3.5 w-3.5 text-indigo-400" />
+                            {school.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 block">
+                    Localização (Ex: Pátio Principal, Cantina)
+                  </Label>
+                  <Input 
+                    placeholder="Ex: Pátio Principal" 
+                    value={requestedLocation}
+                    onChange={(e) => setRequestedLocation(e.target.value)}
+                    className="h-12 text-sm bg-[#090b14] text-white placeholder:text-slate-600 border border-white/10 focus:border-indigo-500/50 focus:ring-indigo-500/10 focus:ring-4 rounded-xl transition-all font-semibold"
+                  />
+                </div>
+
+                {generatedTerminalId && (
+                  <div className="p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-xl animate-in fade-in slide-in-from-top-2 space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-indigo-400 block">
+                      ID do Terminal Gerado pelo Sistema
+                    </Label>
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <code className="text-xl font-black font-mono text-indigo-400 tracking-wider">
+                        {generatedTerminalId}
+                      </code>
+                      <Badge className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase tracking-widest text-[8px] font-black">
+                        IMUTÁVEL
+                      </Badge>
+                    </div>
+                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider italic">
+                      Este ID identificará permanentemente este hardware.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+          
+          <CardFooter className="flex flex-col gap-3 px-8 pb-8">
+            {!terminalExists && (
               <Button 
-                 className="w-full h-14 text-lg font-bold" 
-                 disabled={!requestedLocation || !selectedSchoolId || isRequestingAuth}
-                 onClick={handleRequestAuth}
+                className="w-full h-14 text-base font-black uppercase tracking-widest rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-bold transition-all duration-300 shadow-[0_0_20px_rgba(99,102,241,0.2)] hover:shadow-[0_0_30px_rgba(99,102,241,0.35)] hover:scale-[1.01] active:scale-95 border border-indigo-400/20" 
+                disabled={!requestedLocation || !selectedSchoolId || isRequestingAuth}
+                onClick={handleRequestAuth}
               >
-                 {isRequestingAuth ? 'Enviando...' : 'Solicitar Autorização'}
+                {isRequestingAuth ? 'Enviando Solicitação...' : 'Solicitar Autorização'}
               </Button>
-           )}
-           
-           {isPending && (
+            )}
+            
+            {isPending && (
               <Button 
                 variant="destructive" 
-                className="w-full h-12 font-bold gap-2"
+                className="w-full h-12 font-black uppercase tracking-wider gap-2 rounded-xl bg-rose-950/20 text-rose-400 hover:bg-rose-950/40 border border-rose-500/20 hover:text-rose-300 transition-all"
                 onClick={() => {
                   if (currentTerminal) {
                     deleteTerminal(currentTerminal.id);
@@ -168,24 +226,36 @@ export function AuthorizationSection({
                   }
                 }}
               >
-                <Trash2 className="h-4 w-4" /> Cancelar Solicitação
+                <Trash2 className="h-4.5 w-4.5" /> 
+                Cancelar Solicitação
               </Button>
-           )}
+            )}
 
-           <div className="grid grid-cols-2 gap-3 w-full">
+            <div className="grid grid-cols-2 gap-3 w-full">
               {(isPending || isBlocked) && (
-                <Button variant="outline" className="h-12 font-bold gap-2" onClick={() => window.location.reload()}>
-                  <Recycle className="h-4 w-4" /> Recarregar
+                <Button 
+                  variant="outline" 
+                  className="h-12 font-black uppercase tracking-wider gap-2 bg-slate-900 border-white/5 rounded-xl text-slate-300 hover:text-white transition-all" 
+                  onClick={() => window.location.reload()}
+                >
+                  <Recycle className="h-4.5 w-4.5 text-emerald-400 animate-spin [animation-duration:8s]" /> 
+                  Recarregar
                 </Button>
               )}
-              <Button variant="ghost" className={`h-12 gap-2 ${(isPending || isBlocked) ? '' : 'col-span-2'}`} asChild>
+              <Button 
+                variant="ghost" 
+                className={`h-12 gap-2 text-xs font-bold uppercase tracking-wider text-slate-400 hover:text-white hover:bg-white/5 rounded-xl ${(isPending || isBlocked) ? '' : 'col-span-2'}`} 
+                asChild
+              >
                 <Link href="/">
-                  <ArrowLeft className="h-4 w-4" /> Sair / Voltar
+                  <ArrowLeft className="h-4 w-4" /> 
+                  Sair / Voltar
                 </Link>
               </Button>
-           </div>
-        </CardFooter>
-      </Card>
+            </div>
+          </CardFooter>
+        </Card>
+      </main>
     </div>
   );
 }

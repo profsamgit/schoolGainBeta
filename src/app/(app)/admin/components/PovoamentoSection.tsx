@@ -168,16 +168,16 @@ export function PovoamentoSection({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-300">
       <div className="grid gap-6 md:grid-cols-2">
         {/* GESTÃO DE TURMAS */}
-        <Card className="border-none shadow-sm overflow-hidden bg-white">
-          <CardHeader className="flex flex-row items-center justify-between pb-4">
+        <Card className="border border-white/10 shadow-2xl overflow-hidden bg-slate-900/40 rounded-[2rem] backdrop-blur-xl hover:border-indigo-500/20 transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-white/5 bg-slate-950/20 px-6 py-5">
             <div className="flex items-center gap-3">
-              <Users className="h-5 w-5 text-indigo-600" />
-              <CardTitle className="text-sm font-black uppercase tracking-widest">Séries e Turmas</CardTitle>
+              <Users className="h-5 w-5 text-indigo-400" />
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-200">Séries e Turmas</CardTitle>
             </div>
-            <Button size="sm" variant="ghost" className="h-8 w-8 p-0"
+            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-white/5 rounded-full"
               onClick={() => {
                 setEditingTurma(null);
                 setTurmaFormData({ name: '', status: 'active' });
@@ -186,16 +186,16 @@ export function PovoamentoSection({
               <Plus className="h-4 w-4" />
             </Button>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
+          <CardContent className="p-6">
+            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
               {[...allTurmas]?.sort((a, b) => a.name.localeCompare(b.name)).map((turma, idx) => (
-                <div key={turma.id || `turma-${idx}`} className="flex items-center justify-between p-2 bg-slate-50 border border-slate-100 rounded-lg hover:border-indigo-200 transition-all group">
+                <div key={turma.id || `turma-${idx}`} className="flex items-center justify-between p-3 bg-slate-950/50 border border-white/5 rounded-xl hover:border-indigo-500/20 hover:bg-indigo-500/5 transition-all group">
                   <div className="flex items-center gap-3">
-                    <span className={`h-1.5 w-1.5 rounded-full ${turma.status === 'active' ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
-                    <span className={`text-xs font-bold ${turma.status === 'inactive' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{turma.name}</span>
+                    <span className={`h-1.5 w-1.5 rounded-full ${turma.status === 'active' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]' : 'bg-slate-600'}`}></span>
+                    <span className={`text-xs font-bold ${turma.status === 'inactive' ? 'text-slate-500 line-through' : 'text-slate-300'}`}>{turma.name}</span>
                   </div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-indigo-600"
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-indigo-400 hover:bg-white/5 rounded-lg"
                       onClick={() => {
                         setEditingTurma(turma);
                         setTurmaFormData({ name: turma.name, status: turma.status });
@@ -203,26 +203,26 @@ export function PovoamentoSection({
                       }}>
                       <Edit className="h-3.5 w-3.5" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-red-600"
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-rose-500 hover:bg-rose-500/5 rounded-lg"
                       onClick={() => handleDelete(turma, 'turma')}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </div>
               ))}
-              {allTurmas?.length === 0 && <p className="text-[10px] text-muted-foreground text-center py-4">Nenhuma turma cadastrada.</p>}
+              {allTurmas?.length === 0 && <p className="text-[10px] text-slate-400 text-center py-4 uppercase font-bold tracking-widest">Nenhuma turma cadastrada.</p>}
             </div>
           </CardContent>
         </Card>
 
         {/* GESTÃO DE CURSOS */}
-        <Card className="border-none shadow-sm overflow-hidden bg-white">
-          <CardHeader className="flex flex-row items-center justify-between pb-4">
+        <Card className="border border-white/10 shadow-2xl overflow-hidden bg-slate-900/40 rounded-[2rem] backdrop-blur-xl hover:border-indigo-500/20 transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-white/5 bg-slate-950/20 px-6 py-5">
             <div className="flex items-center gap-3">
-              <GraduationCap className="h-5 w-5 text-amber-600" />
-              <CardTitle className="text-sm font-black uppercase tracking-widest">Cursos Técnicos</CardTitle>
+              <GraduationCap className="h-5 w-5 text-amber-400" />
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-200">Cursos Técnicos</CardTitle>
             </div>
-            <Button size="sm" variant="ghost" className="h-8 w-8 p-0"
+            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-white/5 rounded-full"
               onClick={() => {
                 setEditingCurso(null);
                 setCursoFormData({ name: '', status: 'active' });
@@ -231,16 +231,16 @@ export function PovoamentoSection({
               <Plus className="h-4 w-4" />
             </Button>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
+          <CardContent className="p-6">
+            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
               {[...allCursos]?.sort((a, b) => a.name.localeCompare(b.name)).map((curso, idx) => (
-                <div key={curso.id || `curso-${idx}`} className="flex items-center justify-between p-2 bg-slate-50 border border-slate-100 rounded-lg hover:border-indigo-200 transition-all group">
+                <div key={curso.id || `curso-${idx}`} className="flex items-center justify-between p-3 bg-slate-950/50 border border-white/5 rounded-xl hover:border-indigo-500/20 hover:bg-indigo-500/5 transition-all group">
                   <div className="flex items-center gap-3">
-                    <span className={`h-1.5 w-1.5 rounded-full ${curso.status === 'active' ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
-                    <span className={`text-xs font-bold ${curso.status === 'inactive' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{curso.name}</span>
+                    <span className={`h-1.5 w-1.5 rounded-full ${curso.status === 'active' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]' : 'bg-slate-600'}`}></span>
+                    <span className={`text-xs font-bold ${curso.status === 'inactive' ? 'text-slate-500 line-through' : 'text-slate-300'}`}>{curso.name}</span>
                   </div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-indigo-600"
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-indigo-400 hover:bg-white/5 rounded-lg"
                       onClick={() => {
                         setEditingCurso(curso);
                         setCursoFormData({ name: curso.name, status: curso.status });
@@ -248,26 +248,26 @@ export function PovoamentoSection({
                       }}>
                       <Edit className="h-3.5 w-3.5" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-red-600"
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-rose-500 hover:bg-rose-500/5 rounded-lg"
                       onClick={() => handleDelete(curso, 'curso')}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </div>
               ))}
-              {allCursos?.length === 0 && <p className="text-[10px] text-muted-foreground text-center py-4">Nenhum curso cadastrado.</p>}
+              {allCursos?.length === 0 && <p className="text-[10px] text-slate-400 text-center py-4 uppercase font-bold tracking-widest">Nenhum curso cadastrado.</p>}
             </div>
           </CardContent>
         </Card>
 
         {/* GESTÃO DE CARGOS */}
-        <Card className="border-none shadow-sm overflow-hidden bg-white">
-          <CardHeader className="flex flex-row items-center justify-between pb-4">
+        <Card className="border border-white/10 shadow-2xl overflow-hidden bg-slate-900/40 rounded-[2rem] backdrop-blur-xl hover:border-indigo-500/20 transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-white/5 bg-slate-950/20 px-6 py-5">
             <div className="flex items-center gap-3">
-              <Briefcase className="h-5 w-5 text-rose-600" />
-              <CardTitle className="text-sm font-black uppercase tracking-widest">Cargos Operacionais</CardTitle>
+              <Briefcase className="h-5 w-5 text-rose-400" />
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-200">Cargos Operacionais</CardTitle>
             </div>
-            <Button size="sm" variant="ghost" className="h-8 w-8 p-0"
+            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-white/5 rounded-full"
               onClick={() => {
                 setEditingCargo(null);
                 setCargoFormData({ name: '', status: 'active' });
@@ -276,16 +276,16 @@ export function PovoamentoSection({
               <Plus className="h-4 w-4" />
             </Button>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
+          <CardContent className="p-6">
+            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
               {[...allCargos]?.sort((a, b) => a.name.localeCompare(b.name)).map((cargo, idx) => (
-                <div key={cargo.id || `cargo-${idx}`} className="flex items-center justify-between p-2 bg-slate-50 border border-slate-100 rounded-lg hover:border-indigo-200 transition-all group">
+                <div key={cargo.id || `cargo-${idx}`} className="flex items-center justify-between p-3 bg-slate-950/50 border border-white/5 rounded-xl hover:border-indigo-500/20 hover:bg-indigo-500/5 transition-all group">
                   <div className="flex items-center gap-3">
-                    <span className={`h-1.5 w-1.5 rounded-full ${cargo.status === 'active' ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
-                    <span className={`text-xs font-bold ${cargo.status === 'inactive' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{cargo.name}</span>
+                    <span className={`h-1.5 w-1.5 rounded-full ${cargo.status === 'active' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]' : 'bg-slate-600'}`}></span>
+                    <span className={`text-xs font-bold ${cargo.status === 'inactive' ? 'text-slate-500 line-through' : 'text-slate-300'}`}>{cargo.name}</span>
                   </div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-indigo-600"
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-indigo-400 hover:bg-white/5 rounded-lg"
                       onClick={() => {
                         setEditingCargo(cargo);
                         setCargoFormData({ name: cargo.name, status: cargo.status });
@@ -293,26 +293,26 @@ export function PovoamentoSection({
                       }}>
                       <Edit className="h-3.5 w-3.5" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-red-600"
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-rose-500 hover:bg-rose-500/5 rounded-lg"
                       onClick={() => handleDelete(cargo, 'cargo')}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </div>
               ))}
-              {allCargos?.length === 0 && <p className="text-[10px] text-muted-foreground text-center py-4">Nenhum cargo cadastrado.</p>}
+              {allCargos?.length === 0 && <p className="text-[10px] text-slate-400 text-center py-4 uppercase font-bold tracking-widest">Nenhum cargo cadastrado.</p>}
             </div>
           </CardContent>
         </Card>
 
         {/* GESTÃO DE SETORES */}
-        <Card className="border-none shadow-sm overflow-hidden bg-white">
-          <CardHeader className="flex flex-row items-center justify-between pb-4">
+        <Card className="border border-white/10 shadow-2xl overflow-hidden bg-slate-900/40 rounded-[2rem] backdrop-blur-xl hover:border-indigo-500/20 transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-white/5 bg-slate-950/20 px-6 py-5">
             <div className="flex items-center gap-3">
-              <Building2 className="h-5 w-5 text-emerald-600" />
-              <CardTitle className="text-sm font-black uppercase tracking-widest">Setores / Departamentos</CardTitle>
+              <Building2 className="h-5 w-5 text-emerald-400" />
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-200">Setores / Departamentos</CardTitle>
             </div>
-            <Button size="sm" variant="ghost" className="h-8 w-8 p-0"
+            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-white/5 rounded-full"
               onClick={() => {
                 setEditingSetor(null);
                 setSetorFormData({ name: '', status: 'active' });
@@ -321,16 +321,16 @@ export function PovoamentoSection({
               <Plus className="h-4 w-4" />
             </Button>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
+          <CardContent className="p-6">
+            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
               {[...allSetores]?.sort((a, b) => a.name.localeCompare(b.name)).map((setor, idx) => (
-                <div key={setor.id || `setor-${idx}`} className="flex items-center justify-between p-2 bg-slate-50 border border-slate-100 rounded-lg hover:border-indigo-200 transition-all group">
+                <div key={setor.id || `setor-${idx}`} className="flex items-center justify-between p-3 bg-slate-950/50 border border-white/5 rounded-xl hover:border-indigo-500/20 hover:bg-indigo-500/5 transition-all group">
                   <div className="flex items-center gap-3">
-                    <span className={`h-1.5 w-1.5 rounded-full ${setor.status === 'active' ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
-                    <span className={`text-xs font-bold ${setor.status === 'inactive' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{setor.name}</span>
+                    <span className={`h-1.5 w-1.5 rounded-full ${setor.status === 'active' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]' : 'bg-slate-600'}`}></span>
+                    <span className={`text-xs font-bold ${setor.status === 'inactive' ? 'text-slate-500 line-through' : 'text-slate-300'}`}>{setor.name}</span>
                   </div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-indigo-600"
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-indigo-400 hover:bg-white/5 rounded-lg"
                       onClick={() => {
                         setEditingSetor(setor);
                         setSetorFormData({ name: setor.name, status: setor.status });
@@ -338,14 +338,14 @@ export function PovoamentoSection({
                       }}>
                       <Edit className="h-3.5 w-3.5" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-red-600"
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-rose-500 hover:bg-rose-500/5 rounded-lg"
                       onClick={() => handleDelete(setor, 'setor')}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </div>
               ))}
-              {allSetores?.length === 0 && <p className="text-[10px] text-muted-foreground text-center py-4">Nenhum setor cadastrado.</p>}
+              {allSetores?.length === 0 && <p className="text-[10px] text-slate-400 text-center py-4 uppercase font-bold tracking-widest">Nenhum setor cadastrado.</p>}
             </div>
           </CardContent>
         </Card>
@@ -353,120 +353,120 @@ export function PovoamentoSection({
 
       {/* DIALOGS */}
       <Dialog open={isTurmaDialogOpen} onOpenChange={setIsTurmaDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md bg-[#0a0f24]/95 backdrop-blur-3xl border border-white/10 text-white rounded-3xl p-6 shadow-2xl">
           <DialogHeader>
-            <DialogTitle>{editingTurma ? 'Editar Turma' : 'Nova Turma'}</DialogTitle>
-            <DialogDescription>Configure os dados da turma para agrupamento de alunos.</DialogDescription>
+            <DialogTitle className="text-xl font-black uppercase tracking-tight text-indigo-400">{editingTurma ? 'Editar Turma' : 'Nova Turma'}</DialogTitle>
+            <DialogDescription className="text-slate-400 text-xs">Configure os dados da turma para agrupamento de alunos.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSaveTurma} className="space-y-4">
+          <form onSubmit={handleSaveTurma} className="space-y-4 pt-4">
             <div className="space-y-2">
-              <Label>Nome da Turma</Label>
-              <Input value={turmaFormData.name} onChange={e => setTurmaFormData({...turmaFormData, name: e.target.value})} placeholder="Ex: 1 Ano A" />
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Nome da Turma</Label>
+              <Input value={turmaFormData.name} onChange={e => setTurmaFormData({...turmaFormData, name: e.target.value})} placeholder="Ex: 1 Ano A" className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold" required />
             </div>
             <div className="space-y-2">
-              <Label>Status</Label>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Status</Label>
               <Select value={turmaFormData.status} onValueChange={(v: any) => setTurmaFormData({...turmaFormData, status: v})}>
-                <SelectTrigger>
+                <SelectTrigger className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Ativa</SelectItem>
-                  <SelectItem value="inactive">Inativa</SelectItem>
+                <SelectContent className="bg-slate-950 border border-white/10 text-white">
+                  <SelectItem value="active" className="hover:bg-indigo-500/10">Ativa</SelectItem>
+                  <SelectItem value="inactive" className="hover:bg-indigo-500/10">Inativa</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <DialogFooter>
-              <Button type="submit">Salvar</Button>
+            <DialogFooter className="pt-2">
+              <Button type="submit" className="h-12 w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white border border-indigo-400/20 font-black uppercase text-xs tracking-widest rounded-xl shadow-xl transition-all">Salvar</Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isCursoDialogOpen} onOpenChange={setIsCursoDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md bg-[#0a0f24]/95 backdrop-blur-3xl border border-white/10 text-white rounded-3xl p-6 shadow-2xl">
           <DialogHeader>
-            <DialogTitle>{editingCurso ? 'Editar Curso' : 'Novo Curso'}</DialogTitle>
-            <DialogDescription>Gerencie os cursos oferecidos pela unidade escolar.</DialogDescription>
+            <DialogTitle className="text-xl font-black uppercase tracking-tight text-indigo-400">{editingCurso ? 'Editar Curso' : 'Novo Curso'}</DialogTitle>
+            <DialogDescription className="text-slate-400 text-xs">Gerencie os cursos oferecidos pela unidade escolar.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSaveCurso} className="space-y-4">
+          <form onSubmit={handleSaveCurso} className="space-y-4 pt-4">
             <div className="space-y-2">
-              <Label>Nome do Curso</Label>
-              <Input value={cursoFormData.name} onChange={e => setCursoFormData({...cursoFormData, name: e.target.value})} placeholder="Ex: Informtica" />
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Nome do Curso</Label>
+              <Input value={cursoFormData.name} onChange={e => setCursoFormData({...cursoFormData, name: e.target.value})} placeholder="Ex: Informática" className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold" required />
             </div>
             <div className="space-y-2">
-              <Label>Status</Label>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Status</Label>
               <Select value={cursoFormData.status} onValueChange={(v: any) => setCursoFormData({...cursoFormData, status: v})}>
-                <SelectTrigger>
+                <SelectTrigger className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Ativo</SelectItem>
-                  <SelectItem value="inactive">Inativo</SelectItem>
+                <SelectContent className="bg-slate-950 border border-white/10 text-white">
+                  <SelectItem value="active" className="hover:bg-indigo-500/10">Ativo</SelectItem>
+                  <SelectItem value="inactive" className="hover:bg-indigo-500/10">Inativo</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <DialogFooter>
-              <Button type="submit">Salvar</Button>
+            <DialogFooter className="pt-2">
+              <Button type="submit" className="h-12 w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white border border-indigo-400/20 font-black uppercase text-xs tracking-widest rounded-xl shadow-xl transition-all">Salvar</Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isCargoDialogOpen} onOpenChange={setIsCargoDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md bg-[#0a0f24]/95 backdrop-blur-3xl border border-white/10 text-white rounded-3xl p-6 shadow-2xl">
           <DialogHeader>
-            <DialogTitle>{editingCargo ? 'Editar Cargo' : 'Novo Cargo'}</DialogTitle>
-            <DialogDescription>Defina as funções e cargos dos colaboradores.</DialogDescription>
+            <DialogTitle className="text-xl font-black uppercase tracking-tight text-indigo-400">{editingCargo ? 'Editar Cargo' : 'Novo Cargo'}</DialogTitle>
+            <DialogDescription className="text-slate-400 text-xs">Defina as funções e cargos dos colaboradores.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSaveCargo} className="space-y-4">
+          <form onSubmit={handleSaveCargo} className="space-y-4 pt-4">
             <div className="space-y-2">
-              <Label>Nome do Cargo</Label>
-              <Input value={cargoFormData.name} onChange={e => setCargoFormData({...cargoFormData, name: e.target.value})} placeholder="Ex: Coordenador" />
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Nome do Cargo</Label>
+              <Input value={cargoFormData.name} onChange={e => setCargoFormData({...cargoFormData, name: e.target.value})} placeholder="Ex: Coordenador" className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold" required />
             </div>
             <div className="space-y-2">
-              <Label>Status</Label>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Status</Label>
               <Select value={cargoFormData.status} onValueChange={(v: any) => setCargoFormData({...cargoFormData, status: v})}>
-                <SelectTrigger>
+                <SelectTrigger className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Ativo</SelectItem>
-                  <SelectItem value="inactive">Inativo</SelectItem>
+                <SelectContent className="bg-slate-950 border border-white/10 text-white">
+                  <SelectItem value="active" className="hover:bg-indigo-500/10">Ativo</SelectItem>
+                  <SelectItem value="inactive" className="hover:bg-indigo-500/10">Inativo</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <DialogFooter>
-              <Button type="submit">Salvar</Button>
+            <DialogFooter className="pt-2">
+              <Button type="submit" className="h-12 w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white border border-indigo-400/20 font-black uppercase text-xs tracking-widest rounded-xl shadow-xl transition-all">Salvar</Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isSetorDialogOpen} onOpenChange={setIsSetorDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md bg-[#0a0f24]/95 backdrop-blur-3xl border border-white/10 text-white rounded-3xl p-6 shadow-2xl">
           <DialogHeader>
-            <DialogTitle>{editingSetor ? 'Editar Setor' : 'Novo Setor'}</DialogTitle>
-            <DialogDescription>Organize os setores administrativos e pedagógicos.</DialogDescription>
+            <DialogTitle className="text-xl font-black uppercase tracking-tight text-indigo-400">{editingSetor ? 'Editar Setor' : 'Novo Setor'}</DialogTitle>
+            <DialogDescription className="text-slate-400 text-xs">Organize os setores administrativos e pedagógicos.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSaveSetor} className="space-y-4">
+          <form onSubmit={handleSaveSetor} className="space-y-4 pt-4">
             <div className="space-y-2">
-              <Label>Nome do Setor</Label>
-              <Input value={setorFormData.name} onChange={e => setSetorFormData({...setorFormData, name: e.target.value})} placeholder="Ex: Secretaria" />
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Nome do Setor</Label>
+              <Input value={setorFormData.name} onChange={e => setSetorFormData({...setorFormData, name: e.target.value})} placeholder="Ex: Secretaria" className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold" required />
             </div>
             <div className="space-y-2">
-              <Label>Status</Label>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Status</Label>
               <Select value={setorFormData.status} onValueChange={(v: any) => setSetorFormData({...setorFormData, status: v})}>
-                <SelectTrigger>
+                <SelectTrigger className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Ativo</SelectItem>
-                  <SelectItem value="inactive">Inativo</SelectItem>
+                <SelectContent className="bg-slate-950 border border-white/10 text-white">
+                  <SelectItem value="active" className="hover:bg-indigo-500/10">Ativo</SelectItem>
+                  <SelectItem value="inactive" className="hover:bg-indigo-500/10">Inativo</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <DialogFooter>
-              <Button type="submit">Salvar</Button>
+            <DialogFooter className="pt-2">
+              <Button type="submit" className="h-12 w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white border border-indigo-400/20 font-black uppercase text-xs tracking-widest rounded-xl shadow-xl transition-all">Salvar</Button>
             </DialogFooter>
           </form>
         </DialogContent>

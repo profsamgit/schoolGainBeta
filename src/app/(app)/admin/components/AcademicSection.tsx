@@ -267,11 +267,11 @@ export function AcademicSection({
   const UserIdentificationCell = ({ user }: { user: User }) => (
     <div className="flex items-center gap-3">
       <div className="relative group/avatar">
-        <Avatar className="h-10 w-10 rounded-xl bg-slate-100 border-2 border-transparent group-hover/avatar:border-primary transition-all overflow-hidden">
+        <Avatar className="h-10 w-10 rounded-xl bg-slate-950 border border-white/10 group-hover/avatar:border-indigo-500/50 transition-all overflow-hidden shadow-md">
           <AvatarImage src={user.avatar || undefined} className="object-cover" />
-          <AvatarFallback className="text-xs font-black bg-slate-900 text-white">{user.name.charAt(0)}</AvatarFallback>
+          <AvatarFallback className="text-xs font-black bg-slate-900 text-slate-300">{user.name.charAt(0)}</AvatarFallback>
         </Avatar>
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/avatar:opacity-100 rounded-xl transition-opacity gap-2">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover/avatar:opacity-100 rounded-xl transition-opacity gap-2">
           {uploadingUserId === user.id ? (
             <Loader2 className="h-4 w-4 text-white animate-spin" />
           ) : (
@@ -290,75 +290,80 @@ export function AcademicSection({
         </div>
       </div>
       <div className="flex flex-col">
-        <span className="text-sm font-bold text-slate-900">{user.name}</span>
+        <span className="text-sm font-bold text-slate-200">{user.name}</span>
         {(user.role !== 'student' || user.email) && user.email && (
           <span className="text-[10px] text-slate-400 font-medium lowercase italic">{user.email}</span>
         )}
       </div>
-
     </div>
   );
 
   const UserTable = ({ data, role }: { data: User[], role: string }) => (
-    <div className="rounded-xl border border-slate-100 bg-white overflow-hidden shadow-sm">
+    <div className="rounded-2xl border border-white/10 bg-slate-950/50 overflow-hidden shadow-2xl">
       <Table>
-        <TableHeader className="bg-slate-50/50">
+        <TableHeader className="bg-slate-950 border-b border-white/10">
           <TableRow>
-            <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400 px-6">Identificação</TableHead>
-            <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">RA / ID</TableHead>
-            <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">Vínculo</TableHead>
-            <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">Pontos</TableHead>
-            <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">Status</TableHead>
-            <TableHead className="text-right px-6 font-black uppercase text-[10px] tracking-widest text-slate-400">Ações</TableHead>
+            <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400 px-6 h-12">Identificação</TableHead>
+            <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400 h-12">RA / ID</TableHead>
+            <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400 h-12">Vínculo</TableHead>
+            <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400 h-12">Pontos</TableHead>
+            <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400 h-12">Status</TableHead>
+            <TableHead className="text-right px-6 font-black uppercase text-[10px] tracking-widest text-slate-400 h-12">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.length > 0 ? data.map((user) => (
-            <TableRow key={`${user.id}-${user.ra}`} className={isDeleteConfirmOpen && selectedItem?.id === user.id ? 'bg-red-50' : 'hover:bg-slate-50 transition-colors group'}>
-              <TableCell className="px-6">
+            <TableRow key={`${user.id}-${user.ra}`} className={isDeleteConfirmOpen && selectedItem?.id === user.id ? 'bg-rose-950/20 hover:bg-rose-950/30' : 'hover:bg-indigo-500/5 border-b border-white/5 transition-colors group'}>
+              <TableCell className="px-6 py-4">
                 <UserIdentificationCell user={user} />
               </TableCell>
-              <TableCell className="font-mono text-[11px] font-bold text-primary">{user.ra}</TableCell>
+              <TableCell className="font-mono text-[11px] font-bold text-indigo-400">{user.ra}</TableCell>
               <TableCell>
                 <div className="flex flex-col gap-1">
                   <Badge 
-                    variant={user.role === 'admin' || user.role === 'super_admin' ? 'default' : user.role === 'visitor' ? 'outline' : 'secondary'} 
-                    className={`w-fit uppercase text-[7px] font-black tracking-tighter h-4 px-1 ${user.role === 'visitor' ? 'text-blue-600 border-blue-200 bg-blue-50/50' : ''}`}
+                    className={`w-fit uppercase text-[7px] font-black tracking-tighter h-4 px-1.5 shadow-sm ${
+                      user.role === 'super_admin' ? 'bg-indigo-500/10 border border-indigo-500/20 text-indigo-400' : 
+                      user.role === 'admin' ? 'bg-indigo-500/10 border border-indigo-500/20 text-indigo-400' : 
+                      user.role === 'staff' ? 'bg-purple-500/10 border border-purple-500/20 text-purple-400' : 
+                      user.role === 'visitor' ? 'bg-blue-500/10 border border-blue-500/20 text-blue-400' : 
+                      'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                    }`}
                   >
                     {user.role === 'super_admin' ? 'Mestre' : user.role === 'admin' ? 'Gestor' : user.role === 'staff' ? 'Funcionário' : user.role === 'visitor' ? 'Visita' : 'Aluno'}
                   </Badge>
-                  {user.position && <span className="font-black text-slate-900 text-[9px] uppercase tracking-widest">{user.position}</span>}
-                  <span className="text-[10px] text-slate-500 font-bold">{user.turma || (user.role === 'visitor' ? 'Visitante' : user.role === 'staff' || user.role === 'admin' ? 'Corporativo' : 'Sem Turma')}</span>
+                  {user.position && <span className="font-black text-slate-200 text-[9px] uppercase tracking-widest">{user.position}</span>}
+                  <span className="text-[10px] text-slate-400 font-bold">{user.turma || (user.role === 'visitor' ? 'Visitante' : user.role === 'staff' || user.role === 'admin' ? 'Corporativo' : 'Sem Turma')}</span>
                 </div>
               </TableCell>
               <TableCell>
-                <div className="font-bold text-primary">{userStates[user.id]?.points || 0}</div>
+                <div className="font-bold text-indigo-400">{userStates[user.id]?.points || 0}</div>
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
                   <Switch 
                     checked={user.status !== 'inactive'} 
                     onCheckedChange={(checked) => updateUserStatus(user.id, checked ? 'active' : 'inactive')}
+                    className="data-[state=checked]:bg-indigo-500"
                   />
-                  <Badge variant={user.status === 'inactive' ? 'destructive' : 'secondary'} className="text-[9px] uppercase font-bold">
+                  <Badge className={`text-[9px] uppercase font-bold ${user.status === 'inactive' ? 'bg-rose-500/10 border border-rose-500/20 text-rose-400' : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'}`}>
                     {user.status === 'inactive' ? 'Inativo' : 'Ativo'}
                   </Badge>
                 </div>
               </TableCell>
-              <TableCell className="text-right px-6">
+              <TableCell className="text-right px-6 py-4">
                 <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   {user.role === 'student' && (
                     <Button 
                       variant="ghost" 
                       size="icon" 
                       onClick={() => router.push(`/dashboard?preview=${user.id}${targetSchoolId ? `&schoolId=${targetSchoolId}` : ''}`)} 
-                      className="h-8 w-8 text-slate-400 hover:text-primary hover:bg-primary/5" 
+                      className="h-8 w-8 text-slate-400 hover:text-white hover:bg-white/5 rounded-full" 
                       title="Visualizar Perfil"
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
                   )}
-                  <Button variant="ghost" size="icon" onClick={() => { setBadgeUser(user as any); setIsBadgeOpen(true); }} className="h-8 w-8 text-slate-400 hover:text-primary hover:bg-primary/5" title="Ver Carteira">
+                  <Button variant="ghost" size="icon" onClick={() => { setBadgeUser(user as any); setIsBadgeOpen(true); }} className="h-8 w-8 text-slate-400 hover:text-white hover:bg-white/5 rounded-full" title="Ver Carteira">
                     <QrCode className="h-4 w-4" />
                   </Button>
 
@@ -367,7 +372,7 @@ export function AcademicSection({
                       variant="ghost" 
                       size="icon" 
                       title="Trocar Senha"
-                      className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-50"
+                      className="h-8 w-8 text-slate-400 hover:text-amber-400 hover:bg-white/5 rounded-full"
                       onClick={() => {
                         setSelectedItem(user);
                         setIsPasswordDialogOpen(true);
@@ -380,7 +385,7 @@ export function AcademicSection({
                     variant="ghost" 
                     size="icon" 
                     title="Editar"
-                    className="h-8 w-8 text-slate-400 hover:text-slate-900 hover:bg-slate-100"
+                    className="h-8 w-8 text-slate-400 hover:text-white hover:bg-white/5 rounded-full"
                     onClick={() => handleEdit(user, 'user')}
                   >
                     <Edit className="h-4 w-4" />
@@ -389,7 +394,7 @@ export function AcademicSection({
                     variant="ghost" 
                     size="icon" 
                     title="Excluir"
-                    className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                    className="h-8 w-8 text-slate-400 hover:text-rose-500 hover:bg-rose-500/5 rounded-full"
                     onClick={() => handleDelete(user, 'user')}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -412,49 +417,53 @@ export function AcademicSection({
     const roleLabel = currentRole === 'admin' || currentRole === 'super_admin' ? 'Gestor' : currentRole === 'staff' ? 'Funcionário' : currentRole === 'visitor' ? 'Visitante' : 'Aluno';
 
     return (
-      <Card className="border-primary/20 bg-primary/5">
-        <CardHeader className="flex flex-row items-center justify-between border-b bg-white/50">
+      <Card className="border border-white/10 shadow-2xl overflow-hidden bg-slate-900/40 rounded-[2rem] backdrop-blur-xl text-white animate-in fade-in duration-300">
+        <CardHeader className="flex flex-row items-center justify-between border-b border-white/5 bg-slate-950/20 px-6 py-5">
           <div>
-            <CardTitle>{isNew ? `Cadastrar Novo ${roleLabel}` : `Editar Dados do ${roleLabel}`}</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-lg font-black uppercase tracking-tight text-indigo-400">{isNew ? `Cadastrar Novo ${roleLabel}` : `Editar Dados do ${roleLabel}`}</CardTitle>
+            <CardDescription className="text-slate-400 text-xs mt-1">
               {isNew ? (
                 allTurmas.length === 0 || allCursos.length === 0 || allCargos.length === 0 || allSetores.length === 0 ? (
-                  <span className="text-rose-500 font-bold uppercase text-[10px] animate-pulse">Atenção: Povoamento de dados incompleto para novos cadastros.</span>
+                  <span className="text-rose-400 font-bold uppercase text-[10px] animate-pulse">Atenção: Povoamento de dados incompleto para novos cadastros.</span>
                 ) : `Preencha as informações de ${currentRole === 'visitor' ? 'acesso temporário' : 'identificação'}.`
               ) : `Atualize os dados de ${currentRole === 'visitor' ? 'acesso' : 'identificação'}.`}
             </CardDescription>
           </div>
-          <Button variant="ghost" onClick={closeAllForms}><ArrowLeft className="mr-2 h-4 w-4" />Voltar para a Lista</Button>
+          <Button variant="ghost" onClick={closeAllForms} className="text-slate-400 hover:text-white hover:bg-white/5 rounded-xl gap-2 font-bold text-xs uppercase"><ArrowLeft className="h-4 w-4" />Voltar para a Lista</Button>
         </CardHeader>
-        <CardContent className="pt-6 bg-white/30">
+        <CardContent className="p-8">
           <Form {...userForm}>
-            <form onSubmit={userForm.handleSubmit(onSubmit)} className="space-y-4 max-w-2xl mx-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={userForm.handleSubmit(onSubmit)} className="space-y-6 max-w-2xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField control={userForm.control} name="name" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{userForm.watch('role') === 'visitor' ? 'Identificação do Visitante' : 'Nome Completo'}</FormLabel>
-                    <FormControl><Input {...field} placeholder={userForm.watch('role') === 'visitor' ? "Ex: Visitante - João da Silva" : "Ex: João Silva"} className="bg-white" /></FormControl>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{userForm.watch('role') === 'visitor' ? 'Identificação do Visitante' : 'Nome Completo'}</FormLabel>
+                    <FormControl><Input {...field} placeholder={userForm.watch('role') === 'visitor' ? "Ex: Visitante - João da Silva" : "Ex: João Silva"} className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold" /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
                 {(userForm.watch('role') === 'admin' || userForm.watch('role') === 'staff') && (
                   <FormField control={userForm.control} name="email" render={({ field }) => (
-                    <FormItem><FormLabel>E-mail de Acesso</FormLabel><FormControl><Input {...field} type="email" placeholder="email@escola.com" className="bg-white" /></FormControl><FormMessage /></FormItem>
+                    <FormItem>
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">E-mail de Acesso</FormLabel>
+                      <FormControl><Input {...field} type="email" placeholder="email@escola.com" className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold" /></FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )} />
                 )}
               </div>
 
               {userForm.watch('role') !== 'visitor' && (
-                <div className="bg-white/50 p-6 rounded-2xl border border-slate-100 space-y-4">
+                <div className="bg-slate-950/50 p-6 rounded-2xl border border-white/5 space-y-4">
                   <div className="flex items-center gap-4">
-                    <Avatar className="h-24 w-24 border-4 border-white shadow-xl">
+                    <Avatar className="h-24 w-24 border-4 border-slate-950 shadow-xl rounded-2xl overflow-hidden">
                       <AvatarImage src={userForm.watch('avatar')} className="object-cover" />
-                      <AvatarFallback className="bg-slate-100 text-slate-300">
+                      <AvatarFallback className="bg-slate-900 text-slate-400 flex items-center justify-center">
                         <Camera className="h-8 w-8" />
                       </AvatarFallback>
                     </Avatar>
                     <div className="space-y-2">
-                      <Label className="text-xs font-black uppercase tracking-widest text-slate-500">Foto de Perfil</Label>
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block ml-1">Foto de Perfil</Label>
                       <div className="flex gap-2">
                         <Input 
                           type="file" 
@@ -470,14 +479,14 @@ export function AcademicSection({
                             }
                           }}
                         />
-                        <Button type="button" variant="outline" onClick={() => document.getElementById('avatar-upload')?.click()} className="bg-white gap-2 font-bold text-[10px] uppercase tracking-wider">
+                        <Button type="button" variant="outline" onClick={() => document.getElementById('avatar-upload')?.click()} className="bg-slate-950 border-white/10 text-slate-300 hover:text-white rounded-xl gap-2 font-bold text-[10px] uppercase tracking-wider h-10 px-4">
                           <Camera className="h-4 w-4" /> Enviar Foto
                         </Button>
                         {userForm.watch('avatar') && (
-                          <Button type="button" variant="ghost" onClick={() => userForm.setValue('avatar', '')} className="text-red-500 font-bold text-[10px] uppercase tracking-wider">Remover</Button>
+                          <Button type="button" variant="ghost" onClick={() => userForm.setValue('avatar', '')} className="text-rose-400 hover:text-rose-300 font-bold text-[10px] uppercase tracking-wider h-10 px-4">Remover</Button>
                         )}
                       </div>
-                      <p className="text-[9px] text-slate-400 font-medium italic">Recomendado: Imagem quadrada 500x500px.</p>
+                      <p className="text-[9px] text-slate-500 font-medium italic">Recomendado: Imagem quadrada 500x500px.</p>
                     </div>
                   </div>
                 </div>
@@ -488,34 +497,36 @@ export function AcademicSection({
                       <div className="flex gap-2 items-end">
                           <FormField control={userForm.control} name="ra" render={({ field }) => (
                           <FormItem className="flex-1">
-                              <FormLabel>{currentRole === 'student' ? 'RA (Identificação QR)' : currentRole === 'staff' ? 'Registro Funcional (QR)' : currentRole === 'visitor' ? 'ID Temporário (Acesso Kiosk)' : 'ID de Acesso (QR)'}</FormLabel>
-                              <FormControl><Input {...field} className="bg-white font-mono uppercase" /></FormControl>
+                              <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{currentRole === 'student' ? 'RA (Identificação QR)' : currentRole === 'staff' ? 'Registro Funcional (QR)' : currentRole === 'visitor' ? 'ID Temporário (Acesso Kiosk)' : 'ID de Acesso (QR)'}</FormLabel>
+                              <FormControl><Input {...field} className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold font-mono uppercase" /></FormControl>
                               <FormMessage />
                           </FormItem>
                           )} />
                           <div className="flex gap-1 mb-[2px]">
-                            <Button type="button" variant="outline" size="icon" className="bg-white text-primary hover:bg-primary/10" onClick={generateRandomRA} title="Gerar ID Aleatório">
+                            <Button type="button" variant="outline" size="icon" className="h-12 w-12 bg-slate-950 border-white/10 text-indigo-400 hover:text-indigo-300 rounded-xl" onClick={generateRandomRA} title="Gerar ID Aleatório">
                                 <Wand2 className="h-4 w-4" />
                             </Button>
-                            <Button type="button" variant="outline" size="icon" className={` ${isQRScannerOpen ? 'bg-primary text-white' : 'bg-white'}`} onClick={() => setIsQRScannerOpen(!isQRScannerOpen)} title="Escanear QR Code">
+                            <Button type="button" variant="outline" size="icon" className={`h-12 w-12 rounded-xl border-white/10 ${isQRScannerOpen ? 'bg-indigo-500 text-slate-950' : 'bg-slate-950 text-indigo-400'}`} onClick={() => setIsQRScannerOpen(!isQRScannerOpen)} title="Escanear QR Code">
                                 <QrCode className="h-4 w-4" />
                             </Button>
                           </div>
                       </div>
 
                       {isQRScannerOpen && (
-                          <div className="border-2 border-primary rounded-lg p-2 bg-black space-y-2 overflow-hidden animate-in fade-in zoom-in duration-200">
-                              <div className="flex justify-between items-center px-2">
-                                  <span className="text-[10px] text-white font-bold uppercase tracking-widest">Câmera Ativa: Aponte o QR Code</span>
-                                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-white hover:text-red-400" onClick={() => setIsQRScannerOpen(false)}>×</Button>
+                          <div className="border border-indigo-500/30 rounded-2xl p-4 bg-slate-950 space-y-3 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                              <div className="flex justify-between items-center">
+                                  <span className="text-[9px] text-indigo-400 font-black uppercase tracking-widest">Câmera Ativa: Aponte o QR Code</span>
+                                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-slate-400 hover:text-rose-400 rounded-full" onClick={() => setIsQRScannerOpen(false)}><X className="h-4 w-4" /></Button>
                               </div>
-                              <QRScanner 
-                                onScan={(text: string) => {
-                                  userForm.setValue('ra', text.toUpperCase());
-                                  setIsQRScannerOpen(false);
-                                }} 
-                                deviceId={systemSettings.adminCaptureDevice}
-                              />
+                              <div className="rounded-xl overflow-hidden border border-white/5">
+                                <QRScanner 
+                                  onScan={(text: string) => {
+                                    userForm.setValue('ra', text.toUpperCase());
+                                    setIsQRScannerOpen(false);
+                                  }} 
+                                  deviceId={systemSettings.adminCaptureDevice}
+                                />
+                              </div>
                           </div>
                       )}
 
@@ -523,12 +534,12 @@ export function AcademicSection({
                           <div className="flex gap-2 items-end">
                               <FormField control={userForm.control} name="rfid" render={({ field }) => (
                               <FormItem className="flex-1">
-                                  <FormLabel>ID do Cartão (RFID)</FormLabel>
-                                  <FormControl><Input {...field} placeholder="Aguardando..." autoComplete="off" className="bg-white font-mono uppercase" /></FormControl>
+                                  <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">ID do Cartão (RFID)</FormLabel>
+                                  <FormControl><Input {...field} placeholder="Aguardando..." autoComplete="off" className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold font-mono uppercase" /></FormControl>
                                   <FormMessage />
                               </FormItem>
                               )} />
-                              <Button type="button" variant={isRFIDCapturing ? 'destructive' : 'outline'} size="icon" className={`mb-[2px] ${isRFIDCapturing ? 'animate-pulse' : 'bg-white text-primary'}`} onClick={() => setIsRFIDCapturing(!isRFIDCapturing)}>
+                              <Button type="button" variant={isRFIDCapturing ? 'destructive' : 'outline'} size="icon" className={`h-12 w-12 rounded-xl mb-[2px] ${isRFIDCapturing ? 'bg-rose-600 hover:bg-rose-500 border-rose-400/20 text-white animate-pulse' : 'bg-slate-950 border-white/10 text-indigo-400'}`} onClick={() => setIsRFIDCapturing(!isRFIDCapturing)}>
                                   <Rss className="h-4 w-4" />
                               </Button>
                           </div>
@@ -539,12 +550,12 @@ export function AcademicSection({
                       {(userForm.watch('role') === 'admin' || userForm.watch('role') === 'staff') && (
                         <FormField control={userForm.control} name="position" render={({ field }) => (
                           <FormItem>
-                            <FormLabel>{currentRole === 'staff' ? 'Cargo / Função' : 'Cargo Administrativo'}</FormLabel>
+                            <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{currentRole === 'staff' ? 'Cargo / Função' : 'Cargo Administrativo'}</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value}>
-                              <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                              <SelectContent>
+                              <SelectTrigger className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                              <SelectContent className="bg-slate-950 border border-white/10 text-white">
                                 {allCargos.filter(c => c.status === 'active').map(c => (
-                                  <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                                  <SelectItem key={c.id} value={c.name} className="hover:bg-indigo-500/10">{c.name}</SelectItem>
                                 ))}
                                 {allCargos.length === 0 && <SelectItem value="none" disabled>Nenhum cargo cadastrado</SelectItem>}
                               </SelectContent>
@@ -557,14 +568,14 @@ export function AcademicSection({
                       {userForm.watch('role') !== 'visitor' && (
                         <FormField control={userForm.control} name="turma" render={({ field }) => (
                             <FormItem>
-                                <FormLabel>{currentRole === 'student' ? 'Turma' : currentRole === 'staff' ? 'Setor / Departamento' : 'Unidade Responsável'}</FormLabel>
+                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{currentRole === 'student' ? 'Turma' : currentRole === 'staff' ? 'Setor / Departamento' : 'Unidade Responsável'}</FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value}>
-                                    <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                    <SelectContent>
+                                    <SelectTrigger className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                    <SelectContent className="bg-slate-950 border border-white/10 text-white">
                                         {userForm.watch('role') === 'student' ? (
-                                            sortedTurmas.filter(t => t.status === 'active').map(t => <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>)
+                                            sortedTurmas.filter(t => t.status === 'active').map(t => <SelectItem key={t.id} value={t.name} className="hover:bg-indigo-500/10">{t.name}</SelectItem>)
                                         ) : (
-                                            sortedSetores.filter(s => s.status === 'active').map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)
+                                            sortedSetores.filter(s => s.status === 'active').map(s => <SelectItem key={s.id} value={s.name} className="hover:bg-indigo-500/10">{s.name}</SelectItem>)
                                         )}
                                     </SelectContent>
                                 </Select>
@@ -575,11 +586,11 @@ export function AcademicSection({
                       {userForm.watch('role') === 'student' && (
                         <FormField control={userForm.control} name="curso" render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Curso</FormLabel>
+                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Curso</FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value}>
-                                    <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione o curso" /></SelectTrigger>
-                                    <SelectContent>
-                                        {sortedCursos.filter(c => c.status === 'active' && c.name !== 'Gestão Escolar').map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                                    <SelectTrigger className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold"><SelectValue placeholder="Selecione o curso" /></SelectTrigger>
+                                    <SelectContent className="bg-slate-950 border border-white/10 text-white">
+                                        {sortedCursos.filter(c => c.status === 'active' && c.name !== 'Gestão Escolar').map(c => <SelectItem key={c.id} value={c.name} className="hover:bg-indigo-500/10">{c.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -587,19 +598,27 @@ export function AcademicSection({
                         )} />
                       )}
                       {(userForm.watch('role') === 'admin' || userForm.watch('role') === 'staff') && isNew && (
-                        <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-4">
+                        <div className="p-4 bg-slate-950 border border-white/5 rounded-2xl space-y-4">
                           <div className="flex justify-between items-center">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Senha Inicial</Label>
-                            <Button type="button" variant="ghost" size="sm" onClick={generateStrongPassword} className="h-7 text-[10px] font-bold uppercase tracking-tighter text-primary">
-                              <Wand2 className="h-3 w-3 mr-1" /> Gerar Forte
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Senha Inicial</Label>
+                            <Button type="button" variant="ghost" size="sm" onClick={generateStrongPassword} className="h-7 text-[10px] font-bold uppercase tracking-tighter text-indigo-400 hover:text-indigo-300">
+                              <Wand2 className="h-3 w-3 mr-1 animate-pulse" /> Gerar Forte
                             </Button>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField control={userForm.control} name="password" render={({ field }) => (
-                              <FormItem><FormLabel>Definir Senha</FormLabel><FormControl><Input {...field} type="password" autoComplete="new-password" placeholder="Mínimo 6 caracteres" className="bg-white" /></FormControl><FormMessage /></FormItem>
+                              <FormItem>
+                                <FormLabel className="text-[9px] font-bold uppercase text-slate-400">Senha</FormLabel>
+                                <FormControl><Input {...field} type="password" autoComplete="new-password" placeholder="Min 6 char" className="h-10 bg-slate-900 border-white/5 text-white rounded-lg focus:border-indigo-500/50" /></FormControl>
+                                <FormMessage />
+                              </FormItem>
                             )} />
                             <FormField control={userForm.control} name="confirmPassword" render={({ field }) => (
-                              <FormItem><FormLabel>Confirmar</FormLabel><FormControl><Input {...field} type="password" autoComplete="new-password" placeholder="Repita a senha" className="bg-white" /></FormControl><FormMessage /></FormItem>
+                              <FormItem>
+                                <FormLabel className="text-[9px] font-bold uppercase text-slate-400">Confirmar</FormLabel>
+                                <FormControl><Input {...field} type="password" autoComplete="new-password" placeholder="Repita" className="h-10 bg-slate-900 border-white/5 text-white rounded-lg focus:border-indigo-500/50" /></FormControl>
+                                <FormMessage />
+                              </FormItem>
                             )} />
                           </div>
                         </div>
@@ -608,10 +627,10 @@ export function AcademicSection({
               </div>
 
 
-               <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 space-y-2 mt-4">
-                  <div className="flex items-center gap-2 text-amber-900">
-                    <Lock className="h-4 w-4" />
-                    <span className="text-xs font-black uppercase tracking-widest">Confirmação de Segurança</span>
+               <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 space-y-2 mt-4 animate-pulse">
+                  <div className="flex items-center gap-2 text-amber-400">
+                    <Lock className="h-4 w-4 animate-spin-slow" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Confirmação de Segurança</span>
                   </div>
                   <Input 
                     type="password" 
@@ -621,15 +640,15 @@ export function AcademicSection({
                     required 
                     value={securityPassword} 
                     onChange={(e) => setSecurityPassword(e.target.value)} 
-                    placeholder="Sua senha ou senha Master" 
-                    className="bg-white border-amber-200"
+                    placeholder="Digite sua senha de segurança ou Master" 
+                    className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-amber-500/50 font-bold"
                   />
-                  <p className="text-[9px] text-amber-700 font-medium">Digite sua senha atual ou uma Chave Mestra para autorizar.</p>
+                  <p className="text-[9px] text-amber-500/60 font-medium italic">Esta ação necessita de validação criptográfica (Chave Mestra).</p>
                </div>
 
-               <div className="flex justify-end gap-4 pt-6 border-t mt-6">
-                   <Button type="button" variant="ghost" onClick={closeAllForms} disabled={isSubmitting}>Cancelar</Button>
-                   <Button type="submit" size="lg" disabled={isSubmitting} className="px-8">{isSubmitting ? 'Salvando...' : 'Confirmar e Salvar'}</Button>
+               <div className="flex justify-end gap-4 pt-6 border-t border-white/5 mt-6">
+                   <Button type="button" variant="ghost" onClick={closeAllForms} disabled={isSubmitting} className="text-slate-400 hover:text-white">Cancelar</Button>
+                   <Button type="submit" size="lg" disabled={isSubmitting} className="px-8 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white border border-indigo-400/20 font-black uppercase text-xs tracking-widest rounded-xl shadow-xl transition-all">{isSubmitting ? 'Salvando...' : 'Confirmar e Salvar'}</Button>
                </div>
             </form>
           </Form>
@@ -639,62 +658,62 @@ export function AcademicSection({
   }
 
   return (
-    <div className="space-y-6">
-      <Card className="border-none shadow-xl overflow-hidden bg-white/50 backdrop-blur-sm">
-        <CardHeader className="flex flex-row items-center justify-between pb-6">
+    <div className="space-y-6 animate-in fade-in duration-300">
+      <Card className="border border-white/10 shadow-2xl overflow-hidden bg-slate-900/40 rounded-[2rem] backdrop-blur-xl hover:border-indigo-500/10 transition-all duration-300 text-white">
+        <CardHeader className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-white/5 bg-slate-950/20 px-6 py-5">
           <div className="flex items-center gap-4">
-             <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+             <div className="h-12 w-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-md">
                 <Users className="h-5 w-5" />
              </div>
              <div>
-                <CardTitle className="text-xl font-black uppercase tracking-tighter">Corpo Acadêmico</CardTitle>
-                <CardDescription className="text-[10px] font-bold uppercase tracking-widest">Gestão de alunos, visitantes e equipe administrativa local.</CardDescription>
+                <CardTitle className="text-xl font-black uppercase tracking-tight text-slate-200">Corpo Acadêmico</CardTitle>
+                <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Gestão de alunos, visitantes e equipe administrativa local.</CardDescription>
              </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-lg border border-slate-200">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-2">Inativos</Label>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 bg-slate-950 border border-white/10 p-2 rounded-xl shadow-md">
+              <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-2">Inativos</Label>
               <Switch 
                 checked={showInactive} 
                 onCheckedChange={setShowInactive}
-                className="data-[state=checked]:bg-amber-500"
+                className="data-[state=checked]:bg-indigo-500"
               />
             </div>
-            <Button onClick={() => handleNew('user')} className="bg-primary text-white font-black uppercase text-[10px] tracking-widest gap-2">
+            <Button onClick={() => handleNew('user')} className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white border border-indigo-400/20 font-black uppercase text-[10px] tracking-widest gap-2 h-11 px-6 rounded-xl hover:scale-105 transition-transform shadow-lg shadow-indigo-500/10">
               <UserPlus className="h-4 w-4" /> Novo {userRoleFilter === 'student' ? 'Aluno' : userRoleFilter === 'admin' ? 'Gestor' : userRoleFilter === 'staff' ? 'Funcionário' : 'Visitante'}
             </Button>
           </div>
         </CardHeader>
         
-        <CardContent>
-          <div className="flex flex-col md:flex-row gap-4 mb-6 items-end">
-            <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <CardContent className="p-6 space-y-6">
+          <div className="flex flex-col md:flex-row gap-4 items-end">
+            <div className="relative flex-1 w-full">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input 
                   placeholder="Pesquisar por nome ou RA..." 
-                  className="pl-10 h-12 bg-white"
+                  className="pl-12 h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold"
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
                 />
             </div>
             
             {userRoleFilter !== 'visitor' && (
-              <div className="w-full md:w-64 space-y-1">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+              <div className="w-full md:w-64 space-y-1.5">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
                   {userRoleFilter === 'admin' || userRoleFilter === 'staff' ? 'Filtrar por Setor' : 'Filtrar por Turma'}
                 </Label>
                 <Select value={userTurmaFilter} onValueChange={setUserTurmaFilter}>
-                  <SelectTrigger className="h-12 bg-white">
+                  <SelectTrigger className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold">
                     <SelectValue placeholder={userRoleFilter === 'admin' || userRoleFilter === 'staff' ? "Todos os Setores" : "Todas as Turmas"} />
                   </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-slate-950 border border-white/10 text-white">
                       {userRoleFilter === 'admin' || userRoleFilter === 'staff' ? (
                         sortedSetores.filter(s => s.status === 'active').map((s, idx) => (
-                          <SelectItem key={s.id || `filter-s-${idx}`} value={s.name}>{s.name}</SelectItem>
+                          <SelectItem key={s.id || `filter-s-${idx}`} value={s.name} className="hover:bg-indigo-500/10">{s.name}</SelectItem>
                         ))
                       ) : (
                         sortedTurmas.filter(t => t.status === 'active').map((t, idx) => (
-                          <SelectItem key={t.id || `filter-t-${idx}`} value={t.name}>{t.name}</SelectItem>
+                          <SelectItem key={t.id || `filter-t-${idx}`} value={t.name} className="hover:bg-indigo-500/10">{t.name}</SelectItem>
                         ))
                       )}
                     </SelectContent>
@@ -709,21 +728,21 @@ export function AcademicSection({
               setUserRoleFilter(v as any);
               setUserTurmaFilter(''); // Força a nova seleção ao trocar de papel
             }} 
-            className="w-full"
+            className="w-full space-y-6"
           >
-            <TabsList className="grid w-full grid-cols-5 mb-4 h-12 bg-slate-100 p-1">
-              <TabsTrigger value="student" className="gap-2 uppercase font-black text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary">
+            <TabsList className="grid w-full grid-cols-5 h-14 bg-slate-950/80 p-1 rounded-2xl border border-white/5 shadow-2xl backdrop-blur-xl">
+              <TabsTrigger value="student" className="gap-2 uppercase font-black text-[10px] tracking-widest text-slate-400 hover:text-white rounded-xl data-[state=active]:bg-indigo-500 data-[state=active]:text-slate-950 transition-all duration-300">
                 Alunos ({filteredUsersForAdmin.filter(u => u.role === 'student').length})
               </TabsTrigger>
-              <TabsTrigger value="staff" className="gap-2 uppercase font-black text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary">
+              <TabsTrigger value="staff" className="gap-2 uppercase font-black text-[10px] tracking-widest text-slate-400 hover:text-white rounded-xl data-[state=active]:bg-indigo-500 data-[state=active]:text-slate-950 transition-all duration-300">
                 Funcionários ({filteredUsersForAdmin.filter(u => u.role === 'staff').length})
               </TabsTrigger>
-              <TabsTrigger value="admin" className="gap-2 uppercase font-black text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary">Gestores ({filteredUsersForAdmin.filter(u => u.role === 'admin' || u.role === 'super_admin').length})</TabsTrigger>
-              <TabsTrigger value="visitor" className="gap-2 uppercase font-black text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary">Visitantes ({filteredUsersForAdmin.filter(u => u.role === 'visitor').length})</TabsTrigger>
-              <TabsTrigger value="requests" className="gap-2 uppercase font-black text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary">
+              <TabsTrigger value="admin" className="gap-2 uppercase font-black text-[10px] tracking-widest text-slate-400 hover:text-white rounded-xl data-[state=active]:bg-indigo-500 data-[state=active]:text-slate-950 transition-all duration-300">Gestores ({filteredUsersForAdmin.filter(u => u.role === 'admin' || u.role === 'super_admin').length})</TabsTrigger>
+              <TabsTrigger value="visitor" className="gap-2 uppercase font-black text-[10px] tracking-widest text-slate-400 hover:text-white rounded-xl data-[state=active]:bg-indigo-500 data-[state=active]:text-slate-950 transition-all duration-300">Visitantes ({filteredUsersForAdmin.filter(u => u.role === 'visitor').length})</TabsTrigger>
+              <TabsTrigger value="requests" className="gap-2 uppercase font-black text-[10px] tracking-widest text-slate-400 hover:text-white rounded-xl data-[state=active]:bg-indigo-500 data-[state=active]:text-slate-950 transition-all duration-300">
                 Solicitações 
                 {registrationRequests.length > 0 && (
-                  <Badge variant="destructive" className="h-4 w-4 p-0 flex items-center justify-center text-[8px] animate-pulse">
+                  <Badge className="h-4 w-4 p-0 flex items-center justify-center text-[8px] bg-rose-600 border border-rose-500/20 text-white animate-pulse ml-1 rounded-full">
                     {registrationRequests.length}
                   </Badge>
                 )}
@@ -732,18 +751,18 @@ export function AcademicSection({
             
             <TabsContent value="student">
               {!userTurmaFilter && !userSearch ? (
-                <div className="flex flex-col items-center justify-center py-20 bg-white/50 border border-dashed rounded-2xl border-slate-200 italic">
-                  <div className="h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-300 mb-4">
+                <div className="flex flex-col items-center justify-center py-16 bg-slate-950/20 border border-dashed rounded-3xl border-white/10 text-center italic">
+                  <div className="h-16 w-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4 animate-pulse shadow-lg">
                     <Users className="h-8 w-8" />
                   </div>
-                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Aguardando Seleção</h3>
-                  <p className="text-[10px] text-slate-400 mt-1">Escolha uma turma específica acima para visualizar os alunos.</p>
+                  <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest">Aguardando Seleção</h3>
+                  <p className="text-[10px] text-slate-500 mt-1 uppercase font-black">Escolha uma turma específica acima para visualizar os alunos.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {userTurmaFilter && (
                     <div className="flex items-center gap-2 px-1">
-                      <Badge variant="outline" className="bg-white text-[9px] font-black uppercase tracking-widest text-primary border-primary/20 h-6 px-3">
+                      <Badge className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[9px] font-black uppercase tracking-widest h-6 px-3">
                         {filteredUsers.filter(u => u.role === 'student').length} Alunos na Turma {userTurmaFilter}
                       </Badge>
                     </div>
@@ -755,18 +774,18 @@ export function AcademicSection({
 
             <TabsContent value="staff">
                {!userTurmaFilter && !userSearch ? (
-                <div className="flex flex-col items-center justify-center py-20 bg-white/50 border border-dashed rounded-2xl border-slate-200 italic">
-                  <div className="h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-300 mb-4">
+                <div className="flex flex-col items-center justify-center py-16 bg-slate-950/20 border border-dashed rounded-3xl border-white/10 text-center italic">
+                  <div className="h-16 w-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4 animate-pulse shadow-lg">
                     <Users className="h-8 w-8" />
                   </div>
-                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Aguardando Seleção</h3>
-                  <p className="text-[10px] text-slate-400 mt-1">Escolha um setor específico acima para visualizar os funcionários.</p>
+                  <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest">Aguardando Seleção</h3>
+                  <p className="text-[10px] text-slate-500 mt-1 uppercase font-black">Escolha um setor específico acima para visualizar os funcionários.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {userTurmaFilter && (
                     <div className="flex items-center gap-2 px-1">
-                      <Badge variant="outline" className="bg-white text-[9px] font-black uppercase tracking-widest text-primary border-primary/20 h-6 px-3">
+                      <Badge className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[9px] font-black uppercase tracking-widest h-6 px-3">
                         {filteredUsers.filter(u => u.role === 'staff').length} Funcionários no Setor {userTurmaFilter}
                       </Badge>
                     </div>
@@ -783,7 +802,7 @@ export function AcademicSection({
             <TabsContent value="visitor">
               <div className="space-y-4">
                 <div className="flex items-center gap-2 px-1">
-                  <Badge variant="outline" className="bg-white text-[9px] font-black uppercase tracking-widest text-primary border-primary/20 h-6 px-3">
+                  <Badge className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[9px] font-black uppercase tracking-widest h-6 px-3">
                     {filteredUsers.filter(u => u.role === 'visitor').length} Visitantes Cadastrados
                   </Badge>
                 </div>
@@ -792,47 +811,47 @@ export function AcademicSection({
             </TabsContent>
 
             <TabsContent value="requests">
-              <div className="rounded-xl border border-slate-100 bg-white overflow-hidden shadow-sm">
+              <div className="rounded-2xl border border-white/10 bg-slate-950/50 overflow-hidden shadow-2xl">
                 <Table>
-                  <TableHeader className="bg-slate-50/50">
+                  <TableHeader className="bg-slate-950 border-b border-white/10">
                     <TableRow>
-                      <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400 px-6">Data</TableHead>
-                      <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">Aluno</TableHead>
-                      <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">RA</TableHead>
-                      <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">Escolaridade</TableHead>
-                      <TableHead className="text-right px-6 font-black uppercase text-[10px] tracking-widest text-slate-400">Decisão</TableHead>
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400 px-6 h-12">Data</TableHead>
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400 h-12">Aluno</TableHead>
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400 h-12">RA</TableHead>
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400 h-12">Escolaridade</TableHead>
+                      <TableHead className="text-right px-6 font-black uppercase text-[10px] tracking-widest text-slate-400 h-12">Decisão</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredRequests.length > 0 ? filteredRequests.map((req) => (
-                      <TableRow key={req.id} className="hover:bg-slate-50 transition-colors group">
-                        <TableCell className="px-6 font-medium text-[11px] text-slate-400">
+                      <TableRow key={req.id} className="hover:bg-indigo-500/5 border-b border-white/5 transition-colors group">
+                        <TableCell className="px-6 py-4 font-medium text-[11px] text-slate-400">
                           <div className="flex items-center gap-2">
                             <Clock className="h-3 w-3" />
                             {new Date(req.createdAt).toLocaleDateString('pt-BR')}
                           </div>
                         </TableCell>
-                        <TableCell className="font-bold text-sm text-slate-900">{req.name}</TableCell>
-                        <TableCell className="font-mono text-[11px] font-bold text-primary">{req.ra}</TableCell>
+                        <TableCell className="font-bold text-sm text-slate-200">{req.name}</TableCell>
+                        <TableCell className="font-mono text-[11px] font-bold text-indigo-400">{req.ra}</TableCell>
                         <TableCell>
                           <div className="flex flex-col">
-                            <span className="text-[10px] font-black uppercase text-slate-700">{req.turma}</span>
+                            <span className="text-[10px] font-black uppercase text-slate-200">{req.turma}</span>
                             <span className="text-[9px] font-bold text-slate-400">{req.curso}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-right px-6">
+                        <TableCell className="text-right px-6 py-4">
                           <div className="flex justify-end gap-2">
                             <Button 
-                                size="sm" 
-                                className="bg-green-600 hover:bg-green-700 text-white font-black uppercase text-[10px] tracking-widest gap-2"
-                                onClick={() => approveRegistration(req)}
-                              >
-                                <CheckCircle2 className="h-4 w-4" /> Aprovar
-                              </Button>
+                              size="sm" 
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-[10px] tracking-widest gap-2 h-9 px-4 rounded-xl shadow-lg shadow-emerald-600/10"
+                              onClick={() => approveRegistration(req)}
+                            >
+                              <CheckCircle2 className="h-4 w-4" /> Aprovar
+                            </Button>
                             <Button 
                               size="sm" 
                               variant="outline" 
-                              className="h-8 border-red-100 text-red-500 hover:bg-red-50 hover:text-red-600 gap-1 font-bold text-[10px] uppercase"
+                              className="h-9 rounded-xl bg-slate-950 border border-rose-500/20 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 gap-1 font-bold text-[10px] uppercase px-4"
                               onClick={() => rejectRegistration(req.id)}
                             >
                               <X className="h-3 w-3" /> Recusar
@@ -844,8 +863,8 @@ export function AcademicSection({
                       <TableRow>
                         <TableCell colSpan={5} className="text-center py-16">
                           <div className="flex flex-col items-center gap-2 opacity-30">
-                             <Clock className="h-10 w-10" />
-                             <p className="text-[10px] font-black uppercase tracking-widest italic">Nenhuma solicitação pendente</p>
+                             <Clock className="h-10 w-10 text-slate-400" />
+                             <p className="text-[10px] font-black uppercase tracking-widest italic text-slate-400">Nenhuma solicitação pendente</p>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -867,25 +886,25 @@ export function AcademicSection({
 
               {badgeUser && (
                 <div className="space-y-6 flex flex-col items-center">
-                  <div id="badge-container" className="printable-badge">
+                  <div id="badge-container" className="printable-badge rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl">
                     <PrintableBadge user={badgeUser} />
                   </div>
                   
-                  <div className="bg-white/80 backdrop-blur-md p-6 rounded-3xl shadow-xl border border-white/20 w-full max-w-[320px] mx-auto space-y-4">
+                  <div className="bg-[#0a0f24]/95 backdrop-blur-3xl p-6 rounded-3xl shadow-2xl border border-white/10 w-full max-w-[320px] mx-auto space-y-4">
                     <div className="text-center">
-                      <h3 className="font-black uppercase tracking-tighter text-lg text-slate-800">Visualização de Crachá</h3>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Design Premium Ativo</p>
+                      <h3 className="font-black uppercase tracking-tighter text-lg text-slate-200">Visualização de Crachá</h3>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Design Premium Ativo</p>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-3">
-                      <Button onClick={() => handleDownloadBadgeImage(badgeUser)} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-black uppercase text-[10px] tracking-widest h-12 shadow-lg shadow-emerald-200 transition-all">
+                      <Button onClick={() => handleDownloadBadgeImage(badgeUser)} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-black uppercase text-[10px] tracking-widest h-12 shadow-lg shadow-emerald-600/10 transition-all rounded-xl border border-emerald-400/20">
                         <ImageIcon className="h-4 w-4" /> Salvar Imagem
                       </Button>
-                      <Button onClick={() => handleBadgePrint(badgeUser)} variant="outline" className="gap-2 font-black uppercase text-[10px] tracking-widest h-12 shadow-lg transition-all">
+                      <Button onClick={() => handleBadgePrint(badgeUser)} variant="outline" className="bg-slate-950 border border-white/10 text-slate-300 hover:text-white gap-2 font-black uppercase text-[10px] tracking-widest h-12 shadow-lg transition-all rounded-xl">
                         <Printer className="h-4 w-4" /> Imprimir / PDF
                       </Button>
                     </div>
-                    <p className="text-[9px] text-center text-slate-400 font-medium px-4">
+                    <p className="text-[9px] text-center text-slate-500 font-medium px-4">
                       O crachá será impresso com as dimensões oficiais (85mm x 55mm).
                     </p>
                   </div>
@@ -908,7 +927,7 @@ export function AcademicSection({
                   <img 
                     src={previewAvatar} 
                     alt="Avatar Preview" 
-                    className="max-h-[80vh] max-w-full rounded-3xl border-4 border-white shadow-2xl animate-in zoom-in-95 duration-200"
+                    className="max-h-[80vh] max-w-full rounded-3xl border-4 border-slate-950 shadow-2xl animate-in zoom-in-95 duration-200"
                   />
                   <Button 
                     variant="ghost" 

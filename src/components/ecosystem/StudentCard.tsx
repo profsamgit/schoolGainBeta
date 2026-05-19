@@ -173,18 +173,18 @@ export default function StudentCard() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2 bg-white/50 backdrop-blur-sm border-primary/20 hover:bg-white transition-all shadow-sm">
-          <CreditCard className="h-4 w-4 text-primary" />
+        <Button variant="outline" className="gap-2 bg-slate-900/40 backdrop-blur-md border-white/10 text-white hover:bg-white/10 transition-all shadow-lg">
+          <CreditCard className="h-4 w-4 text-emerald-400" />
           Minha Carteira
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-[#070913] border-white/5 text-white">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <UserIcon className="h-5 w-5 text-primary" />
+          <DialogTitle className="flex items-center gap-2 text-white">
+            <UserIcon className="h-5 w-5 text-emerald-400 animate-pulse" />
             Carteira Digital SchoolGain
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-slate-400">
             Use esta Carteira virtual para identificação e registro de resíduos.
           </DialogDescription>
         </DialogHeader>
@@ -193,24 +193,24 @@ export default function StudentCard() {
             <PrintableBadge user={currentUser} />
         </div>
 
-        <div className="mt-2 text-center text-[10px] text-muted-foreground uppercase font-bold tracking-widest px-4">
+        <div className="mt-2 text-center text-[10px] text-slate-400 uppercase font-bold tracking-widest px-4">
             Aponte o QR Code acima nos terminais Kiosk da escola para login automático.
         </div>
 
         <div className="mt-6 flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-3">
-            <Button className="gap-2 shadow-md bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleDownloadImage}>
+            <Button className="gap-2 shadow-lg bg-emerald-600 hover:bg-emerald-700 text-white border-none" onClick={handleDownloadImage}>
               <ImageIcon className="h-4 w-4" />
               Salvar Imagem
             </Button>
-            <Button className="gap-2 shadow-md" variant="outline" onClick={handlePrint}>
+            <Button className="gap-2 shadow-lg border-white/10 hover:bg-white/5 text-white" variant="outline" onClick={handlePrint}>
               <Download className="h-4 w-4" />
               PDF / Imprimir
             </Button>
           </div>
 
           {typeof navigator !== 'undefined' && !!navigator.share && (
-            <Button className="w-full gap-2 shadow-md bg-blue-600 hover:bg-blue-700 text-white" onClick={handleShare}>
+            <Button className="w-full gap-2 shadow-lg bg-indigo-600 hover:bg-indigo-700 text-white border-none" onClick={handleShare}>
               <Share2 className="h-4 w-4" />
               Compartilhar Carteirinha
             </Button>

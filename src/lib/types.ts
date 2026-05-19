@@ -123,8 +123,8 @@ export type Terminal = {
     preferredCamera?: string;
     scanningCameraDevice?: string;
     loginMethod?: 'manual' | 'qr' | 'rfid' | 'all';
-    loginCameraSource?: 'browser' | 'esp32' | 'url';
-    scanningCameraSource?: 'browser' | 'esp32' | 'url';
+    loginCameraSource?: 'browser' | 'esp32' | 'esp32_https' | 'url';
+    scanningCameraSource?: 'browser' | 'esp32' | 'esp32_https' | 'url';
     cameraUrl?: string;
     loginCameraUrl?: string;
     scanningCameraUrl?: string;
@@ -284,8 +284,8 @@ export interface SecurityState {
 export interface SystemSettings {
   studentLoginMethod: 'manual' | 'qr' | 'rfid' | 'all';
   adminLoginMethod: 'manual' | 'qr' | 'rfid' | 'all';
-  studentCaptureSource?: 'browser' | 'esp32' | 'url';
-  adminCaptureSource?: 'browser' | 'esp32' | 'url';
+  studentCaptureSource?: 'browser' | 'esp32' | 'esp32_https' | 'url';
+  adminCaptureSource?: 'browser' | 'esp32' | 'esp32_https' | 'url';
   studentCaptureDevice?: string;
   adminCaptureDevice?: string;
   studentCaptureUrl?: string;
@@ -323,3 +323,9 @@ export interface EcosystemData {
   resetVersion: string;                    // Versão atual para controle de migração
   securityState?: Record<string, SecurityState>; // Rastreamento de falhas de login
 }
+
+export interface BehaviorTelemetryEntry extends Omit<AuditLogEntry, 'actorId' | 'actorName'> {
+  actorId?: string;
+  actorName?: string;
+}
+

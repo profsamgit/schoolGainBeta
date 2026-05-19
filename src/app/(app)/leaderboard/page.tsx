@@ -45,21 +45,21 @@ import { EcosystemViewer } from '@/components/ecosystem/EcosystemViewer';
 const getLevelBadge = (level: string) => {
   switch (level) {
     case 'Semente':
-      return <Badge className="bg-amber-100 text-amber-700 border-amber-200">Semente</Badge>;
+      return <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.05)]">Semente</Badge>;
     case 'Broto':
-      return <Badge className="bg-lime-100 text-lime-700 border-lime-200">Broto</Badge>;
+      return <Badge className="bg-lime-500/10 text-lime-400 border-lime-500/20 shadow-[0_0_10px_rgba(132,204,22,0.05)]">Broto</Badge>;
     case 'Folha':
-      return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Folha</Badge>;
+      return <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.05)]">Folha</Badge>;
     case 'Árvore':
-      return <Badge className="bg-green-100 text-green-700 border-green-200">Árvore</Badge>;
+      return <Badge className="bg-green-500/10 text-green-400 border-green-500/20 shadow-[0_0_10px_rgba(34,197,94,0.05)]">Árvore</Badge>;
     case 'Floresta':
-      return <Badge className="bg-green-700 text-white border-green-800">Floresta</Badge>;
+      return <Badge className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 shadow-[0_0_10px_rgba(99,102,241,0.05)]">Floresta</Badge>;
     case 'Guardião da Biosfera':
-      return <Badge className="bg-indigo-600 text-white border-indigo-700 animate-pulse">Guardião</Badge>;
+      return <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20 shadow-[0_0_10px_rgba(168,85,247,0.05)] animate-pulse">Guardião</Badge>;
     case 'Guardião da Lenda':
       return <Badge className="bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-600 text-slate-900 border-yellow-300 font-black shadow-[0_0_15px_rgba(250,204,21,0.5)] animate-bounce">LENDA</Badge>;
     default:
-      return <Badge variant="outline">{level}</Badge>;
+      return <Badge variant="outline" className="border-white/10 text-slate-300">{level}</Badge>;
   }
 };
 
@@ -250,7 +250,7 @@ export default function LeaderboardPage() {
   };
 
   if (!users) return null;
-
+  
   return (
     <div className="space-y-16 animate-in fade-in duration-700 pb-20">
       {/* SEÇÃO DO PÓDIO (ESTILO CAMPEONATO) */}
@@ -260,24 +260,24 @@ export default function LeaderboardPage() {
          </div>
          
          <div className="text-center space-y-4 mb-20 relative z-10">
-            <h2 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tighter uppercase flex items-center justify-center gap-6">
-               <Star className="text-emerald-500 animate-pulse h-10 w-10" fill="currentColor" />
+            <h2 className="text-5xl md:text-7xl font-black text-white tracking-tighter uppercase flex items-center justify-center gap-6">
+               <Star className="text-emerald-400 animate-pulse h-10 w-10" fill="currentColor" />
                Pódio da Elite
-               <Star className="text-emerald-500 animate-pulse h-10 w-10" fill="currentColor" />
+               <Star className="text-emerald-400 animate-pulse h-10 w-10" fill="currentColor" />
             </h2>
             <p className="text-slate-400 font-black text-base uppercase tracking-[0.3em]">Os Guardiões da Biosfera em Destaque</p>
          </div>
-
+ 
          <div className="flex flex-wrap justify-center items-end gap-6 md:gap-12 px-6 w-full">
             {topThree[1] && <PodiumCard user={topThree[1]} position={2} delay="0.1s" />}
             {topThree[0] && <PodiumCard user={topThree[0]} position={1} delay="0s" />}
             {topThree[2] && <PodiumCard user={topThree[2]} position={3} delay="0.2s" />}
          </div>
       </div>
-
+ 
       {/* HALL DAS LENDAS DO MÊS */}
       <div className="px-6">
-        <div className="max-w-5xl mx-auto bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-[3rem] p-8 md:p-12 shadow-2xl relative overflow-hidden border border-white/5">
+        <div className="max-w-5xl mx-auto bg-slate-900/40 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative overflow-hidden border border-white/5">
            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 blur-[100px] rounded-full" />
            <div className="absolute bottom-0 left-0 w-64 h-64 bg-yellow-500/10 blur-[100px] rounded-full" />
            
@@ -292,7 +292,7 @@ export default function LeaderboardPage() {
                     Apenas 3 agentes por mês conseguem domar a Nessie. Estes são os pioneiros deste ciclo.
                  </p>
               </div>
-
+ 
               <div className="flex gap-4 md:gap-8 flex-wrap justify-center">
                  {[0, 1, 2].map((i) => {
                     const legend = monthlyLegends[i];
@@ -301,7 +301,7 @@ export default function LeaderboardPage() {
                          <div className={cn(
                             "w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center border-2 transition-all duration-500 overflow-hidden",
                             legend ? "bg-emerald-500/20 border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.3)] animate-pulse" : "bg-white/5 border-dashed border-white/10"
-                         )}>
+                          )}>
                             {legend ? (
                                legend.avatar ? (
                                   <img src={legend.avatar} alt={legend.name} className="w-full h-full object-cover" />
@@ -328,48 +328,48 @@ export default function LeaderboardPage() {
            </div>
         </div>
       </div>
-
+ 
       {/* TABELA DO RESTANTE DO RANKING */}
-      <Card className="border border-slate-200/60 dark:border-slate-800 shadow-[0_30px_100px_rgba(0,0,0,0.08)] bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 rounded-[3rem] overflow-hidden">
-        <CardHeader className="border-b border-slate-100 p-10 md:p-12">
+      <Card className="border border-white/5 shadow-2xl bg-slate-900/40 rounded-[2rem] overflow-hidden text-white backdrop-blur-xl">
+        <CardHeader className="border-b border-white/5 p-6 md:p-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-2">
-              <CardTitle className="flex items-center gap-4 text-3xl font-black uppercase tracking-tighter text-slate-800 dark:text-slate-100">
-                <Flame className="h-9 w-9 text-orange-500 animate-pulse" />
+            <div className="space-y-1">
+              <CardTitle className="flex items-center gap-2 text-2xl font-black uppercase tracking-tight text-white">
+                <Flame className="h-6 w-6 text-orange-400 animate-pulse" />
                 Corrida Sustentável
               </CardTitle>
-              <CardDescription className="font-black text-slate-400 uppercase tracking-[0.25em] text-[11px]">
+              <CardDescription className="font-black text-slate-400 uppercase tracking-widest text-[9px]">
                  Monitoramento global de agentes
               </CardDescription>
             </div>
             
             <Tabs value={rankingRole} onValueChange={(val: any) => setRankingRole(val)} className="w-full md:w-auto">
-              <TabsList className="bg-slate-100 p-1 h-12 rounded-full border border-slate-200">
-                <TabsTrigger value="student" className="rounded-full px-8 font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-md transition-all duration-300">
+              <TabsList className="bg-slate-950/60 p-1 h-12 rounded-full border border-white/5">
+                <TabsTrigger value="student" className="rounded-full px-8 font-black uppercase text-[9px] tracking-widest text-slate-400 data-[state=active]:bg-emerald-500 data-[state=active]:text-white transition-all duration-300">
                    Alunos
                 </TabsTrigger>
-                <TabsTrigger value="staff" className="rounded-full px-8 font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-md transition-all duration-300">
+                <TabsTrigger value="staff" className="rounded-full px-8 font-black uppercase text-[9px] tracking-widest text-slate-400 data-[state=active]:bg-emerald-500 data-[state=active]:text-white transition-all duration-300">
                    Equipe
                 </TabsTrigger>
               </TabsList>
             </Tabs>
-
-            <div className="flex items-center gap-3 bg-slate-100 rounded-full px-5 py-2">
-                <Trophy className="h-4 w-4 text-emerald-600" />
-                <span className="text-xs font-black text-slate-600 uppercase tabular-nums">Total: {dynamicLeaderboard.length} Agentes</span>
+ 
+            <div className="flex items-center gap-2 bg-slate-950/40 border border-white/5 rounded-full px-4 py-2 text-slate-300">
+                <Trophy className="h-4 w-4 text-emerald-400" />
+                <span className="text-[10px] font-black uppercase tracking-wider tabular-nums">Total: {dynamicLeaderboard.length} Agentes</span>
             </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
-            <TableHeader className="bg-slate-50/50">
-              <TableRow className="border-b-slate-100">
-                <TableHead className="w-24 text-center h-16 font-black uppercase text-xs tracking-widest text-slate-400">Pos</TableHead>
-                <TableHead className="h-16 font-black uppercase text-xs tracking-widest text-slate-400">Agente</TableHead>
-                <TableHead className="hidden md:table-cell h-16 font-black uppercase text-xs tracking-widest text-slate-400">Nível</TableHead>
-                <TableHead className="text-center h-16 font-black uppercase text-xs tracking-widest text-slate-400">Vitalidade</TableHead>
-                <TableHead className="text-right h-16 font-black uppercase text-xs tracking-widest text-slate-400">Score Global</TableHead>
-                <TableHead className="w-24 text-center h-16 font-black uppercase text-xs tracking-widest text-slate-400">Visita</TableHead>
+            <TableHeader className="bg-slate-950/40">
+              <TableRow className="border-b border-white/5">
+                <TableHead className="w-24 text-center h-14 font-black uppercase text-[9px] tracking-widest text-slate-400">Pos</TableHead>
+                <TableHead className="h-14 font-black uppercase text-[9px] tracking-widest text-slate-400">Agente</TableHead>
+                <TableHead className="hidden md:table-cell h-14 font-black uppercase text-[9px] tracking-widest text-slate-400">Nível</TableHead>
+                <TableHead className="text-center h-14 font-black uppercase text-[9px] tracking-widest text-slate-400">Vitalidade</TableHead>
+                <TableHead className="text-right h-14 font-black uppercase text-[9px] tracking-widest text-slate-400">Score Global</TableHead>
+                <TableHead className="w-24 text-center h-14 font-black uppercase text-[9px] tracking-widest text-slate-400">Visita</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -377,18 +377,17 @@ export default function LeaderboardPage() {
                 <TableRow
                   key={user.id}
                   className={cn(
-                    "group transition-all duration-300 border-b-slate-50 hover:bg-emerald-50/30",
-                    user.ra === currentUser?.ra && "bg-emerald-50/50 border-l-[6px] border-l-emerald-500",
-                    user.level === 'Guardião da Lenda' && "bg-yellow-50/30 border-l-[6px] border-l-yellow-400 shadow-[inset_0_0_20px_rgba(250,204,21,0.1)]"
-
+                    "group transition-all duration-300 border-b border-white/5 hover:bg-white/5",
+                    user.ra === currentUser?.ra && "bg-emerald-500/10 hover:bg-emerald-500/15 border-l-[6px] border-l-emerald-500 text-white",
+                    user.level === 'Guardião da Lenda' && "bg-amber-500/10 hover:bg-amber-500/15 border-l-[6px] border-l-amber-500 shadow-[inset_0_0_20px_rgba(245,158,11,0.05)] text-white"
                   )}
                 >
-                  <TableCell className="font-black text-center text-slate-300 text-2xl py-10 tabular-nums group-hover:text-emerald-500 transition-colors">
+                  <TableCell className="font-black text-center text-slate-450 text-xl py-6 tabular-nums group-hover:text-emerald-400 transition-colors border-b border-white/5">
                     {index + 4}º
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="border-b border-white/5">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center font-black text-slate-500 shadow-sm border border-slate-200 group-hover:border-emerald-200 transition-colors overflow-hidden">
+                        <div className="w-11 h-11 rounded-[1rem] bg-slate-950 flex items-center justify-center font-black text-slate-400 shadow-sm border border-white/5 group-hover:border-emerald-500/30 transition-colors overflow-hidden">
                             {user.avatar ? (
                                 <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                             ) : (
@@ -397,60 +396,60 @@ export default function LeaderboardPage() {
                         </div>
                         <div>
                             <span className={cn(
-                                "block text-lg uppercase tracking-tight",
-                                user.ra === currentUser?.ra ? "font-black text-emerald-700" : "font-bold text-slate-700"
+                                "block text-sm uppercase tracking-tight",
+                                user.ra === currentUser?.ra ? "font-black text-emerald-400" : "font-bold text-slate-200"
                             )}>
                                 {formatDisplayName(user.name)}
-                                {user.ra === currentUser?.ra && <span className="ml-2 text-[10px] bg-emerald-500 text-white px-2 py-0.5 rounded-full font-black uppercase tracking-widest">Você</span>}
+                                {user.ra === currentUser?.ra && <span className="ml-2 text-[8px] bg-emerald-500 text-white px-2 py-0.5 rounded-full font-black uppercase tracking-widest">Você</span>}
 
                                 {index + 4 === 1 && <Leaf className="ml-2 h-4 w-4 text-yellow-400 inline" fill="currentColor" />}
                             </span>
-                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest md:hidden">{user.level}</span>
+                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest md:hidden">{user.level}</span>
                         </div>
                     </div>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell className="hidden md:table-cell border-b border-white/5">
                     {getLevelBadge(user.level)}
                   </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col items-center gap-2">
+                  <TableCell className="border-b border-white/5">
+                    <div className="flex flex-col items-center gap-1.5">
                       <div className="flex items-center gap-2">
                           <span className={cn(
-                            "font-black text-sm tabular-nums",
-                            user.displayVitality >= 70 ? 'text-emerald-600' : 'text-orange-600'
+                            "font-black text-xs tabular-nums",
+                            user.displayVitality >= 70 ? 'text-emerald-400' : 'text-amber-400'
                           )}>
                             {user.displayVitality}%
                           </span>
                       </div>
-                      <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                      <div className="w-24 h-1.5 bg-slate-950 rounded-full overflow-hidden border border-white/5">
                         <div
                           className={cn(
                             "h-full transition-all duration-1000",
-                            user.displayVitality >= 70 ? 'bg-emerald-500' : 'bg-orange-500'
+                            user.displayVitality >= 70 ? 'bg-gradient-to-r from-emerald-500 to-teal-400' : 'bg-gradient-to-r from-amber-500 to-orange-400'
                           )}
                           style={{ width: `${user.displayVitality}%` }}
                         />
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex flex-col items-end gap-1">
-                        <span className="font-black text-3xl text-slate-800 dark:text-white tabular-nums tracking-tighter">
+                  <TableCell className="text-right border-b border-white/5">
+                    <div className="flex flex-col items-end gap-0.5">
+                        <span className="font-black text-2xl text-white tabular-nums tracking-tighter">
                             {user.totalScore.toLocaleString()}
                         </span>
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Pontos XP</span>
+                        <span className="text-[7px] font-black text-slate-450 uppercase tracking-widest">Pontos XP</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="text-center border-b border-white/5">
                     <Dialog>
                         <DialogTrigger asChild>
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="w-12 h-12 rounded-2xl hover:text-emerald-600 hover:bg-emerald-100 transition-all duration-300"
+                            className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 hover:text-emerald-400 border border-white/5 transition-all duration-300"
                             onClick={() => setSelectedUser(user)}
                           >
-                            <Eye size={22} />
+                            <Eye size={18} />
                           </Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-[90vw] h-[85vh] p-0 overflow-hidden border-none bg-slate-900 shadow-2xl">

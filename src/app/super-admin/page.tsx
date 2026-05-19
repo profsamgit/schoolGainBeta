@@ -465,66 +465,132 @@ export default function SuperAdminPage() {
 
   if (!currentUser || currentUser.role !== 'super_admin') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 text-center p-6 space-y-6">
-        <div className="h-24 w-24 rounded-full bg-red-100 flex items-center justify-center text-red-600 animate-pulse"><ShieldAlert className="h-12 w-12" /></div>
-        <div className="space-y-2"><h2 className="text-3xl font-bold">Acesso Restrito</h2><p className="text-muted-foreground">Área exclusiva para administração central.</p></div>
-        <Button asChild className="bg-slate-900"><Link href="/">Voltar</Link></Button>
+      <div className="relative flex min-h-screen flex-col bg-[#070913] items-center justify-center p-4 text-slate-100 overflow-hidden font-sans">
+        <style>{`
+          .cyber-grid {
+            background-size: 30px 30px;
+            background-image: 
+              linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+          }
+        `}</style>
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+          <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-rose-500/5 blur-[120px] animate-pulse" />
+          <div className="absolute inset-0 cyber-grid [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_80%,transparent_100%)]" />
+        </div>
+        <div className="relative z-10 w-full max-w-md backdrop-blur-3xl bg-slate-950/40 border border-white/10 rounded-[2.5rem] shadow-[0_25px_60px_rgba(0,0,0,0.8)] ring-1 ring-white/5 overflow-hidden p-8 sm:p-10 text-center space-y-6">
+          <div className="mx-auto w-20 h-20 rounded-full flex items-center justify-center bg-rose-500/10 border border-rose-500/20 text-rose-400 shadow-[0_0_20px_rgba(239,68,68,0.15)] animate-pulse">
+            <ShieldAlert className="h-9 w-9" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-black uppercase tracking-wider text-white">Acesso Restrito</h2>
+            <p className="text-slate-400 text-xs font-semibold">Esta área é restrita para a administração central global.</p>
+          </div>
+          <Button asChild className="w-full h-14 text-sm font-bold uppercase tracking-wider bg-slate-900 border border-white/5 rounded-2xl text-slate-300 hover:text-white hover:bg-slate-800 transition-all">
+            <Link href="/">Voltar para o Início</Link>
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="p-6 space-y-8 max-w-7xl mx-auto">
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-black uppercase tracking-tighter text-slate-900 flex items-center gap-3">
-              <Globe className="h-8 w-8 text-primary animate-spin-slow" /> Central de Rede Global
-            </h1>
-            <p className="text-slate-500 font-medium">Gestão de Impacto e Expansão • {currentUser?.name}</p>
+    <div className="relative min-h-screen bg-[#070913] text-slate-100 overflow-hidden font-sans">
+      <style>{`
+        .cyber-grid {
+          background-size: 30px 30px;
+          background-image: 
+            linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+        }
+      `}</style>
+      
+      {/* Glow Blobs */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-10%] left-[-15%] w-[600px] h-[600px] rounded-full bg-indigo-600/10 blur-[130px] animate-pulse" style={{ animationDuration: '10s' }} />
+        <div className="absolute bottom-[-10%] right-[-15%] w-[600px] h-[600px] rounded-full bg-emerald-500/10 blur-[130px] animate-pulse" style={{ animationDuration: '14s' }} />
+        <div className="absolute inset-0 cyber-grid [mask-image:radial-gradient(ellipse_80%_60%_at_50%_50%,#000_80%,transparent_100%)]" />
+      </div>
+
+      <div className="relative z-10 p-6 space-y-8 max-w-7xl mx-auto">
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-white/5 pb-6">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-indigo-500/10 rounded-xl border border-indigo-500/20 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.15)]">
+                <Globe className="h-7 w-7 animate-spin [animation-duration:18s]" />
+              </div>
+              <h1 className="text-3xl font-black uppercase tracking-tight text-white bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+                Central de Rede Global
+              </h1>
+            </div>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-wider pl-12">
+              Gestão de Impacto e Expansão • <span className="text-indigo-400">{currentUser?.name}</span>
+            </p>
           </div>
+          
           <div className="flex gap-3">
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="gap-2 bg-primary font-black uppercase text-[10px] tracking-widest h-10 px-6">
+                <Button className="gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-black uppercase text-[10px] tracking-widest h-11 px-6 rounded-xl border border-indigo-400/20 shadow-[0_0_15px_rgba(99,102,241,0.2)] hover:scale-[1.01] active:scale-95 transition-all">
                   <Plus className="h-4 w-4" /> Cadastrar Escola
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-md">
+              <DialogContent className="max-w-md bg-[#0a0f24]/90 backdrop-blur-3xl border border-white/10 text-white shadow-2xl rounded-3xl p-6">
                 <DialogHeader>
-                  <DialogTitle className="text-xl font-black uppercase tracking-tighter">Nova Unidade de Rede</DialogTitle>
-                  <DialogDescription>Preencha os dados para ativar uma nova escola.</DialogDescription>
+                  <DialogTitle className="text-xl font-black uppercase tracking-tight text-white">Nova Unidade de Rede</DialogTitle>
+                  <DialogDescription className="text-slate-400 text-xs">Preencha os dados para ativar uma nova escola.</DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleManualRegister} className="space-y-4 pt-4">
                   <div className="grid gap-4">
-                    <div className="space-y-1"><Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Instituição</Label><Input required value={newSchool.name} onChange={e => setNewSchool({ ...newSchool, name: e.target.value })} /></div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1"><Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Cidade</Label><Input required value={newSchool.city} onChange={e => setNewSchool({ ...newSchool, city: e.target.value })} /></div>
-                      <div className="space-y-1"><Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Estado</Label><Input required maxLength={2} value={newSchool.state} onChange={e => setNewSchool({ ...newSchool, state: e.target.value.toUpperCase() })} /></div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block ml-1">Instituição</Label>
+                      <Input required value={newSchool.name} onChange={e => setNewSchool({ ...newSchool, name: e.target.value })} className="bg-slate-950 border-white/10 rounded-xl focus:border-indigo-500/50 text-white" />
                     </div>
-                    <div className="space-y-1"><Label className="text-[10px] font-black uppercase tracking-widest opacity-70">E-mail Gestor</Label><Input type="email" required value={newSchool.managerEmail} onChange={e => setNewSchool({ ...newSchool, managerEmail: e.target.value, contactEmail: e.target.value })} /></div>
-                    <div className="space-y-1"><Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Senha Inicial</Label><Input type="password" required value={newSchool.initialManagerPassword} onChange={e => setNewSchool({ ...newSchool, initialManagerPassword: e.target.value })} /></div>
-                    <div className="space-y-1 p-3 bg-slate-50 rounded-lg border">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Sua Senha Master</Label>
-                      <Input type="password" required value={adminPasswordForAction} onChange={e => setAdminPasswordForAction(e.target.value)} />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block ml-1">Cidade</Label>
+                        <Input required value={newSchool.city} onChange={e => setNewSchool({ ...newSchool, city: e.target.value })} className="bg-slate-950 border-white/10 rounded-xl focus:border-indigo-500/50 text-white" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block ml-1">Estado</Label>
+                        <Input required maxLength={2} value={newSchool.state} onChange={e => setNewSchool({ ...newSchool, state: e.target.value.toUpperCase() })} className="bg-slate-950 border-white/10 rounded-xl focus:border-indigo-500/50 text-white" />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block ml-1">E-mail Gestor</Label>
+                      <Input type="email" required value={newSchool.managerEmail} onChange={e => setNewSchool({ ...newSchool, managerEmail: e.target.value, contactEmail: e.target.value })} className="bg-slate-950 border-white/10 rounded-xl focus:border-indigo-500/50 text-white" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block ml-1">Senha Inicial</Label>
+                      <Input type="password" required value={newSchool.initialManagerPassword} onChange={e => setNewSchool({ ...newSchool, initialManagerPassword: e.target.value })} className="bg-slate-950 border-white/10 rounded-xl focus:border-indigo-500/50 text-white" />
+                    </div>
+                    <div className="space-y-2 p-4 bg-slate-950/60 rounded-2xl border border-indigo-500/20">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-indigo-400 block ml-1">Sua Senha Master</Label>
+                      <Input type="password" required value={adminPasswordForAction} onChange={e => setAdminPasswordForAction(e.target.value)} className="bg-slate-950 border-white/10 rounded-xl focus:border-indigo-500/50 text-white" />
                     </div>
                   </div>
-                  <DialogFooter><Button type="submit" disabled={isSubmitting} className="w-full h-12 font-black uppercase text-xs">Ativar Unidade</Button></DialogFooter>
+                  <DialogFooter className="pt-2">
+                    <Button type="submit" disabled={isSubmitting} className="w-full h-12 font-black uppercase text-xs rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white border border-indigo-400/20 shadow-md">
+                      {isSubmitting ? 'Ativando...' : 'Ativar Unidade'}
+                    </Button>
+                  </DialogFooter>
                 </form>
               </DialogContent>
             </Dialog>
-            <Button asChild variant="outline" className="h-10"><Link href="/"><ArrowLeft className="h-4 w-4" /> Sair</Link></Button>
+            <Button asChild variant="outline" className="h-11 border-white/10 hover:bg-white/5 text-slate-300 hover:text-white rounded-xl uppercase font-bold tracking-wider text-[10px]">
+              <Link href="/"><ArrowLeft className="h-4 w-4 mr-2" /> Sair</Link>
+            </Button>
           </div>
         </header>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 w-full">
-          <TabsList className="!flex !w-full h-16 bg-slate-200/40 p-1.5 rounded-2xl border border-white/50 shadow-sm backdrop-blur-sm">
-            <TabsTrigger value="overview" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300">Visão Geral</TabsTrigger>
-            <TabsTrigger value="schools" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300">Rede de Escolas</TabsTrigger>
-            <TabsTrigger value="history" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300">Gestão de Ciclo</TabsTrigger>
-            <TabsTrigger value="telemetry" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300">Telemetria</TabsTrigger>
-            <TabsTrigger value="developers" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300">Equipe</TabsTrigger>
-            <TabsTrigger value="account" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300">Segurança</TabsTrigger>
+          <TabsList className="!flex !w-full h-16 bg-slate-950/80 p-1.5 rounded-2xl border border-white/5 shadow-2xl backdrop-blur-xl overflow-x-auto">
+            <TabsTrigger value="overview" className="flex-1 !inline-flex rounded-xl text-slate-400 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500/20 data-[state=active]:to-purple-500/20 data-[state=active]:text-indigo-300 data-[state=active]:border data-[state=active]:border-indigo-500/30 data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300">Visão Geral</TabsTrigger>
+            <TabsTrigger value="schools" className="flex-1 !inline-flex rounded-xl text-slate-400 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500/20 data-[state=active]:to-purple-500/20 data-[state=active]:text-indigo-300 data-[state=active]:border data-[state=active]:border-indigo-500/30 data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300">Rede de Escolas</TabsTrigger>
+            <TabsTrigger value="history" className="flex-1 !inline-flex rounded-xl text-slate-400 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500/20 data-[state=active]:to-purple-500/20 data-[state=active]:text-indigo-300 data-[state=active]:border data-[state=active]:border-indigo-500/30 data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300">Gestão de Ciclo</TabsTrigger>
+            <TabsTrigger value="telemetry" className="flex-1 !inline-flex rounded-xl text-slate-400 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500/20 data-[state=active]:to-purple-500/20 data-[state=active]:text-indigo-300 data-[state=active]:border data-[state=active]:border-indigo-500/30 data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300">Telemetria</TabsTrigger>
+            <TabsTrigger value="developers" className="flex-1 !inline-flex rounded-xl text-slate-400 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500/20 data-[state=active]:to-purple-500/20 data-[state=active]:text-indigo-300 data-[state=active]:border data-[state=active]:border-indigo-500/30 data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300">Equipe</TabsTrigger>
+            <TabsTrigger value="account" className="flex-1 !inline-flex rounded-xl text-slate-400 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500/20 data-[state=active]:to-purple-500/20 data-[state=active]:text-indigo-300 data-[state=active]:border data-[state=active]:border-indigo-500/30 data-[state=active]:shadow-lg font-black uppercase text-[10px] tracking-widest transition-all duration-300">Segurança</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
@@ -645,7 +711,7 @@ export default function SuperAdminPage() {
           </TabsContent>
         </Tabs>
 
-        <footer className="pt-12 text-center text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] pb-12">
+        <footer className="pt-12 text-center text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] pb-12 border-t border-white/5 mt-12">
           Plataforma SchoolGain v2.0 • Sistema Global de Auditoria e Gestão • TDS 2B 2026
         </footer>
       </div>

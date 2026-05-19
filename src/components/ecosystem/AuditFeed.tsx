@@ -44,55 +44,55 @@ export function AuditFeed() {
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'AUTH': return 'bg-emerald-100 text-emerald-700';
-      case 'DATA': return 'bg-blue-100 text-blue-700';
-      case 'ECOSYSTEM': return 'bg-purple-100 text-purple-700';
-      case 'SYSTEM': return 'bg-slate-100 text-slate-700';
-      default: return 'bg-slate-100 text-slate-700';
+      case 'AUTH': return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.05)]';
+      case 'DATA': return 'bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.05)]';
+      case 'ECOSYSTEM': return 'bg-purple-500/10 text-purple-400 border border-purple-500/20 shadow-[0_0_10px_rgba(168,85,247,0.05)]';
+      case 'SYSTEM': return 'bg-slate-500/10 text-slate-400 border border-white/5';
+      default: return 'bg-slate-500/10 text-slate-400 border border-white/5';
     }
   };
 
   return (
-    <Card className="border-none shadow-xl bg-white/50 backdrop-blur-md h-full flex flex-col overflow-hidden">
+    <Card className="border border-white/10 shadow-2xl bg-slate-900/40 backdrop-blur-xl h-full flex flex-col overflow-hidden text-white rounded-[2rem]">
       <CardHeader className="flex-none">
-        <CardTitle className="text-xl font-bold flex items-center gap-2">
-          <History className="h-5 w-5 text-primary" />
+        <CardTitle className="text-xl font-black uppercase tracking-wider flex items-center gap-2 text-slate-100">
+          <History className="h-5 w-5 text-indigo-400" />
           Atividade do Sistema
         </CardTitle>
-        <CardDescription>Registro recente de ações e auditoria técnica.</CardDescription>
+        <CardDescription className="text-slate-400">Registro recente de ações e auditoria técnica.</CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 overflow-hidden p-0">
-        <div className="h-[750px] overflow-y-auto custom-scrollbar px-6 pb-6">
+      <CardContent className="flex-1 overflow-hidden p-0 flex flex-col">
+        <div className="flex-1 overflow-y-auto custom-scrollbar pl-6 pr-8 pb-6">
           <div className="space-y-6 pt-2">
             {filteredLogs.length > 0 ? (
               filteredLogs.map((log) => (
                 <div key={log.id} className="relative pl-12 pb-6 last:pb-0">
                   {/* Timeline Line */}
-                  <div className="absolute left-4 top-2 bottom-0 w-[2px] bg-slate-100 last:hidden" />
+                  <div className="absolute left-4 top-2 bottom-0 w-[2px] bg-white/5 last:hidden" />
                   
                   {/* Icon Dot */}
-                  <div className="absolute left-0 top-1 h-8 w-8 rounded-full bg-white border border-slate-100 flex items-center justify-center shadow-sm z-10 transition-transform hover:scale-110">
+                  <div className="absolute left-0 top-1 h-8 w-8 rounded-full bg-slate-950 border border-white/5 flex items-center justify-center shadow-md z-10 transition-transform hover:scale-110">
                     {getIcon(log.action)}
                   </div>
-
+ 
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
                     <span className={cn(
-                      "text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider",
+                      "text-[9px] px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider border",
                       getCategoryColor(log.category)
                     )}>
                       {log.category}
                     </span>
-                    <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                    <span className="text-[10px] text-slate-400 flex items-center gap-1 font-medium">
                       <Clock className="h-3 w-3" />
                       {formatDistanceToNow(new Date(log.timestamp), { addSuffix: true, locale: ptBR })}
                     </span>
                   </div>
                   
-                  <p className="text-sm font-semibold text-slate-800">
+                  <p className="text-sm font-bold text-slate-200">
                     {log.actorName}
                   </p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
+                  <p className="text-xs text-slate-400 leading-relaxed">
                     {log.details}
                   </p>
                 </div>
@@ -100,8 +100,8 @@ export function AuditFeed() {
             ))
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-center space-y-3 opacity-40">
-              <History className="h-12 w-12" />
-              <p className="text-sm font-medium">Nenhum registro de atividade encontrado.</p>
+              <History className="h-12 w-12 text-slate-400" />
+              <p className="text-sm font-medium text-slate-400">Nenhum registro de atividade encontrado.</p>
             </div>
           )}
           </div>

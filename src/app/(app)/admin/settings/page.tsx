@@ -162,14 +162,19 @@ export default function AdminSettingsPage() {
                   </SelectItem>
                   <SelectItem value="esp32">
                     <div className="flex items-center gap-2">
-                      <Cpu className="h-4 w-4" /> ESP32-CAM (Externo)
+                      <Cpu className="h-4 w-4" /> ESP32-CAM HTTP (IP Local)
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="esp32_https">
+                    <div className="flex items-center gap-2">
+                      <Cpu className="h-4 w-4" /> ESP32-CAM HTTPS Proxy
                     </div>
                   </SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {settings.cameraSource === 'esp32' && (
+            {(settings.cameraSource === 'esp32' || settings.cameraSource === 'esp32_https') && (
               <div className="p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-lg">
                 <p className="text-sm text-amber-800 dark:text-amber-400">
                   <strong>Nota:</strong> Para usar o ESP32-CAM, certifique-se de que ele está enviando o texto do RA para a rota <code>/api/hardware/input</code> com o Terminal ID correto.

@@ -51,49 +51,7 @@ const pathToTitle: { [key: string]: string } = {
   'meu-ecossistema': 'Meu Ecossistema',
 };
 
-function BreadcrumbNav() {
-  const pathname = usePathname();
-  const segments = pathname.split('/').filter(Boolean);
-  const { currentUser } = useEcosystem();
-  const isAdminView = pathname.startsWith('/admin');
-  const homeHref = currentUser?.role === 'super_admin' ? '/super-admin' : currentUser?.role === 'admin' ? '/admin' : '/dashboard';
 
-  return (
-    <Breadcrumb className="hidden md:flex">
-      <BreadcrumbList>
-        <BreadcrumbItem>
-          <BreadcrumbLink asChild>
-            <Link href={homeHref}>
-              <Home className="h-4 w-4" />
-            </Link>
-          </BreadcrumbLink>
-        </BreadcrumbItem>
-        {segments.map((segment, index) => {
-          const href = '/' + segments.slice(0, index + 1).join('/');
-          const isLast = index === segments.length - 1;
-          const title = pathToTitle[segment] || segment;
-
-          return (
-            <React.Fragment key={href}>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                {isLast ? (
-                  <BreadcrumbPage className="font-semibold text-foreground">
-                    {title}
-                  </BreadcrumbPage>
-                ) : (
-                  <BreadcrumbLink asChild>
-                    <Link href={href}>{title}</Link>
-                  </BreadcrumbLink>
-                )}
-              </BreadcrumbItem>
-            </React.Fragment>
-          );
-        })}
-      </BreadcrumbList>
-    </Breadcrumb>
-  );
-}
 
 export function Header() {
   const { toggleSidebar, isMobile } = useSidebar();
@@ -161,10 +119,48 @@ export function Header() {
     return '#92400e'; // Marrom (amber-900)
   };
 
+  const menuItems = useMemo(() => {
+    if (pathname.startsWith('/super-admin')) {
+      return superAdminMenuItems;
+    }
+    if (isAdminView) {
+      return adminMenuItems;
+    }
+    return studentMenuItems;
+  }, [pathname, isAdminView]);
+
   return (
-    <header className="relative z-40 flex h-14 items-center gap-4 border-b bg-background px-4 sm:h-14 sm:bg-background sm:px-6">
-      <BreadcrumbNav />
-      <h1 className="text-lg font-semibold md:hidden">{title}</h1>
+    <header className="relative z-40 flex h-14 items-center gap-3 px-4 sm:h-14 sm:px-6 transition-all border-b bg-[#070913]/90 border-white/5 text-white backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.3)]">
+      {/* Horizontal Navigation Links */}
+      <nav className="hidden md:flex items-center gap-1 mx-2">
+        {menuItems.map((item) => {
+          const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
+          return (
+            <Link key={item.href} href={getLink(item.href)}>
+              <span className={cn(
+                "px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all duration-300 flex items-center gap-1.5 cursor-pointer border",
+                isActive
+                  ? isAdminView
+                    ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.15)]"
+                    : "bg-primary/10 border-primary/20 text-primary"
+                  : isAdminView
+                    ? "bg-transparent border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5"
+                    : "bg-transparent border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-white/5"
+              )}>
+                <item.icon className={cn("h-3.5 w-3.5", isActive ? "animate-pulse" : "opacity-80")} />
+                {item.label}
+              </span>
+            </Link>
+          );
+        })}
+      </nav>
+      
+      <h1 className={cn(
+        "text-sm font-black uppercase tracking-widest md:hidden",
+        isAdminView ? "text-indigo-400" : "text-slate-800 dark:text-slate-200"
+      )}>
+        {title}
+      </h1>
 
       <div className="ml-auto flex items-center gap-4">
         {hasMounted && !isAdminView && (
@@ -196,7 +192,6 @@ export function Header() {
           </div>
         )}
 
-
         {hasMounted ? (
           <div className="flex items-center gap-2">
             <DropdownMenu>
@@ -204,7 +199,12 @@ export function Header() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="overflow-hidden rounded-full hover:ring-2 hover:ring-primary/20 transition-all"
+                  className={cn(
+                    "overflow-hidden rounded-full transition-all h-8 w-8",
+                    isAdminView 
+                      ? "border-white/10 hover:ring-2 hover:ring-indigo-500/35 bg-slate-950" 
+                      : "border-slate-200 dark:border-white/10 hover:ring-2 hover:ring-primary/20"
+                  )}
                 >
                   <Avatar className="h-8 w-8">
                     <AvatarImage
@@ -215,20 +215,30 @@ export function Header() {
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>
-                  <p className="font-semibold">{displayUser.name}</p>
-                  <p className="text-xs text-muted-foreground font-normal">
+              <DropdownMenuContent align="end" className={cn(
+                "w-56 rounded-2xl shadow-2xl p-2",
+                isAdminView 
+                  ? "bg-slate-950/95 border-white/10 text-white backdrop-blur-xl" 
+                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-white/5 text-slate-800 dark:text-slate-200"
+              )}>
+                <DropdownMenuLabel className="px-3 py-2">
+                  <p className="font-black text-xs uppercase tracking-wider text-slate-200">{displayUser.name}</p>
+                  <p className="text-[10px] text-slate-400 font-bold tracking-tight mt-0.5">
                     {displayUser.email || (displayUser.ra ? `RA: ${displayUser.ra}` : '')}
                   </p>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator className={cn(isAdminView ? "bg-white/5" : "bg-slate-100 dark:bg-white/5")} />
                 
                 {isAdminView ? (
                   adminMenuItems.map((item) => (
                     <Link key={item.href} href={getLink(item.href)}>
-                      <DropdownMenuItem>
-                        <item.icon className="mr-2 h-4 w-4" />
+                      <DropdownMenuItem className={cn(
+                        "rounded-xl px-3 py-2 text-xs font-black uppercase tracking-wider mb-1 cursor-pointer transition-colors",
+                        isAdminView 
+                          ? "hover:bg-white/5 text-slate-300 hover:text-white" 
+                          : "hover:bg-slate-100 dark:hover:bg-white/5"
+                      )}>
+                        <item.icon className="mr-2 h-4 w-4 text-indigo-400" />
                         <span>{item.label}</span>
                       </DropdownMenuItem>
                     </Link>
@@ -236,13 +246,16 @@ export function Header() {
                 ) : (
                   studentMenuItems.map((item) => (
                     <Link key={item.href} href={getLink(item.href)}>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem className={cn(
+                        "rounded-xl px-3 py-2 text-xs font-black uppercase tracking-wider mb-1 cursor-pointer transition-colors",
+                        item.label === 'Meu Ecossistema' && isLeader ? "text-yellow-500 hover:bg-yellow-500/10" : "hover:bg-slate-100 dark:hover:bg-white/5"
+                      )}>
                         <item.icon className={cn(
                           "mr-2 h-4 w-4 transition-all",
-                          item.label === 'Meu Ecossistema' && isLeader && "text-yellow-500"
+                          item.label === 'Meu Ecossistema' && isLeader ? "text-yellow-500" : "text-indigo-400"
                         )} />
                         <span className={cn(
-                          item.label === 'Meu Ecossistema' && isLeader && "text-yellow-600 font-bold"
+                          item.label === 'Meu Ecossistema' && isLeader && "text-yellow-400 font-black"
                         )}>{item.label}</span>
                       </DropdownMenuItem>
                     </Link>
@@ -251,17 +264,17 @@ export function Header() {
 
                 {currentUser?.role === 'super_admin' && superAdminMenuItems.map((item) => (
                   <Link key={item.href} href={getLink(item.href)}>
-                    <DropdownMenuItem className="text-red-600 font-bold">
-                      <item.icon className="mr-2 h-4 w-4" />
+                    <DropdownMenuItem className="rounded-xl px-3 py-2 text-xs font-black uppercase tracking-wider text-rose-400 hover:bg-rose-500/10 cursor-pointer">
+                      <item.icon className="mr-2 h-4 w-4 text-rose-500" />
                       <span>{item.label}</span>
                     </DropdownMenuItem>
                   </Link>
                 ))}
 
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator className={cn(isAdminView ? "bg-white/5" : "bg-slate-100 dark:bg-white/5")} />
                 <Link href="/" onClick={() => logout()}>
-                  <DropdownMenuItem className="text-muted-foreground hover:text-red-600">
-                    <LogOut className="mr-2 h-4 w-4" />
+                  <DropdownMenuItem className="rounded-xl px-3 py-2 text-xs font-black uppercase tracking-wider text-slate-400 hover:bg-rose-500/15 hover:text-rose-400 cursor-pointer transition-colors">
+                    <LogOut className="mr-2 h-4 w-4 text-rose-500" />
                     <span>Sair</span>
                   </DropdownMenuItem>
                 </Link>
@@ -273,7 +286,7 @@ export function Header() {
           <Button
             variant="outline"
             size="icon"
-            className="overflow-hidden rounded-full"
+            className="overflow-hidden rounded-full h-8 w-8"
             disabled
           >
             <Avatar className="h-8 w-8">

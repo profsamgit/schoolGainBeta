@@ -123,6 +123,22 @@ export default function KioskPage() {
       }
       return base;
     }
+    if (source === 'esp32_https') {
+      let cleanUrl = url.split('?')[0].replace(/\/stream\/?$/i, '').replace(/^https?:\/\//i, '').trim();
+      let base = `http://localhost:9005/stream?target=${cleanUrl}`;
+      if (purpose === 'scan') {
+        const flashEnabled = currentTerminal?.settings?.scanningCameraFlash !== false;
+        if (flashEnabled) {
+          base = `${base}&flash=on`;
+        }
+      } else if (purpose === 'login') {
+        const flashEnabled = currentTerminal?.settings?.loginCameraFlash === true;
+        if (flashEnabled) {
+          base = `${base}&flash=on`;
+        }
+      }
+      return base;
+    }
     return url;
   };
 
@@ -156,10 +172,16 @@ export default function KioskPage() {
     setIsHardwareReady(false);
 
     const coordinateHardware = async () => {
+      const getTargetOrUrl = (urlStr: string) => {
+        if (urlStr.includes('target=')) {
+          return urlStr.split('target=')[1].split('&')[0];
+        }
+        return urlStr.split('?')[0].replace(/\/stream\/?$/i, '');
+      };
       // Se for a mesma ESP32-CAM física compartilhada para ambas as funções,
       // estendemos o cooldown para 800ms para dar tempo do chip reciclar o socket único de stream.
       const isSameCamera = activeLoginUrl && activeScanningUrl && 
-        activeLoginUrl.split('?')[0].replace(/\/stream\/?$/i, '') === activeScanningUrl.split('?')[0].replace(/\/stream\/?$/i, '');
+        getTargetOrUrl(activeLoginUrl) === getTargetOrUrl(activeScanningUrl);
       const cooldownMs = isSameCamera ? 800 : 350;
 
       await new Promise((resolve) => setTimeout(resolve, cooldownMs));
@@ -167,26 +189,34 @@ export default function KioskPage() {
 
       try {
         if (step === 'scanning') {
-          if (activeScanningUrl && activeScanningCameraSource === 'esp32') {
+          if (activeScanningUrl && (activeScanningCameraSource === 'esp32' || activeScanningCameraSource === 'esp32_https')) {
             const scannerFramerate = currentTerminal?.settings?.scannerFramerate || 'fluid';
             let targetResolution = 'vga';
             if (scannerFramerate === 'balanced') targetResolution = 'svga';
             else if (scannerFramerate === 'high_res') targetResolution = 'hd';
 
+            const espIp = activeScanningUrl.includes('target=') 
+              ? activeScanningUrl.split('target=')[1].split('&')[0] 
+              : activeScanningUrl;
+
             // Log removido para ambiente de produção
             // Aguarda a resolução ser fisicamente atualizada na placa antes de iniciar a nova transmissão
-            await fetch(`/api/hardware/camera?ip=${encodeURIComponent(activeScanningUrl)}&resolution=${targetResolution}`).catch(() => {});
+            await fetch(`/api/hardware/camera?ip=${encodeURIComponent(espIp)}&resolution=${targetResolution}`).catch(() => {});
           }
         } else if (step === 'identification') {
-          if (activeLoginUrl && activeLoginCameraSource === 'esp32') {
+          if (activeLoginUrl && (activeLoginCameraSource === 'esp32' || activeLoginCameraSource === 'esp32_https')) {
             const loginFramerate = currentTerminal?.settings?.loginCameraFramerate || 'fluid';
             let targetResolution = 'cif';
             if (loginFramerate === 'balanced') targetResolution = 'vga';
             else if (loginFramerate === 'high_res') targetResolution = 'svga';
 
+            const espIp = activeLoginUrl.includes('target=') 
+              ? activeLoginUrl.split('target=')[1].split('&')[0] 
+              : activeLoginUrl;
+
             // Log removido para ambiente de produção
             // Aguarda a resolução ser fisicamente atualizada na placa antes de iniciar a nova transmissão
-            await fetch(`/api/hardware/camera?ip=${encodeURIComponent(activeLoginUrl)}&resolution=${targetResolution}`).catch(() => {});
+            await fetch(`/api/hardware/camera?ip=${encodeURIComponent(espIp)}&resolution=${targetResolution}`).catch(() => {});
           }
         }
       } catch (err) {
@@ -355,7 +385,7 @@ export default function KioskPage() {
 
     const canvas = canvasRef.current;
     let sourceElement: HTMLVideoElement | HTMLImageElement | null = null;
-    const isEsp32 = activeScanningCameraSource === 'esp32' || activeScanningCameraSource === 'url';
+    const isEsp32 = activeScanningCameraSource === 'esp32' || activeScanningCameraSource === 'esp32_https' || activeScanningCameraSource === 'url';
     // Calcula o IP base da ESP32 de forma robusta e resiliente
     let esp32BaseUrl = '';
     if (activeScanningUrl) {
@@ -501,15 +531,36 @@ export default function KioskPage() {
 
   if (isMobileDevice) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <Card className="w-full max-w-lg border-red-500/20 shadow-xl overflow-hidden">
-          <div className="h-2 bg-red-500"></div>
-          <CardHeader className="text-center">
-             <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-red-100 text-red-600"><MonitorOff className="h-8 w-8" /></div>
-             <CardTitle className="text-2xl font-black uppercase text-red-600">Dispositivo Incompatível</CardTitle>
-             <CardDescription>O Kiosk é exclusivo para totens fixos.</CardDescription>
+      <div className="relative flex min-h-screen flex-col bg-[#070913] items-center justify-center p-4 text-slate-100 overflow-hidden font-sans">
+        <style>{`
+          .cyber-grid {
+            background-size: 30px 30px;
+            background-image: 
+              linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+          }
+        `}</style>
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+          <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-rose-500/5 blur-[120px] animate-pulse" />
+          <div className="absolute inset-0 cyber-grid [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_80%,transparent_100%)]" />
+        </div>
+        <Card className="relative z-10 w-full max-w-lg backdrop-blur-3xl bg-slate-950/40 border border-white/10 rounded-[2.5rem] shadow-[0_25px_60px_rgba(0,0,0,0.8)] ring-1 ring-white/5 overflow-hidden animate-in zoom-in duration-500">
+          <div className="h-2 bg-gradient-to-r from-rose-600 to-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]"></div>
+          <CardHeader className="text-center pt-8">
+             <div className="mx-auto w-20 h-20 rounded-full flex items-center justify-center mb-5 bg-rose-500/10 border border-rose-500/20 text-rose-400 shadow-[0_0_20px_rgba(239,68,68,0.15)] animate-pulse">
+                <MonitorOff className="h-9 w-9" />
+             </div>
+             <CardTitle className="text-2xl font-black uppercase tracking-wider text-white">Dispositivo Incompatível</CardTitle>
+             <CardDescription className="text-slate-400 text-xs mt-2 font-semibold">O modo Kiosk é exclusivo para totens fixos e não deve ser operado em dispositivos móveis.</CardDescription>
           </CardHeader>
-          <CardFooter><Button variant="outline" className="w-full h-12" asChild><Link href="/"><ArrowLeft className="mr-2 h-4 w-4" /> Voltar</Link></Button></CardFooter>
+          <CardFooter className="pb-8 pt-4 px-8">
+            <Button variant="outline" className="w-full h-14 text-sm font-bold uppercase tracking-wider bg-slate-900 border border-white/5 rounded-2xl text-slate-300 hover:text-white hover:bg-slate-800 transition-all" asChild>
+              <Link href="/">
+                <ArrowLeft className="mr-2 h-4 w-4" /> 
+                Voltar ao Painel Principal
+              </Link>
+            </Button>
+          </CardFooter>
         </Card>
       </div>
     );

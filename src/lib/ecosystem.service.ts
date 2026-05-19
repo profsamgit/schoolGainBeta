@@ -1,77 +1,73 @@
 import { BehaviorSubject } from 'rxjs';
-import { POINTS_MAPPING } from './constants';
-import { REWARDS_MOCK, ARTICLES_MOCK, QUIZ_TOPICS_MOCK, ADMIN_MOCK, SCHOOLS_MOCK, PARTICIPANTS_MOCK, TURMAS_MOCK, CURSOS_MOCK, CARGOS_MOCK, SETORES_MOCK, TERMINALS_MOCK } from './data';
-import {
-  User,
-  Reward,
-  EducationArticle,
-  Participant,
-  AuditLogEntry,
-  AuditActionType,
-  SCHOOL_SECTORS,
-  SchoolSector,
-  Terminal,
-  TerminalStatus,
-  School,
-  WasteEntry,
-  WasteType,
-  CycleSnapshot,
-  Turma,
-  Curso,
-  Cargo,
-  SetorEscolar,
-  EcosystemItem,
-  EcosystemUserState,
-  SecurityState,
-  SystemSettings,
-  EcosystemData,
-  QuizTopic,
-  UserLevel,
-  USER_LEVELS,
-  RegistrationRequest,
+import { db, auth } from './firebase';
+import { 
+  collection, 
+  doc, 
+  setDoc, 
+  deleteDoc, 
+  getDoc, 
+  onSnapshot, 
+  query, 
+  where, 
+  orderBy, 
+  limit 
+} from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+
+// Modelos de Dados e Estruturas de Mock
+import { ADMIN_MOCK } from './data';
+import type { 
+  User, 
+  Reward, 
+  EducationArticle, 
+  Participant, 
+  School, 
+  Turma, 
+  Curso, 
+  Cargo, 
+  SetorEscolar, 
+  Terminal, 
+  QuizTopic, 
+  EcosystemData, 
+  EcosystemUserState, 
+  BehaviorTelemetryEntry, 
+  SystemSettings, 
+  RegistrationRequest, 
+  CycleSnapshot, 
   EcosystemLegend,
-  PointTransaction
+  EcosystemItem,
+  UserLevel,
+  WasteType,
+  TerminalStatus,
+  AuditLogEntry,
+  WasteEntry
 } from './types';
 
+// Importações dos Sub-Serviços Modulares (Facade Pattern)
+import { AuthService } from './services/auth.service';
+import { UserService } from './services/user.service';
+import { SchoolService } from './services/school.service';
+import { TerminalService } from './services/terminal.service';
+import { PointsService } from './services/points.service';
+import { WasteService } from './services/waste.service';
+import { PedagogicalService } from './services/pedagogical.service';
+import { RegistrationService } from './services/registration.service';
 
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, auth, storage } from './firebase';
-import {
-  collection,
-  onSnapshot,
-  doc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
-  getDoc,
-  getDocs,
-  limit
-} from 'firebase/firestore';
-import {
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged
-} from 'firebase/auth';
-
-const STORAGE_BASE = 'schoolgain_v22';
+const STORAGE_BASE = 'schoolgain_eco';
 const STORAGE_KEY = 'schoolgain_ecosystem_data';
 const AUDIT_LOGS_KEY = `${STORAGE_BASE}_audit_logs`;
 
-/**
- * ============================================================================
- * ECOSYSTEM SERVICE: O CÉREBRO DO SCHOOLGAIN
- * ============================================================================
- * Este arquivo atua como o Gerente Central da infraestrutura digital.
- * Todas as operações do sistema (crédito de pontuação, resgate de benefícios 
- * e autenticação em terminais) são processadas através desta classe.
- * 
- * Ele utiliza o padrão "Service" com RxJS para garantir que a interface reflita
- * as mudanças de dados instantaneamente (como se fossem os reflexos do corpo).
- */
 export class EcosystemService {
+
+  // Instâncias dos Sub-Serviços Modulares
+  private authService = new AuthService(this);
+  private userService = new UserService(this);
+  private schoolService = new SchoolService(this);
+  private terminalService = new TerminalService(this);
+  private pointsService = new PointsService(this);
+  private wasteService = new WasteService(this);
+  private pedagogicalService = new PedagogicalService(this);
+  private registrationService = new RegistrationService(this);
 
   /**
    * Converte uma string de texto puro em um hash SHA-256 para armazenamento seguro.
@@ -93,22 +89,18 @@ export class EcosystemService {
 
     // 2. Verifica se é a senha de QUALQUER Super Admin (Chave Mestra)
     const masterPassMatches = allUsers.some(u => u.role === 'super_admin' && u.password === providedHash);
-
     return masterPassMatches;
   }
 
   /**
    * Verifica se o usuário atual tem permissões de administrador.
-   * Nota: Em um sistema real, esta verificação deve ocorrer no Backend.
    */
-  private checkAdminAuth(): boolean {
-    if (!this.currentUserRa) return false;
-    const user = this.data.users.find(u => u.ra?.toUpperCase() === this.currentUserRa?.toUpperCase());
-    return !!(user && (user.role === 'admin' || user.role === 'super_admin'));
+  public checkAdminAuth(): boolean {
+    return this.authService.checkAdminAuth();
   }
 
   // Dados iniciais e estrutura de armazenamento
-  private data: EcosystemData = {
+  public data: EcosystemData = {
     users: [ADMIN_MOCK],
     students: [],
     admins: [],
@@ -148,102 +140,39 @@ export class EcosystemService {
 
   private _hardwareId: string | null = null;
 
-  /**
-   * BehaviorSubjects (RxJS):
-   * São como "canais" de informação que sempre guardam o valor mais recente.
-   * Os componentes do React se "inscrevem" nesses canais para receber atualizações.
-   */
-  private balanceSubject = new BehaviorSubject<number>(0);
-  private pointsSubject = new BehaviorSubject<number>(0);
-  private vitalitySubject = new BehaviorSubject<number>(100);
-  private vitalityActivatedSubject = new BehaviorSubject<boolean>(false);
-  private currentUserRaSubject = new BehaviorSubject<string | null>(null);
-  private currentUserIdSubject = new BehaviorSubject<string | null>(null);
+  // BehaviorSubjects (RxJS) para Reatividade no Frontend
+  public balanceSubject = new BehaviorSubject<number>(0);
+  public pointsSubject = new BehaviorSubject<number>(0);
+  public vitalitySubject = new BehaviorSubject<number>(100);
+  public vitalityActivatedSubject = new BehaviorSubject<boolean>(false);
+  public currentUserRaSubject = new BehaviorSubject<string | null>(null);
+  public currentUserIdSubject = new BehaviorSubject<string | null>(null);
   private activeSyncIds = new Set<string>();
 
-  /**
-   * Inicializa ouvintes específicos para um usuário (ex: Vitalidade e Saldo em tempo real).
-   */
-  public initUserSpecificSync(userId: string) {
-    if (this.activeSyncIds.has(userId)) return;
-    this.activeSyncIds.add(userId);
+  public usersSubject = new BehaviorSubject<User[]>([ADMIN_MOCK]);
+  public studentsSubject = new BehaviorSubject<User[]>([]);
+  public adminsSubject = new BehaviorSubject<User[]>([]);
+  public staffSubject = new BehaviorSubject<User[]>([]);
+  public superAdminsSubject = new BehaviorSubject<User[]>([]);
+  public visitorsSubject = new BehaviorSubject<User[]>([]);
+  public rewardsSubject = new BehaviorSubject<Reward[]>([]);
+  public articlesSubject = new BehaviorSubject<EducationArticle[]>([]);
+  public quizTopicsSubject = new BehaviorSubject<QuizTopic[]>([]);
+  public participantsSubject = new BehaviorSubject<Participant[]>([]);
+  public purchasedItemsSubject = new BehaviorSubject<EcosystemItem[]>([]);
+  public terminalsSubject = new BehaviorSubject<Terminal[]>([]);
+  public schoolsSubject = new BehaviorSubject<School[]>([]);
+  public lastMissionDateSubject = new BehaviorSubject<string | null>(null);
+  public turmasSubject = new BehaviorSubject<Turma[]>([]);
+  public cursosSubject = new BehaviorSubject<Curso[]>([]);
+  public cargosSubject = new BehaviorSubject<Cargo[]>([]);
+  public setoresSubject = new BehaviorSubject<SetorEscolar[]>([]);
+  public auditLogsSubject = new BehaviorSubject<AuditLogEntry[]>([]);
+  public levelSubject = new BehaviorSubject<UserLevel>('Semente');
+  public registrationRequestsSubject = new BehaviorSubject<RegistrationRequest[]>([]);
+  public userStatesSubject = new BehaviorSubject<Record<string, EcosystemUserState>>({}); // Estado de cada aluno indexado pelo ID
 
-    onSnapshot(doc(db, "userStates", userId), (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data() as EcosystemUserState;
-        // Normalização: Se o documento for antigo (usando RA como ID), resolvemos para o ID de sistema
-        const docId = docSnap.id;
-        const student = this.data.users.find(u => u.id === docId || u.ra === docId);
-        
-        const finalId = student?.id || docId;
-        const normalizedState = {
-          ...data,
-          id: finalId
-        };
-
-        this.data.userStates[finalId] = normalizedState;
-        this.userStatesSubject.next({ ...this.data.userStates });
-        this.syncStateWithUser(finalId);
-      }
-    });
-  }
-
-  /**
-   * Sincronização em Massa (Gestores): Ouve todos os estados de alunos da mesma unidade.
-   * Garante que o ranking e as listas administrativas reflitam os pontos do userStates em tempo real.
-   */
-  public initAdminSync(schoolId: string) {
-    if (!schoolId || this.activeSyncIds.has(`admin-${schoolId}`)) return;
-    this.activeSyncIds.add(`admin-${schoolId}`);
-
-
-    onSnapshot(query(collection(db, "userStates"), where("schoolId", "==", schoolId)), (snapshot) => {
-      const currentStates = { ...this.data.userStates };
-      let hasChanges = false;
-
-      snapshot.docChanges().forEach((change) => {
-        const data = change.doc.data() as EcosystemUserState;
-        const docId = change.doc.id;
-        
-        // Evita sobrepor o estado do próprio admin se ele for um estudante também
-        if (docId === this.data.currentUserId) return;
-
-        currentStates[docId] = { ...data, id: docId };
-        hasChanges = true;
-      });
-
-      if (hasChanges) {
-        this.data.userStates = currentStates;
-        this.userStatesSubject.next({ ...currentStates });
-      }
-    });
-  }
-
-  private usersSubject = new BehaviorSubject<User[]>([ADMIN_MOCK]);
-  private studentsSubject = new BehaviorSubject<User[]>([]);
-  private adminsSubject = new BehaviorSubject<User[]>([]);
-  private staffSubject = new BehaviorSubject<User[]>([]);
-  private superAdminsSubject = new BehaviorSubject<User[]>([]);
-  private visitorsSubject = new BehaviorSubject<User[]>([]);
-  private rewardsSubject = new BehaviorSubject<Reward[]>([]);
-  private articlesSubject = new BehaviorSubject<EducationArticle[]>([]);
-  private quizTopicsSubject = new BehaviorSubject<QuizTopic[]>([]);
-  private participantsSubject = new BehaviorSubject<Participant[]>([]);
-  private purchasedItemsSubject = new BehaviorSubject<EcosystemItem[]>([]);
-  private terminalsSubject = new BehaviorSubject<Terminal[]>([]);
-  private schoolsSubject = new BehaviorSubject<School[]>([]);
-  private lastMissionDateSubject = new BehaviorSubject<string | null>(null);
-  private turmasSubject = new BehaviorSubject<Turma[]>([]);
-  private cursosSubject = new BehaviorSubject<Curso[]>([]);
-  private cargosSubject = new BehaviorSubject<Cargo[]>([]);
-  private setoresSubject = new BehaviorSubject<SetorEscolar[]>([]);
-  private auditLogsSubject = new BehaviorSubject<AuditLogEntry[]>([]);
-  private levelSubject = new BehaviorSubject<UserLevel>('Semente');
-  private registrationRequestsSubject = new BehaviorSubject<RegistrationRequest[]>([]);
-  private userStatesSubject = new BehaviorSubject<Record<string, EcosystemUserState>>({}); // Estado de cada aluno indexado pelo ID (Firestore)
-
-  // Novos canais para hardware e gestão
-  private systemSettingsSubject = new BehaviorSubject<SystemSettings>({
+  public systemSettingsSubject = new BehaviorSubject<SystemSettings>({
     studentLoginMethod: 'all',
     adminLoginMethod: 'all',
     studentCaptureSource: 'browser',
@@ -253,14 +182,23 @@ export class EcosystemService {
     studentCaptureUrl: '',
     adminCaptureUrl: ''
   });
-  private pendingLoginSubject = new BehaviorSubject<{ ra: string, terminalId: string } | null>(null);
-  private wasteEntriesSubject = new BehaviorSubject<WasteEntry[]>([]);
-  private resetHistorySubject = new BehaviorSubject<CycleSnapshot[]>([]);
-  private kioskUserRaSubject = new BehaviorSubject<string | null>(null);
-  private legendsSubject = new BehaviorSubject<EcosystemLegend[]>([]);
+  public pendingLoginSubject = new BehaviorSubject<{ ra: string, terminalId: string } | null>(null);
+  public wasteEntriesSubject = new BehaviorSubject<WasteEntry[]>([]);
+  public resetHistorySubject = new BehaviorSubject<CycleSnapshot[]>([]);
+  public kioskUserRaSubject = new BehaviorSubject<string | null>(null);
+  public legendsSubject = new BehaviorSubject<EcosystemLegend[]>([]);
+
+  private usersByRole: Record<string, User[]> = {
+    students: [],
+    admins: [],
+    super_admins: [],
+    visitors: []
+  };
+  private syncedCollections = new Set<string>();
+  private hasRunFirestoreSanitize = false;
 
   constructor() {
-    // Inicializa os canais com os dados iniciais (mockados)
+    // Inicializa os canais com os dados iniciais
     this.usersSubject.next(this.data.users);
     this.rewardsSubject.next(this.data.rewards);
     this.articlesSubject.next(this.data.articles);
@@ -281,46 +219,13 @@ export class EcosystemService {
       adminCaptureUrl: ''
     });
     this.terminalsSubject.next(this.data.terminals || []);
-    this.systemSettingsSubject.next(this.data.systemSettings);
     this.wasteEntriesSubject.next(this.data.wasteEntries || []);
     this.registrationRequestsSubject.next(this.data.registrationRequests || []);
     this.resetHistorySubject.next(this.data.resetHistory || []);
-  }
 
-  private usersByRole: Record<string, User[]> = {
-    students: [],
-    admins: [],
-    super_admins: [],
-    visitors: []
-  };
-  private syncedCollections = new Set<string>();
-
-  /**
-   * Mapeia o papel do usuário para sua respectiva coleção no Firestore.
-   */
-  private getUserCollection(role: string): string {
-    switch (role) {
-      case 'student': return 'students';
-      case 'admin': return 'admins';
-      case 'staff': return 'staff';
-      case 'super_admin': return 'super_admins';
-      case 'visitor': return 'visitors';
-      default: return 'students'; // Fallback para alunos
-    }
-  }
-
-  /**
-   * Remove campos de gamificação do objeto usuário antes de salvar no Firestore.
-   * Isso mantém o documento do usuário "limpo" apenas com dados de identidade.
-   */
-  private sanitizeUserForFirestore(user: User): any {
-    const cleanUser = { ...user } as any;
-    delete cleanUser.points;
-    delete cleanUser.level;
-    delete cleanUser.vitality;
-    delete cleanUser.itemsCount;
-    delete cleanUser.balance;
-    return cleanUser;
+    this.loadFromStorage();
+    this.initFirebaseSync();
+    this.initFirebaseAuthListener();
   }
 
   /**
@@ -353,7 +258,7 @@ export class EcosystemService {
       });
     });
 
-    // 2. MIGRADOR DE LEGADO: Move usuários da coleção 'users' para suas novas casas
+    // 2. MIGRADOR DE LEGADO: Move usuários da coleção 'users' para suas novas coleções
     onSnapshot(collection(db, "users"), (snapshot) => {
       if (snapshot.empty) return;
       
@@ -361,7 +266,6 @@ export class EcosystemService {
         const u = docSnap.data() as User;
         const userId = docSnap.id;
         const targetCollection = this.getUserCollection(u.role || 'student');
-        
         
         try {
           await setDoc(doc(db, targetCollection, userId), { ...u, id: userId });
@@ -372,7 +276,7 @@ export class EcosystemService {
       });
     });
 
-    // 2. Sincronização de Recompensas (Com limpeza de campo RA legado)
+    // 3. Sincronização de Recompensas
     onSnapshot(collection(db, "rewards"), (snapshot) => {
       const rewards: Reward[] = [];
       snapshot.forEach(doc => {
@@ -385,7 +289,7 @@ export class EcosystemService {
       }
     });
 
-    // 3. Sincronização de Artigos
+    // 4. Sincronização de Artigos
     onSnapshot(collection(db, "articles"), (snapshot) => {
       const articles: EducationArticle[] = [];
       snapshot.forEach(doc => articles.push(doc.data() as EducationArticle));
@@ -395,7 +299,7 @@ export class EcosystemService {
       }
     });
 
-    // 4. Sincronização de Participantes (Créditos)
+    // 5. Sincronização de Participantes
     onSnapshot(collection(db, "participants"), (snapshot) => {
       const participants: Participant[] = [];
       snapshot.forEach(doc => participants.push(doc.data() as Participant));
@@ -405,8 +309,7 @@ export class EcosystemService {
       }
     });
 
-    // 5. Configurações por Unidade (SystemSettings)
-    // Cada escola tem seu próprio documento de configuração baseado no schoolId
+    // 6. Configurações por Unidade
     const currentRa = this.currentUserRaSubject.value;
     const currentUser = this.data.users.find(u => u.ra === currentRa);
     const settingsId = currentUser?.schoolId;
@@ -418,16 +321,14 @@ export class EcosystemService {
           this.data.systemSettings = settings;
           this.systemSettingsSubject.next(settings);
         } else {
-          // Se não houver config específica, cria uma cópia inicial baseada no padrão
           setDoc(doc(db, "settings", settingsId), this.data.systemSettings);
         }
       });
     } else {
-      // Para Super Admins ou deslogados, usa o padrão do sistema sem criar lixo no Firestore
       this.systemSettingsSubject.next(this.data.systemSettings);
     }
 
-    // Sincronização de Tópicos de Quiz
+    // 7. Sincronização de Tópicos de Quiz
     onSnapshot(collection(db, "quizTopics"), (snapshot) => {
       const topics: QuizTopic[] = [];
       snapshot.forEach(doc => topics.push(doc.data() as QuizTopic));
@@ -437,7 +338,7 @@ export class EcosystemService {
       }
     });
 
-    // 6. Sincronização de Escolas
+    // 8. Sincronização de Escolas
     onSnapshot(collection(db, "schools"), (snapshot) => {
       const schools: School[] = [];
       snapshot.forEach(doc => schools.push(doc.data() as School));
@@ -445,7 +346,7 @@ export class EcosystemService {
       this.schoolsSubject.next(schools);
     });
 
-    // 7. Sincronização de Terminais
+    // 9. Sincronização de Terminais
     onSnapshot(collection(db, "terminals"), (snapshot) => {
       const terminals: Terminal[] = [];
       snapshot.forEach(doc => terminals.push(doc.data() as Terminal));
@@ -453,7 +354,7 @@ export class EcosystemService {
       this.terminalsSubject.next(terminals);
     });
 
-    // 8. Sincronização de Dados Pedagógicos
+    // 10. Sincronização de Dados Pedagógicos
     onSnapshot(collection(db, "turmas"), (snapshot) => {
       const turmas: Turma[] = [];
       snapshot.forEach(doc => turmas.push(doc.data() as Turma));
@@ -479,7 +380,7 @@ export class EcosystemService {
       this.setoresSubject.next(setores);
     });
 
-    // 9. Sincronização de Métricas e Histórico (Limitada para performance e economia de quota)
+    // 11. Sincronização de Métricas
     onSnapshot(query(collection(db, "wasteEntries"), orderBy("date", "desc"), limit(200)), (snapshot) => {
       const entries: WasteEntry[] = [];
       snapshot.forEach(doc => entries.push(doc.data() as WasteEntry));
@@ -499,22 +400,15 @@ export class EcosystemService {
       this.resetHistorySubject.next(history);
     });
 
-    // 10. Sincronização de Estados de Usuários
     if (this.data.currentUserId) {
       this.initUserSpecificSync(this.data.currentUserId);
-      
-      // Se for gestor, iniciamos a sincronização em massa da unidade
       const user = this.data.users.find(u => u.id === this.data.currentUserId);
       if (user && (user.role === 'admin' || user.role === 'super_admin') && user.schoolId) {
          this.initAdminSync(user.schoolId);
       }
     }
 
-    // Backup: Se for gestor, pode precisar ouvir mudanças em outros estados, mas limitamos
-    // Para simplificar e economizar, não ouvimos o 'userStates' global em tempo real.
-    // O ranking usa os dados da coleção 'users' que já são síncronos.
-
-    // 11. Sincronização de Solicitações de Cadastro (Limitada)
+    // 12. Sincronização de Solicitações de Cadastro
     onSnapshot(query(collection(db, "registrationRequests"), orderBy("createdAt", "desc"), limit(100)), (snapshot) => {
       const requests: RegistrationRequest[] = [];
       snapshot.forEach(doc => requests.push(doc.data() as RegistrationRequest));
@@ -522,204 +416,124 @@ export class EcosystemService {
       this.registrationRequestsSubject.next(requests);
     });
 
-    // 12. Sincronização de Lendas (Ecosystem Legends) - Persistência dedicada solicitada pelo USER
+    // 13. Sincronização de Lendas
     onSnapshot(collection(db, "ecosystemLegends"), (snapshot) => {
       const legends: EcosystemLegend[] = [];
       snapshot.forEach(doc => legends.push(doc.data() as EcosystemLegend));
       this.legendsSubject.next(legends);
-      // Após atualizar a lista de lendas, re-sincroniza o estado para atualizar o Escudo
       if (this.data.currentUserId) {
         this.syncStateWithUser(this.data.currentUserId);
       }
     });
   }
 
-  private syncCombinedUsers(fromCache: boolean) {
-    const students = this.usersByRole['students'] || [];
-    const admins = this.usersByRole['admins'] || [];
-    const staff = this.usersByRole['staff'] || [];
-    const superAdmins = this.usersByRole['super_admins'] || [];
-    const visitors = this.usersByRole['visitors'] || [];
+  public initUserSpecificSync(userId: string) {
+    if (this.activeSyncIds.has(userId)) return;
+    this.activeSyncIds.add(userId);
 
-    const allUsers = [...students, ...admins, ...staff, ...superAdmins, ...visitors].map(u => {
-      const state = this.data.userStates[u.id] || this.getDefaultState(u);
-      return {
-        ...u,
-        points: state.points,
-        level: state.level,
-        vitality: state.vitality,
-        itemsCount: state.itemsCount
-      } as User;
-    });
-    
-    this.data.users = allUsers;
-    this.data.students = students;
-    this.data.admins = admins;
-    this.data.staff = staff;
-    this.data.superAdmins = superAdmins;
-    this.data.visitors = visitors;
+    onSnapshot(doc(db, "userStates", userId), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data() as EcosystemUserState;
+        const docId = docSnap.id;
+        const student = this.data.users.find(u => u.id === docId || u.ra === docId);
+        
+        const finalId = student?.id || docId;
+        const normalizedState = {
+          ...data,
+          id: finalId
+        };
 
-    this.usersSubject.next(allUsers);
-    this.studentsSubject.next(students);
-    this.adminsSubject.next(admins);
-    this.staffSubject.next(staff);
-    this.superAdminsSubject.next(superAdmins);
-    this.visitorsSubject.next(visitors);
-
-    // Só prosseguimos com a verificação de sessão se todas as coleções iniciais já reportaram
-    // ou se já temos o usuário em alguma delas.
-    const currentInDb = allUsers.find(u => u.id === this.data.currentUserId);
-    if (this.syncedCollections.size < 5 && !currentInDb) return;
-
-    // Lógica de Manutenção de Sessão (Herdada do sync original)
-    if (this.data.currentUserId) {
-      if (!currentInDb && !fromCache) {
-        // Se o usuário não existe em NENHUMA das novas coleções, desloga.
-        // Log removido para produção
-        this.logout();
-        return;
+        this.data.userStates[finalId] = normalizedState;
+        this.userStatesSubject.next({ ...this.data.userStates });
+        this.syncStateWithUser(finalId);
       }
+    });
+  }
 
-      if (currentInDb) {
-        if (currentInDb.ra !== this.data.currentUserRa) {
-          this.data.currentUserRa = currentInDb.ra || null;
-          this.data.currentUserId = currentInDb.id;
-          this.currentUserRaSubject.next(this.data.currentUserRa);
+  public initAdminSync(schoolId: string) {
+    if (!schoolId || this.activeSyncIds.has(`admin-${schoolId}`)) return;
+    this.activeSyncIds.add(`admin-${schoolId}`);
+
+    onSnapshot(query(collection(db, "userStates"), where("schoolId", "==", schoolId)), (snapshot) => {
+      const currentStates = { ...this.data.userStates };
+      let hasChanges = false;
+
+      snapshot.docChanges().forEach((change) => {
+        const data = change.doc.data() as EcosystemUserState;
+        const docId = change.doc.id;
+        if (docId === this.data.currentUserId) return;
+
+        currentStates[docId] = { ...data, id: docId };
+        hasChanges = true;
+      });
+
+      if (hasChanges) {
+        this.data.userStates = currentStates;
+        this.userStatesSubject.next({ ...currentStates });
+      }
+    });
+  }
+
+  private initFirebaseAuthListener() {
+    onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const user = this.data.users.find(u => u.email?.toLowerCase() === firebaseUser.email?.toLowerCase());
+        if (user && user.role === 'super_admin') {
+          this.data.currentUserRa = user.ra || null;
+          this.data.currentUserId = user.id;
+          this.currentUserRaSubject.next(user.ra || null);
+          this.currentUserIdSubject.next(user.id);
+          this.initUserSpecificSync(user.id);
+          this.initAdminSync(user.schoolId || 'global');
           this.saveToStorage();
         }
       }
-    }
+    });
   }
 
   /**
-   * Inicializa o serviço carregando os dados salvos no navegador (localStorage).
+   * Mescla os usuários lidos de todas as coleções em uma única lista centralizada.
    */
-  initialize() {
-    if (typeof window === 'undefined') return;
-    this.loadFromStorage(); // Recupera a sessão e dados salvos anteriormente
-    this.sanitizeData(); // Limpa dados legados e intrusos
-    this.initFirebaseSync(); // Inicia sincronização em tempo real com Firestore
+  public syncCombinedUsers(isCacheUpdate = false) {
+    const allUsersMap = new Map<string, User>();
+    allUsersMap.set(ADMIN_MOCK.id, ADMIN_MOCK);
 
-    // Inicializa Identificação de Hardware Local (Resiliente e Persistente)
-    this.setupHardwareId();
-
-    // Notifica todos os inscritos sobre os dados carregados
-    this.currentUserRaSubject.next(this.data.currentUserRa);
-    this.usersSubject.next(this.data.users);
-    this.rewardsSubject.next(this.data.rewards);
-    this.articlesSubject.next(this.data.articles);
-    this.quizTopicsSubject.next(this.data.quizTopics);
-    this.participantsSubject.next(this.data.participants);
-    this.turmasSubject.next(this.data.turmas);
-    this.cursosSubject.next(this.data.cursos);
-    this.cargosSubject.next(this.data.cargos || []);
-    this.setoresSubject.next(this.data.setores || []);
-    this.terminalsSubject.next(this.data.terminals || []);
-    this.schoolsSubject.next(this.data.schools || []);
-    this.wasteEntriesSubject.next(this.data.wasteEntries || []);
-
-    // 8. Observa estado de autenticação do Firebase
-    onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
-        // Busca o RA correspondente ao email no nosso banco de dados
-        const user = this.data.users.find(u => u.email?.toLowerCase() === firebaseUser.email?.toLowerCase());
-        if (user) {
-          this.data.currentUserRa = user.ra!;
-          this.data.currentUserId = user.id;
-          this.currentUserRaSubject.next(user.ra!);
-          this.currentUserIdSubject.next(user.id);
-          this.initUserSpecificSync(user.id);
-          this.syncStateWithUser(user.id);
-          this.saveToStorage();
-        }
-      }
+    Object.values(this.usersByRole).forEach(usersList => {
+      usersList.forEach(u => {
+        if (u.id) allUsersMap.set(u.id, u);
+      });
     });
 
-    // Sincronização entre abas: Ouve mudanças no localStorage vindas de outras abas (ex: Kiosk)
-    window.addEventListener('storage', (event) => {
-      if (event.key === STORAGE_KEY) {
-        this.loadFromStorage();
-        this.notifyAll();
-      }
-    });
+    const combinedList = Array.from(allUsersMap.values());
+    this.data.users = combinedList;
+    this.usersSubject.next(combinedList);
 
-    // Se houver um usuário logado, sincroniza os pontos e ecossistema dele
+    // Se carregou tudo e não rodou a sanitização inicial ainda
+    const targetCollectionsCount = 5;
+    if (this.syncedCollections.size >= targetCollectionsCount && !this.hasRunFirestoreSanitize && !isCacheUpdate) {
+      this.hasRunFirestoreSanitize = true;
+      this.sanitizeData();
+    }
+
     if (this.data.currentUserId) {
       this.syncStateWithUser(this.data.currentUserId);
     }
   }
 
   /**
-   * Sincroniza o estado (balance, vitality, etc) com um ID específico.
-   * Agora inclui lógica de degradação temporal (Tamagotchi).
+   * Sincroniza o estado de pontuação, moedas e itens de um usuário com as variáveis reativas.
    */
-  private syncStateWithUser(userId: string) {
-    this.recalculatePointsValidity(userId);
-    const user = (this.data?.users || []).find(u => u.id === userId);
-    const userState = this.data?.userStates?.[userId] || this.getDefaultState(user);
+  public syncStateWithUser(userId: string): EcosystemUserState {
+    const user = this.data.users.find(u => u.id === userId || u.ra === userId);
+    const userState = this.data.userStates[user?.id || userId] || this.getDefaultState(user);
 
-    // Sincronização de Pontos (Agora centralizada no userState)
-    if (user && userState.points === undefined) {
-      userState.points = 0;
-      setDoc(doc(db, "userStates", user.id), userState, { merge: true });
-    }
+    this.pointsService.recalculatePointsValidity(user?.id || userId);
 
-    // Auto-cura de ativação: Se o aluno já tem vitalidade ativa acima de 20%, garantimos que o flag seja ativado
-    if (userState.vitality > 20 && !userState.vitalityActivated) {
-      userState.vitalityActivated = true;
-      setDoc(doc(db, "userStates", userId), userState, { merge: true });
-    }
-
-    // Lógica de Degradação Diária (Tamagotchi)
-    // Se o aluno ficar dias sem fazer missões, a vitalidade cai 10% por dia.
-    if (userState.lastMissionDate) {
-      // REGRA DE PROTEÇÃO LENDÁRIA: Se comprou a Nessie este mês, a vitalidade não baixa.
-      // Agora valida via coleção dedicada 'ecosystemLegends'
-      const hasLegendaryShield = (() => {
-        const legends = this.legendsSubject.value;
-        const today = new Date();
-        const currentMonth = today.getMonth() + 1;
-        const currentYear = today.getFullYear();
-        
-        return legends.some(l => 
-          l.studentId === userId && 
-          l.month === currentMonth && 
-          l.year === currentYear &&
-          l.benefitActive
-        );
-      })();
-
-      if (!hasLegendaryShield) {
-        const [day, month, year] = userState.lastMissionDate.split('/').map(Number);
-        const lastDate = new Date(year, month - 1, day);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        lastDate.setHours(0, 0, 0, 0);
-
-        const diffTime = Math.abs(today.getTime() - lastDate.getTime());
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-        if (diffDays > 0) {
-          const degradation = diffDays * 10;
-          const newVitality = Math.max(0, userState.vitality - degradation);
-          
-          // Se a vitalidade mudou, persistimos o "dano" no estado do aluno
-          if (newVitality !== userState.vitality) {
-            userState.vitality = newVitality;
-            this.data.userStates[userId] = userState;
-            
-            // Sincroniza no Firestore silenciosamente
-            setDoc(doc(db, "userStates", userId), userState, { merge: true });
-          }
-        }
-      }
-    }
-
-    // Se for o usuário logado localmente, atualiza os BehaviorSubjects globais
-    if (userId === this.data.currentUserId) {
+    if (user?.id === this.data.currentUserId || user?.ra === this.data.currentUserRa) {
       this.balanceSubject.next(userState.balance);
-      this.vitalitySubject.next(userState.vitality);
-      this.vitalityActivatedSubject.next(!!userState.vitalityActivated);
+      this.pointsSubject.next(userState.points);
+      this.vitalitySubject.next(userState.vitality !== undefined ? userState.vitality : 100);
+      this.vitalityActivatedSubject.next(userState.vitalityActivated ?? false);
       this.purchasedItemsSubject.next(userState.purchasedItems);
       this.lastMissionDateSubject.next(userState.lastMissionDate);
       this.levelSubject.next(userState.level || 'Semente');
@@ -728,156 +542,7 @@ export class EcosystemService {
     return { ...userState, level: userState.level || 'Semente' };
   }
 
-  /**
-   * Atualiza os pontos de um usuário usando seu ID como chave primária de estado.
-   * @param identifier RA ou ID do usuário.
-   * @param currentBalanceChange Mudança no saldo atual.
-   * @param lifetimePointsGain Ganho de pontos vitalícios.
-   */
-  private syncUserPoints(identifier: string, currentBalanceChange: number, lifetimePointsGain: number, description?: string) {
-    // Resolve o usuário (pode vir por RA do Kiosk ou ID do Admin)
-    const user = this.data.users.find(u => 
-      u.id === identifier || u.ra?.toUpperCase() === identifier.toUpperCase().trim()
-    );
-
-    if (!user) return;
-
-    const userId = user.id;
-    const state = this.data.userStates[userId] || this.getDefaultState(user);
-    
-    if (!state.pointTransactions) {
-      state.pointTransactions = [];
-    }
-
-    // Registra ganho ou gasto no Ledger transacional
-    if (lifetimePointsGain > 0) {
-      const gainTx: PointTransaction = {
-        id: EcosystemService.generateStandardId('wst-gn', user.schoolId),
-        date: new Date().toISOString(),
-        amount: lifetimePointsGain,
-        description: description || "Crédito de Bio-Coins"
-      };
-      state.pointTransactions.push(gainTx);
-    }
-
-    if (currentBalanceChange < 0) {
-      let amountToDeduct = Math.abs(currentBalanceChange);
-      for (const tx of state.pointTransactions) {
-        if (tx.amount > 0 && !tx.expired) {
-          if (tx.amount >= amountToDeduct) {
-            tx.amount -= amountToDeduct;
-            if (tx.amount === 0) tx.expired = true;
-            amountToDeduct = 0;
-            break;
-          } else {
-            amountToDeduct -= tx.amount;
-            tx.amount = 0;
-            tx.expired = true;
-          }
-        }
-      }
-
-      const debitTx: PointTransaction = {
-        id: EcosystemService.generateStandardId('wst-db', user.schoolId),
-        date: new Date().toISOString(),
-        amount: currentBalanceChange,
-        description: description || "Uso de Bio-Coins / Upgrade",
-        expired: true
-      };
-      state.pointTransactions.push(debitTx);
-    }
-
-    state.balance += Number(currentBalanceChange);
-    state.points = (Number(state.points) || 0) + Number(lifetimePointsGain);
-    state.vitality = (state.vitality !== undefined) ? state.vitality : 100;
-    state.vitalityActivated = state.vitalityActivated ?? false;
-    state.itemsCount = state.purchasedItems.length;
-
-    const score = EcosystemService.calculateTotalScore(state.points, state.vitality, state.itemsCount);
-    state.level = this.calculateLevel(score, state.purchasedItems);
-    state.id = user.id;
-    state.schoolId = user.schoolId;
-
-    this.data.userStates[userId] = state;
-
-    if (userId === this.data.currentUserId || user.ra?.toUpperCase() === this.kioskUserRaSubject.value?.toUpperCase()) {
-      this.balanceSubject.next(state.balance);
-      this.pointsSubject.next(state.points);
-      this.levelSubject.next(state.level);
-    }
-
-    // Persistência Atômica no Firestore usando ID (Imutável)
-    setDoc(doc(db, this.getUserCollection(user.role), user.id), this.sanitizeUserForFirestore(user));
-    setDoc(doc(db, "userStates", user.id), state);
-
-    this.usersSubject.next([...this.data.users]);
-    this.saveToStorage();
-  }
-
-  /**
-   * Recalcula a validade dos pontos (30 dias) do usuário em tempo real.
-   * Expira o saldo (balance) e os pontos acumulativos (points) se ultrapassarem 30 dias.
-   */
-  private recalculatePointsValidity(userId: string) {
-    const user = this.data.users.find(u => u.id === userId);
-    const userState = this.data.userStates[userId] || this.getDefaultState(user);
-    
-    if (!userState.pointTransactions) {
-      userState.pointTransactions = [];
-    }
-
-    const now = new Date();
-    const expiryThresholdDays = 30; // 30 dias de validade
-    let expiredAmount = 0;
-
-    userState.pointTransactions.forEach((tx: PointTransaction) => {
-      if (tx.amount > 0 && !tx.expired) {
-        const txDate = new Date(tx.date);
-        const diffTime = now.getTime() - txDate.getTime();
-        const diffDays = diffTime / (1000 * 60 * 60 * 24);
-
-        if (diffDays > expiryThresholdDays) {
-          tx.expired = true;
-          expiredAmount += tx.amount;
-        }
-      }
-    });
-
-    if (expiredAmount > 0) {
-      userState.balance = Math.max(0, userState.balance - expiredAmount);
-      userState.points = Math.max(0, userState.points - expiredAmount);
-
-      const expiryTx: PointTransaction = {
-        id: EcosystemService.generateStandardId('wst-exp', user?.schoolId),
-        date: now.toISOString(),
-        amount: -expiredAmount,
-        description: `Expiração de ${expiredAmount} Bio-Coins inativos (30 dias)`,
-        expired: true
-      };
-
-      userState.pointTransactions.push(expiryTx);
-
-      userState.itemsCount = userState.purchasedItems.length;
-      const score = EcosystemService.calculateTotalScore(userState.points, userState.vitality, userState.itemsCount);
-      userState.level = this.calculateLevel(score, userState.purchasedItems);
-
-      this.data.userStates[userId] = userState;
-      
-      if (userId === this.data.currentUserId) {
-        this.balanceSubject.next(userState.balance);
-        this.pointsSubject.next(userState.points);
-        this.levelSubject.next(userState.level);
-      }
-
-      setDoc(doc(db, "userStates", userId), userState, { merge: true }).catch(err => {
-        console.error("[FIREBASE] Erro ao salvar expiração de pontos:", err);
-      });
-      
-      this.saveToStorage();
-    }
-  }
-
-  // Getters para acessar os dados atuais
+  // Getters para acessar os dados atuais reativos
   get users() { return this.usersSubject.value; }
   get allRewards() { return this.data.rewards; }
   get allArticles() { return this.data.articles; }
@@ -891,2410 +556,180 @@ export class EcosystemService {
   get terminals() { return this.terminalsSubject.value; }
   get schools() { return this.schoolsSubject.value; }
   get wasteEntries() { return this.wasteEntriesSubject.value; }
-  get registrationRequests() { return this.registrationRequestsSubject.value; }
   get resetHistory() { return this.resetHistorySubject.value; }
-
-  // Observables para os componentes React se inscreverem
-  get users$() { return this.usersSubject.asObservable(); }
-  get students$() { return this.studentsSubject.asObservable(); }
-  get admins$() { return this.adminsSubject.asObservable(); }
-  get staff$() { return this.staffSubject.asObservable(); }
-  get superAdmins$() { return this.superAdminsSubject.asObservable(); }
-  get visitors$() { return this.visitorsSubject.asObservable(); }
-
-  get students() { return this.data.students || []; }
-  get admins() { return this.data.admins || []; }
-  get staff() { return this.data.staff || []; }
-  get superAdmins() { return this.data.superAdmins || []; }
-  get visitors() { return this.data.visitors || []; }
-  get balance$() { return this.balanceSubject.asObservable(); }
-  get points$() { return this.pointsSubject.asObservable(); }
-  get vitality$() { return this.vitalitySubject.asObservable(); }
-  get vitalityActivated$() { return this.vitalityActivatedSubject.asObservable(); }
-  get currentUserRa$() { return this.currentUserRaSubject.asObservable(); }
-  get currentUserId$() { return this.currentUserIdSubject.asObservable(); }
-  get rewards$() { return this.rewardsSubject.asObservable(); }
-  get articles$() { return this.articlesSubject.asObservable(); }
-  get quizTopics$() { return this.quizTopicsSubject.asObservable(); }
-  get participants$() { return this.participantsSubject.asObservable(); }
-  get turmas$() { return this.turmasSubject.asObservable(); }
-  get cursos$() { return this.cursosSubject.asObservable(); }
-  get cargos$() { return this.cargosSubject.asObservable(); }
-  get setores$() { return this.setoresSubject.asObservable(); }
-  get purchasedItems$() { return this.purchasedItemsSubject.asObservable(); }
-  get auditLogs$() { return this.auditLogsSubject.asObservable(); }
-  get level$() { return this.levelSubject.asObservable(); }
-  get systemSettings$() { return this.systemSettingsSubject.asObservable(); }
-  get pendingLogin$() { return this.pendingLoginSubject.asObservable(); }
-  get terminals$() { return this.terminalsSubject.asObservable(); }
-  get schools$() { return this.schoolsSubject.asObservable(); }
-  get wasteEntries$() { return this.wasteEntriesSubject.asObservable(); }
-  get userStates() { return this.data.userStates; }
-  get userStates$() { return this.userStatesSubject.asObservable(); }
-  get registrationRequests$() { return this.registrationRequestsSubject.asObservable(); }
-  get resetHistory$() { return this.resetHistorySubject.asObservable(); }
-  get legends$() { return this.legendsSubject.asObservable(); }
-  get legends() { return this.legendsSubject.value; }
-
+  get registrationRequests() { return this.registrationRequestsSubject.value; }
+  get currentUserRa() { return this.data.currentUserRa; }
+  get currentUserId() { return this.data.currentUserId; }
   get balance() { return this.balanceSubject.value; }
   get points() { return this.pointsSubject.value; }
   get vitality() { return this.vitalitySubject.value; }
-  get vitalityActivated() { return this.vitalityActivatedSubject.value; }
+  public get vitalityActivated() { return this.vitalityActivatedSubject.value; }
   get purchasedItems() { return this.purchasedItemsSubject.value; }
-  get currentUserRa() { return this.currentUserRaSubject.value; }
-  get currentUserId() { return this.currentUserIdSubject.value; }
+  get level() { return this.levelSubject.value; }
   get systemSettings() { return this.systemSettingsSubject.value; }
-  get hardwareId() { return this._hardwareId; }
+  get legends() { return this.legendsSubject.value; }
 
-  /**
-   * Realiza o upload de um avatar para o Firebase Storage e atualiza o usuário.
-   */
-  async uploadUserAvatar(userId: string, file: File): Promise<string | null> {
-    try {
-      let downloadURL = '';
-
-
-      // Geramos o Base64 IMEDIATAMENTE. Como o Storage é restrito no plano, 
-      // usamos o Firestore (Base64) como método principal e único para máxima velocidade.
-      const base64Data = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const img = new Image();
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const targetSize = 200;
-            canvas.width = targetSize;
-            canvas.height = targetSize;
-            const ctx = canvas.getContext('2d');
-
-            // Lógica de Corte Inteligente (Centralizado)
-            const sourceSize = Math.min(img.width, img.height);
-            const sourceX = (img.width - sourceSize) / 2;
-            const sourceY = (img.height - sourceSize) / 2;
-
-            ctx?.drawImage(
-              img,
-              sourceX, sourceY, sourceSize, sourceSize, // Área de origem (quadrado central)
-              0, 0, targetSize, targetSize             // Área de destino (200x200)
-            );
-
-            resolve(canvas.toDataURL('image/jpeg', 0.7));
-          };
-          img.onerror = () => reject(new Error("Erro ao processar imagem"));
-          img.src = e.target?.result as string;
-        };
-        reader.onerror = () => reject(new Error("Erro ao ler arquivo"));
-        reader.readAsDataURL(file);
-      });
-
-      downloadURL = base64Data;
-
-      // 4. Determina a coleção (users, participants, rewards, articles)
-      let collectionName = "users";
-      let isUserType = true;
-
-      if (userId.startsWith('PART-')) {
-        collectionName = "participants";
-        isUserType = false;
-      } else if (userId.startsWith('reward-')) {
-        collectionName = "rewards";
-        isUserType = false;
-      } else if (userId.startsWith('article-')) {
-        collectionName = "articles";
-        isUserType = false;
+  get hardwareId(): string {
+    if (typeof window === 'undefined') return 'SG-VIRTUAL-HW';
+    if (this._hardwareId) return this._hardwareId;
+    let localId = localStorage.getItem('sg_hardware_id');
+    if (!localId) {
+      const chars = '0123456789ABCDEF';
+      let unique = '';
+      for (let i = 0; i < 8; i++) {
+        unique += chars.charAt(Math.floor(Math.random() * chars.length));
       }
-
-      // Encontra o identificador correto para o Firestore (Prioridade: RA, depois E-mail, depois ID)
-      let dbId = userId;
-      if (collectionName === "users") {
-        const user = this.data.users.find(u => u.id === userId || u.ra === userId || u.email === userId);
-        if (user) {
-          dbId = user.id;
-        }
-      }
-
-      // 5. Atualiza o Firestore (Usa 'avatar' para pessoas e 'image' para objetos/pedagógico)
-      const docRef = doc(db, collectionName, dbId);
-      const updateData: any = (collectionName === "users" || collectionName === "participants")
-        ? { avatar: downloadURL, id: dbId }
-        : { image: downloadURL, id: dbId };
-
-      await setDoc(docRef, updateData, { merge: true });
-
-      // 6. Atualiza o estado local
-      if (collectionName === "participants") {
-        this.data.participants = this.data.participants.map(p => p.id === userId ? { ...p, avatar: downloadURL } : p);
-        this.participantsSubject.next(this.data.participants);
-      } else if (collectionName === "rewards") {
-        this.data.rewards = this.data.rewards.map(r => r.id === userId ? { ...r, image: downloadURL } : r);
-        this.rewardsSubject.next(this.data.rewards);
-      } else if (collectionName === "articles") {
-        this.data.articles = this.data.articles.map(a => a.id === userId ? { ...a, image: downloadURL } : a);
-        this.articlesSubject.next(this.data.articles);
-      } else {
-        this.data.users = this.data.users.map(u => (u.id === userId || u.ra === userId || u.email === userId) ? { ...u, avatar: downloadURL } : u);
-        this.usersSubject.next(this.data.users);
-        this.saveToStorage();
-      }
-
-      return downloadURL;
-    } catch (error) {
-      return null;
+      localId = `SG-HW-${unique}`;
+      localStorage.setItem('sg_hardware_id', localId);
     }
+    this._hardwareId = localId;
+    return localId;
   }
 
-  /**
-   * Atualiza as configurações de hardware do sistema.
-   */
-  updateSystemSettings(settings: SystemSettings, targetSchoolId?: string) {
-    const currentRa = this.currentUserRaSubject.value;
-    const currentUser = this.data.users.find(u => u.ra === currentRa);
-    const schoolId = targetSchoolId || currentUser?.schoolId;
-
-    if (!schoolId) {
-      // Log removido para produção
-      return;
-    }
-
-    this.data.systemSettings = settings;
-    this.systemSettingsSubject.next(settings);
-    this.saveToStorage();
-
-    // Sincroniza com Firestore no documento da unidade
-    setDoc(doc(db, "settings", schoolId), settings).catch(err => {
-      // Hardware communication error handled by UI layer
-    });
+  // Fachada (Facade): Delegação de Métodos para Sub-Serviços Modulares
+  
+  // 1. Autenticação (AuthService)
+  async login(id: string, password?: string) {
+    return this.authService.login(id, password);
+  }
+  logout() {
+    this.authService.logout();
+  }
+  async verifyPassword(password: string) {
+    return this.authService.verifyPassword(password);
+  }
+  getLockoutStatus(id: string) {
+    return this.authService.getLockoutStatus(id);
   }
 
-  /**
-   * Dispara um evento de login vindo de hardware externo (ESP32).
-   */
-  triggerHardwareLogin(ra: string, registeredId: string) {
-    this.pendingLoginSubject.next({ ra, terminalId: registeredId });
-    // Limpa o evento após um curto período para não disparar login duplo
-    setTimeout(() => this.pendingLoginSubject.next(null), 2000);
+  // 2. Gestão de Usuários (UserService)
+  getUserCollection(role: string) {
+    return this.userService.getUserCollection(role);
+  }
+  sanitizeUserForFirestore(user: User) {
+    return this.userService.sanitizeUserForFirestore(user);
+  }
+  async updateUsers(newUsers: User[], targetSchoolId?: string) {
+    return this.userService.updateUsers(newUsers, targetSchoolId);
+  }
+  async deleteUser(userId: string) {
+    return this.userService.deleteUser(userId);
+  }
+  async updateUserStatus(userId: string, status: 'active' | 'inactive') {
+    return this.userService.updateUserStatus(userId, status);
   }
 
-  /**
-   * Gera um ID único e imutável para um terminal (SG-TOTEM-XXXX).
-   */
-  generateTerminalId(): string {
-    const chars = '0123456789ABCDEF';
-    let suffix = '';
-    for (let i = 0; i < 4; i++) {
-      suffix += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    const fullId = `SG-TOTEM-${suffix}`;
-
-    // Verifica unicidade
-    const exists = this.data.terminals?.some(t => t.id === fullId);
-    if (exists) return this.generateTerminalId();
-
-    return fullId;
-  }
-
-  /**
-   * Solicita autorização para um novo terminal.
-   */
-  requestTerminalAuthorization(terminalId: string, hardwareId: string, location: string, schoolId: string) {
-    if (!this.data.terminals) this.data.terminals = [];
-
-    // Verifica se o ID já existe
-    const idExists = this.data.terminals.some(t => t.id === terminalId);
-    if (idExists) return false;
-
-    // Verifica se o hardware já existe
-    const existing = this.data.terminals.find(t => t.hardwareId === hardwareId);
-    if (existing) return false;
-
-    const newTerminal: Terminal = {
-      id: EcosystemService.generateStandardId('totem', schoolId),
-      hardwareId: hardwareId.toUpperCase().trim(),
-      location: location.toUpperCase().trim(),
-      status: 'pending',
-      schoolId,
-      requestDate: new Date().toISOString(),
-      settings: {
-        loginMethod: 'all',
-      }
-    };
-
-    this.data.terminals.push(newTerminal);
-    this.terminalsSubject.next([...this.data.terminals]);
-
-    // Sincroniza no Firestore
-    setDoc(doc(db, "terminals", newTerminal.id), newTerminal);
-
-    this.saveToStorage();
-    return true;
-  }
-
-  /**
-   * Atualiza o status de um terminal.
-   */
-  updateTerminalStatus(id: string, status: TerminalStatus, schoolId?: string) {
-    if (!this.checkAdminAuth()) return;
-    const terminal = this.data.terminals.find(t => t.id === id);
-    if (terminal) {
-      terminal.status = status;
-      if (schoolId) terminal.schoolId = schoolId;
-      this.terminalsSubject.next([...this.data.terminals]);
-
-      // Sincroniza no Firestore
-      setDoc(doc(db, "terminals", id), terminal);
-
-      this.logTelemetry({
-        action: 'CRUD_UPDATE',
-        category: 'SYSTEM',
-        details: `Status do terminal ${terminal.location} alterado para ${status.toUpperCase()}`,
-        targetEntity: 'terminals',
-        targetId: id,
-        unitId: schoolId || terminal.schoolId
-      });
-
-      this.saveToStorage();
-    }
-  }
-
-  /**
-   * Atualiza as configurações de hardware de um terminal específico.
-   */
-  updateTerminalSettings(id: string, settings: Partial<Terminal>) {
-    if (!this.checkAdminAuth()) return;
-    this.data.terminals = this.data.terminals.map(t =>
-      t.id === id ? { ...t, ...settings } : t
-    );
-    this.terminalsSubject.next([...this.data.terminals]);
-
-    // Sincroniza no Firestore
-    const updated = this.data.terminals.find(t => t.id === id);
-    if (updated) setDoc(doc(db, "terminals", id), updated);
-
-    this.saveToStorage();
-    // Log de atualização de terminal suprimido
-  }
-
-  /**
-   * Remove um terminal.
-   */
-  deleteTerminal(id: string) {
-    if (!this.checkAdminAuth()) return;
-    this.data.terminals = this.data.terminals.filter(t => t.id !== id);
-    this.terminalsSubject.next([...this.data.terminals]);
-
-    // Remove do Firestore
-    deleteDoc(doc(db, "terminals", id));
-
-    this.saveToStorage();
-  }
-
-  /**
-   * Registra uma nova escola diretamente como ativa (uso do Super Admin).
-   */
+  // 3. Multi-Tenant e Escolas (SchoolService)
   async registerSchool(schoolData: Omit<School, 'id' | 'status' | 'joinedDate'>, initialPassword?: string) {
-    if (!this.checkAdminAuth()) return false;
-
-    const resolvedPassword = initialPassword || schoolData.initialManagerPassword;
-
-    if (!schoolData.managerEmail || !resolvedPassword) {
-      return false;
-    }
-
-    // Validação de E-mail Único na Rede
-    const emailLower = schoolData.managerEmail.toLowerCase().trim();
-    if (this.data.users.some(u => u.email?.toLowerCase() === emailLower)) {
-      return false;
-    }
-
-    const newSchool: School = {
-      ...schoolData,
-      id: EcosystemService.generateStandardId('school', undefined, { name: schoolData.name, city: schoolData.city }),
-      status: 'active',
-      joinedDate: new Date().toISOString().split('T')[0]
-    };
-
-    this.data.schools.push(newSchool);
-
-    // Cria o usuário gestor imediatamente
-    if (newSchool.managerEmail && resolvedPassword) {
-      const newUser: User = {
-        id: EcosystemService.generateStandardId('admin', newSchool.id),
-        name: `Gestor ${newSchool.name}`,
-        email: newSchool.managerEmail,
-        password: await EcosystemService.hashPassword(resolvedPassword),
-        role: 'admin',
-        schoolId: newSchool.id,
-        ra: `G-${Date.now().toString().slice(-4)}`,
-        status: 'active'
-      };
-      this.data.users.push(newUser);
-      this.usersSubject.next([...this.data.users]);
-    }
-
-    this.schoolsSubject.next([...this.data.schools]);
-
-    // Sincroniza Escola no Firestore (Sem a senha no registro permanente)
-    const schoolToSave = { ...newSchool };
-    delete (schoolToSave as any).initialManagerPassword;
-    setDoc(doc(db, "schools", newSchool.id), schoolToSave);
-
-    // Inicializa configurações de hardware da unidade
-    setDoc(doc(db, "settings", newSchool.id), this.data.systemSettings || {
-      studentLoginMethod: 'all',
-      adminLoginMethod: 'all'
-    });
-
-    // Se criou gestor, sincroniza ele também usando seu ID único
-    if (newSchool.managerEmail) {
-      const adminUser = this.data.users.find(u => u.email === newSchool.managerEmail);
-      if (adminUser) setDoc(doc(db, "users", adminUser.id), adminUser);
-    }
-
-    this.saveToStorage();
-
-    this.logTelemetry({
-      action: 'CRUD_CREATE',
-      category: 'SYSTEM',
-      details: `Nova unidade escolar registrada: ${newSchool.name}`,
-      targetEntity: 'schools',
-      targetId: newSchool.id,
-      unitId: 'MASTER'
-    });
-
-    return true;
+    return this.schoolService.registerSchool(schoolData, initialPassword);
   }
-
-  /**
-   * Solicita o registro de uma nova escola.
-   */
-  async requestSchoolRegistration(schoolData: Omit<School, 'id' | 'status' | 'joinedDate'>, initialPassword?: string) {
-    if (!schoolData.managerEmail || !initialPassword) {
-      return false;
-    }
-
-    const sanitizedData = {
-      ...schoolData,
-      name: schoolData.name.toUpperCase().trim(),
-      city: schoolData.city.toUpperCase().trim(),
-      state: schoolData.state.toUpperCase().trim(),
-      contactEmail: schoolData.contactEmail?.toLowerCase().trim(),
-      managerEmail: schoolData.managerEmail.toLowerCase().trim(),
-      initialManagerPassword: initialPassword // Mantemos aqui temporariamente apenas para o objeto que será salvo como 'pending'
-    };
-
-    const newSchool: School = {
-      ...sanitizedData,
-      id: `school-${Date.now()}`,
-      status: 'pending',
-      joinedDate: new Date().toISOString().split('T')[0]
-    };
-
-    this.data.schools.push(newSchool);
-    this.schoolsSubject.next([...this.data.schools]);
-
-    try {
-      // Sincroniza no Firestore
-      await setDoc(doc(db, "schools", newSchool.id), newSchool);
-      this.saveToStorage();
-      return true;
-    } catch (error) {
-      console.error("[ECOSYSTEM] Erro ao registrar solicitação de escola:", error);
-      return false;
-    }
-  }
-
-  /**
-   * Atualiza o status de uma escola (Aprovação).
-   */
   async updateSchoolStatus(id: string, status: 'active' | 'pending' | 'inactive' | 'suspended', initialPassword?: string) {
-    if (!this.checkAdminAuth()) return;
-    const school = this.data.schools.find(s => s.id === id);
-    if (school) {
-      school.status = status;
-      const resolvedPassword = initialPassword || school.initialManagerPassword;
-
-      // Se estiver ativando, garante que o usuário gestor exista
-      if (status === 'active' && school.managerEmail && resolvedPassword) {
-        const userExists = this.data.users.find(u => u.email?.toLowerCase() === school.managerEmail?.toLowerCase());
-        if (!userExists) {
-          const newUser: User = {
-            id: EcosystemService.generateStandardId('admin', school.id),
-            name: `Gestor ${school.name}`,
-            email: school.managerEmail,
-            password: await EcosystemService.hashPassword(resolvedPassword),
-            role: 'admin',
-            schoolId: school.id,
-            ra: `G-${Date.now().toString().slice(-4)}`,
-            status: 'active'
-          };
-          this.data.users.push(newUser);
-          this.usersSubject.next([...this.data.users]);
-        }
-      }
-
-      this.schoolsSubject.next([...this.data.schools]);
-
-      // Sincroniza Escola no Firestore (Limpa a senha se estiver ativando)
-      const schoolToSave = { ...school };
-      if (status === 'active') delete (schoolToSave as any).initialManagerPassword;
-      setDoc(doc(db, "schools", id), schoolToSave);
-
-      // Inicializa configurações de hardware da unidade (Multi-Tenant)
-      setDoc(doc(db, "settings", id), this.data.systemSettings || {
-        studentLoginMethod: 'all',
-        adminLoginMethod: 'all'
-      });
-
-      // Sincroniza novo gestor se criado
-      if (status === 'active' && school.managerEmail) {
-        const adminUser = this.data.users.find(u => u.email === school.managerEmail);
-        if (adminUser) setDoc(doc(db, "users", adminUser.id), adminUser);
-      }
-
-      this.saveToStorage();
-    }
+    return this.schoolService.updateSchoolStatus(id, status, initialPassword);
   }
-
-  /**
-   * Atualiza a lista completa de escolas.
-   */
   updateSchools(newSchools: School[]) {
-    if (!this.checkAdminAuth()) return;
-    this.data.schools = newSchools;
-    this.schoolsSubject.next([...newSchools]);
-    this.saveToStorage();
+    this.schoolService.updateSchools(newSchools);
+  }
+  async deleteSchool(id: string, password?: string) {
+    return this.schoolService.deleteSchool(id, password);
+  }
+
+  // 4. Terminais e Totens (TerminalService)
+  requestTerminalAuthorization(terminalId: string, hardwareId: string, location: string, schoolId: string) {
+    return this.terminalService.requestTerminalAuthorization(terminalId, hardwareId, location, schoolId);
+  }
+  updateTerminalStatus(id: string, status: TerminalStatus, schoolId?: string) {
+    this.terminalService.updateTerminalStatus(id, status, schoolId);
+  }
+  updateTerminalSettings(id: string, settings: Partial<Terminal>) {
+    this.terminalService.updateTerminalSettings(id, settings);
+  }
+  deleteTerminal(id: string) {
+    this.terminalService.deleteTerminal(id);
+  }
+  triggerHardwareLogin(ra: string, registeredId: string) {
+    this.terminalService.triggerHardwareLogin(ra, registeredId);
+  }
+  generateTerminalId() {
+    return this.terminalService.generateTerminalId();
+  }
+
+  // 5. Gamificação e Pontos (PointsService)
+  syncUserPoints(identifier: string, currentBalanceChange: number, lifetimePointsGain: number, description?: string) {
+    this.pointsService.syncUserPoints(identifier, currentBalanceChange, lifetimePointsGain, description);
+  }
+  recalculatePointsValidity(userId: string) {
+    this.pointsService.recalculatePointsValidity(userId);
+  }
+  addPoints(points: number, studentRa?: string, description?: string) {
+    this.pointsService.addPoints(points, studentRa, description);
+  }
+  grantSightingBonus(ra: string) {
+    return this.pointsService.grantSightingBonus(ra);
+  }
+  async grantPoints(ra: string, points: number, sector: string, action: string, adminName: string, password?: string, terminalSchoolId?: string) {
+    return this.pointsService.grantPoints(ra, points, sector, action, adminName, password, terminalSchoolId);
+  }
+  calculateLevel(score: number, purchasedItems?: EcosystemItem[]) {
+    return this.pointsService.calculateLevel(score, purchasedItems);
+  }
+
+  // 6. Reciclagem e Resíduos (WasteService)
+  registerWaste(ra: string, type: WasteType, weightKg: number, terminalSchoolId?: string) {
+    return this.wasteService.registerWaste(ra, type, weightKg, terminalSchoolId);
+  }
+  async performCycleReset(password: string, schoolId?: string) {
+    return this.wasteService.performCycleReset(password, schoolId);
+  }
+
+  // 7. Artigos, Quizzes e Resgates (PedagogicalService)
+  async recordArticleRead(articleId: string) {
+    return this.pedagogicalService.recordArticleRead(articleId);
+  }
+  async recordQuizCompletion(topicId: string, score: number, difficulty?: string, numQuestions?: number) {
+    return this.pedagogicalService.recordQuizCompletion(topicId, score, difficulty, numQuestions);
+  }
+  async recordRewardRedemption(rewardId: string) {
+    return this.pedagogicalService.recordRewardRedemption(rewardId);
+  }
+  isNessieAvailable() {
+    return this.pedagogicalService.isNessieAvailable();
+  }
+  getMonthlyLegends(targetSchoolId?: string) {
+    return this.pedagogicalService.getMonthlyLegends(targetSchoolId);
+  }
+
+  // 8. Aprovação de Cadastro (RegistrationService)
+  async requestRegistration(data: Omit<RegistrationRequest, 'id' | 'status' | 'createdAt'>) {
+    return this.registrationService.requestRegistration(data);
+  }
+  async approveRegistration(requestId: string) {
+    return this.registrationService.approveRegistration(requestId);
+  }
+  async rejectRegistration(requestId: string) {
+    return this.registrationService.rejectRegistration(requestId);
   }
 
   /**
-   * Remove uma escola da rede de forma segura.
-   * Só permite a exclusão se não houver gestores ativos vinculados à unidade
-   * e se o Super Admin confirmar com sua senha.
+   * Retorna as configurações iniciais de estado para um novo usuário.
    */
-  async deleteSchool(id: string, password?: string): Promise<{ success: boolean; error?: string }> {
-    if (!this.checkAdminAuth()) return { success: false, error: 'Não autorizado' };
-
-    // Verificação de Senha do Super Admin
-    if (!password) return { success: false, error: 'Confirmação de senha necessária.' };
-    const isPasswordValid = await this.verifyPassword(password);
-    if (!isPasswordValid) return { success: false, error: 'Senha incorreta. Ação cancelada.' };
-
-    // Regra de Negócio: Primeiro remove os gestores, depois a unidade
-    const hasManagers = this.data.users.some(u => u.schoolId === id && u.role === 'admin');
-    if (hasManagers) {
-      return { 
-        success: false, 
-        error: 'Bloqueio de Segurança: Remova primeiro os gestores desta unidade antes de excluí-la.' 
-      };
-    }
-
-    try {
-      // Limpeza completa: Escola + Configurações de Unidade
-      await Promise.all([
-        deleteDoc(doc(db, "schools", id)),
-        deleteDoc(doc(db, "settings", id))
-      ]);
-      
-      this.data.schools = this.data.schools.filter(s => s.id !== id);
-      this.schoolsSubject.next([...this.data.schools]);
-      this.saveToStorage();
-      return { success: true };
-    } catch (error) {
-      throw new Error('Falha no processamento da requisição de remoção.');
-    }
-  }
-
-
-  getUserState(identifier: string): EcosystemUserState {
-    const user = this.data.users.find(u => 
-      u.id === identifier || u.ra?.toUpperCase() === identifier.toUpperCase().trim()
-    );
-    if (!user) return this.getDefaultState();
-    return this.data.userStates[user.id] || this.getDefaultState(user);
-  }
-
-  private getDefaultState(user?: User): EcosystemUserState {
+  public getDefaultState(user?: User): EcosystemUserState {
     return {
-      id: user?.id || EcosystemService.generateStandardId('ust', user?.schoolId),
-      schoolId: user?.schoolId || 'MASTER',
-      balance: 0,
+      id: user?.id || 'visitor-fix',
       points: 0,
-      vitality: 0,
+      balance: 0,
+      vitality: 0, 
       vitalityActivated: false,
       purchasedItems: [],
       itemsCount: 0,
-      lastMissionDate: null,
       level: 'Semente',
-      readArticles: [],
+      schoolId: user?.schoolId || 'global',
       pointTransactions: [],
-      curso: user?.curso || null
+      curso: user?.curso || null,
+      lastMissionDate: null,
+      readArticles: []
     };
   }
 
-
-  /**
-   * Verifica se o item especial "Nessie" ainda está disponível para compra este mês.
-   * (Limitado a 3 pessoas por mês POR UNIDADE ESCOLAR).
-   */
-  isNessieAvailable() {
-    const today = new Date();
-    const currentMonth = today.getMonth() + 1;
-    const currentYear = today.getFullYear();
-    const currentRa = this.currentUserRa;
-    const user = this.data.users.find(u => u.ra === currentRa);
-    if (!user || !user.schoolId) return false;
-
-    const schoolId = user.schoolId;
-    const legends = this.legendsSubject.value;
-
-    const nessieOwnersInMonth = legends.filter(l => 
-      l.schoolId === schoolId && 
-      l.month === currentMonth && 
-      l.year === currentYear
-    );
-
-    return nessieOwnersInMonth.length < 3;
-  }
-
-  /**
-   * Retorna os usuários que atingiram o item lendário no mês vigente.
-   */
-  getMonthlyLegends(targetSchoolId?: string) {
-    const today = new Date();
-    const currentMonth = today.getMonth() + 1;
-    const currentYear = today.getFullYear();
-    
-    // sid será a escola para filtrar.
-    let sid = (targetSchoolId === 'all' || !targetSchoolId) ? undefined : targetSchoolId;
-    
-    // Se for aluno, restringimos à escola dele, a menos que targetSchoolId tenha sido explícito
-    if (!targetSchoolId && this.currentUserRa) {
-      const user = this.data.users.find(u => u.ra === this.currentUserRa || u.id === this.data.currentUserId);
-      if (user?.role === 'student') {
-        sid = user?.schoolId;
-      }
-    }
-
-    // 1. Coleta TODOS os IDs de lendas do mês de todas as fontes
-    const legendDataMap = new Map<string, { id: string, name?: string, date: string, schoolId?: string }>();
-
-    // Fonte A: Coleção ecosystemLegends
-    this.legendsSubject.value.forEach(l => {
-      const lMonth = Number(l.month);
-      const lYear = Number(l.year);
-      if (lMonth === currentMonth && lYear === currentYear) {
-        legendDataMap.set(l.studentId, {
-          id: l.studentId,
-          name: l.studentName,
-          date: l.purchaseDate,
-          schoolId: l.schoolId
-        });
-      }
-    });
-
-    // Fonte B: Fallback via userStates
-    Object.entries(this.data.userStates).forEach(([userId, state]) => {
-      if (state.nessiePurchaseDate) {
-        const parts = state.nessiePurchaseDate.split('-');
-        if (parts.length >= 2) {
-          const y = Number(parts[0]);
-          const m = Number(parts[1]);
-          if (y === currentYear && m === currentMonth) {
-            if (!legendDataMap.has(userId)) {
-              legendDataMap.set(userId, {
-                id: userId,
-                date: state.nessiePurchaseDate.includes('T') ? state.nessiePurchaseDate : new Date(`${state.nessiePurchaseDate}T12:00:00Z`).toISOString()
-              });
-            }
-          }
-        }
-      }
-    });
-
-    // 2. Converte o mapa em lista, enriquece com dados do usuário e filtra por escola
-    return Array.from(legendDataMap.values())
-      .map(item => {
-        const u = this.data.users.find(user => 
-          user.id === item.id || 
-          user.ra === item.id || 
-          (user.ra && item.id.includes(user.ra))
-        );
-
-        return {
-          ...item,
-          name: u?.name || item.name || 'Agente Anônimo',
-          avatar: u?.avatar,
-          // Se o usuário existe, usamos a escola ATUAL dele como prioridade para o filtro
-          schoolId: u?.schoolId || item.schoolId || 'MASTER',
-          ra: u?.ra || (item.id.startsWith('USER-') ? '' : item.id)
-        };
-      })
-      .filter(l => {
-        // Se sid for MASTER ou não definido (visão global), mostra tudo
-        if (!sid || sid === 'MASTER') return true;
-        
-        // Caso contrário, o aluno só aparece se a escola dele (atual ou no registro) bater com a filtrada
-        return l.schoolId === sid;
-      })
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      .slice(0, 3);
-  }
-
-  /**
-   * Verifica se a missão diária já foi realizada hoje.
-   */
-  get isMissionDone() {
-    const lastDate = this.lastMissionDateSubject.value;
-    if (!lastDate) return false;
-    const today = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-    return lastDate === today;
-  }
-
-  /**
-   * Carrega os dados do localStorage.
-   */
-  private loadFromStorage() {
-    if (typeof window === 'undefined') return;
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-
-        // Sanitização de RA no carregamento (Garante que tudo seja Uppercase)
-        if (parsed.users) {
-          parsed.users = parsed.users.map((u: any) => ({ ...u, ra: u.ra?.toUpperCase() }));
-        }
-        if (parsed.userStates) {
-          const newStates: any = {};
-          Object.entries(parsed.userStates).forEach(([ra, state]) => {
-            newStates[ra.toUpperCase()] = state;
-          });
-          parsed.userStates = newStates;
-        }
-        if (parsed.currentUserRa) {
-          parsed.currentUserRa = parsed.currentUserRa.toUpperCase();
-        }
-
-        this.data = { ...this.data, ...parsed };
-      } catch (e) {
-        console.error('Erro ao carregar dados do ecossistema', e);
-      }
-    }
-
-    // Carrega logs de auditoria
-    const logsStr = localStorage.getItem(AUDIT_LOGS_KEY);
-    if (logsStr) {
-      this.auditLogsSubject.next(JSON.parse(logsStr));
-    }
-
-    // Lógica de reset (para atualizações de versão do sistema)
-    let hasChanges = false;
-    const RESET_VERSION = 'v22_stable'; // Versão de produção estável
-    if ((this.data as any).resetVersion !== RESET_VERSION) {
-      this.data.userStates = {};
-      this.data.users = [ADMIN_MOCK];
-      this.data.schools = [...SCHOOLS_MOCK];
-      this.data.turmas = [...TURMAS_MOCK];
-      this.data.cursos = [...CURSOS_MOCK];
-      this.data.cargos = [...CARGOS_MOCK];
-      this.data.setores = [...SETORES_MOCK];
-      this.data.terminals = [...TERMINALS_MOCK];
-      this.data.systemSettings = {
-        studentLoginMethod: 'all',
-        adminLoginMethod: 'all'
-      };
-      (this.data as any).resetVersion = RESET_VERSION;
-      hasChanges = true;
-    }
-
-    // Garante que o ADMIN_MOCK sempre exista e seja super_admin
-    const adminIndex = this.data.users.findIndex(u => u.ra === ADMIN_MOCK.ra);
-    if (adminIndex === -1) {
-      this.data.users.push(ADMIN_MOCK);
-      hasChanges = true;
-    } else {
-      const admin = this.data.users[adminIndex];
-      if (admin.role !== 'super_admin') {
-        admin.role = 'super_admin';
-        hasChanges = true;
-      }
-    }
-
-    // Garantia de que todo usuário tenha um estado inicial vinculado ao seu ID
-    this.data.users.forEach(user => {
-      if (!this.data.userStates[user.id]) {
-        this.data.userStates[user.id] = this.getDefaultState(user);
-        hasChanges = true;
-      }
-    });
-
-    if (hasChanges) this.saveToStorage();
-  }
-
-  /**
-   * Salva o estado atual no localStorage.
-   */
-  private saveToStorage() {
-    if (typeof window === 'undefined') return;
-    this.data.currentUserId = this.currentUserIdSubject.value;
-    const user = this.data.users.find(u => u.id === (this.data.currentUserId || ''));
-    if (user) {
-      this.data.userStates[user.id] = {
-        id: user.id,
-        schoolId: user.schoolId,
-        balance: this.balanceSubject.value,
-        points: this.data.userStates[user.id]?.points || 0,
-        vitality: this.vitalitySubject.value,
-        vitalityActivated: this.vitalityActivatedSubject.value,
-        purchasedItems: this.purchasedItemsSubject.value,
-        itemsCount: this.purchasedItemsSubject.value.length,
-        lastMissionDate: this.lastMissionDateSubject.value,
-        level: this.levelSubject.value,
-        curso: (user as any).curso || null,
-        nessiePurchaseDate: this.data.userStates[user.id]?.nessiePurchaseDate || null,
-        readArticles: this.data.userStates[user.id]?.readArticles || []
-      };
-    }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
-    localStorage.setItem(AUDIT_LOGS_KEY, JSON.stringify(this.auditLogsSubject.value));
-  }
-
-  /**
-   * Configura o identificador único de hardware baseado em fingerprinting do navegador.
-   * Isso garante que, mesmo limpando o localStorage, o ID permaneça o mesmo para o mesmo dispositivo.
-   */
-  private async setupHardwareId() {
-    if (typeof window === 'undefined') return;
-
-    const hardwareIdKey = `${STORAGE_BASE}_hardware_id`;
-    let hid = localStorage.getItem(hardwareIdKey);
-
-    // Se não estiver no cache, calculamos a "impressão digital" (fingerprint) do hardware
-    if (!hid) {
-      try {
-        const fingerprintData = {
-          ua: navigator.userAgent,
-          screen: `${screen.width}x${screen.height}x${screen.colorDepth}`,
-          lang: navigator.language,
-          tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          cores: navigator.hardwareConcurrency || 0,
-          // Canvas Fingerprinting: Gera um hash único baseado em como o navegador renderiza gráficos
-          canvas: this.getCanvasFingerprint()
-        };
-
-        const rawString = JSON.stringify(fingerprintData);
-        let hash: string;
-        
-        try {
-          // Tenta usar SHA-256 (Apenas em contextos seguros: localhost ou HTTPS)
-          hash = await EcosystemService.hashPassword(rawString);
-        } catch (e) {
-          // Fallback determinístico para contextos não seguros (Acesso via IP)
-          hash = this.simpleHash(rawString);
-        }
-        
-        hid = `HW-${hash.substring(0, 12).toUpperCase()}`;
-        localStorage.setItem(hardwareIdKey, hid);
-      } catch (e) {
-        // Fallback final apenas se tudo falhar
-        hid = `HW-DEV-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-      }
-    }
-
-    this._hardwareId = hid;
-    // Hardware Fingerprint carregado silenciosamente
-  }
-
-  /**
-   * Gera uma assinatura visual única baseada na renderização de canvas.
-   */
-  private getCanvasFingerprint(): string {
-    try {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return 'no-canvas';
-      
-      canvas.width = 200;
-      canvas.height = 50;
-      
-      ctx.textBaseline = "top";
-      ctx.font = "14px 'Arial'";
-      ctx.textBaseline = "alphabetic";
-      ctx.fillStyle = "#f60";
-      ctx.fillRect(125, 1, 62, 20);
-      ctx.fillStyle = "#069";
-      ctx.fillText("SchoolGain_HW_ID", 2, 15);
-      ctx.fillStyle = "rgba(102, 204, 0, 0.7)";
-      ctx.fillText("SchoolGain_HW_ID", 4, 17);
-      
-      return canvas.toDataURL();
-    } catch (e) {
-      return 'canvas-error';
-    }
-  }
-
-  /**
-   * Hash simples e determinístico para quando SHA-256 não está disponível (HTTP).
-   */
-  private simpleHash(str: string): string {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Converte para inteiro de 32 bits
-    }
-    return Math.abs(hash).toString(16).padStart(8, '0');
-  }
-
-  /**
-   * CENTRAL DE TELEMETRIA (REGISTRO OPERACIONAL)
-   * --------------------------------------------------------------------------
-   * A Telemetria funciona como um registro imutável de eventos do sistema. 
-   * Ela amarra cada interação crítica, sendo fundamental para a auditoria 
-   * e segurança, permitindo o rastreamento completo de ações e origens.
-   */
-  async logTelemetry(params: {
-    action: AuditActionType | string;
-    category: 'AUTH' | 'DATA' | 'ECOSYSTEM' | 'SYSTEM';
-    details: string;
-    metadata?: any;
-    targetEntity?: string;
-    targetId?: string;
-    studentId?: string;
-    unitId?: string;
-    studentName?: string;
-    points?: number;
-  }) {
-    const actor = this.data?.users?.find(u => u.id === this.currentUserIdSubject.value);
-    // Se o nome do aluno não foi passado mas o autor é um aluno, assume que ele é o destinatário (ex: compras, missões)
-    const resolvedStudentName = params.studentName || (actor?.role === 'student' ? actor.name : undefined);
-    const resolvedStudentId = params.studentId || (actor?.role === 'student' ? actor.id : undefined);
-  
-    // Função auxiliar para remover campos 'undefined' recursivamente (Firestore não aceita undefined)
-    const sanitize = (obj: any): any => {
-      if (obj === null || typeof obj !== 'object') return obj;
-      if (Array.isArray(obj)) return obj.map(sanitize);
-      return Object.fromEntries(
-        Object.entries(obj)
-          .filter(([_, v]) => v !== undefined)
-          .map(([k, v]) => [k, sanitize(v)])
-      );
-    };
-
-
-    const log: AuditLogEntry = sanitize({
-      id: `tele-${Date.now()}-${Math.random().toString(36).slice(-4)}`,
-      action: params.action,
-      category: params.category,
-      timestamp: new Date().toISOString(),
-      actorId: actor?.id || 'SYSTEM',
-      actorName: actor?.name || 'Sistema Autônomo',
-      unitId: params.unitId || (actor?.role === 'super_admin' ? 'MASTER' : actor?.schoolId),
-      details: params.details,
-      metadata: params.metadata,
-      targetEntity: params.targetEntity,
-      targetId: params.targetId,
-      studentName: resolvedStudentName,
-      points: params.points
-    });
-
-
-    const newLogs = [log, ...(this.auditLogsSubject.value || [])].slice(0, 500); // Mantém últimos 500 logs localmente
-    this.auditLogsSubject.next(newLogs);
-
-    // Persiste no Firestore para auditoria permanente
-    try {
-      await setDoc(doc(db, "auditLogs", log.id), log);
-    } catch (err) {
-      console.error("[TELEMETRY] Falha ao persistir log:", err);
-    }
-
-    this.saveToStorage();
-  }
-
-  /**
-   * Identifica o usuário com maior pontuação acumulada no sistema.
-   */
-  getGlobalLeader() {
-    if (!this.data?.users || this.data.users.length === 0) return null;
-
-    const candidates = this.data.users.filter(u => u.role === 'student');
-    if (candidates.length === 0) return null;
-
-    const ranked = candidates
-      .map(u => {
-        const state = this.data.userStates[u.id] || this.getDefaultState(u);
-        const score = EcosystemService.calculateTotalScore(state.points || 0, state.vitality || 0, state.itemsCount || 0);
-        return { ...u, totalScore: score };
-      })
-      .sort((a, b) => b.totalScore - a.totalScore);
-
-    return ranked[0];
-  }
-
-  /**
-   * Identifica o funcionário com maior pontuação acumulada.
-   */
-  getStaffLeader() {
-    const candidates = this.data.users.filter(u => u.role === 'staff');
-    if (candidates.length === 0) return null;
-
-    const ranked = candidates
-      .map(u => {
-        const state = this.data.userStates[u.id] || this.getDefaultState(u);
-        const score = EcosystemService.calculateTotalScore(state.points || 0, state.vitality || 0, state.itemsCount || 0);
-        return { ...u, totalScore: score };
-      })
-      .sort((a, b) => b.totalScore - a.totalScore);
-
-    return ranked[0];
-  }
-
-  /**
-   * Marca a missão diária como completa, concede pontos e RESTAURA VITALIDADE.
-   */
-  completeDailyMission(points: number) {
-    const today = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-    if (this.lastMissionDateSubject.value === today) return false;
-    
-    const user = this.data.users.find(u => u.id === this.currentUserIdSubject.value);
-    if (user) {
-      const state = this.data?.userStates?.[user.id] || this.getDefaultState(user);
-      state.lastMissionDate = today;
-      
-      state.vitality = Math.min(100, state.vitality + 20);
-      this.vitalitySubject.next(state.vitality);
-
-      if (this.data?.userStates) this.data.userStates[user.id] = state;
-
-      this.syncUserPoints(user.id, points, points, "Alimentar Ecossistema (Missão Diária)");
-      
-      this.logTelemetry({
-        action: 'MISSION_COMPLETED',
-        category: 'ECOSYSTEM',
-        details: `Agente alimentou o ecossistema. Vitalidade restaurada para ${state.vitality}% e conquistou ${points} Bio-Coins.`
-      });
-    }
-    return true;
-  }
-
-  /**
-   * Deduz créditos do saldo do usuário (ex: aquisições).
-   */
-  deductPoints(points: number) {
-    const userId = this.currentUserIdSubject.value;
-    if (this.balance < points || !userId) return false;
-    this.syncUserPoints(userId, -points, 0, "Resgate de Recompensa");
-    return true;
-  }
-
-  /**
-   * Transforma pontos Bio-Coins em vitalidade para o ecossistema.
-   */
-  healVitality(points: number) {
-    const userId = this.currentUserIdSubject.value;
-    if (this.balance < points || !userId) return false;
-    
-    const user = this.data.users.find(u => u.id === userId);
-    if (user) {
-      const state = this.data.userStates[user.id] || this.getDefaultState(user);
-      const vitalityGain = Math.floor(points / 10);
-      state.vitality = Math.min(100, state.vitality + vitalityGain);
-      this.data.userStates[user.id] = state;
-      this.vitalitySubject.next(state.vitality);
-
-      this.syncUserPoints(userId, -points, 0, "Restauração de Vitalidade");
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Registra frequência. Faltas reduzem a vitalidade do ecossistema drasticamente.
-   */
-  registerAttendance(status: 'presente' | 'falta') {
-    if (status === 'falta') {
-      this.vitalitySubject.next(Math.max(0, this.vitality - 20));
-      this.saveToStorage();
-    }
-  }
-
-  /**
-   * Lógica de compra de melhorias para o ecossistema.
-   * Verifica saldo, vitalidade mínima e requisitos de outros itens.
-   */
-  buyUpgrade(item: EcosystemItem) {
-    // Catálogo de preços e requisitos
-    const catalog: Record<EcosystemItem, { price: number; minVitality?: number; required?: string }> = {
-      'limpar_rio': { price: 300, minVitality: 70 },
-      'filtro_ar': { price: 200, minVitality: 70 },
-      'reparar_grama': { price: 150, minVitality: 70 },
-      'arvore_1': { price: 200, minVitality: 70, required: 'reparar_grama' },
-      'arvore_2': { price: 200, minVitality: 70, required: 'reparar_grama' },
-      'arvore_3': { price: 200, minVitality: 70, required: 'reparar_grama' },
-      'passaro_1': { price: 150, required: 'arvore_1' },
-      'passaro_2': { price: 150, required: 'arvore_2' },
-      'peixe_1': { price: 100, required: 'limpar_rio' },
-      'peixe_2': { price: 100, required: 'limpar_rio' },
-      'peixe_3': { price: 100, required: 'limpar_rio' },
-      'cachorro': { price: 400, required: 'reparar_grama' },
-      'gato': { price: 400, required: 'reparar_grama' },
-      'coelho': { price: 250, required: 'reparar_grama' },
-      'borboletas': { price: 150, required: 'reparar_grama' },
-      'borboletas_2': { price: 200, required: 'borboletas' },
-      'borboletas_3': { price: 250, required: 'borboletas_2' },
-      'borboletas_4': { price: 300, required: 'borboletas_3' },
-      'passaro_3': { price: 150, required: 'arvore_3' },
-      'casa': { price: 1500, minVitality: 100, required: 'arvore_1' },
-      'barco_1': { price: 500, required: 'limpar_rio' },
-      'barco_2': { price: 600, required: 'barco_1' },
-      'monstro_lago': { price: 5000, required: 'casa' },
-    };
-
-    const upgrade = catalog[item];
-    if (this.purchasedItems.includes(item)) return false;
-    if (upgrade.minVitality && this.vitality < upgrade.minVitality) return false;
-
-    // Regra de Escassez: Nessie (monstro_lago) limitada a 3 por mês
-    if (item === 'monstro_lago' && !this.isNessieAvailable()) {
-      return false;
-    }
-
-    // Itens que bloqueiam os lendários
-    const legendaryItems: EcosystemItem[] = ['casa', 'barco_1', 'barco_2', 'monstro_lago'];
-    const isLegendary = legendaryItems.includes(item);
-
-    if (isLegendary) {
-      // Verifica apenas itens essenciais (árvores, limpeza, cachorro, gato)
-      const essentialItems: EcosystemItem[] = [
-        'limpar_rio', 'filtro_ar', 'reparar_grama', 
-        'arvore_1', 'arvore_2', 'arvore_3',
-        'cachorro'
-      ];
-      if (essentialItems.some(id => !this.purchasedItems.includes(id))) return false;
-    } else if (upgrade.required && !this.purchasedItems.includes(upgrade.required as EcosystemItem)) {
-      return false; // Não possui o item requisito (ex: precisa de árvore para ter pássaro)
-    }
-
-    if (this.balance < upgrade.price || !this.currentUserRa) return false; // Saldo insuficiente
-
-    // Atualiza a lista de itens comprados
-    const newItems = [...this.purchasedItems, item];
-    this.purchasedItemsSubject.next(newItems);
-
-    // Persiste a mudança no estado do usuário para o Firestore
-    const student = this.data.users.find(u => u.ra === this.currentUserRa);
-    
-    let balanceAdjust = -upgrade.price;
-    let pointsAdjust = 0;
-
-    if (student) {
-      const state = this.data.userStates[student.id] || this.getDefaultState(student);
-      state.purchasedItems = newItems;
-      this.data.userStates[student.id] = state;
-
-      // Lógica especial para Nessie: Persistência dedicada em coleção própria (ecosystemLegends)
-      if (item === 'monstro_lago') {
-        if (!this.isNessieAvailable()) return false;
-
-        const today = new Date();
-        const month = today.getMonth() + 1;
-        const year = today.getFullYear();
-        const dateStr = today.toISOString();
-        
-        state.nessiePurchaseDate = `${year}-${month}-${today.getDate()}`;
-        this.data.userStates[student.id] = state;
-        const legendDoc: EcosystemLegend = {
-          id: `${student.id}-${month}-${year}`,
-          studentId: student.id,
-          studentName: student.name,
-          schoolId: student.schoolId || 'MASTER',
-          month: month,
-          year: year,
-          purchaseDate: dateStr,
-          benefitActive: true
-        };
-
-        // Salva na coleção dedicada solicitada pelo USER
-        setDoc(doc(db, "ecosystemLegends", legendDoc.id), legendDoc).catch(err => {
-          console.error("[FIREBASE] Erro ao salvar lenda dedicada:", err);
-        });
-      }
-    }
-
-    // Se comprar a 'casa' (item máximo), ganha um bônus especial de pontos
-    if (item === 'casa') {
-      pointsAdjust = 5000;
-      balanceAdjust += 5000;
-    }
-
-    const itemLabel = item.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-    // Sincroniza e salva
-    this.syncUserPoints(this.currentUserRa, balanceAdjust, pointsAdjust, `Adquiriu: ${itemLabel}`);
-
-    this.logTelemetry({
-      action: 'ITEM_PURCHASED',
-      category: 'ECOSYSTEM',
-      details: `Compra de melhoria de ecossistema: ${item}`,
-      studentName: student?.name,
-      metadata: { item, cost: upgrade.price }
-    });
-    return true;
-  }
-
-  /**
-   * Concede créditos a um usuário específico (Ação Administrativa).
-   * Registra a ação no log de auditoria.
-   */
-  async grantPoints(ra: string, points: number, sector: string, action: string, adminName: string, password?: string, terminalSchoolId?: string): Promise<boolean> {
-    if (password) {
-      const isMatch = await this.verifyPassword(password);
-      if (!isMatch) {
-        await this.logTelemetry({
-          action: 'LOGIN_FAIL',
-          category: 'AUTH',
-          details: `Falha de senha administrativa ao tentar conceder pontos para usuário da unidade.`,
-          unitId: terminalSchoolId
-        });
-        return false;
-      }
-    }
-
-    const currentAdmin = this.data?.users?.find(u => u.ra === this.currentUserRa);
-    const isSystemAction = adminName === 'SISTEMA' || adminName === 'SchoolGain Security';
-
-    if (!isSystemAction && (!currentAdmin || (currentAdmin.role !== 'admin' && currentAdmin.role !== 'super_admin'))) {
-      console.error('[SECURITY] Tentativa de conceder pontos por usuário não autorizado');
-      return false;
-    }
-
-    const cleanRa = ra.toUpperCase().trim();
-    const student = (this.data?.users || []).find(u => u.ra === cleanRa);
-    if (!student) return false;
-
-    this.syncUserPoints(ra, points, points, `${action} (${sector})`);
-
-    // Registra na Telemetria (Rastreabilidade Total)
-    await this.logTelemetry({
-      action: 'POINTS_AWARDED',
-      category: 'ECOSYSTEM',
-      details: `${points} Bio-Coins concedidos a ${student.name} no setor ${sector}. Motivo: ${action}`,
-      targetEntity: 'users',
-      targetId: student.id,
-      studentName: student.name,
-      points: points,
-      unitId: terminalSchoolId || student.schoolId,
-      metadata: { points, sector, action }
-    });
-
-    return true;
-  }
-
-  /**
-   * Registra o processamento de resíduos e atribui créditos ao usuário.
-   */
-  registerWaste(ra: string, type: WasteType, weightKg: number, terminalSchoolId?: string) {
-    const cleanRa = ra.toUpperCase().trim();
-    const student = (this.data?.users || []).find(u => u.ra?.toUpperCase() === cleanRa);
-    if (!student) {
-      // Log removido para produção
-      return false;
-    }
-
-    // 1. Gera pontos baseados no mapeamento de constantes (ex: Plástico=10, Metal=15)
-    // Multiplicamos pelo peso apenas se o peso for significativo (> 1kg), caso contrário assume 1 unidade
-    const basePoints = POINTS_MAPPING[type] || 0;
-    const points = weightKg >= 1 ? Math.floor(weightKg * basePoints) : basePoints;
-
-    const newEntry: WasteEntry = {
-      id: EcosystemService.generateStandardId('wst', student.schoolId),
-      date: new Date().toISOString(),
-      type: type,
-      collected: weightKg,
-      studentId: student.id,
-      schoolId: terminalSchoolId || student.schoolId,
-      points: points
-    };
-
-    // Log de registro de resíduos suprimido para produção (Telemetria ativa)
-
-    this.logTelemetry({
-      action: 'POINTS_AWARDED',
-      category: 'ECOSYSTEM',
-      details: `Coleta de resíduos (${type}): ${weightKg}kg convertidos em ${points} Bio-Coins.`,
-      studentName: student.name,
-      targetId: student.id,
-      points: points,
-      unitId: terminalSchoolId || student.schoolId
-    });
-
-    this.addPoints(points, cleanRa, `Coleta de ${type} (${weightKg.toFixed(3)} kg)`);
-
-    this.data.wasteEntries = [...(this.data.wasteEntries || []), newEntry];
-    this.wasteEntriesSubject.next([...this.data.wasteEntries]);
-
-    // Salva no Firestore
-    setDoc(doc(db, "wasteEntries", newEntry.id), newEntry).catch(err => {
-      console.error("[FIREBASE] Erro ao salvar coleta:", err);
-    });
-
-    this.saveToStorage();
-
-    return true;
-  }
-
-  /**
-   * Registra que um aluno leu um artigo e concede pontos.
-   */
-  async recordArticleRead(articleId: string): Promise<boolean> {
-    const userId = this.data.currentUserId;
-    if (!userId) return false;
-
-    const student = this.data.users.find(u => u.id === userId);
-    const article = this.data.articles.find(a => a.id === articleId);
-    if (!student || !article) return false;
-
-    const state = this.data.userStates[userId] || this.getDefaultState(student);
-    if (!state.readArticles) state.readArticles = [];
-    
-    // Verifica se já leu para não ganhar pontos repetidos
-    if (state.readArticles.includes(articleId)) return true;
-
-    // Concede 20 pontos por leitura
-    const points = 20;
-    state.readArticles.push(articleId);
-    this.data.userStates[userId] = state;
-    
-    this.syncUserPoints(userId, points, points, `Leitura de Artigo: ${article.title}`);
-
-    await this.logTelemetry({
-      action: 'ARTICLE_READ',
-      category: 'ECOSYSTEM',
-      details: `Artigo lido: ${article.title}. Conquistou ${points} Bio-Coins.`,
-      studentName: student.name,
-      targetEntity: 'articles',
-      targetId: articleId,
-      points: points,
-      unitId: student.schoolId
-    });
-
-    return true;
-  }
-
-  /**
-   * Registra a finalização de um quiz.
-   */
-  async recordQuizCompletion(topicId: string, score: number, difficulty?: string, numQuestions?: number): Promise<boolean> {
-    const userId = this.data.currentUserId;
-    if (!userId) return false;
-
-    const student = this.data.users.find(u => u.id === userId);
-    const topic = this.data.quizTopics.find(t => t.id === topicId);
-    if (!student || !topic) return false;
-
-    const userState = this.data.userStates[userId] || this.getDefaultState(student);
-    
-    // REGRA: Ativação de Vitalidade
-    // 1 quizz de 10 perguntas no médio para ativar a vitalidade 100
-    if (!userState.vitalityActivated && difficulty === 'medium' && (numQuestions || 0) >= 10 && score >= 60) {
-        userState.vitalityActivated = true;
-        userState.vitality = 100;
-        this.data.userStates[userId] = userState;
-        this.syncStateWithUser(userId);
-        // Persiste no Firestore
-        await setDoc(doc(db, "userStates", userId), userState, { merge: true });
-    }
-
-    await this.logTelemetry({
-      action: 'QUIZ_COMPLETED',
-      category: 'ECOSYSTEM',
-      details: `Quiz finalizado: ${topic.name}. Dificuldade: ${difficulty}. Questões: ${numQuestions}. Pontuação: ${score}%`,
-      studentName: student.name,
-      targetEntity: 'quizTopics',
-      targetId: topicId,
-      unitId: student.schoolId,
-      metadata: { score, difficulty, numQuestions }
-    });
-
-    return true;
-  }
-
-  /**
-   * Registra o resgate de uma recompensa física.
-   */
-  async recordRewardRedemption(rewardId: string): Promise<boolean> {
-    const userId = this.data.currentUserId;
-    if (!userId) return false;
-
-    const student = this.data.users.find(u => u.id === userId);
-    const reward = this.data.rewards.find(r => r.id === rewardId);
-    if (!student || !reward) return false;
-
-    await this.logTelemetry({
-      action: 'REWARD_REDEEMED',
-      category: 'ECOSYSTEM',
-      details: `Recompensa resgatada: ${reward.name}. Custo: ${reward.cost} Bio-Coins.`,
-      studentName: student.name,
-      targetEntity: 'rewards',
-      targetId: rewardId,
-      unitId: student.schoolId,
-      metadata: { cost: reward.cost }
-    });
-
-    return true;
-  }
-
-  /**
-   * RESET DE CICLO (FINALIZAÇÃO DE PERÍODO)
-   * --------------------------------------------------------------------------
-   * Este método gerencia o encerramento de um ciclo ou temporada de engajamento. 
-   * 
-   * Procedimentos executados:
-   * 1. Geração de um Snapshot (registro histórico) do estado atual do ranking.
-   * 2. Reinicialização da pontuação de todos os usuários para um novo ciclo.
-   * 3. Limpeza de entradas de dados, preservando a integridade na Telemetria.
-   */
-  async performCycleReset(password: string, schoolId?: string) {
-    const isMatch = await this.verifyPassword(password);
-    if (!isMatch) {
-      console.error('[SECURITY] Senha incorreta para reset de ciclo');
-      return false;
-    }
-
-    const currentAdmin = this.data?.users?.find(u => u.ra === this.currentUserRa);
-    if (!currentAdmin || currentAdmin.role !== 'super_admin') {
-      console.error('[SECURITY] Tentativa de reset de ciclo por usuário não autorizado');
-      return false;
-    }
-
-    // 1. GERA SNAPSHOT
-    const participants = (this.data?.users || []).filter(u => (u.role === 'student' || u.role === 'staff' || u.role === 'admin') && (!schoolId || u.schoolId === schoolId));
-    const relevantWaste = (this.data?.wasteEntries || []).filter(w => !schoolId || w.schoolId === schoolId);
-
-    const snapshot: CycleSnapshot = {
-      id: `cycle-${Date.now()}`,
-      endDate: new Date().toISOString(),
-      totalWasteKg: relevantWaste.reduce((acc, curr) => acc + curr.collected, 0),
-      totalPoints: participants.reduce((acc, curr) => {
-        const state = this.data.userStates[curr.id] || this.getDefaultState(curr);
-        return acc + (state.points || 0);
-      }, 0),
-      topStudents: [...participants]
-        .sort((a, b) => {
-          const stateA = this.data.userStates[a.id] || this.getDefaultState(a);
-          const stateB = this.data.userStates[b.id] || this.getDefaultState(b);
-          return (stateB.points || 0) - (stateA.points || 0);
-        })
-        .slice(0, 5)
-        .map(s => {
-          const state = this.data.userStates[s.id] || this.getDefaultState(s);
-          return { name: s.name, points: state.points || 0, studentId: s.id };
-        }),
-      wasteByType: relevantWaste.reduce((acc, curr) => {
-        acc[curr.type] = (acc[curr.type] || 0) + curr.collected;
-        return acc;
-      }, {} as Record<string, number>),
-      schoolId
-    };
-
-    // 2. SALVA NO HISTÓRICO E LOGA TELEMETRIA
-    this.data.resetHistory = [snapshot, ...(this.data.resetHistory || [])];
-    this.resetHistorySubject.next(this.data.resetHistory);
-
-    await this.logTelemetry({
-      action: 'SYSTEM_RESET',
-      category: 'SYSTEM',
-      details: `Reset de ciclo executado para ${schoolId === 'all' ? 'toda a rede' : `unidade ${schoolId}`}`,
-      unitId: schoolId === 'all' ? 'MASTER' : schoolId,
-      metadata: { snapshotId: snapshot.id, totalPoints: snapshot.totalPoints, totalWaste: snapshot.totalWasteKg }
-    });
-
-    // 3. LIMPEZA DE DADOS (RESET)
-    // Zera pontos e níveis dos usuários no userStates
-    for (const u of participants) {
-      const state = this.data.userStates[u.id] || this.getDefaultState(u);
-      state.points = 0;
-      state.level = 'Semente';
-      state.id = u.id;
-      state.schoolId = u.schoolId;
-      
-      this.data.userStates[u.id] = state;
-      await setDoc(doc(db, "userStates", u.id), state);
-    }
-
-    // Sincroniza as listas locais para refletir os novos estados zerados
-    this.syncCombinedUsers(false);
-
-    // Limpa coletas
-    if (this.data.wasteEntries) {
-      this.data.wasteEntries = this.data.wasteEntries.filter(w => schoolId && w.schoolId !== schoolId);
-    }
-
-    // Limpa logs de auditoria
-    if (this.data.auditLogs) {
-      this.data.auditLogs = this.data.auditLogs.filter(l => schoolId && l.unitId !== schoolId);
-    }
-
-    // Reseta estados de ecossistema (vitalidade e itens)
-    Object.keys(this.data.userStates).forEach(id => {
-      const user = this.data.users.find(u => u.id === id);
-      if (user && (!schoolId || user.schoolId === schoolId)) {
-        this.data.userStates[id] = this.getDefaultState(user);
-      }
-    });
-
-    // 4. NOTIFICA E PERSISTE NO FIRESTORE
-    this.usersSubject.next([...this.data.users]);
-    this.wasteEntriesSubject.next([...this.data.wasteEntries]);
-    this.auditLogsSubject.next([...this.data.auditLogs]);
-
-    // Salva o snapshot no Firestore
-    setDoc(doc(db, "resetHistory", snapshot.id), snapshot);
-
-    // Atualiza todos os usuários resetados no Firestore usando ID único
-    this.data.users.forEach(u => {
-      if (u.role === 'student' && (!schoolId || u.schoolId === schoolId)) {
-        setDoc(doc(db, this.getUserCollection(u.role), u.id), this.sanitizeUserForFirestore(u));
-      }
-    });
-
-    // Limpa estados de ecossistema no Firestore
-    Object.keys(this.data.userStates).forEach(id => {
-      const user = this.data.users.find(u => u.id === id);
-      if (user && (!schoolId || user.schoolId === schoolId)) {
-        setDoc(doc(db, "userStates", id), this.data.userStates[id]);
-      }
-    });
-
-    // Se o usuário logado foi resetado, atualiza saldo local
-    if (this.data.currentUserId) {
-      this.syncStateWithUser(this.data.currentUserId);
-    }
-
-    this.saveToStorage();
-    return true;
-  }
-
-  addPoints(points: number, studentRa?: string, description?: string) {
-    const targetRa = (studentRa || this.currentUserRa)?.toUpperCase().trim();
-    if (targetRa) {
-      this.syncUserPoints(targetRa, points, points, description || "Bônus de Ecossistema");
-    }
-  }
-
-  /**
-   * Bônus por avistar um evento especial no sistema.
-   */
-  grantSightingBonus(ra: string) {
-    this.syncUserPoints(ra, 50, 50, "Bônus: Nessie Avistada na Biosfera!");
-    return true;
-  }
-
-  /**
-   * Verifica se um identificador está em período de bloqueio.
-   */
-  getLockoutStatus(id: string): { isLocked: boolean, remainingSeconds: number } {
-    const cleanId = id.trim().toLowerCase();
-    const security = this.data.securityState?.[cleanId];
-
-    if (!security || !security.lockoutUntil) return { isLocked: false, remainingSeconds: 0 };
-
-    const now = new Date();
-    const lockoutDate = new Date(security.lockoutUntil);
-
-    if (now < lockoutDate) {
-      return {
-        isLocked: true,
-        remainingSeconds: Math.ceil((lockoutDate.getTime() - now.getTime()) / 1000)
-      };
-    }
-
-    return { isLocked: false, remainingSeconds: 0 };
-  }
-
-  /**
-   * Autentica um usuário pelo RA ou RFID.
-   */
-  async login(id: string, password?: string) {
-    const cleanId = id.trim();
-    const cleanPassword = password?.trim();
-    const securityKey = cleanId.toLowerCase();
-
-    // 1. Verifica Lockout
-    const lockout = this.getLockoutStatus(cleanId);
-    if (lockout.isLocked) {
-      return false;
-    }
-
-    // Busca insensível a maiúsculas/minúsculas para RA, RFID e Email
-    const user = (this.data?.users || []).find(u =>
-      (u.ra && u.ra.toLowerCase() === cleanId.toLowerCase()) ||
-      (u.rfid && u.rfid.toLowerCase() === cleanId.toLowerCase()) ||
-      (u.email && u.email.toLowerCase() === cleanId.toLowerCase())
-    );
-
-    if (user) {
-      // 2. Verifica se o usuário ou a escola estão ativos
-      if (user.status === 'inactive') {
-        // Log removido para produção
-        return false;
-      }
-
-      if (user.schoolId && user.schoolId !== 'global') {
-        const school = this.data.schools.find(s => s.id === user.schoolId);
-        if (school && (school.status === 'inactive' || school.status === 'suspended')) {
-          // Log removido para produção
-          return false;
-        }
-      }
-
-      // 3. Lógica diferenciada por cargo
-      if (cleanPassword) {
-        if (user.role === 'super_admin') {
-          // Super Admins continuam usando a segurança nativa do Firebase Auth
-          try {
-            await signInWithEmailAndPassword(auth, user.email!, cleanPassword);
-          } catch (firebaseError: any) {
-            console.error("[FIREBASE] Falha no login do Super Admin:", firebaseError);
-            this.handleFailedLogin(securityKey);
-            return false;
-          }
-        } else {
-          // Gestores e Usuários utilizam a lógica SHA-256 customizada
-          const hashedInput = await EcosystemService.hashPassword(cleanPassword);
-          const isMatch = user.password === hashedInput || user.password === cleanPassword;
-
-          if (!isMatch) {
-            this.handleFailedLogin(securityKey);
-            return false;
-          }
-        }
-      }
-
-      const ra = user.ra!;
-      this.data.currentUserRa = ra;
-      this.data.currentUserId = user.id;
-      this.currentUserRaSubject.next(ra);
-      this.currentUserIdSubject.next(user.id);
-      this.syncStateWithUser(user.id);
-      
-      // Se for gestor, iniciamos a sincronização em massa da unidade
-      if ((user.role === 'admin' || user.role === 'super_admin') && user.schoolId) {
-        this.initAdminSync(user.schoolId);
-      }
-
-      this.resetSecurityState(securityKey);
-
-      // Telemetria de Login
-      await this.logTelemetry({
-        action: 'LOGIN_SUCCESS',
-        category: 'AUTH',
-        details: `Login realizado com sucesso: ${user.name} (${user.role})`,
-      unitId: user.schoolId === 'MASTER' || !user.schoolId ? 'MASTER' : user.schoolId
-      });
-
-      this.saveToStorage();
-      return true;
-    }
-
-    await this.logTelemetry({
-      action: 'LOGIN_FAIL',
-      category: 'AUTH',
-      details: `Falha de autenticação para credencial protegida.`
-    });
-    this.handleFailedLogin(securityKey);
-    return false;
-  }
-
-  /**
-   * Registra uma falha de login e aplica bloqueio se necessário.
-   */
-  private handleFailedLogin(id: string) {
-    if (!this.data.securityState) this.data.securityState = {};
-
-    const security = this.data.securityState[id] || { failedAttempts: 0, lockoutUntil: null };
-    security.failedAttempts += 1;
-
-    // Bloqueio progressivo: 5, 10, 15... falhas
-    if (security.failedAttempts >= 5) {
-      const minutes = Math.min(60, Math.pow(2, Math.floor(security.failedAttempts / 5)) * 5);
-      const lockoutDate = new Date();
-      lockoutDate.setMinutes(lockoutDate.getMinutes() + minutes);
-      security.lockoutUntil = lockoutDate.toISOString();
-
-      this.grantPoints('SECURITY_ALERT', 0, 'SISTEMA', `BLOQUEIO: ${id} após ${security.failedAttempts} falhas`, 'SchoolGain Security');
-    }
-
-    this.data.securityState[id] = security;
-    this.saveToStorage();
-  }
-
-  /**
-   * Reseta o estado de segurança após sucesso.
-   */
-  private resetSecurityState(id: string) {
-    if (this.data.securityState?.[id]) {
-      delete this.data.securityState[id];
-      this.saveToStorage();
-    }
-  }
-
-  /**
-   * Identifica um usuário especificamente para o Kiosk, sem mudar o login global.
-   */
-  identifyKioskUser(ra: string | null) {
-    const cleanRa = ra?.toUpperCase().trim() || null;
-    this.kioskUserRaSubject.next(cleanRa);
-    if (cleanRa) {
-      const user = this.data.users.find(u => u.ra?.toUpperCase() === cleanRa);
-      if (user) {
-        this.syncStateWithUser(user.id);
-      }
-    }
-  }
-
-
-  /**
-   * Finaliza a sessão do usuário.
-   */
-  logout() {
-    this.data.currentUserRa = null;
-    this.data.currentUserId = null;
-    this.currentUserRaSubject.next(null);
-    this.balanceSubject.next(0);
-    this.vitalitySubject.next(100);
-    this.purchasedItemsSubject.next([]);
-    this.lastMissionDateSubject.next(null);
-    this.saveToStorage();
-
-    // Sign out from Firebase
-    signOut(auth).catch(err => console.error("[FIREBASE] Erro ao deslogar:", err));
-  }
-
-  // Funções de atualização em massa (usadas no painel admin)
-  async updateUsers(newUsers: User[], targetSchoolId?: string): Promise<{ success: boolean, error?: string }> {
-    if (!this.checkAdminAuth()) return { success: false, error: 'Não autorizado' };
-
-    try {
-      // Validação Global de Dados Críticos Duplicados (Email, RA, RFID)
-      const emails = new Map<string, {name: string, role: string}>();
-      const ras = new Map<string, {name: string, role: string}>();
-      const rfids = new Map<string, {name: string, role: string}>();
-
-      const getRoleLabel = (role: string) => {
-        switch(role) {
-          case 'admin': return 'O gestor';
-          case 'super_admin': return 'O super gestor';
-          case 'student': return 'O aluno';
-          case 'visitor': return 'O visitante';
-          default: return 'O usuário';
-        }
-      };
-
-      // Filtra usuários que NÃO estão no lote de atualização para checagem global
-      const existingOtherUsers = this.data.users.filter(u => !newUsers.some(nu => nu.id === u.id));
-
-      // 1. Identifica quais usuários mudaram ou são novos
-      const changedUsers = newUsers.filter(newUser => {
-        const oldUser = this.data.users.find(u => u.id === newUser.id);
-        if (!oldUser) return true; // Novo usuário
-        
-        // Compara campos de forma profunda para detectar qualquer mudança
-        return JSON.stringify(oldUser) !== JSON.stringify(newUser);
-      });
-
-      for (const u of changedUsers) {
-        // 1. Validar Email
-        if (u.email) {
-          u.email = u.email.toLowerCase().trim();
-          
-          // Checagem interna no lote
-          const internalConflict = newUsers.find(nu => nu.id !== u.id && nu.email?.toLowerCase() === u.email);
-          if (internalConflict) {
-            return { success: false, error: `Conflito de e-mail: ${u.email}. Já em uso por ${internalConflict.name} (${getRoleLabel(internalConflict.role || '').toLowerCase()}).` };
-          }
-
-          // Checagem global (outras escolas ou usuários não incluídos no lote)
-          const globalConflict = existingOtherUsers.find(ou => ou.email?.toLowerCase() === u.email);
-          if (globalConflict) {
-            return { success: false, error: `Conflito de e-mail: ${u.email}. Já em uso por ${globalConflict.name} (${getRoleLabel(globalConflict.role || '').toLowerCase()}).` };
-          }
-        }
-
-        // 2. Validar RA
-        if (u.ra) {
-          u.ra = u.ra.toUpperCase().trim();
-          
-          const internalConflict = newUsers.find(nu => nu.id !== u.id && nu.ra?.toUpperCase() === u.ra);
-          if (internalConflict) {
-             return { success: false, error: `Conflito de RA: ${u.ra}. ${getRoleLabel(internalConflict.role || '')} ${internalConflict.name} já utiliza este código.` };
-          }
-
-          const globalConflict = existingOtherUsers.find(ou => ou.ra?.toUpperCase() === u.ra);
-          if (globalConflict) {
-            return { success: false, error: `Conflito de RA: ${u.ra}. ${getRoleLabel(globalConflict.role || '')} ${globalConflict.name} já utiliza este código.` };
-          }
-        }
-
-        // 3. Validar RFID
-        if (u.rfid) {
-          u.rfid = u.rfid.toUpperCase().trim();
-          
-          const internalConflict = newUsers.find(nu => nu.id !== u.id && nu.rfid?.toUpperCase() === u.rfid);
-          if (internalConflict) {
-             return { success: false, error: `Conflito de RFID: ${u.rfid}. Já em uso por ${internalConflict.name} (${getRoleLabel(internalConflict.role || '').toLowerCase()}).` };
-          }
-
-          const globalConflict = existingOtherUsers.find(ou => ou.rfid?.toUpperCase() === u.rfid);
-          if (globalConflict) {
-            return { success: false, error: `Conflito de RFID: ${u.rfid}. Já em uso por ${globalConflict.name}.` };
-          }
-        }
-
-        // 4. Normalizar campos de texto
-        if (u.name) u.name = u.name.toUpperCase().trim();
-        if (u.turma) u.turma = u.turma.toUpperCase().trim();
-        if (u.curso) u.curso = u.curso.toUpperCase().trim();
-        if (u.position) u.position = u.position.toUpperCase().trim();
-        if (!u.status) u.status = 'active';
-      }
-
-      // 1. Identifica usuários removidos
-      // Se targetSchoolId for fornecido, apenas remove usuários daquela escola que não estão na nova lista
-      const removedUsers = this.data.users.filter(oldU => {
-        const isInNewList = newUsers.find(newU => newU.id === oldU.id);
-        if (targetSchoolId) {
-          return oldU.schoolId === targetSchoolId && !isInNewList;
-        }
-        return !isInNewList;
-      });
-
-      // 2. Mescla os usuários (Preserva usuários de outras escolas se a lista for parcial/filtrada)
-      let uniqueUsers: User[];
-      if (targetSchoolId) {
-        const otherSchoolsUsers = this.data.users.filter(u => u.schoolId !== targetSchoolId);
-        uniqueUsers = [...otherSchoolsUsers, ...newUsers];
-      } else {
-        uniqueUsers = Array.from(new Map(newUsers.map(u => [u.id, u])).values());
-      }
-
-      // 3. O estado de changedUsers já foi calculado no início da função para validação
-
-
-      const oldData = [...this.data.users];
-      this.data.users = uniqueUsers;
-      this.usersSubject.next([...uniqueUsers]);
-
-      // Sincroniza apenas os alterados no Firestore
-      await Promise.all([
-        // Deleta os removidos
-        ...removedUsers.flatMap(u => [
-          deleteDoc(doc(db, this.getUserCollection(u.role), u.id)),
-          deleteDoc(doc(db, "userStates", u.id)),
-          ...(u.ra ? [deleteDoc(doc(db, this.getUserCollection(u.role), u.ra))] : [])
-        ]),
-
-        // Salva/Atualiza os novos ou modificados
-        ...changedUsers.flatMap(u => {
-          const oldUser = oldData.find(old => old.id === u.id);
-          const isNew = !oldUser;
-
-          // Se o RA mudou, precisamos apagar o documento antigo (que usava o RA como ID)
-          if (oldUser && oldUser.ra && oldUser.ra !== u.ra) {
-            deleteDoc(doc(db, this.getUserCollection(u.role), oldUser.ra)).catch(e => console.error("Erro ao limpar RA antigo:", e));
-          }
-
-          const ops = [setDoc(doc(db, this.getUserCollection(u.role), u.id), this.sanitizeUserForFirestore(u))];
-          
-          // Se for novo e for estudante/visitante, inicializa o estado de vitalidade
-          if (isNew && (u.role === 'student' || u.role === 'visitor')) {
-            ops.push(setDoc(doc(db, "userStates", u.id), this.getDefaultState(u)));
-          }
-          
-          return ops;
-        })
-      ]);
-
-      // Telemetria
-      if (removedUsers.length > 0) {
-        await this.logTelemetry({
-          action: 'CRUD_DELETE',
-          category: 'DATA',
-          details: `Exclusão de ${removedUsers.length} usuários.`,
-          targetEntity: 'users',
-          metadata: { ids: removedUsers.map(u => u.id), names: removedUsers.map(u => u.name) }
-        });
-      }
-
-      if (changedUsers.length > 0) {
-        for (const u of changedUsers) {
-          const isNew = !oldData.find(old => old.id === u.id);
-          await this.logTelemetry({
-            action: isNew ? 'CRUD_CREATE' : 'CRUD_UPDATE',
-            category: 'DATA',
-            details: `${isNew ? 'Criação' : 'Atualização'} do usuário: ${u.name} (${u.role})`,
-            targetEntity: 'users',
-            targetId: u.id,
-            unitId: u.schoolId,
-            metadata: { snapshot: u }
-          });
-        }
-      }
-
-      this.saveToStorage();
-      return { success: true };
-    } catch (error: any) {
-      console.error("[ECOSYSTEM] Erro ao atualizar usuários:", error);
-      return { success: false, error: error.message || 'Erro interno no banco de dados' };
-    }
-  }
-
-
-  /**
-   * Remove um usuário individual do sistema de forma segura.
-   * Utiliza a lógica de sincronização do updateUsers para evitar órfãos.
-   */
-  async deleteUser(userId: string): Promise<boolean> {
-    if (!this.checkAdminAuth()) return false;
-    const user = this.data.users.find(u => u.id === userId);
-    if (!user) return false;
-    
-    // Filtra para remover apenas o usuário alvo da sua respectiva unidade
-    const otherUsersOfSchool = this.data.users.filter(u => u.schoolId === user.schoolId && u.id !== userId);
-    const result = await this.updateUsers(otherUsersOfSchool, user.schoolId);
-    return result.success;
-  }
-
-
-  async deleteReward(id: string, targetSchoolId?: string): Promise<boolean> {
-    if (!this.checkAdminAuth()) return false;
-    
-    // Se targetSchoolId for fornecido, garante que o item pertence à unidade
-    if (targetSchoolId) {
-      const reward = this.data.rewards.find(r => r.id === id);
-      if (reward && reward.schoolId !== targetSchoolId) return false;
-    }
-
-    this.data.rewards = this.data.rewards.filter(r => r.id !== id);
-    this.rewardsSubject.next([...this.data.rewards]);
-    try {
-      const reward = this.data.rewards.find(r => r.id === id);
-      await deleteDoc(doc(db, "rewards", id));
-
-      this.logTelemetry({
-        action: 'CRUD_DELETE',
-        category: 'DATA',
-        details: `Recompensa excluída: ${reward?.name || id}`,
-        targetEntity: 'rewards',
-        targetId: id,
-        unitId: targetSchoolId || reward?.schoolId
-      });
-
-      this.saveToStorage();
-      return true;
-    } catch (error) { return false; }
-  }
-
-  async deleteArticle(id: string, targetSchoolId?: string): Promise<boolean> {
-    if (!this.checkAdminAuth()) return false;
-    
-    if (targetSchoolId) {
-      const article = this.data.articles.find(a => a.id === id);
-      if (article && article.schoolId !== targetSchoolId) return false;
-    }
-
-    this.data.articles = this.data.articles.filter(a => a.id !== id);
-    this.articlesSubject.next([...this.data.articles]);
-    try {
-      const article = this.data.articles.find(a => a.id === id);
-      await deleteDoc(doc(db, "articles", id));
-
-      this.logTelemetry({
-        action: 'CRUD_DELETE',
-        category: 'DATA',
-        details: `Artigo excluído: ${article?.title || id}`,
-        targetEntity: 'articles',
-        targetId: id,
-        unitId: targetSchoolId || article?.schoolId
-      });
-
-      this.saveToStorage();
-      return true;
-    } catch (error) { return false; }
-  }
-
-  async updateRewards(newRewards: Reward[], targetSchoolId?: string): Promise<boolean> {
-    if (!this.checkAdminAuth()) return false;
-
-    try {
-      const removedItems = this.data.rewards.filter(oldI => {
-        const isInNewList = newRewards.find(newI => newI.id === oldI.id);
-        if (targetSchoolId) {
-          return oldI.schoolId === targetSchoolId && !isInNewList;
-        }
-        return !isInNewList;
-      });
-
-      const changedRewards = newRewards.filter(newR => {
-        const oldR = this.data.rewards.find(r => r.id === newR.id);
-        return !oldR || JSON.stringify(oldR) !== JSON.stringify(newR);
-      });
-
-      // Telemetria CRUD Recompensas
-      if (removedItems.length > 0) {
-        await this.logTelemetry({
-          action: 'CRUD_DELETE',
-          category: 'DATA',
-          details: `Exclusão de ${removedItems.length} recompensas.`,
-          targetEntity: 'rewards',
-          metadata: { ids: removedItems.map(i => i.id) }
-        });
-      }
-
-      for (const r of changedRewards) {
-        const isNew = !this.data.rewards.find(old => old.id === r.id);
-        await this.logTelemetry({
-          action: isNew ? 'CRUD_CREATE' : 'CRUD_UPDATE',
-          category: 'DATA',
-          details: `${isNew ? 'Criação' : 'Edição'} de recompensa: ${r.name}`,
-          targetEntity: 'rewards',
-          targetId: r.id,
-          unitId: r.schoolId,
-          metadata: { snapshot: r }
-        });
-      }
-
-      // Mesclagem segura e Limpeza de Campos Obsoletos (Remoção do RA)
-      let finalRewards: Reward[];
-      const sanitizeReward = (r: Reward) => {
-        const { ra, ...clean } = r as any;
-        return clean as Reward;
-      };
-
-      const sanitizedNewRewards = newRewards.map(sanitizeReward);
-      const sanitizedChangedRewards = changedRewards.map(sanitizeReward);
-
-      if (targetSchoolId) {
-        finalRewards = [
-          ...this.data.rewards.filter(r => r.schoolId !== targetSchoolId), 
-          ...sanitizedNewRewards
-        ];
-      } else {
-        finalRewards = sanitizedNewRewards;
-      }
-
-      this.data.rewards = finalRewards;
-      this.rewardsSubject.next(finalRewards);
-
-      // Sincroniza alterados e deleta removidos
-      await Promise.all([
-        ...removedItems.map(i => deleteDoc(doc(db, "rewards", i.id))),
-        ...sanitizedChangedRewards.map(r => setDoc(doc(db, "rewards", r.id), r))
-      ]);
-
-      this.saveToStorage();
-      return true;
-    } catch (error) {
-      console.error("[ECOSYSTEM] Erro ao atualizar recompensas:", error);
-      return false;
-    }
-  }
-
-  async updateArticles(newArticles: EducationArticle[], targetSchoolId?: string): Promise<boolean> {
-    if (!this.checkAdminAuth()) return false;
-
-    try {
-      const removedItems = this.data.articles.filter(oldI => {
-        const isInNewList = newArticles.find(newI => newI.id === oldI.id);
-        if (targetSchoolId) {
-          return oldI.schoolId === targetSchoolId && !isInNewList;
-        }
-        return !isInNewList;
-      });
-
-      const changedArticles = newArticles.filter(newA => {
-        const oldA = this.data.articles.find(a => a.id === newA.id);
-        return !oldA || JSON.stringify(oldA) !== JSON.stringify(newA);
-      });
-
-      // Telemetria CRUD Artigos
-      if (removedItems.length > 0) {
-        await this.logTelemetry({
-          action: 'CRUD_DELETE',
-          category: 'DATA',
-          details: `Exclusão de ${removedItems.length} artigos educativos.`,
-          targetEntity: 'articles',
-          metadata: { ids: removedItems.map(i => i.id) }
-        });
-      }
-
-      for (const a of changedArticles) {
-        const isNew = !this.data.articles.find(old => old.id === a.id);
-        await this.logTelemetry({
-          action: isNew ? 'CRUD_CREATE' : 'CRUD_UPDATE',
-          category: 'DATA',
-          details: `${isNew ? 'Criação' : 'Edição'} de artigo: ${a.title}`,
-          targetEntity: 'articles',
-          targetId: a.id,
-          unitId: a.schoolId,
-          metadata: { snapshot: a }
-        });
-      }
-
-      // Mesclagem segura
-      let finalArticles: EducationArticle[];
-      if (targetSchoolId) {
-        finalArticles = [...this.data.articles.filter(a => a.schoolId !== targetSchoolId), ...newArticles];
-      } else {
-        finalArticles = newArticles;
-      }
-
-      this.data.articles = finalArticles;
-      this.articlesSubject.next(finalArticles);
-
-      // Sincroniza alterados e deleta removidos
-      await Promise.all([
-        ...removedItems.map(i => deleteDoc(doc(db, "articles", i.id))),
-        ...changedArticles.map(a => setDoc(doc(db, "articles", a.id), a))
-      ]);
-
-      this.saveToStorage();
-      return true;
-    } catch (error) {
-      console.error("[ECOSYSTEM] Erro ao atualizar artigos:", error);
-      return false;
-    }
-  }
-
-  async deleteQuizTopic(id: string, targetSchoolId?: string): Promise<boolean> {
-    if (!this.checkAdminAuth()) return false;
-    
-    if (targetSchoolId) {
-      const topic = this.data.quizTopics.find(t => t.id === id);
-      if (topic && topic.schoolId !== targetSchoolId) return false;
-    }
-
-    this.data.quizTopics = this.data.quizTopics.filter(t => t.id !== id);
-    this.quizTopicsSubject.next([...this.data.quizTopics]);
-    try {
-      await deleteDoc(doc(db, "quizTopics", id));
-      this.saveToStorage();
-      return true;
-    } catch (error) { return false; }
-  }
-
-  async updateQuizTopics(newTopics: QuizTopic[], targetSchoolId?: string): Promise<boolean> {
-    if (!this.checkAdminAuth()) return false;
-
-    try {
-      // Limpeza de segurança: Remove qualquer item inválido ou sem ID das listas
-      const currentTopics = (this.data.quizTopics || []).filter(t => t && t.id);
-      const sanitizedNewTopics = (newTopics || []).filter(t => t && t.id);
-
-      const removedItems = currentTopics.filter(oldI => {
-        const isInNewList = sanitizedNewTopics.find(newI => newI.id === oldI.id);
-        if (targetSchoolId) {
-          return oldI.schoolId === targetSchoolId && !isInNewList;
-        }
-        return !isInNewList;
-      });
-
-      const changedTopics = sanitizedNewTopics.filter(newT => {
-        const oldT = currentTopics.find(t => t.id === newT.id);
-        return !oldT || JSON.stringify(oldT) !== JSON.stringify(newT);
-      });
-
-      // Telemetria CRUD Tópicos
-      if (removedItems.length > 0) {
-        await this.logTelemetry({
-          action: 'CRUD_DELETE',
-          category: 'DATA',
-          details: `Exclusão de ${removedItems.length} tópicos de quiz.`,
-          targetEntity: 'quizTopics',
-          metadata: { ids: removedItems.map(i => i.id) }
-        });
-      }
-
-      for (const t of changedTopics) {
-        const isNew = !currentTopics.find(old => old.id === t.id);
-        await this.logTelemetry({
-          action: isNew ? 'CRUD_CREATE' : 'CRUD_UPDATE',
-          category: 'DATA',
-          details: `${isNew ? 'Criação' : 'Edição'} de tópico de quiz: ${t.name}`,
-          targetEntity: 'quizTopics',
-          targetId: t.id,
-          unitId: t.schoolId,
-          metadata: { snapshot: t }
-        });
-      }
-
-      // Mesclagem segura
-      let finalTopics: QuizTopic[];
-      if (targetSchoolId) {
-        finalTopics = [...currentTopics.filter(t => t.schoolId !== targetSchoolId), ...sanitizedNewTopics];
-      } else {
-        finalTopics = sanitizedNewTopics;
-      }
-
-      this.data.quizTopics = finalTopics;
-      this.quizTopicsSubject.next(finalTopics);
-
-      // Sincroniza alterados e deleta removidos (apenas se tiverem ID válido)
-      const deletePromises = removedItems.map(i => deleteDoc(doc(db, "quizTopics", i.id)));
-      const updatePromises = changedTopics.map(t => setDoc(doc(db, "quizTopics", t.id), t));
-
-      await Promise.all([...deletePromises, ...updatePromises]);
-
-      this.saveToStorage();
-      return true;
-    } catch (error) {
-      console.error("[ECOSYSTEM] Erro ao atualizar tópicos de quiz:", error);
-      return false;
-    }
-  }
-
-  /**
-   * Atualiza a lista de participantes (Equipe Sobre) com geração de ID e sincronização.
-   */
-  async updateParticipants(newParticipants: Participant[]): Promise<boolean> {
-    if (!this.checkAdminAuth()) return false;
-
-    try {
-      // 1. Identifica itens removidos para apagar no Firestore
-      const removedItems = this.data.participants.filter(oldP => 
-        !newParticipants.some(newP => newP.id === oldP.id)
-      );
-
-      for (const item of removedItems) {
-        if (item.id) await deleteDoc(doc(db, "participants", item.id));
-      }
-
-      // 2. Processa novos itens e atualizações
-      const processedParticipants = newParticipants.map(p => ({
-        ...p,
-        id: p.id || EcosystemService.generateStandardId('PART')
-      }));
-
-      // 3. Salva no Firestore
-      for (const p of processedParticipants) {
-        await setDoc(doc(db, "participants", p.id), p);
-      }
-
-      // 4. Atualiza estado local
-      this.data.participants = processedParticipants;
-      this.participantsSubject.next(processedParticipants);
-      this.saveToStorage();
-      
-      return true;
-    } catch (error) {
-      console.error("[ECOSYSTEM] Erro ao atualizar participantes:", error);
-      return false;
-    }
-  }
-
-  async updateTurmas(newTurmas: Turma[], targetSchoolId?: string): Promise<boolean> {
-    if (!this.checkAdminAuth()) return false;
-
-    try {
-      const removedItems = this.data.turmas.filter(oldI => {
-        const isInNewList = newTurmas.find(newI => newI.id === oldI.id);
-        if (targetSchoolId) {
-          return oldI.schoolId === targetSchoolId && !isInNewList;
-        }
-        return !isInNewList;
-      });
-
-      // Telemetria Estrutural (Turmas)
-      if (removedItems.length > 0) {
-        await this.logTelemetry({
-          action: 'CONFIG_CHANGE',
-          category: 'DATA',
-          details: `Atualização estrutural de turmas na unidade. Excluídas: ${removedItems.length}`,
-          targetEntity: 'turmas',
-          metadata: { count: newTurmas.length, removed: removedItems.map(i => i.name) }
-        });
-      }
-
-      // Mesclagem segura
-      let finalTurmas: Turma[];
-      if (targetSchoolId) {
-        finalTurmas = [...this.data.turmas.filter(t => t.schoolId !== targetSchoolId), ...newTurmas];
-      } else {
-        finalTurmas = newTurmas;
-      }
-
-      this.data.turmas = finalTurmas;
-      this.turmasSubject.next([...finalTurmas]);
-
-      await Promise.all([
-        ...removedItems.map(i => deleteDoc(doc(db, "turmas", i.id))),
-        ...newTurmas.map(t => setDoc(doc(db, "turmas", t.id), t))
-      ]);
-      
-      this.saveToStorage();
-      return true;
-    } catch (error) {
-      console.error("[ECOSYSTEM] Erro ao atualizar turmas:", error);
-      return false;
-    }
-  }
-
-  async updateCursos(newCursos: Curso[], targetSchoolId?: string): Promise<boolean> {
-    if (!this.checkAdminAuth()) return false;
-
-    try {
-      const removedItems = this.data.cursos.filter(oldI => {
-        const isInNewList = newCursos.find(newI => newI.id === oldI.id);
-        if (targetSchoolId) {
-          return oldI.schoolId === targetSchoolId && !isInNewList;
-        }
-        return !isInNewList;
-      });
-
-      if (removedItems.length > 0) {
-        await this.logTelemetry({
-          action: 'CONFIG_CHANGE',
-          category: 'DATA',
-          details: `Atualização estrutural de cursos técnicos. Excluídos: ${removedItems.length}`,
-          targetEntity: 'cursos',
-          metadata: { count: newCursos.length, removed: removedItems.map(i => i.name) }
-        });
-      }
-
-      let finalCursos: Curso[];
-      if (targetSchoolId) {
-        finalCursos = [...this.data.cursos.filter(c => c.schoolId !== targetSchoolId), ...newCursos];
-      } else {
-        finalCursos = newCursos;
-      }
-
-      this.data.cursos = finalCursos;
-      this.cursosSubject.next([...finalCursos]);
-
-      await Promise.all([
-        ...removedItems.map(i => deleteDoc(doc(db, "cursos", i.id))),
-        ...newCursos.map(c => setDoc(doc(db, "cursos", c.id), c))
-      ]);
-      
-      this.saveToStorage();
-      return true;
-    } catch (error) {
-      console.error("[ECOSYSTEM] Erro ao atualizar cursos:", error);
-      return false;
-    }
-  }
-
-  async updateCargos(newCargos: Cargo[], targetSchoolId?: string): Promise<boolean> {
-    if (!this.checkAdminAuth()) return false;
-
-    try {
-      const removedItems = this.data.cargos.filter(oldI => {
-        const isInNewList = newCargos.find(newI => newI.id === oldI.id);
-        if (targetSchoolId) {
-          return oldI.schoolId === targetSchoolId && !isInNewList;
-        }
-        return !isInNewList;
-      });
-
-      if (removedItems.length > 0) {
-        await this.logTelemetry({
-          action: 'CONFIG_CHANGE',
-          category: 'DATA',
-          details: `Atualização de cargos administrativos. Excluídos: ${removedItems.length}`,
-          targetEntity: 'cargos',
-          metadata: { count: newCargos.length, removed: removedItems.map(i => i.name) }
-        });
-      }
-
-      let finalCargos: Cargo[];
-      if (targetSchoolId) {
-        finalCargos = [...this.data.cargos.filter(c => c.schoolId !== targetSchoolId), ...newCargos];
-      } else {
-        finalCargos = newCargos;
-      }
-
-      this.data.cargos = finalCargos;
-      this.cargosSubject.next([...finalCargos]);
-
-      await Promise.all([
-        ...removedItems.map(i => deleteDoc(doc(db, "cargos", i.id))),
-        ...newCargos.map(c => setDoc(doc(db, "cargos", c.id), c))
-      ]);
-      
-      this.saveToStorage();
-      return true;
-    } catch (error) {
-      console.error("[ECOSYSTEM] Erro ao atualizar cargos:", error);
-      return false;
-    }
-  }
-
-  async updateSetores(newSetores: SetorEscolar[], targetSchoolId?: string): Promise<boolean> {
-    if (!this.checkAdminAuth()) return false;
-
-    try {
-      const removedItems = this.data.setores.filter(oldI => {
-        const isInNewList = newSetores.find(newI => newI.id === oldI.id);
-        if (targetSchoolId) {
-          return oldI.schoolId === targetSchoolId && !isInNewList;
-        }
-        return !isInNewList;
-      });
-
-      if (removedItems.length > 0) {
-        await this.logTelemetry({
-          action: 'CONFIG_CHANGE',
-          category: 'DATA',
-          details: `Atualização de setores escolares. Excluídos: ${removedItems.length}`,
-          targetEntity: 'setores',
-          metadata: { count: newSetores.length, removed: removedItems.map(i => i.name) }
-        });
-      }
-
-      let finalSetores: SetorEscolar[];
-      if (targetSchoolId) {
-        finalSetores = [...this.data.setores.filter(s => s.schoolId !== targetSchoolId), ...newSetores];
-      } else {
-        finalSetores = newSetores;
-      }
-
-      this.data.setores = finalSetores;
-      this.setoresSubject.next([...finalSetores]);
-
-      await Promise.all([
-        ...removedItems.map(i => deleteDoc(doc(db, "setores", i.id))),
-        ...newSetores.map(s => setDoc(doc(db, "setores", s.id), s))
-      ]);
-      
-      this.saveToStorage();
-      return true;
-    } catch (error) {
-      console.error("[ECOSYSTEM] Erro ao atualizar setores:", error);
-      return false;
-    }
-  }
-
-
-  /**
-   * Altera a senha de um usuário (principalmente gestores).
-   */
-  async changePassword(ra: string, newPassword: string) {
-    const userIndex = this.data.users.findIndex(u => u.ra === ra);
-    if (userIndex !== -1) {
-      const hashedPassword = await EcosystemService.hashPassword(newPassword);
-      const user = this.data.users[userIndex];
-      user.password = hashedPassword;
-      user.mustChangePassword = false;
-
-      this.usersSubject.next([...this.data.users]);
-
-      // Sincroniza no Firestore usando ID único
-      setDoc(doc(db, this.getUserCollection(user.role), user.id), this.sanitizeUserForFirestore(user));
-
-      this.saveToStorage();
-      return true;
-    }
-    return false;
-  }
 
   /**
    * Altera a própria senha, exigindo a senha atual.
@@ -3313,92 +748,260 @@ export class EcosystemService {
 
     this.usersSubject.next([...this.data.users]);
 
-    // Sincroniza no Firestore usando ID único
+    // Sincroniza no Firestore
     setDoc(doc(db, this.getUserCollection(user.role), user.id), this.sanitizeUserForFirestore(user));
 
     this.saveToStorage();
     return true;
   }
 
-  /**
-   * Verifica se a senha fornecida pertence ao usuário atualmente logado.
-   */
-  async verifyPassword(password: string): Promise<boolean> {
-    const ra = this.currentUserRaSubject.value;
-    if (!ra || !this.data?.users) return false;
-    const user = this.data.users.find(u => u.ra === ra);
-    if (!user || !user.password) return false;
-
-    const hashedInput = await EcosystemService.hashPassword(password);
-    return user.password === hashedInput;
-  }
-
-  /**
-   * Cálculo estático da pontuação total.
-   * Considera Bio-Coins, Vitalidade e Itens.
-   */
-  static calculateTotalScore(points: number, vitality: number, itemsCount: number): number {
-    // Prioriza Bio-Coins de coleta e Itens conquistados. 
-    // Vitalidade entra como bônus direto (sem multiplicador de 100) para evitar base de 10k.
+  public static calculateTotalScore(points: number, vitality: number, itemsCount: number): number {
     return Math.floor(points + (itemsCount * 250) + vitality);
   }
 
   /**
-   * Gera um ID padronizado baseado no tipo, unidade e código aleatório.
-   * Padrão: {prefixo}-{schoolId/dados}-{codigo}
+   * Identifica um usuário especificamente para o Kiosk, sem mudar o login global.
    */
-  static generateStandardId(prefix: string, schoolId?: string | null, metadata?: { name?: string, city?: string }): string {
-    const random = Math.random().toString(36).substring(2, 7).toUpperCase();
-    
-    if (prefix === 'super') return `super-${random}`;
-
-    if (prefix === 'school' && metadata?.name && metadata?.city) {
-      // 1. Extrai Iniciais (Ignora preposições)
-      const stopWords = ['DE', 'DA', 'DO', 'DOS', 'DAS', 'E'];
-      const initials = metadata.name
-        .toUpperCase()
-        .split(' ')
-        .filter(word => word.length > 0 && !stopWords.includes(word))
-        .map(word => word[0])
-        .join('');
-
-      // 2. Sanitiza Cidade (Sem espaços e sem acentos)
-      const cleanCity = metadata.city
-        .toUpperCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "") // Remove acentos
-        .replace(/\s+/g, ''); // Remove espaços
-
-      return `SCH-${initials}-${cleanCity}-${random}`;
+  identifyKioskUser(ra: string | null) {
+    const cleanRa = ra?.toUpperCase().trim() || null;
+    this.kioskUserRaSubject.next(cleanRa);
+    if (cleanRa) {
+      const user = this.data.users.find(u => u.ra?.toUpperCase() === cleanRa);
+      if (user) {
+        this.syncStateWithUser(user.id);
+      }
     }
-
-    if (prefix === 'rw' || prefix === 'ctd' || prefix === 'trm' || prefix === 'cur' || prefix === 'crg' || prefix === 'str' || prefix === 'qz') {
-      const cleanSchoolId = !schoolId || schoolId === 'MASTER' ? 'MASTER' : schoolId.replace('school-', '');
-      return `${prefix}-${cleanSchoolId}-${random}`;
-    }
-    
-    // Remove o prefixo 'school-' se existir para o ID ficar mais curto
-    const cleanSchoolId = !schoolId || schoolId === 'MASTER' ? 'MASTER' : schoolId.replace('school-', '');
-    return `${prefix}-${cleanSchoolId}-${random}`;
   }
 
   /**
-   * Determina a classificação visual do usuário (título honorário).
+   * Persiste as preferências de telemetria no log de auditoria.
    */
-  private calculateLevel(score: number, purchasedItems?: EcosystemItem[]): UserLevel {
-    const items = purchasedItems || this.purchasedItems;
+  async logTelemetry(entry: Omit<BehaviorTelemetryEntry, 'id' | 'timestamp'>) {
+    if (typeof window === 'undefined') return;
 
-    // Conquistas especiais por itens
-    if (items.includes('casa')) return 'Guardião da Lenda';
+    const currentUserId = this.data.currentUserId || 'system';
+    const currentUser = this.data.users.find(u => u.id === currentUserId);
 
-    // Progressão por pontuação total
-    if (score >= 20000) return 'Guardião da Biosfera';
-    if (score >= 15000) return 'Floresta';
-    if (score >= 10000) return 'Árvore';
-    if (score >= 5000) return 'Folha';
-    if (score >= 2000) return 'Broto';
+    const log: AuditLogEntry = {
+      ...entry,
+      id: EcosystemService.generateStandardId('log', entry.unitId || 'MASTER'),
+      timestamp: new Date().toISOString(),
+      actorId: entry.actorId || currentUserId,
+      actorName: entry.actorName || currentUser?.name || 'Sistema'
+    };
 
-    return 'Semente';
+
+    this.data.auditLogs = [log, ...(this.data.auditLogs || [])].slice(0, 100);
+    this.auditLogsSubject.next([...this.data.auditLogs]);
+
+    try {
+      await setDoc(doc(db, "auditLogs", log.id), log);
+    } catch (e) {
+      console.error("[TELEMETRY] Falha ao enviar telemetria:", e);
+    }
+
+    this.saveToStorage();
+  }
+
+  // Métodos de Persistência Local (LocalStorage Fallback)
+  private saveToStorage() {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        ...this.data,
+        securityState: this.data.securityState || {}
+      }));
+    } catch (e) {
+      console.error("[STORAGE] Falha ao persistir dados locais:", e);
+    }
+  }
+
+  private loadFromStorage() {
+    if (typeof window === 'undefined') return;
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.resetVersion === this.data.resetVersion) {
+          this.data = {
+            ...this.data,
+            ...parsed,
+            users: parsed.users || [ADMIN_MOCK],
+            userStates: parsed.userStates || {},
+            securityState: parsed.securityState || {},
+            systemSettings: parsed.systemSettings || this.data.systemSettings
+          };
+        }
+      }
+    } catch (e) {
+      console.error("[STORAGE] Erro ao carregar dados locais:", e);
+    }
+  }
+
+  /**
+   * Realiza a limpeza de dados (Sanitization).
+   */
+  async sanitizeData() {
+    try {
+      const globalSettingsSnap = await getDoc(doc(db, "settings", "global"));
+      if (globalSettingsSnap.exists()) {
+        const globalData = globalSettingsSnap.data();
+        const schools = this.data.schools;
+        await Promise.all(schools.map(async (school) => {
+          const schoolSettingsRef = doc(db, "settings", school.id);
+          const schoolSettingsSnap = await getDoc(schoolSettingsRef);
+          
+          if (schoolSettingsSnap.exists()) {
+            await setDoc(schoolSettingsRef, { ...globalData, ...schoolSettingsSnap.data() }, { merge: true });
+          } else {
+            await setDoc(schoolSettingsRef, globalData);
+          }
+        }));
+        await deleteDoc(doc(db, "settings", "global"));
+      }
+    } catch (err) {
+      console.error("[MIGRAÇÃO] Erro ao unificar configurações:", err);
+    }
+
+    this.data.turmas = this.deduplicateByName(this.data.turmas || []);
+    this.data.cursos = this.deduplicateByName(this.data.cursos || []);
+    this.data.cargos = this.deduplicateByName(this.data.cargos || []);
+    this.data.setores = this.deduplicateByName(this.data.setores || []);
+
+    if (!this.data.terminals) this.data.terminals = [];
+    if (!this.data.schools) this.data.schools = [];
+    if (!this.data.articles) this.data.articles = [];
+    if (!this.data.rewards) this.data.rewards = [];
+    if (!this.data.participants) this.data.participants = [];
+    if (!this.data.quizTopics) this.data.quizTopics = [];
+
+    const normalize = (items: any[]) => {
+      if (!items) return [];
+      return items.map(item => {
+        if (!item.schoolId) item.schoolId = 'orphan-fix';
+        return item;
+      });
+    };
+
+    this.data.rewards = normalize(this.data.rewards);
+    this.data.articles = normalize(this.data.articles);
+    this.data.turmas = normalize(this.data.turmas);
+    this.data.cursos = normalize(this.data.cursos);
+    this.data.cargos = normalize(this.data.cargos);
+    this.data.setores = normalize(this.data.setores);
+
+    const uniqueUsers = new Map<string, User>();
+    this.data.users.forEach(u => {
+      const secondaryKey = u.email || u.ra;
+      if (!uniqueUsers.has(u.id) && (!secondaryKey || !uniqueUsers.has(secondaryKey))) {
+        uniqueUsers.set(u.id, u);
+        if (secondaryKey) uniqueUsers.set(secondaryKey, u);
+      }
+    });
+    this.data.users = Array.from(new Set(uniqueUsers.values()));
+
+    if (this.data.users.length < 1) {
+      this.data.users = [ADMIN_MOCK];
+    }
+
+    this.data.schools.forEach(school => {
+      if (school.status === 'active' && school.managerEmail) {
+        const gestorExists = this.data.users.some(u => u.email?.toLowerCase() === school.managerEmail?.toLowerCase());
+        if (!gestorExists) {
+          const newUser: User = {
+            id: EcosystemService.generateStandardId('admin', school.id),
+            name: `Gestor ${school.name}`,
+            email: school.managerEmail,
+            password: ADMIN_MOCK.password,
+            role: 'admin',
+            schoolId: school.id,
+            ra: `G-${school.id.split('-')[1] || Date.now().toString().slice(-4)}`,
+            status: 'active'
+          };
+          this.data.users.push(newUser);
+        }
+      }
+    });
+
+    this.data.users = this.data.users.map(u => {
+      if (u.name) u.name = u.name.toUpperCase().trim();
+      if (u.ra) u.ra = u.ra.toUpperCase().trim();
+      if (u.turma) u.turma = u.turma.toUpperCase().trim();
+      if (u.curso) u.curso = u.curso.toUpperCase().trim();
+      if (u.role) u.role = u.role.toLowerCase() as any;
+      if (!u.status) u.status = 'active';
+      return u;
+    });
+
+    // Migração de Identificadores não-padronizados (ex: RA bruto '74509512007')
+    try {
+      const nonStandardUsers = this.data.users.filter(u => 
+        u.id && 
+        !u.id.startsWith('user-') && 
+        !u.id.startsWith('admin-') && 
+        !u.id.startsWith('super-') && 
+        !u.id.startsWith('staff-') && 
+        !u.id.startsWith('visitor-')
+      );
+
+      if (nonStandardUsers.length > 0) {
+        for (const u of nonStandardUsers) {
+          const oldId = u.id;
+          const role = u.role || 'student';
+          const prefix = role === 'super_admin' ? 'super' : 
+                         role === 'admin' ? 'admin' : 
+                         role === 'staff' ? 'staff' : 
+                         role === 'visitor' ? 'visitor' : 'user-student';
+          
+          const newId = EcosystemService.generateStandardId(prefix as any, u.schoolId || 'orphan-fix');
+          const targetCollection = this.getUserCollection(role);
+          const updatedUser = { ...u, id: newId };
+
+          await setDoc(doc(db, targetCollection, newId), this.sanitizeUserForFirestore(updatedUser));
+          
+          const oldStateSnap = await getDoc(doc(db, "userStates", oldId));
+          if (oldStateSnap.exists()) {
+            const oldState = oldStateSnap.data();
+            await setDoc(doc(db, "userStates", newId), { ...oldState, id: newId });
+            await deleteDoc(doc(db, "userStates", oldId));
+          } else {
+            await setDoc(doc(db, "userStates", newId), this.getDefaultState(updatedUser));
+          }
+
+          await deleteDoc(doc(db, targetCollection, oldId));
+          
+          this.data.users = this.data.users.map(user => user.id === oldId ? updatedUser : user);
+          if (this.data.userStates[oldId]) {
+            this.data.userStates[newId] = { ...this.data.userStates[oldId], id: newId };
+            delete this.data.userStates[oldId];
+          }
+
+          if (this.data.currentUserId === oldId) {
+            this.data.currentUserId = newId;
+            this.currentUserIdSubject.next(newId);
+          }
+
+          await this.logTelemetry({
+            action: 'USER_ID_MIGRATED',
+            category: 'AUTH',
+            details: `ID de usuário migrado do RA legado ${oldId} para o padrão ${newId}`,
+            unitId: u.schoolId || 'MASTER'
+          });
+        }
+      }
+    } catch (err) {
+      console.error("[MIGRATION] Erro ao migrar IDs não-padronizados:", err);
+    }
+
+    if (!this.data.systemSettings) {
+      this.data.systemSettings = {
+        studentLoginMethod: 'all',
+        adminLoginMethod: 'all'
+      };
+    }
+
+    this.saveToStorage();
+    this.notifyAll();
   }
 
   private notifyAll() {
@@ -3420,270 +1023,61 @@ export class EcosystemService {
     }
   }
 
-  /**
-   * Remove itens duplicados de uma lista baseada no nome e ID.
-   */
   private deduplicateByName<T extends { id: string; name: string; schoolId?: string }>(items: T[]): T[] {
     const unique = new Map<string, T>();
     items.forEach(item => {
-      // Chave composta por Nome + Unidade para permitir nomes iguais em escolas diferentes
       const key = `${item.id}-${item.schoolId || 'MASTER'}`;
-      const nameKey = `${item.name.toUpperCase().trim()}-${item.schoolId || 'MASTER'}`;
-      
-      if (!unique.has(key) && !Array.from(unique.values()).some(existing => `${existing.name.toUpperCase().trim()}-${existing.schoolId || 'MASTER'}` === nameKey)) {
-        unique.set(key, item);
-      }
+      unique.set(key, item);
     });
     return Array.from(unique.values());
   }
 
   /**
-   * Realiza a limpeza de dados (Sanitization).
-   * Garante que o sistema não tenha duplicidades ou dados órfãos.
+   * Utilitário global para criação de IDs únicos.
    */
-  async sanitizeData() {
-    // 1. Migração e Unificação de Configurações (Aposentadoria do ID 'global')
-    try {
-      const globalSettingsSnap = await getDoc(doc(db, "settings", "global"));
-      if (globalSettingsSnap.exists()) {
-        const globalData = globalSettingsSnap.data();
-
-        
-        // Propaga campos do global para todas as escolas cadastradas
-        const schools = this.data.schools;
-        await Promise.all(schools.map(async (school) => {
-          const schoolSettingsRef = doc(db, "settings", school.id);
-          const schoolSettingsSnap = await getDoc(schoolSettingsRef);
-          
-          if (schoolSettingsSnap.exists()) {
-            // Unifica os dados (Prioridade para o que já está na escola, mas preenche buracos do global)
-            await setDoc(schoolSettingsRef, { ...globalData, ...schoolSettingsSnap.data() }, { merge: true });
-          } else {
-            // Se a escola não tinha settings, cria com os dados do global
-            await setDoc(schoolSettingsRef, globalData);
-          }
-        }));
-
-        // Remove o documento global após a unificação bem-sucedida
-        await deleteDoc(doc(db, "settings", "global"));
-
-      }
-    } catch (err) {
-      console.error("[MIGRAÇÃO] Erro ao unificar configurações:", err);
-    }
-
-    // 2. Limpeza de Entidades Estruturais
-    this.data.turmas = this.deduplicateByName(this.data.turmas || []);
-    this.data.cursos = this.deduplicateByName(this.data.cursos || []);
-    this.data.cargos = this.deduplicateByName(this.data.cargos || []);
-    this.data.setores = this.deduplicateByName(this.data.setores || []);
-
-    if (!this.data.terminals) this.data.terminals = [];
-    if (!this.data.schools) this.data.schools = [];
-    if (!this.data.articles) this.data.articles = [];
-    if (!this.data.rewards) this.data.rewards = [];
-    if (!this.data.participants) this.data.participants = [];
-    if (!this.data.quizTopics) this.data.quizTopics = [];
-
-    // 2. Higienização de Entidades (Garante que cada item tenha um schoolId válido)
-    const normalize = (items: any[], prefix: string, collection: string) => {
-      if (!items) return [];
-      return items.map(item => {
-        // Garantimos que dados sem unidade não "vazem" como globais indevidamente
-        if (!item.schoolId) item.schoolId = 'orphan-fix';
-        return item;
-      });
-    };
-
-    this.data.rewards = normalize(this.data.rewards, 'rw', 'rewards');
-    this.data.articles = normalize(this.data.articles, 'ctd', 'articles');
-    this.data.turmas = normalize(this.data.turmas, 'trm', 'turmas');
-    this.data.cursos = normalize(this.data.cursos, 'cur', 'cursos');
-    this.data.cargos = normalize(this.data.cargos, 'crg', 'cargos');
-    this.data.setores = normalize(this.data.setores, 'str', 'setores');
-
-    // 3. Gestão de Usuários e Segurança
-    const uniqueUsers = new Map<string, User>();
-    this.data.users.forEach(u => {
-      const secondaryKey = u.email || u.ra;
-      if (!uniqueUsers.has(u.id) && (!secondaryKey || !uniqueUsers.has(secondaryKey))) {
-        uniqueUsers.set(u.id, u);
-        if (secondaryKey) uniqueUsers.set(secondaryKey, u);
-      }
-    });
-    this.data.users = Array.from(new Set(uniqueUsers.values()));
-
-    if (this.data.users.length < 1) {
-      this.data.users = [ADMIN_MOCK];
-    }
-
-    // GARANTE QUE CADA UNIDADE POSSUA UM GESTOR VINCULADO NO SISTEMA
-    this.data.schools.forEach(school => {
-      if (school.status === 'active' && school.managerEmail) {
-        const gestorExists = this.data.users.some(u => u.email?.toLowerCase() === school.managerEmail?.toLowerCase());
-        if (!gestorExists) {
-          const newUser: User = {
-            id: EcosystemService.generateStandardId('admin', school.id),
-            name: `Gestor ${school.name}`,
-            email: school.managerEmail,
-            password: ADMIN_MOCK.password,
-            role: 'admin',
-            schoolId: school.id,
-            ra: `G-${school.id.split('-')[1] || Date.now().toString().slice(-4)}`,
-            status: 'active'
-          };
-          this.data.users.push(newUser);
-        }
-      }
-    });
-
-    this.data.users = this.data.users.map(u => {
-      // Normalização Global (Maiúsculas e Trim)
-      if (u.name) u.name = u.name.toUpperCase().trim();
-      if (u.ra) u.ra = u.ra.toUpperCase().trim();
-      if (u.turma) u.turma = u.turma.toUpperCase().trim();
-      if (u.curso) u.curso = u.curso.toUpperCase().trim();
-
-      // AUTO-CORREÇÃO: Garante que o cargo seja sempre minúsculo para os filtros funcionarem
-      if (u.role) u.role = u.role.toLowerCase() as any;
-
-      // MUDANÇA: Garante status ativo por padrão
-      if (!u.status) u.status = 'active';
-
-      return u;
-    });
-
-    // 4. Configurações de Sistema
-    if (!this.data.systemSettings) {
-      this.data.systemSettings = {
-        studentLoginMethod: 'all',
-        adminLoginMethod: 'all'
-      };
-    }
-
-    this.saveToStorage();
-    this.notifyAll();
-  }
-
-  /**
-   * Solicita um novo cadastro de aluno na escola.
-   */
-  async requestRegistration(data: Omit<RegistrationRequest, 'id' | 'status' | 'createdAt'>): Promise<{ success: boolean, error?: string }> {
-    const sanitizedData = {
-      ...data,
-      name: data.name.toUpperCase().trim(),
-      ra: data.ra.toUpperCase().trim(),
-      rfid: data.rfid?.toUpperCase().trim(),
-      turma: data.turma.toUpperCase().trim(),
-      curso: data.curso.toUpperCase().trim()
-    };
-
-    // 1. Verifica se já existe um usuário com este RA
-    const existingUser = this.data.users.find(u => u.ra?.toUpperCase() === sanitizedData.ra);
-    if (existingUser) {
-      return { success: false, error: 'Este RA já está cadastrado no sistema.' };
-    }
-
-    // 2. Verifica se já existe uma solicitação PENDENTE para este nome e turma
-    const isDuplicate = this.data.registrationRequests.some(req => 
-      req.name.toUpperCase().trim() === sanitizedData.name && 
-      req.turma.toUpperCase().trim() === sanitizedData.turma &&
-      req.status === 'pending'
-    );
-
-    if (isDuplicate) {
-      return { success: false, error: 'Já existe uma solicitação pendente para este aluno nesta turma.' };
-    }
-
-    const newRequest: RegistrationRequest = {
-      ...sanitizedData,
-      id: `req-${Date.now()}-${Math.random().toString(36).slice(-4)}`,
-      status: 'pending',
-      createdAt: new Date().toISOString()
-    };
-
-    // Sincroniza no Firestore
-    await setDoc(doc(db, "registrationRequests", newRequest.id), newRequest);
-    return { success: true };
-  }
-
-  /**
-   * Aprova uma solicitação de cadastro, criando o usuário correspondente.
-   */
-  async approveRegistration(requestId: string) {
-    if (!this.checkAdminAuth()) return false;
+  public static generateStandardId(
+    prefix: 'user-student' | 'admin' | 'super' | 'staff' | 'visitor' | 'school' | 'totem' | 'rw' | 'ctd' | 'trm' | 'cur' | 'crg' | 'str' | 'log' | 'wst' | 'wst-gn' | 'wst-db' | 'wst-exp' | 'qz',
+    schoolId?: string,
+    additional?: { name?: string; city?: string }
+  ): string {
+    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
     
-    const request = this.data.registrationRequests.find(r => r.id === requestId);
-    if (!request) return false;
+    if (prefix === 'school') {
+      const cleanName = (additional?.name || 'sch')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, '')
+        .substring(0, 8)
+        .toUpperCase();
 
-    // 1. Cria o novo usuário
-    const newUser: User = {
-      id: EcosystemService.generateStandardId('user-student', request.schoolId),
-      name: request.name.toUpperCase().trim(),
-      ra: request.ra.toUpperCase().trim(),
-      rfid: request.rfid?.toUpperCase().trim(),
-      turma: request.turma.toUpperCase().trim(),
-      curso: request.curso.toUpperCase().trim(),
-      role: 'student',
-      schoolId: request.schoolId,
-      status: 'active'
-    };
+      const cleanCity = (additional?.city || 'city')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, '')
+        .substring(0, 3)
+        .toUpperCase();
 
-    // 2. Salva o usuário no Firestore (Sanitizado)
-    await setDoc(doc(db, this.getUserCollection(newUser.role), newUser.id), this.sanitizeUserForFirestore(newUser));
-
-    // NOVO: Inicializa o estado de vitalidade e Bio-Coins para o novo usuário
-    await setDoc(doc(db, "userStates", newUser.id), this.getDefaultState(newUser));
-
-    // 3. Remove a solicitação
-    await deleteDoc(doc(db, "registrationRequests", requestId));
-
-    // 4. Log de Telemetria
-    this.logTelemetry({
-      action: 'CRUD_CREATE',
-      category: 'DATA',
-      details: `Gestor aprovou cadastro do aluno: ${newUser.name}`,
-      targetEntity: 'users',
-      targetId: newUser.id
-    });
-
-    return true;
-  }
-
-  /**
-   * Rejeita uma solicitação de cadastro.
-   */
-  async rejectRegistration(requestId: string) {
-    if (!this.checkAdminAuth()) return false;
-    await deleteDoc(doc(db, "registrationRequests", requestId));
-    
-    // Log de Telemetria opcional
-    this.logTelemetry({
-      action: 'CRUD_DELETE',
-      category: 'DATA',
-      details: `Gestor recusou uma solicitação de cadastro pendente.`
-    });
-
-    return true;
-  }
-
-  async updateUserStatus(userId: string, status: 'active' | 'inactive') {
-    if (!this.checkAdminAuth()) return false;
-    const user = this.data.users.find(u => u.id === userId);
-    if (user) {
-      user.status = status;
-      await setDoc(doc(db, this.getUserCollection(user.role), userId), { status }, { merge: true });
-      this.usersSubject.next([...this.data.users]);
-      
-      this.logTelemetry({
-        action: 'CRUD_UPDATE',
-        category: 'DATA',
-        details: `Gestor alterou status do usuário ${user.name} para ${status.toUpperCase()}`,
-        targetEntity: 'users',
-        targetId: userId
-      });
-      return true;
+      return `school-${cleanName}-${cleanCity}-${random}`;
     }
-    return false;
+
+    if (prefix === 'user-student' || prefix === 'admin' || prefix === 'super' || prefix === 'staff' || prefix === 'visitor') {
+      const initials = (additional?.name || 'std')
+        .split(' ')
+        .map(n => n.charAt(0))
+        .join('')
+        .toLowerCase()
+        .substring(0, 3)
+        .toUpperCase();
+
+      const cleanSchoolId = !schoolId || schoolId === 'MASTER' ? 'MASTER' : schoolId.replace('school-', '');
+      const initialsBlock = initials ? `${initials}-` : '';
+
+      return `${prefix}-${cleanSchoolId}-${initialsBlock}${random}`;
+    }
+
+    const cleanSchoolId = !schoolId || schoolId === 'MASTER' ? 'MASTER' : schoolId.replace('school-', '');
+    return `${prefix}-${cleanSchoolId}-${random}`;
   }
 }
