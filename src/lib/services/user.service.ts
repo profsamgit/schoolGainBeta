@@ -1,7 +1,7 @@
 import { db } from '../firebase';
 import { doc, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
 import { EcosystemService } from '../ecosystem.service';
-import type { User } from '../types';
+import type { User, Participant } from '../types';
 
 export class UserService {
   constructor(private service: any) {}
@@ -289,5 +289,12 @@ export class UserService {
       return true;
     }
     return false;
+  }
+
+  updateParticipants(newParticipants: Participant[]): void {
+    if (!this.service.checkAdminAuth()) return;
+    this.service.data.participants = newParticipants;
+    this.service.participantsSubject.next(newParticipants);
+    this.service.saveToStorage();
   }
 }

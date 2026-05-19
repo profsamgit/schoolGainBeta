@@ -1,7 +1,7 @@
 import { db } from '../firebase';
 import { doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { EcosystemService } from '../ecosystem.service';
-import type { School, User } from '../types';
+import type { School, User, Turma, Curso, Cargo, SetorEscolar } from '../types';
 
 export class SchoolService {
   constructor(private service: any) {}
@@ -168,5 +168,33 @@ export class SchoolService {
     } catch (error) {
       throw new Error('Falha no processamento da requisição de remoção.');
     }
+  }
+
+  async updateTurmas(newTurmas: Turma[], sid?: string): Promise<void> {
+    if (!this.service.checkAdminAuth()) return;
+    this.service.data.turmas = newTurmas;
+    this.service.turmasSubject.next([...newTurmas]);
+    this.service.saveToStorage();
+  }
+
+  async updateCursos(newCursos: Curso[], sid?: string): Promise<void> {
+    if (!this.service.checkAdminAuth()) return;
+    this.service.data.cursos = newCursos;
+    this.service.cursosSubject.next([...newCursos]);
+    this.service.saveToStorage();
+  }
+
+  async updateCargos(newCargos: Cargo[], sid?: string): Promise<void> {
+    if (!this.service.checkAdminAuth()) return;
+    this.service.data.cargos = newCargos;
+    this.service.cargosSubject.next([...newCargos]);
+    this.service.saveToStorage();
+  }
+
+  async updateSetores(newSetores: SetorEscolar[], sid?: string): Promise<void> {
+    if (!this.service.checkAdminAuth()) return;
+    this.service.data.setores = newSetores;
+    this.service.setoresSubject.next([...newSetores]);
+    this.service.saveToStorage();
   }
 }

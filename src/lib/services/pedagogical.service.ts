@@ -1,6 +1,6 @@
 import { db } from '../firebase';
-import { doc, setDoc } from 'firebase/firestore';
-import type { User, EcosystemItem } from '../types';
+import { doc, setDoc, deleteDoc } from 'firebase/firestore';
+import type { User, EcosystemItem, Reward, EducationArticle, QuizTopic } from '../types';
 
 export class PedagogicalService {
   constructor(private service: any) {}
@@ -212,5 +212,149 @@ export class PedagogicalService {
       })
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       .slice(0, 3);
+  }
+
+  buyUpgrade(item: EcosystemItem): boolean {
+    const catalog: Record<EcosystemItem, { price: number; minVitality?: number; required?: string }> = {
+      'limpar_rio': { price: 300, minVitality: 70 },
+      'filtro_ar': { price: 200, minVitality: 70 },
+      'reparar_grama': { price: 150, minVitality: 70 },
+      'arvore_1': { price: 200, minVitality: 70, required: 'reparar_grama' },
+      'arvore_2': { price: 200, minVitality: 70, required: 'reparar_grama' },
+      'arvore_3': { price: 200, minVitality: 70, required: 'reparar_grama' },
+      'passaro_1': { price: 150, required: 'arvore_1' },
+      'passaro_2': { price: 150, required: 'arvore_2' },
+      'passaro_3': { price: 150, required: 'arvore_3' },
+      'peixe_1': { price: 100, required: 'limpar_rio' },
+      'peixe_2': { price: 100, required: 'limpar_rio' },
+      'peixe_3': { price: 100, required: 'limpar_rio' },
+      'cachorro': { price: 400, required: 'reparar_grama' },
+      'gato': { price: 400, required: 'reparar_grama' },
+      'coelho': { price: 250, required: 'reparar_grama' },
+      'borboletas': { price: 150, required: 'reparar_grama' },
+      'borboletas_2': { price: 200, required: 'borboletas' },
+      'borboletas_3': { price: 250, required: 'borboletas_2' },
+      'borboletas_4': { price: 300, required: 'borboletas_3' },
+      'casa': { price: 1500, minVitality: 100, required: 'arvore_1' },
+      'barco_1': { price: 500, required: 'limpar_rio' },
+      'barco_2': { price: 600, required: 'barco_1' },
+      'monstro_lago': { price: 5000, required: 'casa' },
+    };
+
+    const upgrade = catalog[item];
+    if (this.service.purchasedItems.includes(item)) return false; 
+    if (upgrade.minVitality && this.service.vitality < upgrade.minVitality) return false; 
+
+    const legendaryItems: EcosystemItem[] = ['casa', 'barco_1', 'barco_2', 'monstro_lago'];
+    const isLegendary = legendaryItems.includes(item);
+
+    if (isLegendary) {
+      const regularItems = Object.keys(catalog).filter(id => !legendaryItems.includes(id as EcosystemItem));
+      if (regularItems.some(id => !this.service.purchasedItems.includes(id as EcosystemItem))) return false;
+    } else if (upgrade.required && !this.service.purchasedItems.includes(upgrade.required as EcosystemItem)) {
+      return false; 
+    }
+
+    if (this.service.balance < upgrade.price || !this.service.currentUserRa) return false; 
+
+    const newItems = [...this.service.purchasedItems, item];
+    this.service.purchasedItemsSubject.next(newItems);
+
+    let balanceAdjust = -upgrade.price;
+    let pointsAdjust = 0;
+
+    if (item === 'casa') {
+      pointsAdjust = 5000;
+      balanceAdjust += 5000;
+      
+      const currentUserId = this.service.data.currentUserId;
+      if (currentUserId) {
+        const state = this.service.data.userStates[currentUserId] || this.service.getDefaultState();
+        const today = new Date();
+        state.nessiePurchaseDate = today.toISOString();
+        this.service.data.userStates[currentUserId] = state;
+        
+        const user = this.service.data.users.find((u: User) => u.id === currentUserId);
+        if (user) {
+          const newLegend = {
+            id: `${user.id}-${today.getMonth() + 1}-${today.getFullYear()}`,
+            studentId: user.id,
+            studentName: user.name,
+            schoolId: user.schoolId || 'global',
+            month: today.getMonth() + 1,
+            year: today.getFullYear(),
+            purchaseDate: today.toISOString(),
+            benefitActive: true
+          };
+          setDoc(doc(db, "ecosystemLegends", newLegend.id), newLegend);
+        }
+      }
+    }
+
+    this.service.syncUserPoints(this.service.data.currentUserId || this.service.currentUserRa, balanceAdjust, pointsAdjust, `Compra de Item: ${item}`);
+    return true;
+  }
+
+  async deleteReward(id: string, sid?: string): Promise<boolean> {
+    if (!this.service.checkAdminAuth()) return false;
+    this.service.data.rewards = this.service.data.rewards.filter((r: any) => r.id !== id);
+    this.service.rewardsSubject.next([...this.service.data.rewards]);
+    try {
+      await deleteDoc(doc(db, "rewards", id));
+      this.service.saveToStorage();
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
+  }
+
+  async deleteArticle(id: string, sid?: string): Promise<boolean> {
+    if (!this.service.checkAdminAuth()) return false;
+    this.service.data.articles = this.service.data.articles.filter((a: any) => a.id !== id);
+    this.service.articlesSubject.next([...this.service.data.articles]);
+    try {
+      await deleteDoc(doc(db, "articles", id));
+      this.service.saveToStorage();
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
+  }
+
+  async deleteQuizTopic(id: string, sid?: string): Promise<boolean> {
+    if (!this.service.checkAdminAuth()) return false;
+    this.service.data.quizTopics = this.service.data.quizTopics.filter((t: any) => t.id !== id);
+    this.service.quizTopicsSubject.next([...this.service.data.quizTopics]);
+    try {
+      await deleteDoc(doc(db, "quizTopics", id));
+      this.service.saveToStorage();
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
+  }
+
+  async updateRewards(newRewards: any[], sid?: string): Promise<void> {
+    if (!this.service.checkAdminAuth()) return;
+    this.service.data.rewards = newRewards;
+    this.service.rewardsSubject.next([...newRewards]);
+    this.service.saveToStorage();
+  }
+
+  async updateArticles(newArticles: any[], sid?: string): Promise<void> {
+    if (!this.service.checkAdminAuth()) return;
+    this.service.data.articles = newArticles;
+    this.service.articlesSubject.next([...newArticles]);
+    this.service.saveToStorage();
+  }
+
+  async updateQuizTopics(newTopics: any[], sid?: string): Promise<void> {
+    if (!this.service.checkAdminAuth()) return;
+    this.service.data.quizTopics = newTopics;
+    this.service.quizTopicsSubject.next([...newTopics]);
+    this.service.saveToStorage();
   }
 }

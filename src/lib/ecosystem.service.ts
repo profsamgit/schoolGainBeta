@@ -1080,4 +1080,65 @@ export class EcosystemService {
     const cleanSchoolId = !schoolId || schoolId === 'MASTER' ? 'MASTER' : schoolId.replace('school-', '');
     return `${prefix}-${cleanSchoolId}-${random}`;
   }
+
+  // Points & Vitality Facades (PointsService)
+  completeDailyMission(points: number) {
+    return this.pointsService.completeDailyMission(points);
+  }
+  deductPoints(points: number) {
+    return this.pointsService.deductPoints(points);
+  }
+  healVitality(points: number) {
+    return this.pointsService.healVitality(points);
+  }
+  registerAttendance(status: 'presente' | 'falta') {
+    this.pointsService.registerAttendance(status);
+  }
+  getGlobalLeader() {
+    return this.pointsService.getGlobalLeader();
+  }
+
+  // Shop & Upgrades (PedagogicalService)
+  buyUpgrade(item: EcosystemItem) {
+    return this.pedagogicalService.buyUpgrade(item);
+  }
+
+  // School, Turmas, Cursos (SchoolService)
+  updateTurmas(newTurmas: Turma[], sid?: string) {
+    return this.schoolService.updateTurmas(newTurmas, sid);
+  }
+  updateCursos(newCursos: Curso[], sid?: string) {
+    return this.schoolService.updateCursos(newCursos, sid);
+  }
+  updateCargos(newCargos: Cargo[], sid?: string) {
+    return this.schoolService.updateCargos(newCargos, sid);
+  }
+  updateSetores(newSetores: SetorEscolar[], sid?: string) {
+    return this.schoolService.updateSetores(newSetores, sid);
+  }
+
+  // CRUD & Users (UserService)
+  updateParticipants(newParticipants: Participant[]) {
+    this.userService.updateParticipants(newParticipants);
+  }
+
+  // Pedagogical CRUD (PedagogicalService)
+  updateRewards(newRewards: Reward[], sid?: string) {
+    return this.pedagogicalService.updateRewards(newRewards, sid);
+  }
+  updateArticles(newArticles: EducationArticle[], sid?: string) {
+    return this.pedagogicalService.updateArticles(newArticles, sid);
+  }
+  updateQuizTopics(newTopics: QuizTopic[], sid?: string) {
+    return this.pedagogicalService.updateQuizTopics(newTopics, sid);
+  }
+  deleteReward(id: string, sid?: string) {
+    return this.pedagogicalService.deleteReward(id, sid);
+  }
+  deleteArticle(id: string, sid?: string) {
+    return this.pedagogicalService.deleteArticle(id, sid);
+  }
+  deleteQuizTopic(id: string, sid?: string) {
+    return this.pedagogicalService.deleteQuizTopic(id, sid);
+  }
 }
