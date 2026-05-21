@@ -133,14 +133,13 @@ export function SecuritySection({
         return;
       }
       const tempPass = `SG-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-      const hashedTemp = await EcosystemService.hashPassword(tempPass);
-      const success = await updateUsers(users.map((u: any) => u.id === userToReset.id ? { ...u, password: hashedTemp, mustChangePassword: true } : u));
-      if (success) {
+      const result = await updateUsers(users.map((u: any) => u.id === userToReset.id ? { ...u, password: tempPass, mustChangePassword: true } : u));
+      if (result.success) {
         setResetGeneratedPass(tempPass);
         setAdminPasswordForAction('');
         toast({ title: "Sucesso", description: "Nova senha gerada!" });
       } else {
-        toast({ title: "Erro na Operação", description: "Falha ao salvar a nova senha no banco.", variant: "destructive" });
+        toast({ title: "Erro na Operação", description: result.error || "Falha ao salvar a nova senha no banco.", variant: "destructive" });
       }
     } catch (err) {
       toast({ title: "Erro", description: "Ocorreu um erro ao redefinir a senha.", variant: "destructive" });
@@ -427,7 +426,7 @@ export function SecuritySection({
                   <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Perfil de Acesso</Label>
                   <Select 
                     disabled={!!editingUser}
-                    value={userFormData.role} 
+                    value={userFormData.role || ""} 
                     onValueChange={(v) => setUserFormData({ ...userFormData, role: v, schoolId: v === 'super_admin' ? 'global' : '' })}
                   >
                     <SelectTrigger className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold">
@@ -445,7 +444,7 @@ export function SecuritySection({
                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Unidade Responsável</Label>
                     <Select 
                       disabled={!!editingUser}
-                      value={userFormData.schoolId} 
+                      value={userFormData.schoolId || ""} 
                       onValueChange={(v) => setUserFormData({ ...userFormData, schoolId: v })}
                     >
                       <SelectTrigger className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold">

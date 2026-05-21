@@ -367,7 +367,7 @@ export function AcademicSection({
                     <QrCode className="h-4 w-4" />
                   </Button>
 
-                  {(user.role === 'admin' || user.role === 'super_admin') && (
+                  {(user.role === 'admin' || user.role === 'super_admin' || user.role === 'staff') && (
                     <Button 
                       variant="ghost" 
                       size="icon" 
@@ -576,7 +576,7 @@ export function AcademicSection({
                         <FormField control={userForm.control} name="position" render={({ field }) => (
                           <FormItem>
                             <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{currentRole === 'staff' ? 'Cargo / Função' : 'Cargo Administrativo'}</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
+                            <Select onValueChange={field.onChange} value={field.value || ""}>
                               <SelectTrigger className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                               <SelectContent className="bg-slate-950 border border-white/10 text-white">
                                 {allCargos.filter(c => c.status === 'active').map(c => (
@@ -590,11 +590,11 @@ export function AcademicSection({
                         )} />
                       )}
 
-                      {userForm.watch('role') !== 'visitor' && (
+                      {(userForm.watch('role') === 'student' || userForm.watch('role') === 'staff') && (
                         <FormField control={userForm.control} name="turma" render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{currentRole === 'student' ? 'Turma' : currentRole === 'staff' ? 'Setor / Departamento' : 'Unidade Responsável'}</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
+                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{currentRole === 'student' ? 'Turma' : 'Setor / Departamento'}</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value || ""}>
                                     <SelectTrigger className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                     <SelectContent className="bg-slate-950 border border-white/10 text-white">
                                         {userForm.watch('role') === 'student' ? (
@@ -612,7 +612,7 @@ export function AcademicSection({
                         <FormField control={userForm.control} name="curso" render={({ field }) => (
                             <FormItem>
                                 <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Curso</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
+                                <Select onValueChange={field.onChange} value={field.value || ""}>
                                     <SelectTrigger className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold"><SelectValue placeholder="Selecione o curso" /></SelectTrigger>
                                     <SelectContent className="bg-slate-950 border border-white/10 text-white">
                                         {sortedCursos.filter(c => c.status === 'active' && c.name !== 'Gestão Escolar').map(c => <SelectItem key={c.id} value={c.name} className="hover:bg-indigo-500/10">{c.name}</SelectItem>)}
@@ -727,7 +727,7 @@ export function AcademicSection({
                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
                   {userRoleFilter === 'admin' || userRoleFilter === 'staff' ? 'Filtrar por Setor' : 'Filtrar por Turma'}
                 </Label>
-                <Select value={userTurmaFilter} onValueChange={setUserTurmaFilter}>
+                <Select value={userTurmaFilter || ""} onValueChange={setUserTurmaFilter}>
                   <SelectTrigger className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold">
                     <SelectValue placeholder={userRoleFilter === 'admin' || userRoleFilter === 'staff' ? "Todos os Setores" : "Todas as Turmas"} />
                   </SelectTrigger>

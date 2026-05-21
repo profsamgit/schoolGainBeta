@@ -112,6 +112,14 @@ export class UserService {
         if (u.curso) u.curso = u.curso.toUpperCase().trim();
         if (u.position) u.position = u.position.toUpperCase().trim();
         if (!u.status) u.status = 'active';
+
+        // Garante que a senha está criptografada (hash SHA-256) antes de salvar no Firestore
+        if (u.password && u.password.trim() !== '') {
+          const isAlreadyHashed = u.password.length === 64 && /^[a-f0-9]{64}$/i.test(u.password);
+          if (!isAlreadyHashed) {
+            u.password = await EcosystemService.hashPassword(u.password.trim());
+          }
+        }
       }
 
       // Identifica usuários removidos

@@ -89,7 +89,7 @@ export default function AdminSettingsPage() {
             <div className="space-y-2">
               <Label>Método de Login</Label>
               <Select 
-                value={settings.loginMethod} 
+                value={settings.loginMethod || "all"} 
                 onValueChange={(v: any) => setSettings({...settings, loginMethod: v})}
               >
                 <SelectTrigger>
@@ -148,7 +148,7 @@ export default function AdminSettingsPage() {
             <div className="space-y-2">
               <Label>Fonte da Câmera</Label>
               <Select 
-                value={settings.cameraSource} 
+                value={settings.cameraSource || "browser"} 
                 onValueChange={(v: any) => setSettings({...settings, cameraSource: v})}
               >
                 <SelectTrigger>

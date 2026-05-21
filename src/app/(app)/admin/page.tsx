@@ -438,10 +438,7 @@ function AdminContent() {
         delete payload.password;
         delete payload.confirmPassword;
       }
-      if (itemType === 'user' && (values.role === 'admin' || values.role === 'super_admin') && payload.password && payload.password.length !== 64) {
-        payload.password = await EcosystemService.hashPassword(payload.password);
-        payload.confirmPassword = payload.password;
-      }
+      // A criptografia redundante na UI foi removida. O UserService cuida do hash de forma segura e transparente.
 
       if (itemType === 'user') {
         // Limpeza profunda do objeto para evitar 'undefined' no Firestore
@@ -508,7 +505,7 @@ function AdminContent() {
           return;
         }
 
-        const roleLabel = sanitizedPayload.role === 'admin' ? 'Gestor' : sanitizedPayload.role === 'super_admin' ? 'Super Gestor' : sanitizedPayload.role === 'visitor' ? 'Visitante' : 'Aluno';
+        const roleLabel = sanitizedPayload.role === 'admin' ? 'Gestor' : sanitizedPayload.role === 'super_admin' ? 'Super Gestor' : sanitizedPayload.role === 'staff' ? 'Funcionário' : sanitizedPayload.role === 'visitor' ? 'Visitante' : 'Aluno';
         toast({ title: isNew ? `${roleLabel} Cadastrado!` : 'Dados Atualizados!', description: `${sanitizedPayload.name} foi salvo com sucesso.` });
         closeAllForms();
       } else if (itemType === 'reward') {
@@ -576,10 +573,9 @@ function AdminContent() {
     if (newPass !== confirmPass) return toast({ title: 'Erro', description: 'Senhas não coincidem.', variant: 'destructive' });
     setIsSubmitting(true);
     try {
-      const hashedNew = await EcosystemService.hashPassword(newPass);
-      const success = await updateUsers(users.map(u => u.id === (selectedItem?.id || currentUser?.id) ? { ...u, password: hashedNew, mustChangePassword: false } : u));
-      if (!success) {
-        toast({ title: 'Erro', description: 'Falha ao atualizar senha. E-mail pode estar duplicado.', variant: 'destructive' });
+      const result = await updateUsers(users.map(u => u.id === (selectedItem?.id || currentUser?.id) ? { ...u, password: newPass, mustChangePassword: false } : u));
+      if (!result.success) {
+        toast({ title: 'Erro', description: result.error || 'Falha ao atualizar senha. E-mail pode estar duplicado.', variant: 'destructive' });
         return;
       }
       toast({ title: 'Sucesso', description: 'Senha atualizada!' });

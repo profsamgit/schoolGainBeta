@@ -102,10 +102,15 @@ export class SchoolService {
       adminLoginMethod: 'all'
     });
 
-    // Sincroniza novo gestor se criado
+    // Sincroniza novo gestor se criado (usando a coleção mapeada correta e higienização)
     if (newSchool.managerEmail) {
       const adminUser = this.service.data.users.find((u: User) => u.email === newSchool.managerEmail);
-      if (adminUser) setDoc(doc(db, "users", adminUser.id), adminUser);
+      if (adminUser) {
+        setDoc(
+          doc(db, this.service.getUserCollection(adminUser.role), adminUser.id),
+          this.service.sanitizeUserForFirestore(adminUser)
+        );
+      }
     }
 
     this.service.saveToStorage();
@@ -154,10 +159,15 @@ export class SchoolService {
         adminLoginMethod: 'all'
       });
 
-      // Sincroniza novo gestor se criado
+      // Sincroniza novo gestor se criado (usando a coleção mapeada correta e higienização)
       if (status === 'active' && school.managerEmail) {
         const adminUser = this.service.data.users.find((u: User) => u.email === school.managerEmail);
-        if (adminUser) setDoc(doc(db, "users", adminUser.id), adminUser);
+        if (adminUser) {
+          setDoc(
+            doc(db, this.service.getUserCollection(adminUser.role), adminUser.id),
+            this.service.sanitizeUserForFirestore(adminUser)
+          );
+        }
       }
 
       this.service.saveToStorage();

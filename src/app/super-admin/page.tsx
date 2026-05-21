@@ -296,7 +296,7 @@ export default function SuperAdminPage() {
           email: emailLower,
           ra: userFormData.ra?.toUpperCase().trim() || Math.random().toString(36).substring(2, 14).toUpperCase().padEnd(12, '0'),
           role: userFormData.role,
-          password: await EcosystemService.hashPassword(userFormData.password || 'mudar123'),
+          password: userFormData.password || 'mudar123',
           schoolId: userFormData.role === 'super_admin' ? 'global' : userFormData.schoolId,
           rfid: userFormData.rfid?.toUpperCase().trim() || ''
         };
@@ -328,9 +328,9 @@ export default function SuperAdminPage() {
         return;
       }
 
-      const success = await updateUsers(updatedUsers);
-      if (!success) {
-        toast({ title: "Erro na Operação", description: "Falha ao salvar. Verifique se o e-mail já não pertence a outro usuário da rede.", variant: "destructive" });
+      const result = await updateUsers(updatedUsers);
+      if (!result.success) {
+        toast({ title: "Erro na Operação", description: result.error || "Falha ao salvar. Verifique se o e-mail já não pertence a outro usuário da rede.", variant: "destructive" });
         return;
       }
 
@@ -366,15 +366,14 @@ export default function SuperAdminPage() {
       const isAuth = await verifyPassword(adminPass);
       if (!isAuth) { toast({ title: "Erro", description: "Sua senha de Super Admin está incorreta.", variant: "destructive" }); return; }
 
-      const hashedNewPassword = await EcosystemService.hashPassword(newPass);
-      const success = await updateUsers(users.map(u => u.id === editingUser.id ? { ...u, password: hashedNewPassword } : u));
+      const result = await updateUsers(users.map(u => u.id === editingUser.id ? { ...u, password: newPass } : u));
 
-      if (success) {
+      if (result.success) {
         toast({ title: "Sucesso", description: `Senha de ${editingUser.name} alterada!` });
         setIsPasswordDialogOpen(false);
         setPassFormData({ currentPass: '', newPass: '', confirmPass: '' });
       } else {
-        toast({ title: "Erro", description: "Não foi possível atualizar a senha.", variant: "destructive" });
+        toast({ title: "Erro", description: result.error || "Não foi possível atualizar a senha.", variant: "destructive" });
       }
     } finally {
       setIsSubmitting(false);
@@ -434,8 +433,11 @@ export default function SuperAdminPage() {
     const isAuth = await verifyPassword(adminPasswordForAction);
     if (!isAuth) { toast({ title: "Erro", description: "Senha incorreta.", variant: "destructive" }); return; }
     const tempPass = `SG-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-    const hashedTemp = await EcosystemService.hashPassword(tempPass);
-    await updateUsers(users.map(u => u.id === user.id ? { ...u, password: hashedTemp, mustChangePassword: true } : u));
+    const result = await updateUsers(users.map(u => u.id === user.id ? { ...u, password: tempPass, mustChangePassword: true } : u));
+    if (result && !result.success) {
+      toast({ title: "Erro na Operação", description: result.error || "Não foi possível redefinir a senha.", variant: "destructive" });
+      return;
+    }
     setTempGeneratedPass(tempPass);
     setAdminPasswordForAction('');
     setEditingUser(user);

@@ -163,7 +163,7 @@ export function InfraSection({
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Método de Login Ativo</Label>
               <Select 
-                value={systemSettings.studentLoginMethod} 
+                value={systemSettings.studentLoginMethod || "all"} 
                 onValueChange={(v: any) => updateSystemSettings({...systemSettings, studentLoginMethod: v}, targetSchoolId)}
               >
                 <SelectTrigger className="bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold h-10"><SelectValue /></SelectTrigger>
@@ -241,7 +241,7 @@ export function InfraSection({
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Método de Autenticação</Label>
               <Select 
-                value={systemSettings.adminLoginMethod} 
+                value={systemSettings.adminLoginMethod || "all"} 
                 onValueChange={(v: any) => updateSystemSettings({...systemSettings, adminLoginMethod: v}, targetSchoolId)}
               >
                 <SelectTrigger className="bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold h-10"><SelectValue /></SelectTrigger>
@@ -365,7 +365,7 @@ export function InfraSection({
                   </div>
                   
                   <Select 
-                    value={selectedTerminalId} 
+                    value={selectedTerminalId || ""} 
                     onValueChange={(id) => {
                       setSelectedTerminalId(id);
                       if (id) {
@@ -460,7 +460,7 @@ export function InfraSection({
 
                           <div className="space-y-2">
                             <Label className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-1">Método de Autenticação do Totem</Label>
-                            <Select value={terminalLoginMethod} onValueChange={(v: any) => setTerminalLoginMethod(v)}>
+                            <Select value={terminalLoginMethod || "all"} onValueChange={(v: any) => setTerminalLoginMethod(v)}>
                               <SelectTrigger className="bg-slate-900 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold h-10"><SelectValue /></SelectTrigger>
                               <SelectContent className="bg-slate-950 border border-white/10 text-white">
                                 <SelectItem value="all" className="hover:bg-indigo-500/10">Tudo (Senha, QR e RFID)</SelectItem>
@@ -540,7 +540,7 @@ export function InfraSection({
 
                           <div className="space-y-2">
                             <Label className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-1">Fonte de Vídeo (Login)</Label>
-                            <Select value={terminalLoginCameraSource} onValueChange={(v: any) => setTerminalLoginCameraSource(v)}>
+                            <Select value={terminalLoginCameraSource || "browser"} onValueChange={(v: any) => setTerminalLoginCameraSource(v)}>
                               <SelectTrigger className="bg-slate-900 border-white/10 text-white rounded-xl h-10"><SelectValue /></SelectTrigger>
                               <SelectContent className="bg-slate-950 border border-white/10 text-white">
                                 <SelectItem value="browser" className="hover:bg-indigo-500/10">Webcam Integrada do Totem</SelectItem>
@@ -569,7 +569,7 @@ export function InfraSection({
                                     <Label className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-1">
                                       Taxa de Quadros (Qualidade) do Login
                                     </Label>
-                                    <Select value={terminalLoginCameraFramerate} onValueChange={(v: any) => setTerminalLoginCameraFramerate(v)}>
+                                    <Select value={terminalLoginCameraFramerate || "fluid"} onValueChange={(v: any) => setTerminalLoginCameraFramerate(v)}>
                                       <SelectTrigger className="bg-slate-900 border-white/10 text-white rounded-xl h-10"><SelectValue /></SelectTrigger>
                                       <SelectContent className="bg-slate-950 border border-white/10 text-white">
                                         <SelectItem value="fluid" className="hover:bg-indigo-500/10">⚡ Alta Velocidade / QR (CIF)</SelectItem>
@@ -600,7 +600,7 @@ export function InfraSection({
                           ) : (
                             <div className="space-y-2 animate-in fade-in duration-200">
                               <Label className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-1">Dispositivo de Captura</Label>
-                              <Select value={preferredCamera} onValueChange={setPreferredCamera}>
+                              <Select value={preferredCamera || "default"} onValueChange={setPreferredCamera}>
                                 <SelectTrigger className="bg-slate-900 border-white/10 text-white rounded-xl h-10"><SelectValue /></SelectTrigger>
                                 <SelectContent className="bg-slate-950 border border-white/10 text-white">
                                   <SelectItem value="default" className="hover:bg-indigo-500/10">Automático (Padrão do Navegador)</SelectItem>
@@ -624,7 +624,7 @@ export function InfraSection({
 
                           <div className="space-y-2">
                             <Label className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-1">Fonte de Vídeo (Scanner)</Label>
-                            <Select value={terminalScanningCameraSource} onValueChange={(v: any) => setTerminalScanningCameraSource(v)}>
+                            <Select value={terminalScanningCameraSource || "browser"} onValueChange={(v: any) => setTerminalScanningCameraSource(v)}>
                               <SelectTrigger className="bg-slate-900 border-white/10 text-white rounded-xl h-10"><SelectValue /></SelectTrigger>
                               <SelectContent className="bg-slate-950 border border-white/10 text-white">
                                 <SelectItem value="browser" className="hover:bg-indigo-500/10">Webcam Integrada do Totem</SelectItem>
@@ -638,7 +638,7 @@ export function InfraSection({
                           {terminalScanningCameraSource === 'browser' ? (
                             <div className="space-y-2 animate-in fade-in duration-200">
                               <Label className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-1">Dispositivo de Captura (Scanner)</Label>
-                              <Select value={terminalScanningCameraDevice} onValueChange={setTerminalScanningCameraDevice}>
+                              <Select value={terminalScanningCameraDevice || "default"} onValueChange={setTerminalScanningCameraDevice}>
                                 <SelectTrigger className="bg-slate-900 border-white/10 text-white rounded-xl h-10"><SelectValue /></SelectTrigger>
                                 <SelectContent className="bg-slate-950 border border-white/10 text-white">
                                   <SelectItem value="default" className="hover:bg-indigo-500/10">Automático (Padrão do Navegador)</SelectItem>
@@ -668,7 +668,7 @@ export function InfraSection({
                                     <Label className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-1">
                                       Taxa de Quadros (Framerate) do Scanner
                                     </Label>
-                                    <Select value={terminalScannerFramerate} onValueChange={(v: any) => setTerminalScannerFramerate(v)}>
+                                    <Select value={terminalScannerFramerate || "fluid"} onValueChange={(v: any) => setTerminalScannerFramerate(v)}>
                                       <SelectTrigger className="bg-slate-900 border-white/10 text-white rounded-xl h-10"><SelectValue /></SelectTrigger>
                                       <SelectContent className="bg-slate-950 border border-white/10 text-white">
                                         <SelectItem value="fluid" className="hover:bg-indigo-500/10">⚡ Alta Fluidez (~30 FPS) - VGA</SelectItem>

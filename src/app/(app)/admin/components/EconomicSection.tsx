@@ -336,7 +336,7 @@ export function EconomicSection({
                 {/* Linha 1: Filtros e Seleção */}
                 <div className="md:col-span-2 space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">1. Filtrar por Turma</Label>
-                  <Select value={grantTurmaFilter} onValueChange={setGrantTurmaFilter}>
+                  <Select value={grantTurmaFilter || ""} onValueChange={setGrantTurmaFilter}>
                     <SelectTrigger className="bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold h-10"><SelectValue placeholder="Todas as Turmas" /></SelectTrigger>
                     <SelectContent className="bg-slate-950 border border-white/10 text-white">
                       <SelectItem value="all" className="hover:bg-indigo-500/10">Todas as Turmas</SelectItem>
@@ -348,7 +348,7 @@ export function EconomicSection({
                 </div>
                 <div className="md:col-span-2 space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">2. Filtrar por Curso</Label>
-                  <Select value={grantCursoFilter} onValueChange={setGrantCursoFilter}>
+                  <Select value={grantCursoFilter || ""} onValueChange={setGrantCursoFilter}>
                     <SelectTrigger className="bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold h-10"><SelectValue placeholder="Todos os Cursos" /></SelectTrigger>
                     <SelectContent className="bg-slate-950 border border-white/10 text-white">
                       <SelectItem value="all" className="hover:bg-indigo-500/10">Todos os Cursos</SelectItem>
@@ -360,7 +360,7 @@ export function EconomicSection({
                 </div>
                 <div className="md:col-span-2 space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">3. Identificar Aluno</Label>
-                  <Select onValueChange={setGrantRa} value={grantRa}>
+                  <Select onValueChange={setGrantRa} value={grantRa || ""}>
                     <SelectTrigger className="bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold h-10">
                       <SelectValue placeholder="Selecione o aluno..." />
                     </SelectTrigger>

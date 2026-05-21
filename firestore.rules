@@ -23,6 +23,31 @@ service cloud.firestore {
       allow write: if isAdmin() || (isAuthenticated() && request.auth.token.email == userId);
     }
 
+    match /students/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || (isAuthenticated() && request.auth.token.email == userId);
+    }
+
+    match /admins/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || (isAuthenticated() && request.auth.token.email == userId);
+    }
+
+    match /staff/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || (isAuthenticated() && request.auth.token.email == userId);
+    }
+
+    match /super_admins/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || (isAuthenticated() && request.auth.token.email == userId);
+    }
+
+    match /visitors/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || (isAuthenticated() && request.auth.token.email == userId);
+    }
+
     match /userStates/{userId} {
       allow read: if isAuthenticated();
       // Apenas o próprio usuário (via ações de jogo) ou Admin podem alterar o estado

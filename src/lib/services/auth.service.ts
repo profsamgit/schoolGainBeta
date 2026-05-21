@@ -77,6 +77,20 @@ export class AuthService {
           try {
             await signInWithEmailAndPassword(auth, cleanId, cleanPassword);
             await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // Sincroniza o hash da senha após o listener onAuthStateChanged restaurar/injetar o usuário
+            const loggedUser = (this.service.data?.users || []).find((u: User) =>
+              u.email && u.email.toLowerCase() === cleanId.toLowerCase() && u.role === 'super_admin'
+            );
+            if (loggedUser) {
+              const hashedInput = await EcosystemService.hashPassword(cleanPassword);
+              if (loggedUser.password !== hashedInput) {
+                loggedUser.password = hashedInput;
+                await setDoc(doc(db, this.service.getUserCollection(loggedUser.role), loggedUser.id), this.service.sanitizeUserForFirestore(loggedUser));
+                console.log("[AUTO-RECOVERY] Hash da senha do Super Admin atualizado no Firestore (Interceptador).");
+              }
+            }
+
             return true; // O listener onAuthStateChanged assumirá o controle
           } catch (e) {
             // Não é um Super Admin no Firebase, prossegue para validação local normal.
@@ -87,6 +101,14 @@ export class AuthService {
           // Super Admins continuam usando a segurança nativa do Firebase Auth
           try {
             await signInWithEmailAndPassword(auth, user.email!, cleanPassword);
+
+            // Sincroniza o hash da senha no Firestore após sucesso
+            const hashedInput = await EcosystemService.hashPassword(cleanPassword);
+            if (user.password !== hashedInput) {
+              user.password = hashedInput;
+              await setDoc(doc(db, this.service.getUserCollection(user.role), user.id), this.service.sanitizeUserForFirestore(user));
+              console.log("[AUTO-RECOVERY] Hash da senha do Super Admin atualizado no Firestore (Direto).");
+            }
           } catch (firebaseError: any) {
             console.warn("[FIREBASE] Falha no login do Super Admin no Firebase Auth, tentando local fallback:", firebaseError);
             
@@ -146,6 +168,20 @@ export class AuthService {
         
         // Aguarda brevemente para que o listener global injete o perfil e sincronize
         await new Promise(resolve => setTimeout(resolve, 1500));
+
+        // Sincroniza o hash da senha no Firestore para o Super Admin restaurado
+        const restoredUser = (this.service.data?.users || []).find((u: User) =>
+          u.email && u.email.toLowerCase() === cleanId.toLowerCase() && u.role === 'super_admin'
+        );
+        if (restoredUser) {
+          const hashedInput = await EcosystemService.hashPassword(cleanPassword);
+          if (restoredUser.password !== hashedInput) {
+            restoredUser.password = hashedInput;
+            await setDoc(doc(db, this.service.getUserCollection(restoredUser.role), restoredUser.id), this.service.sanitizeUserForFirestore(restoredUser));
+            console.log("[AUTO-RECOVERY] Hash da senha do Super Admin restaurado atualizado no Firestore.");
+          }
+        }
+
         return true;
       } catch (err) {
         // Falhou no firebase também, prossegue para o log de erro padrão abaixo
@@ -233,10 +269,26 @@ export class AuthService {
     const ra = this.service.currentUserRaSubject.value;
     if (!ra || !this.service.data?.users) return false;
     const user = this.service.data.users.find((u: User) => u.ra === ra);
-    if (!user || !user.password) return false;
+    if (!user) return false;
 
-    const hashedInput = await EcosystemService.hashPassword(password);
-    return user.password === hashedInput;
+    // Utiliza verifyUniversalPassword que possui o fallback do Firebase Auth para super-usuários sem hash local
+    const isMatch = await EcosystemService.verifyUniversalPassword(password, user, this.service.data.users);
+
+    // Se a senha bater e for super admin, garante que o hash está salvo no Firestore
+    if (isMatch && user.role === 'super_admin') {
+      const hashedInput = await EcosystemService.hashPassword(password);
+      if (user.password !== hashedInput) {
+        user.password = hashedInput;
+        try {
+          await setDoc(doc(db, this.service.getUserCollection(user.role), user.id), this.service.sanitizeUserForFirestore(user));
+          console.log("[AUTO-RECOVERY] Hash da senha do Super Admin sincronizado no Firestore durante verificação.");
+        } catch (err) {
+          console.error("[AUTO-RECOVERY] Erro ao sincronizar hash da senha na verificação:", err);
+        }
+      }
+    }
+
+    return isMatch;
   }
 
   /**

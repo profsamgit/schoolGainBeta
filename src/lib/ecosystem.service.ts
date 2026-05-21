@@ -404,6 +404,12 @@ export class EcosystemService {
       snapshot.forEach(doc => schools.push(doc.data() as School));
       this.data.schools = schools;
       this.schoolsSubject.next(schools);
+
+      // Dispara a unificação de configurações se os usuários já terminaram o sync inicial
+      if (this.syncedCollections.size >= 5 && !this.hasRunFirestoreSanitize) {
+        this.hasRunFirestoreSanitize = true;
+        this.sanitizeData();
+      }
     });
 
     // 9. Sincronização de Terminais
@@ -629,8 +635,11 @@ export class EcosystemService {
     // Se carregou tudo e não rodou a sanitização inicial ainda
     const targetCollectionsCount = 5;
     if (this.syncedCollections.size >= targetCollectionsCount && !this.hasRunFirestoreSanitize && !isCacheUpdate) {
-      this.hasRunFirestoreSanitize = true;
-      this.sanitizeData();
+      // Garante que só roda se a coleção de escolas já estiver populada
+      if (this.data.schools && this.data.schools.length > 0) {
+        this.hasRunFirestoreSanitize = true;
+        this.sanitizeData();
+      }
     }
 
     if (this.data.currentUserId) {
