@@ -25,7 +25,7 @@ import {
   Gift,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useEcosystem } from '@/app/(app)/ecosystem-context';
+import { useEcosystem } from '@/contexts/EcosystemContext';
 import { useSidebar } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
 import { usePathname, useSearchParams } from 'next/navigation';
@@ -80,12 +80,12 @@ export function Header() {
   };
 
   const studentMenuItems = [
-    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/meu-ecossistema', label: 'Meu Ecossistema', icon: Leaf },
-    { href: '/leaderboard', label: 'Ranking', icon: Trophy },
-    { href: '/education', label: 'Educação', icon: BookOpen },
-    { href: '/quiz', label: 'Quizzes', icon: BrainCircuit },
-    { href: '/rewards', label: 'Recompensas', icon: Gift },
+    { href: '/student/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/student/meu-ecossistema', label: 'Meu Ecossistema', icon: Leaf },
+    { href: '/student/leaderboard', label: 'Ranking', icon: Trophy },
+    { href: '/student/education', label: 'Educação', icon: BookOpen },
+    { href: '/student/quiz', label: 'Quizzes', icon: BrainCircuit },
+    { href: '/student/rewards', label: 'Recompensas', icon: Gift },
   ];
 
   const adminMenuItems = [
@@ -131,7 +131,7 @@ export function Header() {
 
   return (
     <header className="relative z-40 flex h-14 items-center gap-3 px-4 sm:h-14 sm:px-6 transition-all border-b bg-[#070913]/90 border-white/5 text-white backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.3)]">
-      {/* Horizontal Navigation Links */}
+      {/* Links de Navegação Horizontal */}
       <nav className="hidden md:flex items-center gap-1 mx-2">
         {menuItems.map((item) => {
           const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
@@ -184,7 +184,7 @@ export function Header() {
 
             {/* Pill 2: Bio-Coins (Saldo para compras na Bioshop) */}
             <Link 
-              href="/meu-ecossistema" 
+              href="/student/meu-ecossistema" 
               className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all shadow-inner group"
             >
               <div className="flex flex-col items-end">

@@ -34,22 +34,25 @@ import {
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { ADMIN_MOCK } from '@/lib/data';
-import { useEcosystem } from '@/app/(app)/ecosystem-context';
+import { useEcosystem } from '@/contexts/EcosystemContext';
 
+// Menu de navegação da Área do Aluno
 const menuItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/meu-ecossistema', label: 'Meu Ecossistema', icon: Leaf },
-  { href: '/leaderboard', label: 'Ranking', icon: Trophy },
-  { href: '/education', label: 'Educação', icon: BookOpen },
-  { href: '/quiz', label: 'Quizzes', icon: BrainCircuit },
-  { href: '/rewards', label: 'Recompensas', icon: Gift },
+  { href: '/student/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/student/meu-ecossistema', label: 'Meu Ecossistema', icon: Leaf },
+  { href: '/student/leaderboard', label: 'Ranking', icon: Trophy },
+  { href: '/student/education', label: 'Educação', icon: BookOpen },
+  { href: '/student/quiz', label: 'Quizzes', icon: BrainCircuit },
+  { href: '/student/rewards', label: 'Recompensas', icon: Gift },
 ];
 
+// Menu de navegação da Área do Gestor (Admin)
 const adminMenuItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin', label: 'Gerenciamento', icon: Shield, exact: true },
 ];
 
+// Menu exclusivo do Super Administrador (acesso à rede completa)
 const superAdminMenuItems = [
   { href: '/super-admin', label: 'Central de Rede', icon: Shield, color: 'text-red-500' },
 ];
@@ -85,6 +88,8 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
   };
 
 
+  // Verifica se o aluno logado é o lder global (1º no ranking de toda a escola)
+  // Se for, o ícone de "Meu Ecossistema" fica dourado como distinção visual
   const isLeader = useMemo(() => {
     if (!currentUser) return false;
     const leader = getGlobalLeader();
@@ -94,6 +99,8 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
 
   const isSuperAdminView = pathname.startsWith('/super-admin');
 
+  // Rotas do Super Admin usam um layout diferente (sem sidebar lateral visível)
+  // A sidebar é substituída por um wrapper simples para manter a consistência de roteamento
   if (!isSuperAdminView) {
     return (
       <SidebarProvider defaultOpen={false}>
@@ -114,7 +121,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
                 ? '/super-admin' 
                 : currentUser?.role === 'admin' 
                   ? '/admin/dashboard' 
-                  : '/dashboard'
+                  : '/student/dashboard'
             )}
             className="flex items-center gap-2 font-semibold text-lg overflow-hidden group-data-[collapsible=icon]:justify-center transition-all"
           >
@@ -167,6 +174,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
                 </SidebarMenuItem>
               ))}
 
+              {/* Atalho de Gestão: visível para admins e super admins mesmo na área do aluno */}
               {(currentUser?.role === 'admin' || currentUser?.role === 'super_admin') && (
                 <SidebarMenuItem>
                   <Link href={getLink('/admin')}>

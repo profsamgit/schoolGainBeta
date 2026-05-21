@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Turma, Curso, Cargo, SetorEscolar } from '@/lib/types';
+import { Turma, Curso, Cargo, SetorEscolar } from '@/types/ecosystem';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EcosystemService } from '@/lib/ecosystem.service';
 

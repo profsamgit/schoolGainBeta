@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
-import { EcosystemProvider } from './(app)/ecosystem-context';
+import { EcosystemProvider } from '@/contexts/EcosystemContext';
 
 export const metadata: Metadata = {
   title: 'SchoolGain Hub',

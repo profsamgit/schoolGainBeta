@@ -2,7 +2,7 @@
 import { Header } from '@/components/layout/header';
 import { AppSidebar } from '@/components/layout/sidebar';
 import Link from 'next/link';
-import { useEcosystem } from './ecosystem-context';
+import { useEcosystem } from '@/contexts/EcosystemContext';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { Eye } from 'lucide-react';
@@ -77,13 +77,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   const pathname = usePathname();
-  // Todas as rotas autenticadas compartilham o layout espacial escuro full-bleed (área do aluno e do gestor)
+  /**
+   * isAdminView: Controle de Tema de Layout
+   *
+   * Todas as rotas autenticadas (aluno, gestor, super admin) compartilham este layout.
+   * A variável é mantida como `true` para garantir o tema espacial/escuro full-bleed
+   * em toda a área autenticada, diferenciando do layout público (landng page).
+   */
   const isAdminView = true;
 
   return (
     <AppSidebar>
       <div className="flex flex-1 flex-col h-full min-w-0 overflow-hidden">
         <div className="flex-none sticky top-0 z-40 flex flex-col bg-background border-b shadow-sm">
+          {/* Banner de Modo de Auditoria
+               Exibido quando um gestor está visualizando a conta de um aluno
+               via parâmetro ?preview={id}. Permite sair sem perder o contexto. */}
           {isPreviewMode && (
             <div className="bg-amber-500 text-white px-4 sm:px-6 py-1.5 shadow-lg animate-in slide-in-from-top duration-500">
               <div className="flex items-center justify-between">
@@ -112,6 +121,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           )}
 
+          {/* Indicador de Contexto de Rede (Super Admin)
+               Exibido quando o Super Admin está gerenciando uma unidade específica
+               via parâmetro ?schoolId={id}. Mostra o nome da escola selecionada. */}
           {currentUser?.role === 'super_admin' && searchParams.has('schoolId') && (
             <div className="bg-slate-900 text-white px-4 sm:px-6 py-1.5 border-t border-white/5 animate-in slide-in-from-top duration-500">
               <div className="flex justify-between items-center">

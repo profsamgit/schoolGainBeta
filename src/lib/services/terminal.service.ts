@@ -1,7 +1,7 @@
 import { db } from '../firebase';
 import { doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { EcosystemService } from '../ecosystem.service';
-import type { Terminal, TerminalStatus } from '../types';
+import type { Terminal, TerminalStatus } from '@/types/ecosystem';
 
 export class TerminalService {
   constructor(private service: any) {}

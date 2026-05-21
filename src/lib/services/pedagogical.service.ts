@@ -1,6 +1,6 @@
 import { db } from '../firebase';
 import { doc, setDoc, deleteDoc } from 'firebase/firestore';
-import type { User, EcosystemItem, Reward, EducationArticle, QuizTopic } from '../types';
+import type { User, EcosystemItem, Reward, EducationArticle, QuizTopic } from '@/types/ecosystem';
 
 export class PedagogicalService {
   constructor(private service: any) {}

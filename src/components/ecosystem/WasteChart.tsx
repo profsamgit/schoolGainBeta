@@ -13,7 +13,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from '@/components/ui/chart';
-import { useEcosystem } from '../../app/(app)/ecosystem-context';
+import { useEcosystem } from '@/contexts/EcosystemContext';
 import { useMemo } from 'react';
 
 const chartConfig = {

@@ -16,10 +16,10 @@ import {
   Waves,
   Leaf
 } from 'lucide-react';
-import { useEcosystem } from '@/app/(app)/ecosystem-context';
+import { useEcosystem } from '@/contexts/EcosystemContext';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo } from 'react';
-import { EcosystemItem } from '@/lib/types';
+import { EcosystemItem } from '@/types/ecosystem';
  
 // --- COMPONENTES VISUAIS (SUB-ELEMENTOS) ---
 

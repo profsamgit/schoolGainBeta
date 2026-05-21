@@ -26,7 +26,7 @@ import {
 import { 
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
 } from '@/components/ui/select';
-import { Reward, AuditLogEntry, Turma, Curso } from '@/lib/types';
+import { Reward, AuditLogEntry, Turma, Curso } from '@/types/ecosystem';
 
 interface EconomicSectionProps {
   rewards: Reward[];

@@ -23,7 +23,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { EducationArticle, QuizTopic } from '@/lib/types';
+import { EducationArticle, QuizTopic } from '@/types/ecosystem';
 
 interface PedagogicSectionProps {
   articles: EducationArticle[];

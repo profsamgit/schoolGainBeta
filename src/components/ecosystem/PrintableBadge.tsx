@@ -1,7 +1,7 @@
 'use client';
 
 import { QRCodeSVG } from 'qrcode.react';
-import { User } from '@/lib/types';
+import { User } from '@/types/ecosystem';
 import { Shield, Leaf, User as UserIcon, Sparkles } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 

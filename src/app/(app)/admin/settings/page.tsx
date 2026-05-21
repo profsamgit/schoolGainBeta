@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useEcosystem } from '@/app/(app)/ecosystem-context';
+import { useEcosystem } from '@/contexts/EcosystemContext';
 import { 
   Card, 
   CardContent, 
@@ -53,7 +53,7 @@ export default function AdminSettingsPage() {
           <h2 className="text-3xl font-bold tracking-tight">Acesso Restrito</h2>
           <p className="text-muted-foreground">Esta área é reservada para a gestão técnica do sistema.</p>
         </div>
-        <Button asChild size="lg"><Link href="/dashboard">Voltar para o Painel</Link></Button>
+        <Button asChild size="lg"><Link href="/student/dashboard">Voltar para o Painel</Link></Button>
       </div>
     );
   }

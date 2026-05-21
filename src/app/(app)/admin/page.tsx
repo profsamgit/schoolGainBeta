@@ -35,7 +35,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useEcosystem } from '@/app/(app)/ecosystem-context';
+import { useEcosystem } from '@/contexts/EcosystemContext';
 import { EcosystemService } from '@/lib/ecosystem.service';
 import { toPng } from 'html-to-image';
 import {
@@ -49,7 +49,7 @@ import {
   Cargo,
   SetorEscolar,
   SCHOOL_SECTORS
-} from '@/lib/types';
+} from '@/types/ecosystem';
 
 // Import refactored sections
 import { PovoamentoSection } from './components/PovoamentoSection';

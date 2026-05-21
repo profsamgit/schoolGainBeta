@@ -42,7 +42,7 @@ import type {
   TerminalStatus,
   AuditLogEntry,
   WasteEntry
-} from './types';
+} from '@/types/ecosystem';
 
 // Importações dos Sub-Serviços Modulares (Facade Pattern)
 import { AuthService } from './services/auth.service';
@@ -81,6 +81,16 @@ export class EcosystemService {
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
+  /**
+   * verifyUniversalPassword: Sistema de Autenticação Multi-Camada
+   *
+   * Verifica se uma senha é válida através de 3 níveis, na ordem:
+   *   1. Senha do usuário atual (hash SHA-256 ou texto puro legado)
+   *   2. Senha de qualquer Super Admin (serve como chave mestra do sistema)
+   *   3. Firebase Authentication (fallback para Super Admins sem senha local definida)
+   * Essa abordagem permite que gestores e super admins usem a mesma senha para
+   * confirmar ações críticas sem precisar de um campo separado.
+   */
   static async verifyUniversalPassword(password: string, currentUser: User | null, allUsers: User[]): Promise<boolean> {
     if (!password || !currentUser) return false;
     const providedHash = await this.hashPassword(password);
@@ -493,6 +503,14 @@ export class EcosystemService {
     });
   }
 
+  /**
+   * initUserSpecificSync: Sincronização Reativa por Aluno
+   *
+   * Abre uma conexão em tempo real com o documento 'userStates/{userId}' no Firestore.
+   * Cada aluno tem um documento próprio com: saldo, pontos, vitalidade, itens comprados etc.
+   * Isso garante que a tela do aluno atualiza automaticamente sem recarregar a página.
+   * O Set 'activeSyncIds' evita que o mesmo listener seja registrado mais de uma vez.
+   */
   public initUserSpecificSync(userId: string) {
     if (this.activeSyncIds.has(userId)) return;
     this.activeSyncIds.add(userId);
@@ -516,6 +534,15 @@ export class EcosystemService {
     });
   }
 
+  /**
+   * initAdminSync: Sincronização em Lote por Escola (Modo Gestor)
+   *
+   * Enquanto o 'initUserSpecificSync' abre UMA conexão por aluno individual,
+   * este método abre UMA conexão para TODOS os alunos de uma escola.
+   * É ativado quando um gestor (admin) faz login, permitindo que o painel
+   * administrativo exiba os dados de todos os alunos da unidade em tempo real.
+   * A chave 'admin-{schoolId}' no Set evita duplicar o listener por escola.
+   */
   public initAdminSync(schoolId: string) {
     if (!schoolId || this.activeSyncIds.has(`admin-${schoolId}`)) return;
     this.activeSyncIds.add(`admin-${schoolId}`);
@@ -540,6 +567,18 @@ export class EcosystemService {
     });
   }
 
+  /**
+   * initFirebaseAuthListener: Listener de Sessão do Firebase Auth
+   *
+   * Monitora o estado de autenticação do Firebase para Super Admins que
+   * fazem login via Google/E-mail. Quando um Super Admin é detectado:
+   *   1. Busca seus dados no Firestore (cache de memória ou consulta direta)
+   *   2. Se não encontrado (ex: após reset acidental do banco), RESTAURA o
+   *      Super Admin automaticamente com base nos dados do Firebase Auth
+   *   3. Ativa a sincronização individual e de administrador para a conta
+   * Este mecanismo de auto-recuperação garante que o sistema nunca fique
+   * sem acesso administrativo mesmo após uma limpeza total do Firestore.
+   */
   private initFirebaseAuthListener() {
     onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser && firebaseUser.email) {

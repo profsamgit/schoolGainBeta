@@ -1,7 +1,7 @@
 import { db } from '../firebase';
 import { doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { EcosystemService } from '../ecosystem.service';
-import type { School, User, Turma, Curso, Cargo, SetorEscolar } from '../types';
+import type { School, User, Turma, Curso, Cargo, SetorEscolar } from '@/types/ecosystem';
 
 export class SchoolService {
   constructor(private service: any) {}

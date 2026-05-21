@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { User as UserIcon, QrCode, Download, CreditCard, Image as ImageIcon, Share2 } from 'lucide-react';
-import { useEcosystem } from '@/app/(app)/ecosystem-context';
+import { useEcosystem } from '@/contexts/EcosystemContext';
 import PrintableBadge from './PrintableBadge';
 import { toPng } from 'html-to-image';
 import { useToast } from '@/hooks/use-toast';

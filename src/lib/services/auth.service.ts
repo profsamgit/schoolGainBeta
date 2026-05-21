@@ -2,7 +2,7 @@ import { auth, db } from '../firebase';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { EcosystemService } from '../ecosystem.service';
-import type { User } from '../types';
+import type { User } from '@/types/ecosystem';
 
 export class AuthService {
   constructor(private service: any) {}

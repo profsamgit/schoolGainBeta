@@ -2,7 +2,7 @@ import { db } from '../firebase';
 import { doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { EcosystemService } from '../ecosystem.service';
 import { POINTS_MAPPING } from '../constants';
-import type { WasteEntry, WasteType, CycleSnapshot, User } from '../types';
+import type { WasteEntry, WasteType, CycleSnapshot, User } from '@/types/ecosystem';
 
 export class WasteService {
   constructor(private service: any) {}

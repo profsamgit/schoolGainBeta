@@ -1,6 +1,6 @@
 'use client';
 
-import { useEcosystem } from '@/app/(app)/ecosystem-context';
+import { useEcosystem } from '@/contexts/EcosystemContext';
 import { 
   Card, 
   CardContent, 

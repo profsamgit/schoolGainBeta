@@ -24,7 +24,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from '@/components/ui/chart';
-import { useEcosystem } from '@/app/(app)/ecosystem-context';
+import { useEcosystem } from '@/contexts/EcosystemContext';
 import { Leaf, Users, Award, TrendingUp, Zap, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

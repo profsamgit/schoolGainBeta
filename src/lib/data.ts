@@ -1,4 +1,4 @@
-import type { User, Reward, EducationArticle, Participant, School, Turma, Curso, Cargo, SetorEscolar, Terminal, QuizTopic } from './types';
+import type { User, Reward, EducationArticle, Participant, School, Turma, Curso, Cargo, SetorEscolar, Terminal, QuizTopic } from '@/types/ecosystem';
 
 /**
  * SchoolGain Data: Produção

@@ -12,7 +12,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { SystemSettings, Terminal, School } from '@/lib/types';
+import { SystemSettings, Terminal, School } from '@/types/ecosystem';
 
 interface InfraSectionProps {
   systemSettings: SystemSettings;

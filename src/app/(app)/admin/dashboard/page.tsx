@@ -10,7 +10,7 @@ import { WasteChart } from '@/components/ecosystem/WasteChart';
 import { AdminAnalytics } from '@/components/ecosystem/AdminAnalytics';
 import { AuditFeed } from '@/components/ecosystem/AuditFeed';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useEcosystem } from '@/app/(app)/ecosystem-context';
+import { useEcosystem } from '@/contexts/EcosystemContext';
 import { 
     LayoutDashboard, 
     Expand, 
@@ -25,7 +25,7 @@ import {
     Globe,
     ShieldAlert
 } from 'lucide-react';
-import type { User } from '@/lib/types';
+import type { User } from '@/types/ecosystem';
 import { useState, useEffect, useRef } from 'react';
 import {
   Select,
@@ -102,7 +102,7 @@ export default function AdminDashboardPage() {
             <h2 className="text-3xl font-black uppercase tracking-tighter text-white">Acesso Restrito</h2>
             <p className="text-slate-400 font-bold uppercase tracking-wider text-xs max-w-xs mx-auto">Esta área é exclusiva para gestores e administradores da rede SchoolGain.</p>
           </div>
-          <Button asChild className="bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-400 hover:to-red-500 text-white border border-rose-400/20 font-black uppercase text-xs tracking-widest h-12 px-8 rounded-xl shadow-xl relative z-10"><Link href="/dashboard">Voltar para o Dashboard</Link></Button>
+          <Button asChild className="bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-400 hover:to-red-500 text-white border border-rose-400/20 font-black uppercase text-xs tracking-widest h-12 px-8 rounded-xl shadow-xl relative z-10"><Link href="/student/dashboard">Voltar para o Dashboard</Link></Button>
         </div>
       );
     }

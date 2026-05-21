@@ -22,7 +22,7 @@ import {
   Wand2,
   Image as ImageIcon
 } from 'lucide-react';
-import { RegistrationRequest, User, Turma, Curso, Cargo, SetorEscolar } from '@/lib/types';
+import { RegistrationRequest, User, Turma, Curso, Cargo, SetorEscolar } from '@/types/ecosystem';
 import { Power, Shield, UserX, UserCheck, User as UserIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { UseFormReturn } from 'react-hook-form';
@@ -75,7 +75,7 @@ import { Switch } from '@/components/ui/switch';
 import dynamic from 'next/dynamic';
 
 const QRScanner = dynamic(() => import('@/components/ui/qr-scanner'), { ssr: false });
-import { useEcosystem } from '@/app/(app)/ecosystem-context';
+import { useEcosystem } from '@/contexts/EcosystemContext';
 import PrintableBadge from '@/components/ecosystem/PrintableBadge';
 
 export interface AcademicSectionProps {
@@ -356,7 +356,7 @@ export function AcademicSection({
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      onClick={() => router.push(`/dashboard?preview=${user.id}${targetSchoolId ? `&schoolId=${targetSchoolId}` : ''}`)} 
+                      onClick={() => router.push(`/student/dashboard?preview=${user.id}${targetSchoolId ? `&schoolId=${targetSchoolId}` : ''}`)} 
                       className="h-8 w-8 text-slate-400 hover:text-white hover:bg-white/5 rounded-full" 
                       title="Visualizar Perfil"
                     >

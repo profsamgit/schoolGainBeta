@@ -1,7 +1,7 @@
 import { db } from '../firebase';
 import { doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { EcosystemService } from '../ecosystem.service';
-import type { RegistrationRequest, User } from '../types';
+import type { RegistrationRequest, User } from '@/types/ecosystem';
 
 export class RegistrationService {
   constructor(private service: any) {}
