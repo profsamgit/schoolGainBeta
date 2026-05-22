@@ -187,6 +187,7 @@ export class EcosystemService {
   private _hardwareId: string | null = null;
 
   // BehaviorSubjects (RxJS) para Reatividade no Frontend
+  public hardwareIdSubject = new BehaviorSubject<string>('');
   public balanceSubject = new BehaviorSubject<number>(0);
   public pointsSubject = new BehaviorSubject<number>(0);
   public vitalitySubject = new BehaviorSubject<number>(100);
@@ -269,6 +270,7 @@ export class EcosystemService {
   get resetHistory$() { return this.resetHistorySubject.asObservable(); }
   get kioskUserRa$() { return this.kioskUserRaSubject.asObservable(); }
   get legends$() { return this.legendsSubject.asObservable(); }
+  get hardwareId$() { return this.hardwareIdSubject.asObservable(); }
 
   private usersByRole: Record<string, User[]> = {
     students: [],
@@ -310,12 +312,50 @@ export class EcosystemService {
     this.initFirebaseAuthListener();
   }
 
-  /**
-   * Inicializa o serviço no lado do cliente (hidratado no navegador).
-   */
   initialize() {
     if (typeof window === 'undefined') return;
     this.loadFromStorage();
+    
+    // Inicializa o hardware ID reativo padrão/fallback
+    const initialId = this.hardwareId;
+    this.hardwareIdSubject.next(initialId);
+
+    // Tenta obter o hardware ID real fisicamente no background de forma não-bloqueante
+    this.resolvePhysicalHardwareId();
+  }
+
+  /**
+   * Tenta resolver assintoticamente o ID de hardware físico através do Proxy Local.
+   * Se obtiver sucesso, atualiza o ID reativamente para todas as telas.
+   */
+  private async resolvePhysicalHardwareId() {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 800); // 800ms de timeout rápido
+
+      const res = await fetch('http://localhost:9005/hardware-id', {
+        signal: controller.signal,
+        cache: 'no-store'
+      });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.hardwareId) {
+          const physicalId = data.hardwareId;
+          if (this._hardwareId !== physicalId) {
+            console.log('[EcosystemService] Hardware ID resolvido fisicamente via proxy local:', physicalId);
+            this._hardwareId = physicalId;
+            localStorage.setItem('sg_hardware_id', physicalId);
+            this.hardwareIdSubject.next(physicalId);
+          }
+        }
+      }
+    } catch (err) {
+      // Proxy offline ou falha de rede local; mantém o ID de fallback do localStorage graciosamente
+    }
   }
 
   /**
@@ -789,6 +829,9 @@ export class EcosystemService {
       localStorage.setItem('sg_hardware_id', localId);
     }
     this._hardwareId = localId;
+    if (this.hardwareIdSubject.value !== localId) {
+      this.hardwareIdSubject.next(localId);
+    }
     return localId;
   }
 

@@ -19,8 +19,74 @@
 
 const http = require('http');
 const url = require('url');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 
 const PORT = 9005;
+
+/**
+ * Obtém ou gera um Hardware ID persistente para a máquina do Totem.
+ * Prioriza a leitura de um ID salvo no diretório home (~/.schoolgain_hwid).
+ * Caso não exista, tenta usar o MAC address físico para gerar um ID.
+ * Se falhar, gera um UUID/random string e persiste localmente.
+ */
+function getPersistentHardwareId() {
+  const homeDir = os.homedir();
+  const filePath = path.join(homeDir, '.schoolgain_hwid');
+
+  // 1. Tenta ler ID existente no arquivo do sistema operacional
+  try {
+    if (fs.existsSync(filePath)) {
+      const savedId = fs.readFileSync(filePath, 'utf8').trim();
+      if (savedId && savedId.startsWith('SG-HW-')) {
+        return savedId;
+      }
+    }
+  } catch (err) {
+    console.error('[PROXY] Erro ao ler hardware ID físico:', err.message);
+  }
+
+  // 2. Tenta obter o MAC address físico como identificador único estável
+  let macAddress = null;
+  try {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+      for (const net of interfaces[name]) {
+        if (net.mac && net.mac !== '00:00:00:00:00:00' && !net.internal) {
+          macAddress = net.mac.replace(/[:-]/g, '').toUpperCase();
+          break;
+        }
+      }
+      if (macAddress) break;
+    }
+  } catch (err) {
+    console.error('[PROXY] Erro ao obter endereços MAC:', err.message);
+  }
+
+  let finalId;
+  if (macAddress) {
+    finalId = `SG-HW-MAC-${macAddress}`;
+  } else {
+    // 3. Fallback: gera um ID aleatório de alta entropia se não houver MAC
+    const chars = '0123456789ABCDEF';
+    let unique = '';
+    for (let i = 0; i < 12; i++) {
+      unique += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    finalId = `SG-HW-PHYSICAL-${unique}`;
+  }
+
+  // 4. Grava no arquivo físico do SO para persistência cross-browser e pós-limpezas
+  try {
+    fs.writeFileSync(filePath, finalId, 'utf8');
+    console.log('[PROXY] Hardware ID persistente configurado em:', filePath);
+  } catch (err) {
+    console.error('[PROXY] Erro ao gravar arquivo de hardware ID:', err.message);
+  }
+
+  return finalId;
+}
 
 const server = http.createServer((req, res) => {
   // Configura cabeçalhos de CORS e Private Network Access (PNA)
@@ -40,6 +106,13 @@ const server = http.createServer((req, res) => {
   if (parsedUrl.pathname === '/status') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ status: 'ok', message: 'Proxy local ativo e pronto' }));
+    return;
+  }
+
+  if (parsedUrl.pathname === '/hardware-id') {
+    const hwid = getPersistentHardwareId();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ hardwareId: hwid }));
     return;
   }
 

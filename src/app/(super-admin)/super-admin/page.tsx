@@ -199,7 +199,14 @@ export default function SuperAdminPage() {
         toast({ title: "Não autorizado", description: "Senha de Super Admin incorreta.", variant: "destructive" });
         return;
       }
-      const updatedSchools = schools.map(s => s.id === editingSchoolObj.id ? { ...s, ...schoolEditData } : s);
+      const sanitizedEditData = {
+        ...schoolEditData,
+        name: schoolEditData.name.toUpperCase().trim(),
+        city: schoolEditData.city.toUpperCase().trim(),
+        state: schoolEditData.state.toUpperCase().trim(),
+        managerEmail: schoolEditData.managerEmail.toLowerCase().trim()
+      };
+      const updatedSchools = schools.map(s => s.id === editingSchoolObj.id ? { ...s, ...sanitizedEditData } : s);
       updateSchools(updatedSchools);
       toast({ title: "Sucesso", description: "Dados da escola atualizados!" });
       setIsSchoolEditDialogOpen(false);

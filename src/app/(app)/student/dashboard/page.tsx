@@ -197,17 +197,17 @@ export default function DashboardPage() {
   }, [getMonthlyLegends, currentUserRa, legends, userStates]);
 
   /**
-
    * LÓGICA DE NÍVEL:
    * Define quantos pontos faltam para o próximo "título" do aluno.
    */
+  const isMaxLevel = currentLevel === 'Guardião da Lenda';
+
   const nextLevelScore =
-    currentLevel === 'Semente' ? 5000 :
-    currentLevel === 'Broto' ? 8000 :
-    currentLevel === 'Folha' ? 11000 :
-    currentLevel === 'Árvore' ? 14000 :
-    currentLevel === 'Floresta' ? 17000 : 
-    currentLevel === 'Guardião da Biosfera' ? 20000 : 25000;
+    currentLevel === 'Semente' ? 2000 :
+    currentLevel === 'Broto' ? 5000 :
+    currentLevel === 'Folha' ? 10000 :
+    currentLevel === 'Árvore' ? 15000 :
+    currentLevel === 'Floresta' ? 20000 : 25000;
   
   // Percentual para a barra de progresso
   const progressToNextLevel = Math.min(100, (globalScore / nextLevelScore) * 100);
@@ -359,9 +359,12 @@ export default function DashboardPage() {
           <CardFooter>
             <div className="w-full">
               <div className="flex justify-between text-xs text-slate-400 mb-1">
-                <span>Rumo ao próximo nível</span>
+                <span>{isMaxLevel ? "Nível Máximo Atingido" : "Rumo ao próximo nível"}</span>
                 <span className="text-emerald-400 font-black">
-                  {globalScore.toLocaleString()} / {nextLevelScore.toLocaleString()} Score XP
+                  {isMaxLevel 
+                    ? `${globalScore.toLocaleString()} Score XP`
+                    : `${globalScore.toLocaleString()} / ${nextLevelScore.toLocaleString()} Score XP`
+                  }
                 </span>
               </div>
               <Progress value={progressToNextLevel} className="h-2 bg-slate-950/60 [&>div]:bg-gradient-to-r [&>div]:from-emerald-500 [&>div]:to-teal-400" />
@@ -508,62 +511,144 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="space-y-4 text-slate-300 flex-1 flex flex-col justify-between">
               {/* Fórmula Visual */}
-              <div className="bg-slate-950/40 border border-white/5 rounded-2xl p-3 text-center shadow-inner">
-                <p className="text-[9px] font-black uppercase tracking-wider text-slate-450">Fórmula do Score Global</p>
-                <div className="text-xs font-black text-emerald-400 tracking-tight mt-1 flex flex-wrap items-center justify-center gap-1">
-                  <span>Pontos XP</span>
-                  <span className="text-slate-500 font-normal">+</span>
-                  <span className="whitespace-nowrap font-black text-indigo-400">(Upgrades × 250)</span>
-                  <span className="text-slate-500 font-normal">+</span>
-                  <span className="font-black text-rose-450">Vitalidade</span>
+              <div className="relative overflow-hidden bg-slate-950/60 border border-white/5 rounded-2xl p-4 text-center shadow-2xl backdrop-blur-md group/formula select-none">
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-indigo-500/5 to-rose-500/5 opacity-50 group-hover/formula:opacity-80 transition-opacity" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 relative z-10 flex items-center justify-center gap-1.5">
+                  <BrainCircuit className="h-3.5 w-3.5 text-emerald-450 animate-pulse" />
+                  Fórmula do Score Global
+                </p>
+                <div className="text-xs font-black tracking-tight mt-1 flex flex-wrap items-center justify-center gap-2 relative z-10">
+                  <span className="bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 rounded-xl text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.05)]">
+                    Pontos XP
+                  </span>
+                  <span className="text-slate-500 font-bold text-sm">+</span>
+                  <span className="bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-xl text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.05)]">
+                    (Upgrades × 250)
+                  </span>
+                  <span className="text-slate-500 font-bold text-sm">+</span>
+                  <span className="bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 rounded-xl text-rose-450 shadow-[0_0_15px_rgba(244,63,94,0.05)]">
+                    Vitalidade
+                  </span>
                 </div>
               </div>
 
               {/* Detalhes dos Fatores */}
-              <div className="space-y-3 text-xs flex-1 py-1 text-slate-300">
-                <div className="flex gap-2">
-                  <span className="text-lg">♻️</span>
-                  <div>
-                    <p className="font-bold text-slate-100 leading-tight">Descarte no Totem</p>
-                    <p className="text-slate-400 font-medium leading-relaxed">
-                      Pontos ganhos por resíduo coletado:
+              <div className="space-y-3.5 text-xs flex-1 py-1 text-slate-300">
+                {/* Fator 1: Descarte */}
+                <div className="relative overflow-hidden bg-slate-950/20 hover:bg-slate-950/40 border border-white/5 rounded-2xl p-3 flex gap-3.5 transition-all duration-300 hover:border-emerald-500/20 group/factor1">
+                  <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 group-hover/factor1:scale-105 transition-transform shrink-0">
+                    <Target className="h-5 w-5 animate-pulse" />
+                  </div>
+                  <div className="flex-grow min-w-0">
+                    <div className="flex items-center justify-between flex-wrap gap-1">
+                      <p className="font-black text-slate-100 text-[11px] uppercase tracking-wider select-none">Descarte no Totem</p>
+                      <span className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg shadow-sm select-none">Ativo</span>
+                    </div>
+                    <p className="text-slate-400 font-medium leading-relaxed mt-1 text-[11px]">
+                      Ganhe pontos por cada resíduo descartado no totem coletor:
                     </p>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      <span className="bg-slate-950 border border-white/5 px-2 py-0.5 rounded text-[9px] font-bold text-slate-300 shadow-sm">Metal: +15</span>
-                      <span className="bg-slate-950 border border-white/5 px-2 py-0.5 rounded text-[9px] font-bold text-slate-300 shadow-sm">Vidro: +12</span>
-                      <span className="bg-slate-950 border border-white/5 px-2 py-0.5 rounded text-[9px] font-bold text-slate-300 shadow-sm">Plástico: +10</span>
-                      <span className="bg-slate-950 border border-white/5 px-2 py-0.5 rounded text-[9px] font-bold text-slate-300 shadow-sm">Papel: +8</span>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 mt-2">
+                      <span className="bg-slate-950/60 border border-slate-800/80 px-2 py-1 rounded-lg text-[9px] font-bold text-slate-300 flex items-center justify-center gap-1 hover:border-slate-700 transition-colors">
+                        <span className="text-[10px] select-none">⚙️</span> Metal: <span className="text-emerald-400 font-black">+15</span>
+                      </span>
+                      <span className="bg-slate-950/60 border border-slate-800/80 px-2 py-1 rounded-lg text-[9px] font-bold text-slate-300 flex items-center justify-center gap-1 hover:border-slate-700 transition-colors">
+                        <span className="text-[10px] select-none">💎</span> Vidro: <span className="text-emerald-400 font-black">+12</span>
+                      </span>
+                      <span className="bg-slate-950/60 border border-slate-800/80 px-2 py-1 rounded-lg text-[9px] font-bold text-slate-300 flex items-center justify-center gap-1 hover:border-slate-700 transition-colors">
+                        <span className="text-[10px] select-none">🥤</span> Plástico: <span className="text-emerald-400 font-black">+10</span>
+                      </span>
+                      <span className="bg-slate-950/60 border border-slate-800/80 px-2 py-1 rounded-lg text-[9px] font-bold text-slate-300 flex items-center justify-center gap-1 hover:border-slate-700 transition-colors">
+                        <span className="text-[10px] select-none">📦</span> Papel: <span className="text-emerald-400 font-black">+8</span>
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex gap-2">
-                  <span className="text-lg">🛍️</span>
-                  <div>
-                    <p className="font-bold text-slate-100 leading-tight">Itens da Bioshop</p>
-                    <p className="text-slate-400 font-medium leading-relaxed">
-                      Cada upgrade adquirido no Bio-Shop adiciona <b className="text-emerald-450 font-bold">+250 pontos</b> permanentes.
+                {/* Fator 2: Bioshop */}
+                <div className="relative overflow-hidden bg-slate-950/20 hover:bg-slate-950/40 border border-white/5 rounded-2xl p-3 flex gap-3.5 transition-all duration-300 hover:border-indigo-500/20 group/factor2">
+                  <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 group-hover/factor2:scale-105 transition-transform shrink-0">
+                    <Sparkles className="h-5 w-5 text-indigo-450" />
+                  </div>
+                  <div className="flex-grow min-w-0">
+                    <div className="flex items-center justify-between flex-wrap gap-1">
+                      <p className="font-black text-slate-100 text-[11px] uppercase tracking-wider select-none">Itens da Bioshop</p>
+                      <span className="bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg shadow-sm select-none">+250 XP / item</span>
+                    </div>
+                    <p className="text-slate-400 font-medium leading-relaxed mt-1 text-[11px]">
+                      Cada bioma ou animal adquirido no seu ecossistema virtual adiciona um multiplicador de score fixo permanente.
                     </p>
                   </div>
                 </div>
 
-                <div className="flex gap-2">
-                  <span className="text-lg">🌱</span>
-                  <div>
-                    <p className="font-bold text-slate-100 leading-tight">Saúde da Biosfera</p>
-                    <p className="text-slate-400 font-medium leading-relaxed">
-                      A porcentagem de vitalidade entra como bônus direto de até <b className="text-emerald-450 font-bold">+100 pontos</b>.
+                {/* Fator 3: Vitalidade */}
+                <div className="relative overflow-hidden bg-slate-950/20 hover:bg-slate-950/40 border border-white/5 rounded-2xl p-3 flex gap-3.5 transition-all duration-300 hover:border-rose-500/20 group/factor3">
+                  <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-450 group-hover/factor3:scale-105 transition-transform shrink-0">
+                    <Leaf className="h-5 w-5 text-rose-400" />
+                  </div>
+                  <div className="flex-grow min-w-0">
+                    <div className="flex items-center justify-between flex-wrap gap-1">
+                      <p className="font-black text-slate-100 text-[11px] uppercase tracking-wider select-none">Saúde da Biosfera</p>
+                      <span className="bg-rose-500/15 border border-rose-500/30 text-rose-400 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg shadow-sm select-none">Bônus Vital</span>
+                    </div>
+                    <p className="text-slate-400 font-medium leading-relaxed mt-1 text-[11px]">
+                      A porcentagem da saúde do ecossistema é convertida em um bônus linear que adiciona até <b className="text-rose-400 font-bold">+100 pontos</b> diretamente.
                     </p>
                   </div>
                 </div>
               </div>
             </CardContent>
-            <CardFooter className="pt-0">
-              <div className="w-full flex items-center justify-between text-[9px] bg-slate-950/40 px-3 py-2.5 rounded-2xl border border-white/5 shadow-inner">
-                <span className="font-bold text-slate-450 uppercase tracking-wider">Sua Conta (XP + Upgrades + Vit):</span>
-                <span className="font-black text-emerald-400 text-[10px] tracking-tight">
-                  {points} XP + ({purchasedItems.length} × 250) + {vitality}% = {globalScore} XP
+            <CardFooter className="pt-0 flex flex-col gap-3">
+              <div className="w-full flex flex-col gap-3 bg-slate-950/50 p-4 rounded-2xl border border-white/5 shadow-2xl backdrop-blur-md">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1 select-none">
+                  <Sparkles className="h-3.5 w-3.5 text-indigo-400 animate-pulse" />
+                  Sua Pontuação Detalhada
                 </span>
+                
+                <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 py-1">
+                  {/* Pontos Base */}
+                  <div className="flex-1 min-w-[70px] bg-slate-900/60 border border-white/5 rounded-xl p-2.5 flex flex-col items-center justify-center hover:bg-indigo-500/5 hover:border-indigo-500/20 transition-all group/base">
+                    <span className="text-[8px] font-black text-indigo-400 uppercase tracking-wider group-hover/base:scale-105 transition-transform select-none">Base XP</span>
+                    <span className="text-sm font-black text-slate-100 mt-0.5">{points}</span>
+                  </div>
+
+                  {/* Operador + */}
+                  <div className="text-slate-500 font-bold text-xs px-0.5 select-none">
+                    +
+                  </div>
+
+                  {/* Upgrades */}
+                  <div className="flex-1 min-w-[80px] bg-slate-900/60 border border-white/5 rounded-xl p-2.5 flex flex-col items-center justify-center hover:bg-emerald-500/5 hover:border-emerald-500/20 transition-all group/upg">
+                    <span className="text-[8px] font-black text-emerald-400 uppercase tracking-wider group-hover/upg:scale-105 transition-transform select-none">Upgrades</span>
+                    <span className="text-sm font-black text-slate-100 mt-0.5">+{purchasedItems.length * 250}</span>
+                    <span className="text-[7px] text-slate-400 font-medium select-none">({purchasedItems.length} × 250)</span>
+                  </div>
+
+                  {/* Operador + */}
+                  <div className="text-slate-500 font-bold text-xs px-0.5 select-none">
+                    +
+                  </div>
+
+                  {/* Vitalidade */}
+                  <div className="flex-1 min-w-[70px] bg-slate-900/60 border border-white/5 rounded-xl p-2.5 flex flex-col items-center justify-center hover:bg-rose-500/5 hover:border-rose-500/20 transition-all group/vit">
+                    <span className="text-[8px] font-black text-rose-400 uppercase tracking-wider group-hover/vit:scale-105 transition-transform select-none">Vitalidade</span>
+                    <span className="text-sm font-black text-slate-100 mt-0.5">+{vitality}</span>
+                    <span className="text-[7px] text-rose-450/70 font-medium select-none">{vitality}% de bônus</span>
+                  </div>
+                </div>
+
+                {/* Total */}
+                <div className="mt-1 pt-3 border-t border-white/5 flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider select-none">Score Global</span>
+                    <span className="text-[8px] text-slate-500 font-medium select-none">Seu nível de experiência consolidado</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-gradient-to-r from-amber-500/10 to-yellow-500/15 border border-amber-500/20 px-3.5 py-1.5 rounded-xl shadow-[0_0_15px_rgba(245,158,11,0.05)] hover:shadow-[0_0_20px_rgba(245,158,11,0.15)] transition-all duration-300 group/total">
+                    <Trophy className="h-4 w-4 text-yellow-450 animate-pulse group-hover/total:scale-110 transition-transform" />
+                    <span className="text-base font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 drop-shadow-[0_0_10px_rgba(245,158,11,0.2)]">
+                      {globalScore} XP
+                    </span>
+                  </div>
+                </div>
               </div>
             </CardFooter>
           </Card>

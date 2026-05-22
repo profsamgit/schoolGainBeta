@@ -93,7 +93,11 @@ export class AuthService {
       if (candidates.length > 0) {
         const currentUsers = [...(this.service.data?.users || [])];
         candidates.forEach((u: User) => {
-          if (!currentUsers.some((existing: User) => existing.id === u.id)) {
+          const idx = currentUsers.findIndex((existing: User) => existing.id === u.id);
+          if (idx !== -1) {
+            currentUsers[idx] = u;
+            console.log(`[AUTH-DIAGNOSTIC] Atualizando usuário "${u.name}" no cache reativo local.`);
+          } else {
             currentUsers.push(u);
             console.log(`[AUTH-DIAGNOSTIC] Injetando usuário "${u.name}" no cache reativo local.`);
           }
@@ -105,34 +109,34 @@ export class AuthService {
           const colKey = this.service.getUserCollection(u.role);
           if (colKey === 'students') {
             const list = [...(this.service.studentsSubject.value || [])];
-            if (!list.some((x: User) => x.id === u.id)) {
-              list.push(u);
-              this.service.studentsSubject.next(list);
-            }
+            const idx = list.findIndex((x: User) => x.id === u.id);
+            if (idx !== -1) list[idx] = u;
+            else list.push(u);
+            this.service.studentsSubject.next(list);
           } else if (colKey === 'admins') {
             const list = [...(this.service.adminsSubject.value || [])];
-            if (!list.some((x: User) => x.id === u.id)) {
-              list.push(u);
-              this.service.adminsSubject.next(list);
-            }
+            const idx = list.findIndex((x: User) => x.id === u.id);
+            if (idx !== -1) list[idx] = u;
+            else list.push(u);
+            this.service.adminsSubject.next(list);
           } else if (colKey === 'super_admins') {
             const list = [...(this.service.superAdminsSubject.value || [])];
-            if (!list.some((x: User) => x.id === u.id)) {
-              list.push(u);
-              this.service.superAdminsSubject.next(list);
-            }
+            const idx = list.findIndex((x: User) => x.id === u.id);
+            if (idx !== -1) list[idx] = u;
+            else list.push(u);
+            this.service.superAdminsSubject.next(list);
           } else if (colKey === 'staff') {
             const list = [...(this.service.staffSubject.value || [])];
-            if (!list.some((x: User) => x.id === u.id)) {
-              list.push(u);
-              this.service.staffSubject.next(list);
-            }
+            const idx = list.findIndex((x: User) => x.id === u.id);
+            if (idx !== -1) list[idx] = u;
+            else list.push(u);
+            this.service.staffSubject.next(list);
           } else if (colKey === 'visitors') {
             const list = [...(this.service.visitorsSubject.value || [])];
-            if (!list.some((x: User) => x.id === u.id)) {
-              list.push(u);
-              this.service.visitorsSubject.next(list);
-            }
+            const idx = list.findIndex((x: User) => x.id === u.id);
+            if (idx !== -1) list[idx] = u;
+            else list.push(u);
+            this.service.visitorsSubject.next(list);
           }
         });
       }
@@ -285,8 +289,77 @@ export class AuthService {
           console.log(`[AUTH-DIAGNOSTIC] Hash da senha digitada: "${hashedInput}"`);
           console.log(`[AUTH-DIAGNOSTIC] Hash da senha no banco: "${user.password}"`);
           
-          const isMatch = user.password === hashedInput || user.password === cleanPassword;
+          let isMatch = user.password === hashedInput || user.password === cleanPassword;
           console.log(`[AUTH-DIAGNOSTIC] Resultado da comparação da senha: ${isMatch ? "SUCESSO" : "FALHA"}`);
+
+          if (!isMatch) {
+            console.log(`[AUTH-DIAGNOSTIC] Senha incorreta localmente. Buscando documento atualizado no Firestore para evitar cache expirado...`);
+            try {
+              const colName = this.service.getUserCollection(user.role);
+              const { getDoc, doc } = await import('firebase/firestore');
+              const freshSnap = await getDoc(doc(db, colName, user.id));
+              if (freshSnap.exists()) {
+                const freshUser = freshSnap.data() as User;
+                freshUser.id = freshSnap.id;
+                
+                const freshIsMatch = freshUser.password === hashedInput || freshUser.password === cleanPassword;
+                console.log(`[AUTH-DIAGNOSTIC] Comparação com a senha do Firestore fresco: ${freshIsMatch ? "SUCESSO" : "FALHA"}`);
+                
+                if (freshIsMatch) {
+                  isMatch = true;
+                  user = freshUser;
+                  console.log(`[AUTH-DIAGNOSTIC] Match com o Firestore! Sincronizando o cache local com os dados atualizados de "${user.name}".`);
+                  
+                  // Atualiza o cache local
+                  const currentUsers = [...(this.service.data?.users || [])];
+                  const idx = currentUsers.findIndex((x: User) => x.id === freshUser.id);
+                  if (idx !== -1) {
+                    currentUsers[idx] = freshUser;
+                  } else {
+                    currentUsers.push(freshUser);
+                  }
+                  this.service.data.users = currentUsers;
+                  this.service.usersSubject.next(currentUsers);
+
+                  // Sincroniza também nos subjects específicos
+                  const colKey = this.service.getUserCollection(freshUser.role);
+                  if (colKey === 'students') {
+                    const list = [...(this.service.studentsSubject.value || [])];
+                    const sIdx = list.findIndex((x: User) => x.id === freshUser.id);
+                    if (sIdx !== -1) list[sIdx] = freshUser;
+                    else list.push(freshUser);
+                    this.service.studentsSubject.next(list);
+                  } else if (colKey === 'admins') {
+                    const list = [...(this.service.adminsSubject.value || [])];
+                    const sIdx = list.findIndex((x: User) => x.id === freshUser.id);
+                    if (sIdx !== -1) list[sIdx] = freshUser;
+                    else list.push(freshUser);
+                    this.service.adminsSubject.next(list);
+                  } else if (colKey === 'super_admins') {
+                    const list = [...(this.service.superAdminsSubject.value || [])];
+                    const sIdx = list.findIndex((x: User) => x.id === freshUser.id);
+                    if (sIdx !== -1) list[sIdx] = freshUser;
+                    else list.push(freshUser);
+                    this.service.superAdminsSubject.next(list);
+                  } else if (colKey === 'staff') {
+                    const list = [...(this.service.staffSubject.value || [])];
+                    const sIdx = list.findIndex((x: User) => x.id === freshUser.id);
+                    if (sIdx !== -1) list[sIdx] = freshUser;
+                    else list.push(freshUser);
+                    this.service.staffSubject.next(list);
+                  } else if (colKey === 'visitors') {
+                    const list = [...(this.service.visitorsSubject.value || [])];
+                    const sIdx = list.findIndex((x: User) => x.id === freshUser.id);
+                    if (sIdx !== -1) list[sIdx] = freshUser;
+                    else list.push(freshUser);
+                    this.service.visitorsSubject.next(list);
+                  }
+                }
+              }
+            } catch (err) {
+              console.error("[AUTH-DIAGNOSTIC] Erro ao buscar documento atualizado no Firestore:", err);
+            }
+          }
 
           if (!isMatch) {
             this.handleFailedLogin(securityKey);

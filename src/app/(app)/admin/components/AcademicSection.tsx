@@ -776,9 +776,9 @@ export function AcademicSection({
               <TabsTrigger value="visitor" className="gap-2 uppercase font-black text-[10px] tracking-widest text-slate-400 hover:text-white rounded-xl data-[state=active]:bg-indigo-500 data-[state=active]:text-slate-950 transition-all duration-300">Visitantes ({filteredUsersForAdmin.filter(u => u.role === 'visitor').length})</TabsTrigger>
               <TabsTrigger value="requests" className="gap-2 uppercase font-black text-[10px] tracking-widest text-slate-400 hover:text-white rounded-xl data-[state=active]:bg-indigo-500 data-[state=active]:text-slate-950 transition-all duration-300">
                 Solicitações 
-                {registrationRequests.length > 0 && (
+                {filteredRequests.length > 0 && (
                   <Badge className="h-4 w-4 p-0 flex items-center justify-center text-[8px] bg-rose-600 border border-rose-500/20 text-white animate-pulse ml-1 rounded-full">
-                    {registrationRequests.length}
+                    {filteredRequests.length}
                   </Badge>
                 )}
               </TabsTrigger>

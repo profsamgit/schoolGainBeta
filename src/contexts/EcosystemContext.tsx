@@ -184,6 +184,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
 
   // Valores efetivos (overridden se em preview)
   const effectiveBalance = isPreviewMode && studentState ? studentState.balance : balance;
+  const effectivePoints = isPreviewMode && studentState ? studentState.points : points;
   const effectiveVitality = isPreviewMode && studentState ? studentState.vitality : vitality;
   const effectiveItems = isPreviewMode && studentState ? studentState.purchasedItems : purchasedItems;
   const effectiveLevel = isPreviewMode && studentState ? studentState.level : level;
@@ -202,6 +203,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const [resetHistory, setResetHistory] = useState<CycleSnapshot[]>(service.resetHistory || []);
   const [schools, setSchools] = useState<School[]>(service.schools);
   const [legends, setLegends] = useState<EcosystemLegend[]>(service.legends);
+  const [hardwareId, setHardwareId] = useState<string | null>(service.hardwareId);
   const [isMounted, setIsMounted] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   
@@ -245,6 +247,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
     const regReqSub = service.registrationRequests$.subscribe(setRegistrationRequests);
     const userStatesSub = service.userStates$.subscribe(setUserStates);
     const legendsSub = service.legends$.subscribe(setLegends);
+    const hardwareIdSub = service.hardwareId$.subscribe(setHardwareId);
 
     service.initialize();
     
@@ -299,6 +302,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
       regReqSub.unsubscribe();
       userStatesSub.unsubscribe();
       legendsSub.unsubscribe();
+      hardwareIdSub.unsubscribe();
     };
   }, [service]);
 
@@ -421,13 +425,13 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   return (
     <EcosystemContext.Provider value={{
       balance: effectiveBalance,
-      points,
+      points: effectivePoints,
       vitality: effectiveVitality,
       vitalityActivated,
       isMissionDone,
       purchasedItems: effectiveItems,
       level: effectiveLevel,
-      hardwareId: service.hardwareId,
+      hardwareId,
       completeDailyMission,
       deductPoints,
       registerAttendance,

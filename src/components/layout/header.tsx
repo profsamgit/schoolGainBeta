@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { useEcosystem } from '@/contexts/EcosystemContext';
 import { useSidebar } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
+import { EcosystemService } from '@/lib/ecosystem.service';
 import { usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -59,8 +60,12 @@ export function Header() {
   const title =
     pathToTitle[pathname.split('/').pop() || ''] || 'SchoolGain Hub';
   
-  const { balance, points, vitality, currentUser, logout, currentUserRa, getGlobalLeader, schools } = useEcosystem();
+  const { balance, points, vitality, purchasedItems, currentUser, logout, currentUserRa, getGlobalLeader, schools } = useEcosystem();
   
+  const globalScore = useMemo(() => {
+    return EcosystemService.calculateTotalScore(points, vitality, purchasedItems?.length || 0);
+  }, [points, vitality, purchasedItems]);
+
   const isLeader = useMemo(() => {
     if (!currentUserRa) return false;
     const leader = getGlobalLeader();
@@ -188,7 +193,7 @@ export function Header() {
             <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 shadow-inner">
               <div className="flex flex-col items-end">
                 <span className="text-[8px] font-black uppercase text-indigo-600 dark:text-indigo-400 leading-none tracking-wider">Pontos (XP)</span>
-                <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 leading-none mt-0.5">{points}</span>
+                <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 leading-none mt-0.5">{globalScore}</span>
               </div>
               <Trophy className="h-4 w-4 text-indigo-500 animate-pulse" />
             </div>
