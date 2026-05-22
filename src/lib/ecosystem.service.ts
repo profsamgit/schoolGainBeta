@@ -1418,23 +1418,36 @@ export class EcosystemService {
     const random = Math.random().toString(36).substring(2, 6).toUpperCase();
     
     if (prefix === 'school') {
-      const cleanName = (additional?.name || 'sch')
-        .toLowerCase()
+      let cleanName = (additional?.name || 'SCH')
+        .toUpperCase()
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]/g, '')
-        .substring(0, 8)
-        .toUpperCase();
+        .split(/\s+/)
+        .map(word => word.replace(/[^A-Z0-9]/g, ''))
+        .filter(word => word.length > 0 && !['DE', 'DO', 'DA', 'DOS', 'DAS', 'E', 'O', 'A'].includes(word))
+        .map(word => word.charAt(0))
+        .join('');
 
-      const cleanCity = (additional?.city || 'city')
-        .toLowerCase()
+      if (!cleanName) {
+        cleanName = (additional?.name || 'SCH')
+          .toUpperCase()
+          .replace(/[^A-Z0-9]/g, '')
+          .substring(0, 4);
+      }
+
+      if (!cleanName) {
+        cleanName = 'SCH';
+      }
+
+      const cleanCity = (additional?.city || 'CITY')
+        .toUpperCase()
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]/g, '')
-        .substring(0, 3)
-        .toUpperCase();
+        .replace(/[^A-Z0-9]/g, '');
 
-      return `school-${cleanName}-${cleanCity}-${random}`;
+      const random5 = (Math.random().toString(36) + '00000').substring(2, 7).toUpperCase();
+
+      return `SCH-${cleanName}-${cleanCity}-${random5}`;
     }
 
     if (prefix === 'user-student' || prefix === 'admin' || prefix === 'super' || prefix === 'staff' || prefix.startsWith('staff-') || prefix === 'visitor') {
@@ -1446,13 +1459,13 @@ export class EcosystemService {
         .substring(0, 3)
         .toUpperCase();
 
-      const cleanSchoolId = !schoolId || schoolId === 'MASTER' ? 'MASTER' : schoolId.replace('school-', '');
+      const cleanSchoolId = !schoolId || schoolId === 'MASTER' ? 'MASTER' : schoolId.replace(/^(school|SCH)-/i, '');
       const initialsBlock = initials ? `${initials}-` : '';
 
       return `${prefix}-${cleanSchoolId}-${initialsBlock}${random}`;
     }
 
-    const cleanSchoolId = !schoolId || schoolId === 'MASTER' ? 'MASTER' : schoolId.replace('school-', '');
+    const cleanSchoolId = !schoolId || schoolId === 'MASTER' ? 'MASTER' : schoolId.replace(/^(school|SCH)-/i, '');
     return `${prefix}-${cleanSchoolId}-${random}`;
   }
 

@@ -109,8 +109,8 @@ export class WasteService {
     await this.service.logTelemetry({
       action: 'SYSTEM_RESET',
       category: 'SYSTEM',
-      details: `Reset de ciclo executado para ${schoolId === 'all' ? 'toda a rede' : `unidade ${schoolId}`}`,
-      unitId: schoolId === 'all' ? 'MASTER' : schoolId,
+      details: `Reset de ciclo executado para ${!schoolId || schoolId === 'all' ? 'toda a rede' : `unidade ${schoolId}`}`,
+      unitId: !schoolId || schoolId === 'all' ? 'MASTER' : schoolId,
       metadata: { snapshotId: snapshot.id, totalPoints: snapshot.totalPoints, totalWaste: snapshot.totalWasteKg }
     });
 
@@ -130,13 +130,21 @@ export class WasteService {
     // Sincroniza as listas locais para refletir os novos estados zerados
     this.service.syncCombinedUsers(false);
 
-    // Limpa coletas
+    // Limpa coletas (localmente e no Firestore)
     if (this.service.data.wasteEntries) {
+      const wasteToDelete = this.service.data.wasteEntries.filter((w: any) => !schoolId || w.schoolId === schoolId);
+      for (const w of wasteToDelete) {
+        deleteDoc(doc(db, "wasteEntries", w.id)).catch(err => console.error("Erro ao deletar coleta:", err));
+      }
       this.service.data.wasteEntries = this.service.data.wasteEntries.filter((w: any) => schoolId && w.schoolId !== schoolId);
     }
 
-    // Limpa logs de auditoria
+    // Limpa logs de auditoria (localmente e no Firestore)
     if (this.service.data.auditLogs) {
+      const logsToDelete = this.service.data.auditLogs.filter((l: any) => !schoolId || l.unitId === schoolId);
+      for (const l of logsToDelete) {
+        deleteDoc(doc(db, "auditLogs", l.id)).catch(err => console.error("Erro ao deletar log:", err));
+      }
       this.service.data.auditLogs = this.service.data.auditLogs.filter((l: any) => schoolId && l.unitId !== schoolId);
     }
 

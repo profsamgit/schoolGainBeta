@@ -22,8 +22,8 @@
 // ============================================================================
 // 1. CONFIGURAÇÃO DE REDE WI-FI
 // ============================================================================
-const char *ssid = "APICELLA_LAB";
-const char *password = "professores";
+const char *ssid = "SEU-WIFI";
+const char *password = "SUA SENHA";
 
 // ============================================================================
 // 2. CONFIGURAÇÃO DO SERVIDOR SCHOOLGAIN
