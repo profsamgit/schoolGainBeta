@@ -30,57 +30,210 @@ export class AuthService {
   }
 
   /**
-   * Autentica um usuário pelo RA ou RFID.
+   * Autentica um usuário pelo RA, RFID ou E-mail.
    */
-  async login(id: string, password?: string): Promise<boolean> {
+  async login(id: string, password?: string, terminalSchoolId?: string): Promise<boolean> {
     const cleanId = id.trim();
     const cleanPassword = password?.trim();
     const securityKey = cleanId.toLowerCase();
 
+    console.log(`[AUTH-DIAGNOSTIC] --- Início do Processo de Login ---`);
+    console.log(`[AUTH-DIAGNOSTIC] Identificador original: "${id}"`);
+    console.log(`[AUTH-DIAGNOSTIC] Identificador limpo (cleanId): "${cleanId}"`);
+    console.log(`[AUTH-DIAGNOSTIC] Terminal School ID: "${terminalSchoolId}"`);
+    console.log(`[AUTH-DIAGNOSTIC] Quantidade de usuários no cache local: ${this.service.data?.users?.length || 0}`);
+
     // 1. Verifica Lockout
     const lockout = this.getLockoutStatus(cleanId);
     if (lockout.isLocked) {
+      console.warn(`[AUTH-DIAGNOSTIC] Login recusado: Usuário está bloqueado temporariamente por excesso de tentativas.`);
       return false;
     }
 
-    // Busca insensível a maiúsculas/minúsculas para RA, RFID e Email
-    const user = (this.service.data?.users || []).find((u: User) =>
-      (u.ra && u.ra.toLowerCase() === cleanId.toLowerCase()) ||
-      (u.rfid && u.rfid.toLowerCase() === cleanId.toLowerCase()) ||
-      (u.email && u.email.toLowerCase() === cleanId.toLowerCase())
+    // Busca todos os candidatos correspondentes ao identificador (RA, RFID ou E-mail)
+    let candidates = (this.service.data?.users || []).filter((u: User) =>
+      (u.ra && u.ra.trim().toLowerCase() === cleanId.trim().toLowerCase()) ||
+      (u.rfid && u.rfid.trim().toLowerCase() === cleanId.trim().toLowerCase()) ||
+      (u.email && u.email.trim().toLowerCase() === cleanId.trim().toLowerCase())
     );
 
+    if (candidates.length === 0) {
+      console.log(`[AUTH-DIAGNOSTIC] Nenhum candidato encontrado localmente para o identificador "${cleanId}". Iniciando busca direta no Firestore...`);
+      const collections = ['students', 'admins', 'staff', 'super_admins', 'visitors'];
+      const { getDocs, query, collection, where } = await import('firebase/firestore');
+      
+      for (const colName of collections) {
+        try {
+          const queries = [
+            query(collection(db, colName), where("email", "==", cleanId.trim())),
+            query(collection(db, colName), where("email", "==", cleanId.trim().toLowerCase())),
+            query(collection(db, colName), where("ra", "==", cleanId.trim())),
+            query(collection(db, colName), where("ra", "==", cleanId.trim().toUpperCase())),
+            query(collection(db, colName), where("rfid", "==", cleanId.trim()))
+          ];
+          
+          for (const q of queries) {
+            const snap = await getDocs(q);
+            if (!snap.empty) {
+              snap.forEach(docSnap => {
+                const u = docSnap.data() as User;
+                u.id = docSnap.id;
+                if (!candidates.some((c: User) => c.id === u.id)) {
+                  candidates.push(u);
+                  console.log(`[AUTH-DIAGNOSTIC] Usuário encontrado na coleção "${colName}":`, u.name, `(${u.role})`);
+                }
+              });
+            }
+          }
+        } catch (colErr) {
+          console.error(`[AUTH-DIAGNOSTIC] Erro ao buscar na coleção "${colName}":`, colErr);
+        }
+      }
+
+      if (candidates.length > 0) {
+        const currentUsers = [...(this.service.data?.users || [])];
+        candidates.forEach((u: User) => {
+          if (!currentUsers.some((existing: User) => existing.id === u.id)) {
+            currentUsers.push(u);
+            console.log(`[AUTH-DIAGNOSTIC] Injetando usuário "${u.name}" no cache reativo local.`);
+          }
+        });
+        this.service.data.users = currentUsers;
+        this.service.usersSubject.next(currentUsers);
+        
+        candidates.forEach((u: User) => {
+          const colKey = this.service.getUserCollection(u.role);
+          if (colKey === 'students') {
+            const list = [...(this.service.studentsSubject.value || [])];
+            if (!list.some((x: User) => x.id === u.id)) {
+              list.push(u);
+              this.service.studentsSubject.next(list);
+            }
+          } else if (colKey === 'admins') {
+            const list = [...(this.service.adminsSubject.value || [])];
+            if (!list.some((x: User) => x.id === u.id)) {
+              list.push(u);
+              this.service.adminsSubject.next(list);
+            }
+          } else if (colKey === 'super_admins') {
+            const list = [...(this.service.superAdminsSubject.value || [])];
+            if (!list.some((x: User) => x.id === u.id)) {
+              list.push(u);
+              this.service.superAdminsSubject.next(list);
+            }
+          } else if (colKey === 'staff') {
+            const list = [...(this.service.staffSubject.value || [])];
+            if (!list.some((x: User) => x.id === u.id)) {
+              list.push(u);
+              this.service.staffSubject.next(list);
+            }
+          } else if (colKey === 'visitors') {
+            const list = [...(this.service.visitorsSubject.value || [])];
+            if (!list.some((x: User) => x.id === u.id)) {
+              list.push(u);
+              this.service.visitorsSubject.next(list);
+            }
+          }
+        });
+      }
+    }
+
+    console.log(`[AUTH-DIAGNOSTIC] Candidatos correspondentes encontrados: ${candidates.length}`);
+    candidates.forEach((c: User, idx: number) => {
+      console.log(`[AUTH-DIAGNOSTIC] Candidato [${idx}]: ID=${c.id}, Nome="${c.name}", Role="${c.role}", SchoolId="${c.schoolId}", Status="${c.status}", Email="${c.email}", RA="${c.ra}"`);
+    });
+
+    let user = candidates.length > 0 ? candidates[0] : null;
+
+    if (candidates.length > 1) {
+      console.log(`[AUTH-DIAGNOSTIC] Múltiplos candidatos encontrados. Refinando seleção...`);
+      if (cleanPassword) {
+        const hashedInput = await EcosystemService.hashPassword(cleanPassword);
+        const matchingPasswordCandidates = candidates.filter((c: User) => {
+          if (c.role === 'super_admin') {
+            return true; // Mantém super_admins para validação nativa do Firebase
+          }
+          return c.password === hashedInput || c.password === cleanPassword;
+        });
+
+        console.log(`[AUTH-DIAGNOSTIC] Candidatos com senha correspondente: ${matchingPasswordCandidates.length}`);
+
+        if (matchingPasswordCandidates.length === 1) {
+          user = matchingPasswordCandidates[0];
+        } else if (matchingPasswordCandidates.length > 1) {
+          // Em caso de empate na senha, prioriza o que pertence ao terminal ativo
+          if (terminalSchoolId) {
+            const schoolMatch = matchingPasswordCandidates.find((c: User) => c.schoolId === terminalSchoolId);
+            if (schoolMatch) {
+              user = schoolMatch;
+            } else {
+              user = matchingPasswordCandidates[0];
+            }
+          } else {
+            user = matchingPasswordCandidates[0];
+          }
+        } else {
+          // Se nenhum bateu a senha, mantemos o primeiro para que falhe e dispare lockout/erro padrão
+          user = candidates[0];
+        }
+      } else {
+        // Sem senha (login por RFID/QR por aproximação no terminal)
+        if (terminalSchoolId) {
+          const schoolMatch = candidates.find((c: User) => c.schoolId === terminalSchoolId);
+          if (schoolMatch) {
+            user = schoolMatch;
+          } else {
+            user = candidates[0];
+          }
+        } else {
+          user = candidates[0];
+        }
+      }
+    }
+
     if (user) {
+      console.log(`[AUTH-DIAGNOSTIC] Candidato selecionado para autenticação: Nome="${user.name}", Role="${user.role}", SchoolId="${user.schoolId}"`);
       // 2. Verifica se o usuário ou a escola estão ativos
+      console.log(`[AUTH-DIAGNOSTIC] Verificando status do usuário "${user.name}" (Status: "${user.status}")...`);
       if (user.status === 'inactive') {
+        console.warn(`[AUTH-DIAGNOSTIC] Bloqueado: Usuário está inativo.`);
         return false;
       }
 
       if (user.schoolId && user.schoolId !== 'global') {
         const school = this.service.data.schools.find((s: any) => s.id === user.schoolId);
-        if (school && (school.status === 'inactive' || school.status === 'suspended')) {
-          return false;
+        console.log(`[AUTH-DIAGNOSTIC] Verificando status da escola "${user.schoolId}"...`);
+        if (school) {
+          console.log(`[AUTH-DIAGNOSTIC] Escola encontrada: "${school.name}", Status: "${school.status}"`);
+          if (school.status === 'inactive' || school.status === 'suspended') {
+            console.warn(`[AUTH-DIAGNOSTIC] Bloqueado: Escola do usuário está inativa ou suspensa.`);
+            return false;
+          }
+        } else {
+          console.warn(`[AUTH-DIAGNOSTIC] Alerta: Escola com ID "${user.schoolId}" não encontrada localmente no cache.`);
         }
       }
 
       // 3. Lógica diferenciada por cargo
       if (cleanPassword) {
+        console.log(`[AUTH-DIAGNOSTIC] Tipo de autenticação: Por senha.`);
         // INTERCEPTADOR PROATIVO: Auto-Recovery
         // Só tentamos o Firebase Auth primeiro se o e-mail pertencer a um Super Admin no banco,
         // ou se for o e-mail padrão do administrador mock, para evitar erros 400 desnecessários no console para Gestores/Usuários.
         const isSuperAdminEmail = cleanId.toLowerCase() === 'super-admin@schoolgain.com' || 
           (this.service.data?.users || []).some((u: User) => 
-            u.role === 'super_admin' && u.email && u.email.toLowerCase() === cleanId.toLowerCase()
+            u.role === 'super_admin' && u.email && u.email.trim().toLowerCase() === cleanId.trim().toLowerCase()
           );
 
         if (cleanId.includes('@') && isSuperAdminEmail) {
+          console.log(`[AUTH-DIAGNOSTIC] Usuário identificado como e-mail de Super Admin. Tentando autenticação via Firebase Auth...`);
           try {
             await signInWithEmailAndPassword(auth, cleanId, cleanPassword);
             await new Promise(resolve => setTimeout(resolve, 1500));
 
             // Sincroniza o hash da senha após o listener onAuthStateChanged restaurar/injetar o usuário
             const loggedUser = (this.service.data?.users || []).find((u: User) =>
-              u.email && u.email.toLowerCase() === cleanId.toLowerCase() && u.role === 'super_admin'
+              u.email && u.email.trim().toLowerCase() === cleanId.trim().toLowerCase() && u.role === 'super_admin'
             );
             if (loggedUser) {
               const hashedInput = await EcosystemService.hashPassword(cleanPassword);
@@ -91,16 +244,19 @@ export class AuthService {
               }
             }
 
+            console.log(`[AUTH-DIAGNOSTIC] Login do Super Admin via Firebase Auth efetuado com SUCESSO.`);
             return true; // O listener onAuthStateChanged assumirá o controle
           } catch (e) {
+            console.error(`[AUTH-DIAGNOSTIC] Falha no login do Super Admin via Firebase Auth (Interceptador):`, e);
             // Não é um Super Admin no Firebase, prossegue para validação local normal.
           }
         }
 
         if (user.role === 'super_admin') {
           // Super Admins continuam usando a segurança nativa do Firebase Auth
+          console.log(`[AUTH-DIAGNOSTIC] Executando autenticação padrão de Super Admin via Firebase Auth...`);
           try {
-            await signInWithEmailAndPassword(auth, user.email!, cleanPassword);
+            await signInWithEmailAndPassword(auth, user.email!.trim(), cleanPassword);
 
             // Sincroniza o hash da senha no Firestore após sucesso
             const hashedInput = await EcosystemService.hashPassword(cleanPassword);
@@ -109,12 +265,14 @@ export class AuthService {
               await setDoc(doc(db, this.service.getUserCollection(user.role), user.id), this.service.sanitizeUserForFirestore(user));
               console.log("[AUTO-RECOVERY] Hash da senha do Super Admin atualizado no Firestore (Direto).");
             }
+            console.log(`[AUTH-DIAGNOSTIC] Login do Super Admin efetuado com SUCESSO.`);
           } catch (firebaseError: any) {
             console.warn("[FIREBASE] Falha no login do Super Admin no Firebase Auth, tentando local fallback:", firebaseError);
             
             // Fallback Local Hash para Super Admins (essencial se criados localmente, se o e-mail mudou, ou se a senha foi resetada localmente)
             const hashedInput = await EcosystemService.hashPassword(cleanPassword);
             const isMatch = user.password === hashedInput || user.password === cleanPassword;
+            console.log(`[AUTH-DIAGNOSTIC] Comparação de hash local para Super Admin: ${isMatch ? "SUCESSO" : "FALHA"}`);
             if (!isMatch) {
               this.handleFailedLogin(securityKey);
               return false;
@@ -123,7 +281,12 @@ export class AuthService {
         } else {
           // Gestores e Usuários utilizam a lógica SHA-256 customizada
           const hashedInput = await EcosystemService.hashPassword(cleanPassword);
+          console.log(`[AUTH-DIAGNOSTIC] Comparando senha de gestor/usuário.`);
+          console.log(`[AUTH-DIAGNOSTIC] Hash da senha digitada: "${hashedInput}"`);
+          console.log(`[AUTH-DIAGNOSTIC] Hash da senha no banco: "${user.password}"`);
+          
           const isMatch = user.password === hashedInput || user.password === cleanPassword;
+          console.log(`[AUTH-DIAGNOSTIC] Resultado da comparação da senha: ${isMatch ? "SUCESSO" : "FALHA"}`);
 
           if (!isMatch) {
             this.handleFailedLogin(securityKey);
@@ -155,6 +318,7 @@ export class AuthService {
       });
 
       this.service.saveToStorage();
+      console.log(`[AUTH-DIAGNOSTIC] Login efetuado e registrado com sucesso para: "${user.name}" (${user.role})`);
       return true;
     }
 
@@ -163,6 +327,7 @@ export class AuthService {
     // tentamos autenticar diretamente no Firebase Auth.
     // Se o Firebase autorizar, o listener onAuthStateChanged cuidará da criação dinâmica.
     if (cleanPassword && cleanId.includes('@')) {
+      console.log(`[AUTH-DIAGNOSTIC] Iniciando Fallback Auto-Recovery de Super Admin via Firebase Auth para "${cleanId}"...`);
       try {
         await signInWithEmailAndPassword(auth, cleanId, cleanPassword);
         
@@ -171,7 +336,7 @@ export class AuthService {
 
         // Sincroniza o hash da senha no Firestore para o Super Admin restaurado
         const restoredUser = (this.service.data?.users || []).find((u: User) =>
-          u.email && u.email.toLowerCase() === cleanId.toLowerCase() && u.role === 'super_admin'
+          u.email && u.email.trim().toLowerCase() === cleanId.trim().toLowerCase() && u.role === 'super_admin'
         );
         if (restoredUser) {
           const hashedInput = await EcosystemService.hashPassword(cleanPassword);
@@ -182,12 +347,14 @@ export class AuthService {
           }
         }
 
+        console.log(`[AUTH-DIAGNOSTIC] Fallback Auto-Recovery de Super Admin efetuado com SUCESSO.`);
         return true;
       } catch (err) {
-        // Falhou no firebase também, prossegue para o log de erro padrão abaixo
+        console.error(`[AUTH-DIAGNOSTIC] Falha no Fallback Auto-Recovery de Super Admin:`, err);
       }
     }
 
+    console.warn(`[AUTH-DIAGNOSTIC] Falha geral de autenticação para o identificador "${cleanId}".`);
     await this.service.logTelemetry({
       action: 'LOGIN_FAIL',
       category: 'AUTH',

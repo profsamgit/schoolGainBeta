@@ -45,7 +45,7 @@ interface EcosystemContextType {
   currentUserRa: string | null; // RA do aluno logado
   currentUserId: string | null; // ID do aluno logado (Firestore)
   currentUser: User | null;      // Dados completos do aluno logado
-  login: (ra: string, password?: string) => Promise<boolean>; // Entrar no sistema
+  login: (ra: string, password?: string, terminalSchoolId?: string) => Promise<boolean>; // Entrar no sistema
   logout: () => void;             // Sair do sistema
   addPoints: (points: number, studentRa?: string, description?: string) => void; // Dar pontos
   updateUsers: (newUsers: User[], targetSchoolId?: string) => Promise<{ success: boolean, error?: string }>;
@@ -366,7 +366,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const buyUpgrade = (item: EcosystemItem) => service.buyUpgrade(item);
   const healVitality = (points: number) => service.healVitality(points);
   const updateParticipants = service.updateParticipants.bind(service);
-  const login = (ra: string, pass?: string) => service.login(ra, pass);
+  const login = (ra: string, pass?: string, terminalSchoolId?: string) => service.login(ra, pass, terminalSchoolId);
   const logout = service.logout.bind(service);
   const addPoints = service.addPoints.bind(service);
   const updateUsers = async (newUsers: User[], targetSchoolId?: string) => await service.updateUsers(newUsers, targetSchoolId);

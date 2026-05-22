@@ -795,8 +795,8 @@ export class EcosystemService {
   // Fachada (Facade): Delegação de Métodos para Sub-Serviços Modulares
   
   // 1. Autenticação (AuthService)
-  async login(id: string, password?: string) {
-    return this.authService.login(id, password);
+  async login(id: string, password?: string, terminalSchoolId?: string) {
+    return this.authService.login(id, password, terminalSchoolId);
   }
   logout() {
     this.authService.logout();

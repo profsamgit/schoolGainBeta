@@ -68,7 +68,7 @@ export default function StudentLoginPage() {
     }
 
     setIsProcessing(true);
-    const success = await login(cleanRa);
+    const success = await login(cleanRa, undefined, currentTerminal?.schoolId);
     
     if (success) {
       playBeep('success');

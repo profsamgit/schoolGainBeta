@@ -7,6 +7,7 @@ import { ArrowRight, ArrowLeft, Keyboard, ShieldCheck, QrCode, Cpu, Loader2, Vol
 import { useToast } from '@/hooks/use-toast';
 import { VirtualKeyboard } from '@/components/ui/virtual-keyboard';
 import { useEcosystem } from '@/contexts/EcosystemContext';
+import { EcosystemService } from '@/lib/ecosystem.service';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -56,12 +57,17 @@ export default function AdminLoginPage() {
       return;
     }
 
-    const success = await login(cleanUser, cleanPass);
+    const success = await login(cleanUser, cleanPass, currentTerminal?.schoolId);
     
     if (success) {
        playBeep('success');
-       // Busca o usuário logado para verificar o seu papel no sistema (admin ou super_admin)
-       const user = users.find(u => u.ra === cleanUser || u.email?.toLowerCase() === cleanUser.toLowerCase());
+       // Encontra o usuário correspondente de forma precisa, validando também a senha para caso de e-mails duplicados
+       const user = await (async () => {
+         const candidates = users.filter(u => u.ra === cleanUser || u.email?.toLowerCase() === cleanUser.toLowerCase());
+         if (candidates.length <= 1) return candidates[0];
+         const hashed = await EcosystemService.hashPassword(cleanPass);
+         return candidates.find(u => u.password === hashed || u.password === cleanPass) || candidates[0];
+       })();
        
        if (user?.role === 'super_admin') {
          toast({ title: `Bem-vindo, ${user.name}!`, description: 'Acesso total à rede concedido.' });
@@ -100,7 +106,7 @@ export default function AdminLoginPage() {
     );
     
     if (user) {
-      login(user.ra!);
+      login(user.ra!, undefined, currentTerminal?.schoolId);
       playBeep('success');
       toast({ title: `Bem-vindo, ${user.name}!`, description: 'Acesso concedido via hardware.' });
       

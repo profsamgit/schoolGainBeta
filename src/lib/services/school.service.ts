@@ -16,15 +16,27 @@ export class SchoolService {
       return false;
     }
 
-    // Validação de E-mail Único na Rede
     const emailLower = schoolData.managerEmail.toLowerCase().trim();
-    if (this.service.data.users.some((u: User) => u.email?.toLowerCase() === emailLower)) {
+    
+    // Tratando name, city, state como maiúsculas e trimadas
+    const cleanName = schoolData.name.toUpperCase().trim();
+    const cleanCity = schoolData.city.toUpperCase().trim();
+    const cleanState = schoolData.state.toUpperCase().trim();
+
+    // Validação de E-mail Único na Mesma Escola
+    const tempSchoolId = EcosystemService.generateStandardId('school', undefined, { name: cleanName, city: cleanCity });
+    if (this.service.data.users.some((u: User) => u.email?.toLowerCase().trim() === emailLower && u.schoolId === tempSchoolId)) {
       return false;
     }
 
     const newSchool: School = {
       ...schoolData,
-      id: EcosystemService.generateStandardId('school', undefined, { name: schoolData.name, city: schoolData.city }),
+      name: cleanName,
+      city: cleanCity,
+      state: cleanState,
+      managerEmail: emailLower,
+      contactEmail: (schoolData.contactEmail || "").toLowerCase().trim(),
+      id: tempSchoolId,
       status: 'pending',
       joinedDate: new Date().toISOString().split('T')[0],
       initialManagerPassword: resolvedPassword
@@ -59,15 +71,26 @@ export class SchoolService {
       return false;
     }
 
-    // Validação de E-mail Único na Rede
     const emailLower = schoolData.managerEmail.toLowerCase().trim();
-    if (this.service.data.users.some((u: User) => u.email?.toLowerCase() === emailLower)) {
+    
+    // Tratando name, city, state como maiúsculas e trimadas
+    const cleanName = schoolData.name.toUpperCase().trim();
+    const cleanCity = schoolData.city.toUpperCase().trim();
+    const cleanState = schoolData.state.toUpperCase().trim();
+
+    const tempSchoolId = EcosystemService.generateStandardId('school', undefined, { name: cleanName, city: cleanCity });
+    if (this.service.data.users.some((u: User) => u.email?.toLowerCase().trim() === emailLower && u.schoolId === tempSchoolId)) {
       return false;
     }
 
     const newSchool: School = {
       ...schoolData,
-      id: EcosystemService.generateStandardId('school', undefined, { name: schoolData.name, city: schoolData.city }),
+      name: cleanName,
+      city: cleanCity,
+      state: cleanState,
+      managerEmail: emailLower,
+      contactEmail: (schoolData.contactEmail || "").toLowerCase().trim(),
+      id: tempSchoolId,
       status: 'active',
       joinedDate: new Date().toISOString().split('T')[0]
     };
@@ -105,7 +128,7 @@ export class SchoolService {
 
     // Sincroniza novo gestor se criado (usando a coleção mapeada correta e higienização)
     if (newSchool.managerEmail) {
-      const adminUser = this.service.data.users.find((u: User) => u.email === newSchool.managerEmail);
+      const adminUser = this.service.data.users.find((u: User) => u.email === newSchool.managerEmail && u.schoolId === newSchool.id);
       if (adminUser) {
         setDoc(
           doc(db, this.service.getUserCollection(adminUser.role), adminUser.id),
@@ -131,12 +154,13 @@ export class SchoolService {
 
       // Se estiver ativando, garante que o usuário gestor exista
       if (status === 'active' && school.managerEmail && resolvedPassword) {
-        const userExists = this.service.data.users.find((u: User) => u.email?.toLowerCase() === school.managerEmail?.toLowerCase());
+        const managerEmailClean = school.managerEmail.toLowerCase().trim();
+        const userExists = this.service.data.users.find((u: User) => u.email?.toLowerCase().trim() === managerEmailClean && u.schoolId === school.id);
         if (!userExists) {
           const newUser: User = {
             id: EcosystemService.generateStandardId('admin', school.id),
             name: `Gestor ${school.name}`,
-            email: school.managerEmail,
+            email: managerEmailClean,
             password: await EcosystemService.hashPassword(resolvedPassword),
             role: 'admin',
             schoolId: school.id,
@@ -163,7 +187,8 @@ export class SchoolService {
 
       // Sincroniza novo gestor se criado (usando a coleção mapeada correta e higienização)
       if (status === 'active' && school.managerEmail) {
-        const adminUser = this.service.data.users.find((u: User) => u.email === school.managerEmail);
+        const managerEmailClean = school.managerEmail.toLowerCase().trim();
+        const adminUser = this.service.data.users.find((u: User) => u.email === managerEmailClean && u.schoolId === school.id);
         if (adminUser) {
           setDoc(
             doc(db, this.service.getUserCollection(adminUser.role), adminUser.id),
