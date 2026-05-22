@@ -246,8 +246,8 @@ export class AuthService {
 
             console.log(`[AUTH-DIAGNOSTIC] Login do Super Admin via Firebase Auth efetuado com SUCESSO.`);
             return true; // O listener onAuthStateChanged assumirá o controle
-          } catch (e) {
-            console.error(`[AUTH-DIAGNOSTIC] Falha no login do Super Admin via Firebase Auth (Interceptador):`, e);
+          } catch (e: any) {
+            console.warn(`[AUTH-DIAGNOSTIC] Falha no login do Super Admin via Firebase Auth (Interceptador - prosseguindo para validação local):`, e.message || e);
             // Não é um Super Admin no Firebase, prossegue para validação local normal.
           }
         }
@@ -267,7 +267,7 @@ export class AuthService {
             }
             console.log(`[AUTH-DIAGNOSTIC] Login do Super Admin efetuado com SUCESSO.`);
           } catch (firebaseError: any) {
-            console.warn("[FIREBASE] Falha no login do Super Admin no Firebase Auth, tentando local fallback:", firebaseError);
+            console.warn("[FIREBASE] Falha no login do Super Admin no Firebase Auth (tentando local fallback):", firebaseError.message || firebaseError);
             
             // Fallback Local Hash para Super Admins (essencial se criados localmente, se o e-mail mudou, ou se a senha foi resetada localmente)
             const hashedInput = await EcosystemService.hashPassword(cleanPassword);
@@ -349,8 +349,8 @@ export class AuthService {
 
         console.log(`[AUTH-DIAGNOSTIC] Fallback Auto-Recovery de Super Admin efetuado com SUCESSO.`);
         return true;
-      } catch (err) {
-        console.error(`[AUTH-DIAGNOSTIC] Falha no Fallback Auto-Recovery de Super Admin:`, err);
+      } catch (err: any) {
+        console.warn(`[AUTH-DIAGNOSTIC] Falha no Fallback Auto-Recovery de Super Admin (Credenciais inválidas ou inexistentes):`, err.message || err);
       }
     }
 

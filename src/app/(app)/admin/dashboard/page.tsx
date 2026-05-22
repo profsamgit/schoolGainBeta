@@ -38,8 +38,10 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/components/ui/sidebar';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function AdminDashboardPage() {
+    const router = useRouter();
     const { 
         users, 
         currentUser, 
@@ -47,6 +49,13 @@ export default function AdminDashboardPage() {
         terminals, 
         registrationRequests 
     } = useEcosystem();
+
+    // Redireciona o usuário para /admin se ele precisar alterar a senha temporária
+    useEffect(() => {
+        if (currentUser?.mustChangePassword) {
+            router.push('/admin');
+        }
+    }, [currentUser, router]);
     
     const isSuperAdmin = currentUser?.role === 'super_admin';
     const schoolId = currentUser?.schoolId;

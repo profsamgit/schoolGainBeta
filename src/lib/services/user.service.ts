@@ -139,14 +139,13 @@ export class UserService {
         }
       }
 
-      // Identifica usuários removidos
-      const removedUsers = this.service.data.users.filter((oldU: User) => {
-        const isInNewList = newUsers.find(newU => newU.id === oldU.id);
-        if (activeSchoolId) {
-          return oldU.schoolId === activeSchoolId && !isInNewList;
-        }
-        return !isInNewList;
-      });
+      // Identifica usuários removidos (apenas se um targetSchoolId foi explicitamente fornecido)
+      const removedUsers = activeSchoolId
+        ? this.service.data.users.filter((oldU: User) => {
+            const isInNewList = newUsers.find(newU => newU.id === oldU.id);
+            return oldU.schoolId === activeSchoolId && !isInNewList;
+          })
+        : [];
 
       // 2. Mescla os usuários (Preserva usuários de outras escolas se a lista for parcial/filtrada)
       let uniqueUsers: User[];
@@ -298,6 +297,35 @@ export class UserService {
     const currentUser = this.service.data.users.find((u: User) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
     if (currentUser?.role === 'admin' && user.schoolId !== currentUser.schoolId) {
       return false;
+    }
+
+    // Se o usuário não possuir vínculo de escola (ex: Super Admin global), deleta diretamente para evitar erros de escopo
+    if (!user.schoolId) {
+      try {
+        await deleteDoc(doc(db, this.getUserCollection(user.role), userId));
+        await deleteDoc(doc(db, "userStates", userId));
+        if (user.ra) {
+          await deleteDoc(doc(db, this.getUserCollection(user.role), user.ra));
+        }
+        
+        const uniqueUsers = this.service.data.users.filter((u: User) => u.id !== userId);
+        this.service.data.users = uniqueUsers;
+        this.service.usersSubject.next([...uniqueUsers]);
+        this.service.saveToStorage();
+        
+        await this.service.logTelemetry({
+          action: 'CRUD_DELETE',
+          category: 'DATA',
+          details: `Exclusão de usuário global: ${user.name} (${user.role})`,
+          targetEntity: 'users',
+          metadata: { ids: [userId], names: [user.name] }
+        });
+        
+        return true;
+      } catch (error) {
+        console.error("[USER SERVICE] Erro ao deletar usuário global:", error);
+        return false;
+      }
     }
 
     // Filtra para remover apenas o usuário alvo da sua respectiva unidade

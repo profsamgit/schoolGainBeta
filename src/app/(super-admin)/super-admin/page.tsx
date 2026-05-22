@@ -49,6 +49,7 @@ export default function SuperAdminPage() {
     resetHistory,
     performCycleReset,
     updateUsers,
+    deleteUser,
     allParticipants,
     updateParticipants,
     updateSchools,
@@ -413,10 +414,10 @@ export default function SuperAdminPage() {
       return;
     }
 
-    const result = await updateUsers(users.filter(u => u.id !== userId));
+    const success = await deleteUser(userId);
     setAdminPasswordForAction('');
-    if (result && !result.success) {
-      toast({ title: "Erro na Exclusão", description: result.error || "Não foi possível excluir o usuário.", variant: "destructive" });
+    if (!success) {
+      toast({ title: "Erro na Exclusão", description: "Não foi possível excluir o usuário.", variant: "destructive" });
     } else {
       toast({ title: "Removido", description: `${roleName} removido com sucesso.` });
       if (userId === currentUser?.id) {
@@ -433,7 +434,10 @@ export default function SuperAdminPage() {
     const isAuth = await verifyPassword(adminPasswordForAction);
     if (!isAuth) { toast({ title: "Erro", description: "Senha incorreta.", variant: "destructive" }); return; }
     const tempPass = `SG-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-    const result = await updateUsers(users.map(u => u.id === user.id ? { ...u, password: tempPass, mustChangePassword: true } : u));
+    const result = await updateUsers(
+      users.map(u => u.id === user.id ? { ...u, password: tempPass, mustChangePassword: true } : u),
+      user.schoolId
+    );
     if (result && !result.success) {
       toast({ title: "Erro na Operação", description: result.error || "Não foi possível redefinir a senha.", variant: "destructive" });
       return;

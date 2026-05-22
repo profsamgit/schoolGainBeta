@@ -133,7 +133,10 @@ export function SecuritySection({
         return;
       }
       const tempPass = `SG-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-      const result = await updateUsers(users.map((u: any) => u.id === userToReset.id ? { ...u, password: tempPass, mustChangePassword: true } : u));
+      const result = await updateUsers(
+        users.map((u: any) => u.id === userToReset.id ? { ...u, password: tempPass, mustChangePassword: true } : u),
+        userToReset.schoolId
+      );
       if (result.success) {
         setResetGeneratedPass(tempPass);
         setAdminPasswordForAction('');

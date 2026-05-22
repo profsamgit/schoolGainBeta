@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Database,
   Users,
@@ -108,6 +108,7 @@ type RewardFormValues = {
 type ArticleFormValues = z.infer<typeof articleSchema>;
 
 function AdminContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab') || 'povoamento';
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -582,6 +583,7 @@ function AdminContent() {
       setIsPasswordDialogOpen(false);
       setMustChangePass(false);
       setPassFormData({ currentPass: '', newPass: '', confirmPass: '' });
+      router.push('/admin/dashboard');
     } catch (e) {
       toast({ title: 'Erro', description: 'Falha ao atualizar senha.', variant: 'destructive' });
     } finally { setIsSubmitting(false); }
