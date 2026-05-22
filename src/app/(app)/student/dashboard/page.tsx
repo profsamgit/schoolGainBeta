@@ -213,8 +213,8 @@ export default function DashboardPage() {
   const progressToNextLevel = Math.min(100, (globalScore / nextLevelScore) * 100);
 
   return (
-    <div className="p-6 space-y-8 max-w-7xl mx-auto relative z-10 text-white">
-      <div className="grid gap-6 flex-grow">
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-8 max-w-7xl mx-auto relative z-10 text-white">
+      <div className="grid gap-4 sm:gap-6 flex-grow">
         
         {pointsExpiringSoon > 0 && (
           <Alert className="bg-amber-950/20 border border-amber-500/30 shadow-lg shadow-amber-500/5 text-amber-400 rounded-[2rem] mb-4">
@@ -303,7 +303,7 @@ export default function DashboardPage() {
             </div>
             <StudentCard />
           </CardHeader>
-          <CardContent className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <CardContent className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
             
             {/* Bloco de Saldo */}
             <Card className="bg-emerald-550/10 border border-emerald-500/20 rounded-[1.5rem] shadow-lg">
@@ -372,7 +372,7 @@ export default function DashboardPage() {
           </CardFooter>
         </Card>
 
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
           
           {/* CARD DE MISSÃO DIÁRIA */}
           {/* Ele muda de cor (fica laranja) se a vitalidade do aluno estiver baixa! */}
@@ -517,15 +517,15 @@ export default function DashboardPage() {
                   <BrainCircuit className="h-3.5 w-3.5 text-emerald-450 animate-pulse" />
                   Fórmula do Score Global
                 </p>
-                <div className="text-xs font-black tracking-tight mt-1 flex flex-wrap items-center justify-center gap-2 relative z-10">
+                <div className="text-xs font-black tracking-tight mt-1 flex flex-col sm:flex-row items-center justify-center gap-2 relative z-10">
                   <span className="bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 rounded-xl text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.05)]">
                     Pontos XP
                   </span>
-                  <span className="text-slate-500 font-bold text-sm">+</span>
+                  <span className="text-slate-500 font-bold text-sm sm:inline">+</span>
                   <span className="bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-xl text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.05)]">
                     (Upgrades × 250)
                   </span>
-                  <span className="text-slate-500 font-bold text-sm">+</span>
+                  <span className="text-slate-500 font-bold text-sm sm:inline">+</span>
                   <span className="bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 rounded-xl text-rose-450 shadow-[0_0_15px_rgba(244,63,94,0.05)]">
                     Vitalidade
                   </span>
@@ -683,62 +683,106 @@ export default function DashboardPage() {
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-white/5 bg-slate-950/20">
-                <Table>
-                  <TableHeader className="bg-slate-950/40">
-                    <TableRow className="border-white/5">
-                      <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider">Data e Hora</TableHead>
-                      <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider">Material Descartado</TableHead>
-                      <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider text-center">Peso Coletado</TableHead>
-                      <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider text-right">Recompensa</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {studentDiscards.slice(0, 5).map((entry: any) => {
-                      const basePoints = POINTS_MAPPING[entry.type] || 0;
-                      const earnedPoints = entry.points !== undefined ? entry.points : (entry.collected >= 1 ? Math.floor(entry.collected * basePoints) : basePoints);
-                      const formattedDate = new Date(entry.date).toLocaleString('pt-BR', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      });
+              <>
+                <div className="hidden md:block overflow-x-auto rounded-xl border border-white/5 bg-slate-950/20">
+                  <Table>
+                    <TableHeader className="bg-slate-950/40">
+                      <TableRow className="border-white/5">
+                        <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider">Data e Hora</TableHead>
+                        <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider">Material Descartado</TableHead>
+                        <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider text-center">Peso Coletado</TableHead>
+                        <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider text-right">Recompensa</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {studentDiscards.slice(0, 5).map((entry: any) => {
+                        const basePoints = POINTS_MAPPING[entry.type] || 0;
+                        const earnedPoints = entry.points !== undefined ? entry.points : (entry.collected >= 1 ? Math.floor(entry.collected * basePoints) : basePoints);
+                        const formattedDate = new Date(entry.date).toLocaleString('pt-BR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        });
 
-                      const materialColorMap: Record<string, string> = {
-                        'Plástico': 'bg-red-500/10 text-red-400 border-red-500/20',
-                        'Papel': 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-                        'Vidro': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-                        'Metal': 'bg-amber-500/10 text-amber-450 border-amber-500/20',
-                        'Orgânico': 'bg-stone-500/10 text-stone-400 border-stone-500/20',
-                        'Eletrônico': 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-                        'Não reciclável': 'bg-slate-500/10 text-slate-400 border-slate-500/20',
-                      };
+                        const materialColorMap: Record<string, string> = {
+                          'Plástico': 'bg-red-500/10 text-red-400 border-red-500/20',
+                          'Papel': 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+                          'Vidro': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+                          'Metal': 'bg-amber-500/10 text-amber-450 border-amber-500/20',
+                          'Orgânico': 'bg-stone-500/10 text-stone-400 border-stone-500/20',
+                          'Eletrônico': 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+                          'Não reciclável': 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+                        };
 
-                      const materialPillClass = materialColorMap[entry.type] || 'bg-slate-900 border-white/5 text-slate-350';
+                        const materialPillClass = materialColorMap[entry.type] || 'bg-slate-900 border-white/5 text-slate-350';
 
-                      return (
-                        <TableRow key={entry.id} className="hover:bg-white/5 transition-colors border-white/5">
-                          <TableCell className="font-medium text-slate-300 text-xs">
-                            {formattedDate}
-                          </TableCell>
-                          <TableCell>
-                            <span className={cn("px-2.5 py-1 rounded-full text-xs font-bold border", materialPillClass)}>
-                              {entry.type}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-center font-bold text-slate-200 text-xs">
-                            {entry.collected.toFixed(3)} kg
-                          </TableCell>
-                          <TableCell className="text-right font-black text-emerald-400 text-xs">
-                            +{earnedPoints} Bio-Coins
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
+                        return (
+                          <TableRow key={entry.id} className="hover:bg-white/5 transition-colors border-white/5">
+                            <TableCell className="font-medium text-slate-300 text-xs">
+                              {formattedDate}
+                            </TableCell>
+                            <TableCell>
+                              <span className={cn("px-2.5 py-1 rounded-full text-xs font-bold border", materialPillClass)}>
+                                {entry.type}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-center font-bold text-slate-200 text-xs">
+                              {entry.collected.toFixed(3)} kg
+                            </TableCell>
+                            <TableCell className="text-right font-black text-emerald-400 text-xs">
+                              +{earnedPoints} Bio-Coins
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile Cards View */}
+                <div className="md:hidden space-y-3">
+                  {studentDiscards.slice(0, 5).map((entry: any) => {
+                    const basePoints = POINTS_MAPPING[entry.type] || 0;
+                    const earnedPoints = entry.points !== undefined ? entry.points : (entry.collected >= 1 ? Math.floor(entry.collected * basePoints) : basePoints);
+                    const formattedDate = new Date(entry.date).toLocaleString('pt-BR', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    });
+
+                    const materialColorMap: Record<string, string> = {
+                      'Plástico': 'bg-red-500/10 text-red-400 border-red-500/20',
+                      'Papel': 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+                      'Vidro': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+                      'Metal': 'bg-amber-500/10 text-amber-450 border-amber-500/20',
+                      'Orgânico': 'bg-stone-500/10 text-stone-400 border-stone-500/20',
+                      'Eletrônico': 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+                      'Não reciclável': 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+                    };
+
+                    const materialPillClass = materialColorMap[entry.type] || 'bg-slate-900 border-white/5 text-slate-350';
+
+                    return (
+                      <div key={entry.id} className="p-4 rounded-2xl border border-white/5 bg-slate-950/40 shadow-md flex flex-col gap-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] text-slate-400 font-bold">{formattedDate}</span>
+                          <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-black border", materialPillClass)}>
+                            {entry.type}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs pt-1.5 border-t border-white/5">
+                          <span className="text-slate-400 font-medium">Peso: <strong className="text-slate-200">{entry.collected.toFixed(3)} kg</strong></span>
+                          <span className="font-black text-emerald-450">+{earnedPoints} Bio-Coins</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -770,93 +814,170 @@ export default function DashboardPage() {
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-white/5 bg-slate-950/20">
-                <Table>
-                  <TableHeader className="bg-slate-950/40">
-                    <TableRow className="border-white/5">
-                      <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider">Data</TableHead>
-                      <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider">Histórico / Origem</TableHead>
-                      <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider text-center">Validade / Estado</TableHead>
-                      <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider text-right">Lançamento</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pointTransactions.slice(0, 10).map((tx: any) => {
-                      const formattedDate = new Date(tx.date).toLocaleString('pt-BR', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      });
+              <>
+                <div className="hidden md:block overflow-x-auto rounded-xl border border-white/5 bg-slate-950/20">
+                  <Table>
+                    <TableHeader className="bg-slate-950/40">
+                      <TableRow className="border-white/5">
+                        <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider">Data</TableHead>
+                        <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider">Histórico / Origem</TableHead>
+                        <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider text-center">Validade / Estado</TableHead>
+                        <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider text-right">Lançamento</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pointTransactions.slice(0, 10).map((tx: any) => {
+                        const formattedDate = new Date(tx.date).toLocaleString('pt-BR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        });
 
-                      const isDebit = tx.amount < 0;
-                      
-                      let statusBadge = null;
-                      if (isDebit) {
-                        if (tx.description.includes("Expiração")) {
+                        const isDebit = tx.amount < 0;
+                        
+                        let statusBadge = null;
+                        if (isDebit) {
+                          if (tx.description.includes("Expiração")) {
+                            statusBadge = (
+                              <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-red-500/10 text-red-400 border-red-500/20">
+                                Expirado
+                              </span>
+                            );
+                          } else {
+                            statusBadge = (
+                              <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-slate-950 text-slate-400 border-white/5">
+                                Consumido / Resgate
+                              </span>
+                            );
+                          }
+                        } else if (tx.expired) {
                           statusBadge = (
-                            <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-red-500/10 text-red-400 border-red-500/20">
-                              Expirado
+                            <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-slate-950 text-slate-555 border-white/5">
+                              Amortizado
                             </span>
                           );
                         } else {
-                          statusBadge = (
-                            <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-slate-950 text-slate-400 border-white/5">
-                              Consumido / Resgate
-                            </span>
-                          );
+                          const txDate = new Date(tx.date);
+                          const diffTime = new Date().getTime() - txDate.getTime();
+                          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                          const daysLeft = Math.max(0, 30 - diffDays);
+
+                          if (daysLeft <= 7) {
+                            statusBadge = (
+                              <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse">
+                                Expira em {daysLeft}d
+                              </span>
+                            );
+                          } else {
+                            statusBadge = (
+                              <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-emerald-500/10 text-emerald-450 border-emerald-500/20">
+                                Ativo ({daysLeft}d restantes)
+                              </span>
+                            );
+                          }
                         }
-                      } else if (tx.expired) {
+
+                        return (
+                          <TableRow key={tx.id} className="hover:bg-white/5 transition-colors border-white/5">
+                            <TableCell className="font-medium text-slate-300 text-xs">
+                              {formattedDate}
+                            </TableCell>
+                            <TableCell className="font-bold text-slate-200 text-xs">
+                              {tx.description}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {statusBadge}
+                            </TableCell>
+                            <TableCell className={cn(
+                              "text-right font-black text-xs",
+                              isDebit ? "text-red-400" : "text-emerald-400"
+                            )}>
+                              {isDebit ? "" : "+"}{tx.amount} Bio-Coins
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile Cards View */}
+                <div className="md:hidden space-y-3">
+                  {pointTransactions.slice(0, 10).map((tx: any) => {
+                    const formattedDate = new Date(tx.date).toLocaleString('pt-BR', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    });
+
+                    const isDebit = tx.amount < 0;
+                    
+                    let statusBadge = null;
+                    if (isDebit) {
+                      if (tx.description.includes("Expiração")) {
                         statusBadge = (
-                          <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-slate-950 text-slate-555 border-white/5">
-                            Amortizado
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold border bg-red-500/10 text-red-400 border-red-500/20">
+                            Expirado
                           </span>
                         );
                       } else {
-                        const txDate = new Date(tx.date);
-                        const diffTime = new Date().getTime() - txDate.getTime();
-                        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                        const daysLeft = Math.max(0, 30 - diffDays);
-
-                        if (daysLeft <= 7) {
-                          statusBadge = (
-                            <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse">
-                              Expira em {daysLeft}d
-                            </span>
-                          );
-                        } else {
-                          statusBadge = (
-                            <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-emerald-500/10 text-emerald-450 border-emerald-500/20">
-                              Ativo ({daysLeft}d restantes)
-                            </span>
-                          );
-                        }
+                        statusBadge = (
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold border bg-slate-950 text-slate-400 border-white/5">
+                            Resgate
+                          </span>
+                        );
                       }
+                    } else if (tx.expired) {
+                      statusBadge = (
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold border bg-slate-950 text-slate-500 border-white/5">
+                          Amortizado
+                        </span>
+                      );
+                    } else {
+                      const txDate = new Date(tx.date);
+                      const diffTime = new Date().getTime() - txDate.getTime();
+                      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                      const daysLeft = Math.max(0, 30 - diffDays);
 
-                      return (
-                        <TableRow key={tx.id} className="hover:bg-white/5 transition-colors border-white/5">
-                          <TableCell className="font-medium text-slate-300 text-xs">
-                            {formattedDate}
-                          </TableCell>
-                          <TableCell className="font-bold text-slate-200 text-xs">
-                            {tx.description}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {statusBadge}
-                          </TableCell>
-                          <TableCell className={cn(
-                            "text-right font-black text-xs",
+                      if (daysLeft <= 7) {
+                        statusBadge = (
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold border bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse">
+                            Expira em {daysLeft}d
+                          </span>
+                        );
+                      } else {
+                        statusBadge = (
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold border bg-emerald-500/10 text-emerald-450 border-emerald-500/20">
+                            Ativo ({daysLeft}d)
+                          </span>
+                        );
+                      }
+                    }
+
+                    return (
+                      <div key={tx.id} className="p-4 rounded-2xl border border-white/5 bg-slate-950/40 shadow-md flex flex-col gap-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] text-slate-400 font-bold">{formattedDate}</span>
+                          {statusBadge}
+                        </div>
+                        <div className="flex items-center justify-between text-xs pt-1.5 border-t border-white/5">
+                          <span className="text-slate-200 font-bold">{tx.description}</span>
+                          <span className={cn(
+                            "font-black text-xs",
                             isDebit ? "text-red-400" : "text-emerald-400"
                           )}>
                             {isDebit ? "" : "+"}{tx.amount} Bio-Coins
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

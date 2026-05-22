@@ -4,8 +4,8 @@ import { AppSidebar } from '@/components/layout/sidebar';
 import Link from 'next/link';
 import { useEcosystem } from '@/contexts/EcosystemContext';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { useEffect } from 'react';
-import { Eye } from 'lucide-react';
+import { useEffect, useMemo } from 'react';
+import { Eye, LayoutDashboard, Leaf, Trophy, BrainCircuit, Gift, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -77,6 +77,36 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   const pathname = usePathname();
+  const previewId = searchParams.get('preview');
+
+  const getLink = (href: string) => {
+    if (previewId) {
+      return `${href}?preview=${previewId}`;
+    }
+    return href;
+  };
+
+  const bottomMenuItems = useMemo(() => {
+    if (pathname.startsWith('/super-admin')) {
+      return [
+        { href: '/super-admin', label: 'Central', icon: Shield },
+      ];
+    }
+    if (pathname.startsWith('/admin')) {
+      return [
+        { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { href: '/admin', label: 'Gestão', icon: Shield },
+      ];
+    }
+    return [
+      { href: '/student/dashboard', label: 'Início', icon: LayoutDashboard },
+      { href: '/student/meu-ecossistema', label: 'Ecossistema', icon: Leaf },
+      { href: '/student/leaderboard', label: 'Ranking', icon: Trophy },
+      { href: '/student/quiz', label: 'Quizzes', icon: BrainCircuit },
+      { href: '/student/rewards', label: 'Bioshop', icon: Gift },
+    ];
+  }, [pathname]);
+
   /**
    * isAdminView: Controle de Tema de Layout
    *
@@ -138,14 +168,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <Header />
         </div>
 
-        <main className={cn("flex-1 overflow-y-auto", isAdminView ? "bg-[#070913]" : "p-4 sm:p-6 lg:p-8")}>
+        <main className={cn("flex-1 overflow-y-auto pb-20 md:pb-0", isAdminView ? "bg-[#070913]" : "p-4 sm:p-6 lg:p-8")}>
           <div className="mx-auto w-full max-w-7xl">
             <div className={cn(isAdminView ? "bg-transparent border-none shadow-none flex flex-col w-full" : "bg-white border border-slate-200/50 dark:border-slate-800/60 rounded-[2rem] shadow-sm overflow-hidden flex flex-col")}>
               <div className={cn(isAdminView ? "p-0" : "p-4 sm:p-10")}>
                 {children}
               </div>
               
-              <footer className={cn("w-full border-t py-8 text-center text-xs", isAdminView ? "border-white/5 bg-slate-950/40 text-slate-500 mt-12 rounded-[2rem]" : "border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/30")}>
+              <footer className={cn("w-full border-t py-6 md:py-8 text-center text-[10px] md:text-xs", isAdminView ? "border-white/5 bg-slate-950/40 text-slate-500 mt-6 md:mt-12 rounded-t-[1.5rem] md:rounded-[2rem]" : "border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/30")}>
                 <div className="flex flex-col items-center gap-2">
                   <div className="flex items-center gap-2">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -153,7 +183,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       TDS 2B 2026 — CETI Frei José Apicella
                     </Link>
                   </div>
-                  <p className={cn("font-medium tracking-wider text-[10px]", isAdminView ? "text-slate-500" : "text-slate-400 dark:text-slate-500")}>
+                  <p className={cn("font-medium tracking-wider text-[9px] md:text-[10px]", isAdminView ? "text-slate-500" : "text-slate-400 dark:text-slate-500")}>
                     SCHOOLGAIN HUB &copy; 2026 &bull; TECNOLOGIA E SUSTENTABILIDADE
                   </p>
                 </div>
@@ -161,6 +191,45 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </main>
+
+        {/* Dynamic Mobile Bottom Navigation Bar */}
+        <nav className="fixed bottom-0 left-0 right-0 z-50 h-16 bg-[#070913]/90 border-t border-white/5 backdrop-blur-xl md:hidden flex items-center justify-around px-2 text-white shadow-[0_-4px_25px_rgba(0,0,0,0.5)]">
+          {bottomMenuItems.map((item) => {
+            const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
+            return (
+              <Link key={item.href} href={getLink(item.href)} className="flex-1 flex flex-col items-center justify-center h-full py-1">
+                <div className="relative flex flex-col items-center gap-1 group">
+                  <item.icon className={cn(
+                    "h-5 w-5 transition-all duration-300",
+                    isActive 
+                      ? pathname.startsWith('/admin') || pathname.startsWith('/super-admin')
+                        ? "text-indigo-400 drop-shadow-[0_0_10px_rgba(99,102,241,0.5)] scale-110"
+                        : "text-emerald-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.5)] scale-110"
+                      : "text-slate-400 group-hover:text-slate-200"
+                  )} />
+                  <span className={cn(
+                    "text-[9px] font-black uppercase tracking-wider transition-colors",
+                    isActive
+                      ? pathname.startsWith('/admin') || pathname.startsWith('/super-admin')
+                        ? "text-indigo-400"
+                        : "text-emerald-400"
+                      : "text-slate-500 group-hover:text-slate-350"
+                  )}>
+                    {item.label}
+                  </span>
+                  {isActive && (
+                    <span className={cn(
+                      "absolute -bottom-1.5 w-1 h-1 rounded-full",
+                      pathname.startsWith('/admin') || pathname.startsWith('/super-admin')
+                        ? "bg-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.8)]"
+                        : "bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]"
+                    )} />
+                  )}
+                </div>
+              </Link>
+            );
+          })}
+        </nav>
       </div>
     </AppSidebar>
   );

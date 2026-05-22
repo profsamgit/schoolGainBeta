@@ -210,79 +210,171 @@ export function SecuritySection({
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader className="bg-slate-950/60">
-                <TableRow className="hover:bg-transparent border-b border-white/5">
-                  <TableHead className="w-16 pl-8"></TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nome / Cargo</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">RA / Identidade</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Status</TableHead>
-                  <TableHead className="text-right text-[10px] font-black uppercase tracking-widest px-8 text-slate-400">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {superAdminUsers.map((user) => (
-                  <TableRow key={user.id} className="group hover:bg-white/5 transition-colors border-b border-white/5 text-slate-300">
-                    <TableCell className="pl-8">
-                      <div className="relative group/avatar">
-                        <Avatar className="h-10 w-10 rounded-xl border-2 border-indigo-500/20 group-hover/avatar:border-indigo-400 transition-all shadow-md">
-                          <AvatarImage src={user.avatar || undefined} className="object-cover" />
-                          <AvatarFallback className="bg-indigo-600 text-white text-[11px] font-black">{user.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div className="absolute inset-0 flex items-center justify-center bg-slate-950/60 opacity-0 group-hover/avatar:opacity-100 rounded-xl transition-opacity gap-2 border border-indigo-500/20">
-                          {uploadingUserId === user.id ? (
-                            <Loader2 className="h-4 w-4 text-white animate-spin" />
-                          ) : (
-                            <>
-                              <label className="cursor-pointer hover:scale-110 transition-transform" title="Trocar Foto">
-                                <Camera className="h-4 w-4 text-white" />
-                                <input type="file" className="hidden" accept="image/*" onChange={(e) => handleAvatarUpload(user.id, e)} />
-                              </label>
-                              {user.avatar && (
-                                <button type="button" onClick={() => setPreviewAvatar(user.avatar!)} className="cursor-pointer hover:scale-110 transition-transform" title="Visualizar Foto">
-                                  <Eye className="h-4 w-4 text-white" />
-                                </button>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-white">{user.name}</span>
-                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Super Administrador</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-mono text-[10.5px] font-bold text-indigo-400">{user.ra || 'SEM RA'}</TableCell>
-                    <TableCell>
-                      <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-black uppercase tracking-widest py-0.5 px-2 rounded-lg">Ativo</Badge>
-                    </TableCell>
-                    <TableCell className="text-right px-8">
-                      <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded-lg" title="Reset de Senha" onClick={() => {
-                            setUserToReset(user);
-                            setResetGeneratedPass(null);
-                            setAdminPasswordForAction('');
-                            setIsResetModalOpen(true);
-                        }}>
-                            <Lock className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-indigo-400 hover:bg-white/5 rounded-lg" onClick={() => {
-                          setEditingUser(user);
-                          setUserFormData({ ...user, password: '', confirmPassword: '' });
-                          setIsUserFormOpen(true);
-                        }}><Edit className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg" onClick={() => {
-                            setUserToDelete(user);
-                            setIsDeleteModalOpen(true);
-                        }} disabled={user.id === currentUser.id && superAdminUsers.length <= 1}><Trash2 className="h-4 w-4" /></Button>
-                      </div>
-                    </TableCell>
+            <div className="hidden md:block overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-slate-950/60">
+                  <TableRow className="hover:bg-transparent border-b border-white/5">
+                    <TableHead className="w-16 pl-8"></TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nome / Cargo</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">RA / Identidade</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Status</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase tracking-widest px-8 text-slate-400">Ações</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {superAdminUsers.map((user) => (
+                    <TableRow key={user.id} className="group hover:bg-white/5 transition-colors border-b border-white/5 text-slate-300">
+                      <TableCell className="pl-8">
+                        <div className="relative group/avatar">
+                          <Avatar className="h-10 w-10 rounded-xl border-2 border-indigo-500/20 group-hover/avatar:border-indigo-400 transition-all shadow-md">
+                            <AvatarImage src={user.avatar || undefined} className="object-cover" />
+                            <AvatarFallback className="bg-indigo-600 text-white text-[11px] font-black">{user.name.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                          <div className="absolute inset-0 flex items-center justify-center bg-slate-950/60 opacity-0 group-hover/avatar:opacity-100 rounded-xl transition-opacity gap-2 border border-indigo-500/20">
+                            {uploadingUserId === user.id ? (
+                              <Loader2 className="h-4 w-4 text-white animate-spin" />
+                            ) : (
+                              <>
+                                <label className="cursor-pointer hover:scale-110 transition-transform" title="Trocar Foto">
+                                  <Camera className="h-4 w-4 text-white" />
+                                  <input type="file" className="hidden" accept="image/*" onChange={(e) => handleAvatarUpload(user.id, e)} />
+                                </label>
+                                {user.avatar && (
+                                  <button type="button" onClick={() => setPreviewAvatar(user.avatar!)} className="cursor-pointer hover:scale-110 transition-transform" title="Visualizar Foto">
+                                    <Eye className="h-4 w-4 text-white" />
+                                  </button>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-white">{user.name}</span>
+                          <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Super Administrador</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono text-[10.5px] font-bold text-indigo-400">{user.ra || 'SEM RA'}</TableCell>
+                      <TableCell>
+                        <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-black uppercase tracking-widest py-0.5 px-2 rounded-lg">Ativo</Badge>
+                      </TableCell>
+                      <TableCell className="text-right px-8">
+                        <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded-lg" title="Reset de Senha" onClick={() => {
+                              setUserToReset(user);
+                              setResetGeneratedPass(null);
+                              setAdminPasswordForAction('');
+                              setIsResetModalOpen(true);
+                          }}>
+                              <Lock className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-indigo-400 hover:bg-white/5 rounded-lg" onClick={() => {
+                            setEditingUser(user);
+                            setUserFormData({ ...user, password: '', confirmPassword: '' });
+                            setIsUserFormOpen(true);
+                          }}><Edit className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg" onClick={() => {
+                              setUserToDelete(user);
+                              setIsDeleteModalOpen(true);
+                          }} disabled={user.id === currentUser.id && superAdminUsers.length <= 1}><Trash2 className="h-4 w-4" /></Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile Cards View */}
+            <div className="md:hidden space-y-3 p-4">
+              {superAdminUsers.map((user) => (
+                <div key={user.id} className="p-4 rounded-2xl border border-white/5 bg-slate-950/40 shadow-md flex flex-col gap-3 text-slate-350">
+                  <div className="flex items-center gap-3">
+                    <div className="relative group/avatar">
+                      <Avatar className="h-10 w-10 rounded-xl border-2 border-indigo-500/20 shadow-md">
+                        <AvatarImage src={user.avatar || undefined} className="object-cover" />
+                        <AvatarFallback className="bg-indigo-600 text-white text-[11px] font-black">{user.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <div className="absolute inset-0 flex items-center justify-center bg-slate-950/60 rounded-xl gap-2 border border-indigo-500/20">
+                        {uploadingUserId === user.id ? (
+                          <Loader2 className="h-4 w-4 text-white animate-spin" />
+                        ) : (
+                          <>
+                            <label className="cursor-pointer hover:scale-110 transition-transform" title="Trocar Foto">
+                              <Camera className="h-4 w-4 text-white" />
+                              <input type="file" className="hidden" accept="image/*" onChange={(e) => handleAvatarUpload(user.id, e)} />
+                            </label>
+                            {user.avatar && (
+                              <button type="button" onClick={() => setPreviewAvatar(user.avatar!)} className="cursor-pointer hover:scale-110 transition-transform" title="Visualizar Foto">
+                                <Eye className="h-4 w-4 text-white" />
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-white">{user.name}</span>
+                      <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Super Administrador</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs pt-2 border-t border-white/5">
+                    <span className="text-slate-400 font-medium">RA:</span>
+                    <span className="font-mono text-[10.5px] font-bold text-indigo-400">{user.ra || 'SEM RA'}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs pb-1">
+                    <span className="text-slate-400 font-medium">Status:</span>
+                    <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-black uppercase tracking-widest py-0.5 px-2 rounded-lg">Ativo</Badge>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2 border-t border-white/5">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 border-amber-500/20 text-amber-400 hover:bg-amber-500/10 rounded-xl text-[9px] font-black uppercase tracking-wider gap-1.5"
+                      onClick={() => {
+                        setUserToReset(user);
+                        setResetGeneratedPass(null);
+                        setAdminPasswordForAction('');
+                        setIsResetModalOpen(true);
+                      }}
+                    >
+                      <Lock className="h-3.5 w-3.5" />
+                      Reset
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/10 rounded-xl text-[9px] font-black uppercase tracking-wider gap-1.5"
+                      onClick={() => {
+                        setEditingUser(user);
+                        setUserFormData({ ...user, password: '', confirmPassword: '' });
+                        setIsUserFormOpen(true);
+                      }}
+                    >
+                      <Edit className="h-3.5 w-3.5" />
+                      Editar
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 border-rose-500/20 text-rose-500 hover:bg-rose-500/10 rounded-xl text-[9px] font-black uppercase tracking-wider gap-1.5"
+                      disabled={user.id === currentUser.id && superAdminUsers.length <= 1}
+                      onClick={() => {
+                        setUserToDelete(user);
+                        setIsDeleteModalOpen(true);
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Excluir
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
 

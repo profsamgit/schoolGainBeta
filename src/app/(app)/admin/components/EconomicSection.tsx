@@ -534,7 +534,7 @@ export function EconomicSection({
                 <CardDescription className="text-slate-400 text-xs mt-1">Auditoria completa de atribuição de pontos e trocas na unidade.</CardDescription>
               </CardHeader>
               <CardContent className="p-6">
-                <div className="rounded-2xl border border-white/10 bg-slate-950/50 overflow-hidden shadow-2xl">
+                <div className="hidden md:block rounded-2xl border border-white/10 bg-slate-950/50 overflow-hidden shadow-2xl">
                   <Table>
                     <TableHeader className="bg-slate-950 border-b border-white/10">
                       <TableRow>
@@ -576,6 +576,53 @@ export function EconomicSection({
                     {filteredAuditLogs.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-12 text-slate-400 uppercase text-[10px] font-black tracking-widest">Sem transações registradas nesta unidade.</TableCell></TableRow>}
                     </TableBody>
                   </Table>
+                </div>
+
+                {/* Mobile Cards View for Transactions */}
+                <div className="md:hidden space-y-3">
+                  {filteredAuditLogs.map((log) => {
+                    const isCredit = log.points || log.metadata?.points;
+                    const isDebit = log.metadata?.cost;
+                    const formattedDate = new Date(log.timestamp).toLocaleString('pt-BR', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    });
+
+                    return (
+                      <div key={log.id} className="p-4 rounded-2xl border border-white/5 bg-slate-950/40 shadow-md flex flex-col gap-2.5 text-white">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] text-slate-400 font-bold">{formattedDate}</span>
+                          <Badge className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[8px] font-black uppercase px-2 py-0.5 rounded shadow-sm">
+                            {log.metadata?.sector || log.unitId || 'Geral'}
+                          </Badge>
+                        </div>
+                        <div className="flex flex-col gap-1 border-t border-white/5 pt-2">
+                          <p className="text-xs font-bold text-slate-200">
+                            {log.studentName || log.metadata?.studentName || (log.action === 'ITEM_PURCHASED' ? log.actorName : 'N/A')}
+                          </p>
+                          <p className="text-[11px] text-slate-450 italic">
+                            {log.details || log.action?.replace(/_/g, ' ')}
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-between text-xs pt-1.5 border-t border-white/5">
+                          <span className="text-slate-400 font-medium">Gestor: <strong className="text-slate-350">{log.adminName || (log.actorName === (log.studentName || log.metadata?.studentName || (log.action === 'ITEM_PURCHASED' ? log.actorName : '')) ? '-' : log.actorName) || 'Sistema'}</strong></span>
+                          <span className={`font-black text-xs ${
+                            isCredit ? "text-emerald-400" : isDebit ? "text-rose-450" : "text-slate-400"
+                          }`}>
+                            {isCredit ? `+${log.points || log.metadata?.points} PTS` : isDebit ? `-${log.metadata.cost} PTS` : '-'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {filteredAuditLogs.length === 0 && (
+                    <div className="p-8 text-center text-xs text-slate-500 italic bg-slate-950/20 border border-dashed border-white/10 rounded-2xl">
+                      Sem transações registradas nesta unidade.
+                    </div>
+                  )}
                 </div>
               </CardContent>
           </Card>

@@ -166,7 +166,7 @@ export function TelemetrySection({ logs, schools }: TelemetrySectionProps) {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <Table>
               <TableHeader className="bg-slate-950/60">
                 <TableRow className="hover:bg-transparent border-b border-white/5">
@@ -232,6 +232,58 @@ export function TelemetrySection({ logs, schools }: TelemetrySectionProps) {
                 )}
               </TableBody>
             </Table>
+          </div>
+
+          {/* Mobile Cards View */}
+          <div className="md:hidden space-y-3 p-4">
+            {filteredLogs.length > 0 ? filteredLogs.map((log) => {
+              const formattedDate = new Date(log.timestamp).toLocaleDateString();
+              const formattedTime = new Date(log.timestamp).toLocaleTimeString();
+              return (
+                <div key={log.id} className="p-4 rounded-2xl border border-white/5 bg-slate-950/40 shadow-md flex flex-col gap-3 text-slate-300">
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <span className="text-[10.5px] font-bold text-white">{formattedDate}</span>
+                      <span className="text-[9px] text-slate-400 font-medium flex items-center gap-1 mt-0.5">
+                        <Clock className="h-2.5 w-2.5" />
+                        {formattedTime}
+                      </span>
+                    </div>
+                    {getCategoryBadge(log.category)}
+                  </div>
+                  <div className="flex flex-col gap-1 border-t border-white/5 pt-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-black text-white uppercase tracking-tight">{log.actorName}</span>
+                      <span className="text-[9px] font-mono text-indigo-400 font-bold">{log.actorId}</span>
+                    </div>
+                    <div className="flex items-start gap-2.5 mt-2">
+                      <div className="h-7 w-7 rounded-xl bg-slate-950/60 border border-white/5 flex items-center justify-center text-indigo-450 shrink-0">
+                        {getActionIcon(log.action)}
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[9.5px] font-black text-white uppercase tracking-wider">{log.action}</span>
+                        <span className="text-[10.5px] text-slate-400 font-medium leading-relaxed mt-0.5">{log.details}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex justify-end pt-2 border-t border-white/5">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/10 rounded-xl text-[9px] font-black uppercase tracking-wider gap-1.5"
+                      onClick={() => setSelectedLog(log)}
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      Forense
+                    </Button>
+                  </div>
+                </div>
+              );
+            }) : (
+              <div className="p-8 text-center text-xs text-slate-500 italic bg-slate-950/20 border border-dashed border-white/10 rounded-2xl">
+                Nenhum rastro encontrado
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

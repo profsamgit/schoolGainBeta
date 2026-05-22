@@ -168,7 +168,7 @@ export function Header() {
       </h1>
 
       {/* Nome do Projeto Centralizado no Meio da Barra */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none select-none">
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:flex items-center gap-2 pointer-events-none select-none">
         <Leaf className="h-4 w-4 text-indigo-400 fill-indigo-500/20 animate-pulse" />
         <span className="text-xs font-black tracking-[0.3em] uppercase bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-400 text-transparent bg-clip-text">
           SchoolGain
@@ -188,27 +188,29 @@ export function Header() {
 
       <div className="ml-auto flex items-center gap-4">
         {hasMounted && !isAdminView && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {/* Pill 1: Pontos de Experiência (XP Acumulado) */}
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 shadow-inner">
+            <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 shadow-inner">
               <div className="flex flex-col items-end">
-                <span className="text-[8px] font-black uppercase text-indigo-600 dark:text-indigo-400 leading-none tracking-wider">Pontos (XP)</span>
+                <span className="text-[8px] font-black uppercase text-indigo-600 dark:text-indigo-400 leading-none tracking-wider hidden sm:inline">Pontos (XP)</span>
+                <span className="text-[8px] font-black uppercase text-indigo-600 dark:text-indigo-400 leading-none tracking-wider sm:hidden">XP</span>
                 <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 leading-none mt-0.5">{globalScore}</span>
               </div>
-              <Trophy className="h-4 w-4 text-indigo-500 animate-pulse" />
+              <Trophy className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-indigo-500 animate-pulse" />
             </div>
 
             {/* Pill 2: Bio-Coins (Saldo para compras na Bioshop) */}
             <Link 
               href="/student/meu-ecossistema" 
-              className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all shadow-inner group"
+              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all shadow-inner group"
             >
               <div className="flex flex-col items-end">
-                <span className="text-[8px] font-black uppercase text-emerald-600 dark:text-emerald-400 leading-none tracking-wider">Bio-Coins</span>
+                <span className="text-[8px] font-black uppercase text-emerald-600 dark:text-emerald-400 leading-none tracking-wider hidden sm:inline">Bio-Coins</span>
+                <span className="text-[8px] font-black uppercase text-emerald-600 dark:text-emerald-400 leading-none tracking-wider sm:hidden">Coins</span>
                 <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 leading-none mt-0.5">{balance}</span>
               </div>
               <Leaf 
-                className={cn("h-4 w-4 transition-all duration-500 group-hover:scale-110", isLeader && "drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]")} 
+                className={cn("h-3.5 w-3.5 sm:h-4 sm:w-4 transition-all duration-500 group-hover:scale-110", isLeader && "drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]")} 
                 fill={getLeafColor(vitality)} 
                 stroke={getLeafColor(vitality)} 
               />
