@@ -74,6 +74,11 @@ export class RegistrationService {
     const request = this.service.data.registrationRequests.find((r: any) => r.id === requestId);
     if (!request) return false;
 
+    const currentUser = this.service.data.users.find((u: User) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
+    if (currentUser?.role === 'admin' && request.schoolId !== currentUser.schoolId) {
+      return false;
+    }
+
     // 1. Cria o novo usuário
     const newUser: User = {
       id: EcosystemService.generateStandardId('user-student', request.schoolId),
@@ -113,6 +118,15 @@ export class RegistrationService {
    */
   async rejectRegistration(requestId: string): Promise<boolean> {
     if (!this.service.checkAdminAuth()) return false;
+
+    const request = this.service.data.registrationRequests.find((r: any) => r.id === requestId);
+    if (!request) return false;
+
+    const currentUser = this.service.data.users.find((u: User) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
+    if (currentUser?.role === 'admin' && request.schoolId !== currentUser.schoolId) {
+      return false;
+    }
+
     await deleteDoc(doc(db, "registrationRequests", requestId));
     
     this.service.logTelemetry({

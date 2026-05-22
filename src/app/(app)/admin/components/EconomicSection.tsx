@@ -263,6 +263,16 @@ export function EconomicSection({
                 <Lock className="h-4 w-4" />
                 <span className="text-[10px] font-black uppercase tracking-widest">Confirmação de Segurança</span>
               </div>
+              <input 
+                type="text" 
+                name="dummy-username-safeguard" 
+                autoComplete="username" 
+                className="sr-only" 
+                tabIndex={-1} 
+                aria-hidden="true" 
+                readOnly 
+                value="" 
+              />
               <Input 
                 type="password" 
                 required 
@@ -414,6 +424,16 @@ export function EconomicSection({
                 <div className="md:col-span-2 flex gap-2 items-end">
                   <div className="flex-1 space-y-2">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">6. Sua Senha (Gestor)</Label>
+                    <input 
+                      type="text" 
+                      name="dummy-username-safeguard" 
+                      autoComplete="username" 
+                      className="sr-only" 
+                      tabIndex={-1} 
+                      aria-hidden="true" 
+                      readOnly 
+                      value="" 
+                    />
                     <Input 
                       type="password" 
                       value={grantPassword} 

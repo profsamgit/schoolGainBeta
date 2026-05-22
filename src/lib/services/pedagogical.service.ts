@@ -297,6 +297,13 @@ export class PedagogicalService {
 
   async deleteReward(id: string, sid?: string): Promise<boolean> {
     if (!this.service.checkAdminAuth()) return false;
+    const reward = this.service.data.rewards.find((r: any) => r.id === id);
+    if (reward) {
+      const currentUser = this.service.data.users.find((u: User) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
+      if (currentUser?.role === 'admin' && reward.schoolId !== currentUser.schoolId) {
+        return false;
+      }
+    }
     this.service.data.rewards = this.service.data.rewards.filter((r: any) => r.id !== id);
     this.service.rewardsSubject.next([...this.service.data.rewards]);
     try {
@@ -311,6 +318,13 @@ export class PedagogicalService {
 
   async deleteArticle(id: string, sid?: string): Promise<boolean> {
     if (!this.service.checkAdminAuth()) return false;
+    const article = this.service.data.articles.find((a: any) => a.id === id);
+    if (article) {
+      const currentUser = this.service.data.users.find((u: User) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
+      if (currentUser?.role === 'admin' && article.schoolId !== currentUser.schoolId) {
+        return false;
+      }
+    }
     this.service.data.articles = this.service.data.articles.filter((a: any) => a.id !== id);
     this.service.articlesSubject.next([...this.service.data.articles]);
     try {
@@ -325,6 +339,13 @@ export class PedagogicalService {
 
   async deleteQuizTopic(id: string, sid?: string): Promise<boolean> {
     if (!this.service.checkAdminAuth()) return false;
+    const topic = this.service.data.quizTopics.find((t: any) => t.id === id);
+    if (topic) {
+      const currentUser = this.service.data.users.find((u: User) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
+      if (currentUser?.role === 'admin' && topic.schoolId !== currentUser.schoolId) {
+        return false;
+      }
+    }
     this.service.data.quizTopics = this.service.data.quizTopics.filter((t: any) => t.id !== id);
     this.service.quizTopicsSubject.next([...this.service.data.quizTopics]);
     try {
@@ -340,8 +361,13 @@ export class PedagogicalService {
   async updateRewards(newRewards: Reward[], sid?: string): Promise<boolean> {
     if (!this.service.checkAdminAuth()) return false;
 
+    const currentUser = this.service.data.users.find((u: User) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
+    let targetSid = sid || 'global';
+    if (currentUser?.role === 'admin') {
+      targetSid = currentUser.schoolId || 'global';
+    }
+
     try {
-      const targetSid = sid || 'global';
       const oldRewardsOfSchool = (this.service.data.rewards || []).filter((r: Reward) => r.schoolId === targetSid);
       const oldIds = oldRewardsOfSchool.map((r: Reward) => r.id);
       
@@ -358,7 +384,6 @@ export class PedagogicalService {
         await deleteDoc(doc(db, "rewards", id));
       }
 
-      // Mescla de volta no array global da memória cache
       const otherRewards = (this.service.data.rewards || []).filter((r: Reward) => r.schoolId !== targetSid);
       const updatedRewards = [...otherRewards, ...newRewardsOfSchool];
 
@@ -375,8 +400,13 @@ export class PedagogicalService {
   async updateArticles(newArticles: EducationArticle[], sid?: string): Promise<boolean> {
     if (!this.service.checkAdminAuth()) return false;
 
+    const currentUser = this.service.data.users.find((u: User) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
+    let targetSid = sid || 'global';
+    if (currentUser?.role === 'admin') {
+      targetSid = currentUser.schoolId || 'global';
+    }
+
     try {
-      const targetSid = sid || 'global';
       const oldArticlesOfSchool = (this.service.data.articles || []).filter((a: EducationArticle) => a.schoolId === targetSid);
       const oldIds = oldArticlesOfSchool.map((a: EducationArticle) => a.id);
       
@@ -409,8 +439,13 @@ export class PedagogicalService {
   async updateQuizTopics(newTopics: QuizTopic[], sid?: string): Promise<boolean> {
     if (!this.service.checkAdminAuth()) return false;
 
+    const currentUser = this.service.data.users.find((u: User) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
+    let targetSid = sid || 'global';
+    if (currentUser?.role === 'admin') {
+      targetSid = currentUser.schoolId || 'global';
+    }
+
     try {
-      const targetSid = sid || 'global';
       const oldTopicsOfSchool = (this.service.data.quizTopics || []).filter((t: QuizTopic) => t.schoolId === targetSid);
       const oldIds = oldTopicsOfSchool.map((t: QuizTopic) => t.id);
       

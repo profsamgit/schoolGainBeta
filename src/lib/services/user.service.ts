@@ -39,6 +39,30 @@ export class UserService {
   async updateUsers(newUsers: User[], targetSchoolId?: string): Promise<{ success: boolean, error?: string }> {
     if (!this.service.checkAdminAuth()) return { success: false, error: 'Não autorizado' };
 
+    const currentUser = this.service.data.users.find((u: User) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
+    if (!currentUser) return { success: false, error: 'Usuário não autenticado' };
+
+    // 1. Identifica quais usuários mudaram ou são novos
+    const changedUsers = newUsers.filter(newUser => {
+      const oldUser = this.service.data.users.find((u: User) => u.id === newUser.id);
+      if (!oldUser) return true; // Novo usuário
+      return JSON.stringify(oldUser) !== JSON.stringify(newUser);
+    });
+
+    let activeSchoolId = targetSchoolId;
+    if (currentUser.role === 'admin') {
+      if (targetSchoolId && targetSchoolId !== currentUser.schoolId) {
+        return { success: false, error: 'Acesso negado: Você só pode modificar dados da sua própria escola.' };
+      }
+      activeSchoolId = currentUser.schoolId;
+
+      // Validar apenas os novos/modificados que pertencem à escola do gestor
+      const invalidUser = changedUsers.find(u => u.schoolId !== currentUser.schoolId);
+      if (invalidUser) {
+        return { success: false, error: `Acesso negado: O usuário ${invalidUser.name} pertence a outra unidade escolar.` };
+      }
+    }
+
     try {
       const getRoleLabel = (role: string) => {
         switch(role) {
@@ -52,13 +76,6 @@ export class UserService {
 
       // Filtra usuários que NÃO estão no lote de atualização para checagem global
       const existingOtherUsers = this.service.data.users.filter((u: User) => !newUsers.some(nu => nu.id === u.id));
-
-      // 1. Identifica quais usuários mudaram ou são novos
-      const changedUsers = newUsers.filter(newUser => {
-        const oldUser = this.service.data.users.find((u: User) => u.id === newUser.id);
-        if (!oldUser) return true; // Novo usuário
-        return JSON.stringify(oldUser) !== JSON.stringify(newUser);
-      });
 
       for (const u of changedUsers) {
         // 1. Validar Email
@@ -125,16 +142,16 @@ export class UserService {
       // Identifica usuários removidos
       const removedUsers = this.service.data.users.filter((oldU: User) => {
         const isInNewList = newUsers.find(newU => newU.id === oldU.id);
-        if (targetSchoolId) {
-          return oldU.schoolId === targetSchoolId && !isInNewList;
+        if (activeSchoolId) {
+          return oldU.schoolId === activeSchoolId && !isInNewList;
         }
         return !isInNewList;
       });
 
       // 2. Mescla os usuários (Preserva usuários de outras escolas se a lista for parcial/filtrada)
       let uniqueUsers: User[];
-      if (targetSchoolId) {
-        const otherSchoolsUsers = this.service.data.users.filter((u: User) => u.schoolId !== targetSchoolId);
+      if (activeSchoolId) {
+        const otherSchoolsUsers = this.service.data.users.filter((u: User) => u.schoolId !== activeSchoolId);
         uniqueUsers = Array.from(new Map([...otherSchoolsUsers, ...newUsers].map(u => [u.id, u])).values());
       } else {
         uniqueUsers = Array.from(new Map(newUsers.map(u => [u.id, u])).values());
@@ -278,6 +295,11 @@ export class UserService {
     const user = this.service.data.users.find((u: User) => u.id === userId);
     if (!user) return false;
     
+    const currentUser = this.service.data.users.find((u: User) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
+    if (currentUser?.role === 'admin' && user.schoolId !== currentUser.schoolId) {
+      return false;
+    }
+
     // Filtra para remover apenas o usuário alvo da sua respectiva unidade
     const otherUsersOfSchool = this.service.data.users.filter((u: User) => u.schoolId === user.schoolId && u.id !== userId);
     const result = await this.updateUsers(otherUsersOfSchool, user.schoolId);
@@ -291,6 +313,10 @@ export class UserService {
     if (!this.service.checkAdminAuth()) return false;
     const user = this.service.data.users.find((u: User) => u.id === userId);
     if (user) {
+      const currentUser = this.service.data.users.find((u: User) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
+      if (currentUser?.role === 'admin' && user.schoolId !== currentUser.schoolId) {
+        return false;
+      }
       user.status = status;
       await setDoc(doc(db, this.getUserCollection(user.role), userId), { status }, { merge: true });
       this.service.usersSubject.next([...this.service.data.users]);
@@ -308,7 +334,8 @@ export class UserService {
   }
 
   async updateParticipants(newParticipants: Participant[]): Promise<boolean> {
-    if (!this.service.checkAdminAuth()) return false;
+    const currentUser = this.service.data.users.find((u: User) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
+    if (currentUser?.role !== 'super_admin') return false;
     
     try {
       const oldIds = (this.service.data.participants || []).map((p: Participant) => p.id);

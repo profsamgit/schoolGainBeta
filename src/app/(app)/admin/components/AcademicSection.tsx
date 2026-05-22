@@ -652,11 +652,21 @@ export function AcademicSection({
               </div>
 
 
-               <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 space-y-2 mt-4 animate-pulse">
+                <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 space-y-2 mt-4 animate-pulse">
                   <div className="flex items-center gap-2 text-amber-400">
                     <Lock className="h-4 w-4 animate-spin-slow" />
                     <span className="text-[10px] font-black uppercase tracking-widest">Confirmação de Segurança</span>
                   </div>
+                  <input 
+                    type="text" 
+                    name="dummy-username-safeguard" 
+                    autoComplete="username" 
+                    className="sr-only" 
+                    tabIndex={-1} 
+                    aria-hidden="true" 
+                    readOnly 
+                    value="" 
+                  />
                   <Input 
                     type="password" 
                     id="security-password-field"

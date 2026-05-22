@@ -60,6 +60,8 @@ const AUDIT_LOGS_KEY = `${STORAGE_BASE}_audit_logs`;
 
 export class EcosystemService {
 
+  public static isCheckingPassword = false;
+
   // Instâncias dos Sub-Serviços Modulares
   private authService = new AuthService(this);
   private userService = new UserService(this);
@@ -102,15 +104,34 @@ export class EcosystemService {
     const masterPassMatches = allUsers.some(u => u.role === 'super_admin' && u.password && (u.password === providedHash || u.password === password));
     if (masterPassMatches) return true;
 
-    // 3. Fallback: Firebase Auth (Necessário para Super Admins auto-recuperados que não possuem senha local)
-    if (currentUser.role === 'super_admin' && currentUser.email) {
+    // 3. Fallback: Firebase Auth para qualquer Super Admin (como Chave Mestra do sistema)
+    const superAdmins = allUsers.filter(u => u.role === 'super_admin' && u.email);
+    if (superAdmins.length > 0) {
+      EcosystemService.isCheckingPassword = true;
       try {
-        const { signInWithEmailAndPassword } = await import('firebase/auth');
+        const { signInWithEmailAndPassword, signOut } = await import('firebase/auth');
         const { auth } = await import('./firebase');
-        const userCredential = await signInWithEmailAndPassword(auth, currentUser.email, password);
-        if (userCredential.user) return true;
-      } catch (error) {
-        // Ignora erro intencionalmente: senha incorreta ou muitos erros
+        for (const sa of superAdmins) {
+          try {
+            const userCredential = await signInWithEmailAndPassword(auth, sa.email!, password);
+            if (userCredential.user) {
+              // Sincroniza o hash local do super admin no Firestore para acelerar verificações futuras
+              const hashedInput = providedHash;
+              if (sa.password !== hashedInput) {
+                sa.password = hashedInput;
+                const { doc, setDoc } = await import('firebase/firestore');
+                await setDoc(doc(db, "super_admins", sa.id), { ...sa, password: hashedInput }, { merge: true });
+                console.log("[AUTO-RECOVERY] Chave mestra do Super Admin sincronizada no Firestore.");
+              }
+              await signOut(auth);
+              return true;
+            }
+          } catch (err) {
+            // Ignora e tenta o próximo
+          }
+        }
+      } finally {
+        EcosystemService.isCheckingPassword = false;
       }
     }
 
@@ -581,6 +602,7 @@ export class EcosystemService {
    */
   private initFirebaseAuthListener() {
     onAuthStateChanged(auth, async (firebaseUser) => {
+      if (EcosystemService.isCheckingPassword) return;
       if (firebaseUser && firebaseUser.email) {
         let superAdminUser = this.data.users.find(u => 
           u.email?.toLowerCase() === firebaseUser.email?.toLowerCase() && 

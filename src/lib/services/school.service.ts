@@ -50,7 +50,8 @@ export class SchoolService {
    * Registra uma nova escola diretamente como ativa (uso do Super Admin).
    */
   async registerSchool(schoolData: Omit<School, 'id' | 'status' | 'joinedDate'>, initialPassword?: string): Promise<boolean> {
-    if (!this.service.checkAdminAuth()) return false;
+    const currentUser = this.service.data.users.find((u: User) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
+    if (currentUser?.role !== 'super_admin') return false;
 
     const resolvedPassword = initialPassword || schoolData.initialManagerPassword;
 
@@ -121,7 +122,8 @@ export class SchoolService {
    * Atualiza o status de uma escola (Aprovação).
    */
   async updateSchoolStatus(id: string, status: 'active' | 'pending' | 'inactive' | 'suspended', initialPassword?: string): Promise<void> {
-    if (!this.service.checkAdminAuth()) return;
+    const currentUser = this.service.data.users.find((u: User) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
+    if (currentUser?.role !== 'super_admin') return;
     const school = this.service.data.schools.find((s: School) => s.id === id);
     if (school) {
       school.status = status;
@@ -202,7 +204,8 @@ export class SchoolService {
    * Remove uma escola da rede de forma segura.
    */
   async deleteSchool(id: string, password?: string): Promise<{ success: boolean; error?: string }> {
-    if (!this.service.checkAdminAuth()) return { success: false, error: 'Não autorizado' };
+    const currentUser = this.service.data.users.find((u: User) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
+    if (currentUser?.role !== 'super_admin') return { success: false, error: 'Não autorizado' };
 
     // Verificação de Senha do Super Admin
     if (!password) return { success: false, error: 'Confirmação de senha necessária.' };
@@ -236,8 +239,23 @@ export class SchoolService {
 
   async updateTurmas(newTurmas: Turma[], sid?: string): Promise<boolean> {
     if (!this.service.checkAdminAuth()) return false;
-    
-    const oldIds = (this.service.data.turmas || []).map((t: Turma) => t.id);
+
+    const currentUser = this.service.data.users.find((u: User) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
+    if (!currentUser) return false;
+
+    let activeSchoolId = sid || currentUser.schoolId;
+    if (currentUser.role === 'admin') {
+      activeSchoolId = currentUser.schoolId;
+    }
+    if (!activeSchoolId) return false;
+
+    // Garante que todos os novos/modificados pertencem ao activeSchoolId
+    const invalid = newTurmas.find(t => t.schoolId !== activeSchoolId);
+    if (invalid) return false;
+
+    const otherSchoolsTurmas = (this.service.data.turmas || []).filter((t: Turma) => t.schoolId !== activeSchoolId);
+    const currentSchoolOldTurmas = (this.service.data.turmas || []).filter((t: Turma) => t.schoolId === activeSchoolId);
+    const oldIds = currentSchoolOldTurmas.map((t: Turma) => t.id);
     const newIds = newTurmas.map((t: Turma) => t.id);
     const deletedIds = oldIds.filter((id: string) => !newIds.includes(id));
     
@@ -249,8 +267,9 @@ export class SchoolService {
       await deleteDoc(doc(db, "turmas", id));
     }
 
-    this.service.data.turmas = newTurmas;
-    this.service.turmasSubject.next([...newTurmas]);
+    const combinedTurmas = [...otherSchoolsTurmas, ...newTurmas];
+    this.service.data.turmas = combinedTurmas;
+    this.service.turmasSubject.next([...combinedTurmas]);
     this.service.saveToStorage();
     return true;
   }
@@ -258,7 +277,21 @@ export class SchoolService {
   async updateCursos(newCursos: Curso[], sid?: string): Promise<boolean> {
     if (!this.service.checkAdminAuth()) return false;
 
-    const oldIds = (this.service.data.cursos || []).map((c: Curso) => c.id);
+    const currentUser = this.service.data.users.find((u: User) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
+    if (!currentUser) return false;
+
+    let activeSchoolId = sid || currentUser.schoolId;
+    if (currentUser.role === 'admin') {
+      activeSchoolId = currentUser.schoolId;
+    }
+    if (!activeSchoolId) return false;
+
+    const invalid = newCursos.find(c => c.schoolId !== activeSchoolId);
+    if (invalid) return false;
+
+    const otherSchoolsCursos = (this.service.data.cursos || []).filter((c: Curso) => c.schoolId !== activeSchoolId);
+    const currentSchoolOldCursos = (this.service.data.cursos || []).filter((c: Curso) => c.schoolId === activeSchoolId);
+    const oldIds = currentSchoolOldCursos.map((c: Curso) => c.id);
     const newIds = newCursos.map((c: Curso) => c.id);
     const deletedIds = oldIds.filter((id: string) => !newIds.includes(id));
 
@@ -270,8 +303,9 @@ export class SchoolService {
       await deleteDoc(doc(db, "cursos", id));
     }
 
-    this.service.data.cursos = newCursos;
-    this.service.cursosSubject.next([...newCursos]);
+    const combinedCursos = [...otherSchoolsCursos, ...newCursos];
+    this.service.data.cursos = combinedCursos;
+    this.service.cursosSubject.next([...combinedCursos]);
     this.service.saveToStorage();
     return true;
   }
@@ -279,7 +313,21 @@ export class SchoolService {
   async updateCargos(newCargos: Cargo[], sid?: string): Promise<boolean> {
     if (!this.service.checkAdminAuth()) return false;
 
-    const oldIds = (this.service.data.cargos || []).map((c: Cargo) => c.id);
+    const currentUser = this.service.data.users.find((u: User) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
+    if (!currentUser) return false;
+
+    let activeSchoolId = sid || currentUser.schoolId;
+    if (currentUser.role === 'admin') {
+      activeSchoolId = currentUser.schoolId;
+    }
+    if (!activeSchoolId) return false;
+
+    const invalid = newCargos.find(c => c.schoolId !== activeSchoolId);
+    if (invalid) return false;
+
+    const otherSchoolsCargos = (this.service.data.cargos || []).filter((c: Cargo) => c.schoolId !== activeSchoolId);
+    const currentSchoolOldCargos = (this.service.data.cargos || []).filter((c: Cargo) => c.schoolId === activeSchoolId);
+    const oldIds = currentSchoolOldCargos.map((c: Cargo) => c.id);
     const newIds = newCargos.map((c: Cargo) => c.id);
     const deletedIds = oldIds.filter((id: string) => !newIds.includes(id));
 
@@ -291,8 +339,9 @@ export class SchoolService {
       await deleteDoc(doc(db, "cargos", id));
     }
 
-    this.service.data.cargos = newCargos;
-    this.service.cargosSubject.next([...newCargos]);
+    const combinedCargos = [...otherSchoolsCargos, ...newCargos];
+    this.service.data.cargos = combinedCargos;
+    this.service.cargosSubject.next([...combinedCargos]);
     this.service.saveToStorage();
     return true;
   }
@@ -300,7 +349,21 @@ export class SchoolService {
   async updateSetores(newSetores: SetorEscolar[], sid?: string): Promise<boolean> {
     if (!this.service.checkAdminAuth()) return false;
 
-    const oldIds = (this.service.data.setores || []).map((s: SetorEscolar) => s.id);
+    const currentUser = this.service.data.users.find((u: User) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
+    if (!currentUser) return false;
+
+    let activeSchoolId = sid || currentUser.schoolId;
+    if (currentUser.role === 'admin') {
+      activeSchoolId = currentUser.schoolId;
+    }
+    if (!activeSchoolId) return false;
+
+    const invalid = newSetores.find(s => s.schoolId !== activeSchoolId);
+    if (invalid) return false;
+
+    const otherSchoolsSetores = (this.service.data.setores || []).filter((s: SetorEscolar) => s.schoolId !== activeSchoolId);
+    const currentSchoolOldSetores = (this.service.data.setores || []).filter((s: SetorEscolar) => s.schoolId === activeSchoolId);
+    const oldIds = currentSchoolOldSetores.map((s: SetorEscolar) => s.id);
     const newIds = newSetores.map((s: SetorEscolar) => s.id);
     const deletedIds = oldIds.filter((id: string) => !newIds.includes(id));
 
@@ -312,8 +375,9 @@ export class SchoolService {
       await deleteDoc(doc(db, "setores", id));
     }
 
-    this.service.data.setores = newSetores;
-    this.service.setoresSubject.next([...newSetores]);
+    const combinedSetores = [...otherSchoolsSetores, ...newSetores];
+    this.service.data.setores = combinedSetores;
+    this.service.setoresSubject.next([...combinedSetores]);
     this.service.saveToStorage();
     return true;
   }

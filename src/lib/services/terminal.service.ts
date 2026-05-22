@@ -49,6 +49,11 @@ export class TerminalService {
     if (!this.service.checkAdminAuth()) return;
     const terminal = this.service.data.terminals.find((t: Terminal) => t.id === id);
     if (terminal) {
+      const currentUser = this.service.data.users.find((u: any) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
+      if (currentUser?.role === 'admin' && terminal.schoolId !== currentUser.schoolId) {
+        return;
+      }
+
       terminal.status = status;
       if (schoolId) terminal.schoolId = schoolId;
       this.service.terminalsSubject.next([...this.service.data.terminals]);
@@ -74,6 +79,14 @@ export class TerminalService {
    */
   updateTerminalSettings(id: string, settings: Partial<Terminal>): void {
     if (!this.service.checkAdminAuth()) return;
+    const terminal = this.service.data.terminals.find((t: Terminal) => t.id === id);
+    if (!terminal) return;
+
+    const currentUser = this.service.data.users.find((u: any) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
+    if (currentUser?.role === 'admin' && terminal.schoolId !== currentUser.schoolId) {
+      return;
+    }
+
     this.service.data.terminals = this.service.data.terminals.map((t: Terminal) =>
       t.id === id ? { ...t, ...settings } : t
     );
@@ -91,6 +104,14 @@ export class TerminalService {
    */
   deleteTerminal(id: string): void {
     if (!this.service.checkAdminAuth()) return;
+    const terminal = this.service.data.terminals.find((t: Terminal) => t.id === id);
+    if (!terminal) return;
+
+    const currentUser = this.service.data.users.find((u: any) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
+    if (currentUser?.role === 'admin' && terminal.schoolId !== currentUser.schoolId) {
+      return;
+    }
+
     this.service.data.terminals = this.service.data.terminals.filter((t: Terminal) => t.id !== id);
     this.service.terminalsSubject.next([...this.service.data.terminals]);
 

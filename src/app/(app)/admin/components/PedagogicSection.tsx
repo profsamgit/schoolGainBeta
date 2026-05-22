@@ -226,6 +226,16 @@ export function PedagogicSection({
                 <Lock className="h-4 w-4" />
                 <span className="text-[10px] font-black uppercase tracking-widest">Confirmação de Segurança</span>
               </div>
+              <input 
+                type="text" 
+                name="dummy-username-safeguard" 
+                autoComplete="username" 
+                className="sr-only" 
+                tabIndex={-1} 
+                aria-hidden="true" 
+                readOnly 
+                value="" 
+              />
               <Input
                 type="password"
                 required

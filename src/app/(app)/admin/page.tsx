@@ -959,6 +959,16 @@ function AdminContent() {
           <form onSubmit={(e) => { e.preventDefault(); confirmApproval(); }} className="space-y-4 pt-4">
             <div className="space-y-1">
               <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Sua Senha de Segurança</Label>
+              <input 
+                type="text" 
+                name="dummy-username-safeguard" 
+                autoComplete="username" 
+                className="sr-only" 
+                tabIndex={-1} 
+                aria-hidden="true" 
+                readOnly 
+                value="" 
+              />
               <Input type="password" placeholder="Senha de Segurança" value={securityPassword} onChange={e => setSecurityPassword(e.target.value)} className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold" required />
             </div>
             <DialogFooter className="pt-2">
@@ -989,6 +999,16 @@ function AdminContent() {
           >
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-rose-300 ml-1">Senha de Segurança</Label>
+              <input 
+                type="text" 
+                name="dummy-username-safeguard" 
+                autoComplete="username" 
+                className="sr-only" 
+                tabIndex={-1} 
+                aria-hidden="true" 
+                readOnly 
+                value="" 
+              />
               <Input
                 type="password"
                 value={securityPassword}
