@@ -70,7 +70,7 @@ export function AuthorizationSection({
   toast
 }: AuthorizationSectionProps) {
   return (
-    <div className="relative flex min-h-screen flex-col bg-[#070913] items-center justify-center p-4 text-slate-100 overflow-hidden font-sans">
+    <div className="relative flex min-h-screen flex-col bg-slate-100 dark:bg-[#070913] items-center justify-center p-4 text-slate-800 dark:text-slate-100 overflow-hidden font-sans">
       
       {/* Estilos e Grids de Fundo */}
       <style>{`
@@ -90,7 +90,7 @@ export function AuthorizationSection({
       </div>
 
       <main className="relative z-10 w-full max-w-md">
-        <Card className="w-full backdrop-blur-3xl bg-slate-950/40 border border-white/10 rounded-[2.5rem] shadow-[0_25px_60px_rgba(0,0,0,0.8)] ring-1 ring-white/5 overflow-hidden animate-in zoom-in duration-500">
+        <Card className="w-full backdrop-blur-3xl bg-white/90 dark:bg-slate-950/40 border border-slate-200 dark:border-white/10 rounded-[2.5rem] shadow-[0_25px_60px_rgba(0,0,0,0.15)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.8)] ring-1 ring-slate-200/60 dark:ring-white/5 overflow-hidden animate-in zoom-in duration-500">
           
           {/* Top Line Glowing Indicator */}
           <div className={`h-2 bg-gradient-to-r ${isBlocked ? 'from-red-600 to-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]' : isPending ? 'from-amber-500 to-yellow-400 shadow-[0_0_15px_rgba(245,158,11,0.5)]' : 'from-indigo-500 to-cyan-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]'}`} />
@@ -112,11 +112,11 @@ export function AuthorizationSection({
               {isBlocked ? <Lock className="h-9 w-9" /> : isPending ? <Clock className="h-9 w-9" /> : <MonitorOff className="h-9 w-9" />}
             </div>
             
-            <CardTitle className="text-2xl font-black uppercase tracking-wider text-white">
+            <CardTitle className="text-2xl font-black uppercase tracking-wider text-slate-900 dark:text-white">
               {isBlocked ? 'Terminal Bloqueado' : isPending ? 'Aguardando Aprovação' : 'Terminal não Cadastrado'}
             </CardTitle>
             
-            <CardDescription className="text-slate-400 text-xs font-semibold px-4 mt-2">
+            <CardDescription className="text-slate-600 dark:text-slate-400 text-xs font-semibold px-4 mt-2">
               {isBlocked ? 'Este dispositivo foi desativado temporariamente por um administrador.' : 
                isPending ? 'Sua solicitação de acesso foi enviada e está sendo analisada.' : 
                'Este totem de autoatendimento físico precisa ser autorizado para operar.'}
@@ -125,17 +125,17 @@ export function AuthorizationSection({
           
           <CardContent className="space-y-5 px-8 pb-6">
             {isPending ? (
-              <div className="p-5 bg-slate-950/60 border border-white/5 rounded-2xl space-y-4 shadow-inner">
+              <div className="p-5 bg-slate-100/80 dark:bg-slate-950/60 border border-slate-200/60 dark:border-white/5 rounded-2xl space-y-4 shadow-inner">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="font-bold text-slate-400 uppercase tracking-widest text-[9px]">ID do Terminal:</span>
-                  <code className="bg-[#090b14] px-3 py-1.5 rounded-lg border border-white/5 font-mono font-black text-amber-400 tracking-wider">
+                  <span className="font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-[9px]">ID do Terminal:</span>
+                  <code className="bg-slate-200 dark:bg-[#090b14] px-3 py-1.5 rounded-lg border border-slate-300/60 dark:border-white/5 font-mono font-black text-amber-600 dark:text-amber-400 tracking-wider">
                     {currentTerminal?.id}
                   </code>
                 </div>
                 
                 <div className="flex justify-between items-center text-xs">
-                  <span className="font-bold text-slate-400 uppercase tracking-widest text-[9px]">Localização:</span>
-                  <span className="text-white font-bold">{currentTerminal?.location}</span>
+                  <span className="font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-[9px]">Localização:</span>
+                  <span className="text-slate-900 dark:text-white font-bold">{currentTerminal?.location}</span>
                 </div>
                 
                 <p className="text-[10px] text-amber-400/80 text-center font-bold uppercase tracking-wider bg-amber-500/5 py-2.5 rounded-xl border border-amber-500/10 animate-pulse">
@@ -147,7 +147,7 @@ export function AuthorizationSection({
                 <p className="text-sm font-extrabold text-red-400 uppercase tracking-wide">O acesso deste terminal foi revogado.</p>
                 <div className="flex justify-center items-center gap-2 text-xs">
                   <span className="text-slate-400 uppercase tracking-widest text-[9px]">ID Físico:</span>
-                  <code className="bg-[#090b14] px-2.5 py-1 rounded-lg border border-white/5 font-mono font-black text-red-400">
+                  <code className="bg-slate-200 dark:bg-[#090b14] px-2.5 py-1 rounded-lg border border-slate-300/60 dark:border-white/5 font-mono font-black text-red-600 dark:text-red-400">
                     {currentTerminal?.id || terminalIdSetting}
                   </code>
                 </div>
@@ -155,17 +155,17 @@ export function AuthorizationSection({
             ) : (
               <div className="space-y-4 animate-in fade-in duration-300">
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 block">Unidade Escolar</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1 block">Unidade Escolar</Label>
                   <Select value={selectedSchoolId} onValueChange={setSelectedSchoolId}>
-                    <SelectTrigger className="h-12 bg-[#090b14] text-white border border-white/10 rounded-xl focus:border-indigo-500/50 focus:ring-indigo-500/10 focus:ring-4 transition-all text-left">
+                    <SelectTrigger className="h-12 bg-white dark:bg-[#090b14] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl focus:border-indigo-500/50 focus:ring-indigo-500/10 focus:ring-4 transition-all text-left">
                       <SelectValue placeholder="Selecione a instituição..." />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border border-white/10 bg-[#0c0f1d] text-white shadow-2xl z-50">
+                    <SelectContent className="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0c0f1d] text-slate-900 dark:text-white shadow-2xl z-50">
                       {schools.filter(s => s.status === 'active').map(school => (
                         <SelectItem 
                           key={school.id} 
                           value={school.id} 
-                          className="rounded-lg text-slate-300 focus:bg-white/5 focus:text-white cursor-pointer uppercase font-bold text-[10px] tracking-tight p-3"
+                          className="rounded-lg text-slate-700 dark:text-slate-300 focus:bg-slate-100 dark:focus:bg-white/5 focus:text-slate-900 dark:focus:text-white cursor-pointer uppercase font-bold text-[10px] tracking-tight p-3"
                         >
                           <div className="flex items-center gap-2">
                             <SchoolIcon className="h-3.5 w-3.5 text-indigo-400" />
@@ -178,14 +178,14 @@ export function AuthorizationSection({
                 </div>
                 
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 block">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1 block">
                     Localização (Ex: Pátio Principal, Cantina)
                   </Label>
                   <Input 
                     placeholder="Ex: Pátio Principal" 
                     value={requestedLocation}
                     onChange={(e) => setRequestedLocation(e.target.value)}
-                    className="h-12 text-sm bg-[#090b14] text-white placeholder:text-slate-600 border border-white/10 focus:border-indigo-500/50 focus:ring-indigo-500/10 focus:ring-4 rounded-xl transition-all font-semibold"
+                    className="h-12 text-sm bg-white dark:bg-[#090b14] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 border border-slate-200 dark:border-white/10 focus:border-indigo-500/50 focus:ring-indigo-500/10 focus:ring-4 rounded-xl transition-all font-semibold"
                   />
                 </div>
 
@@ -242,7 +242,7 @@ export function AuthorizationSection({
               {(isPending || isBlocked) && (
                 <Button 
                   variant="outline" 
-                  className="h-12 font-black uppercase tracking-wider gap-2 bg-slate-900 border-white/5 rounded-xl text-slate-300 hover:text-white transition-all" 
+                  className="h-12 font-black uppercase tracking-wider gap-2 bg-white dark:bg-slate-900 border-slate-200 dark:border-white/5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all" 
                   onClick={() => window.location.reload()}
                 >
                   <Recycle className="h-4.5 w-4.5 text-emerald-400 animate-spin [animation-duration:8s]" /> 
@@ -251,7 +251,7 @@ export function AuthorizationSection({
               )}
               <Button 
                 variant="ghost" 
-                className={`h-12 gap-2 text-xs font-bold uppercase tracking-wider text-slate-400 hover:text-white hover:bg-white/5 rounded-xl ${(isPending || isBlocked) ? '' : 'col-span-2'}`} 
+                className={`h-12 gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl ${(isPending || isBlocked) ? '' : 'col-span-2'}`} 
                 asChild
               >
                 <Link href="/">

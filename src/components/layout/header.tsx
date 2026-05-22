@@ -23,11 +23,15 @@ import {
   BookOpen,
   BrainCircuit,
   Gift,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEcosystem } from '@/contexts/EcosystemContext';
 import { useSidebar } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
+import { useTheme } from '@/contexts/ThemeContext';
+
 import { EcosystemService } from '@/lib/ecosystem.service';
 import { usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -72,6 +76,7 @@ export function Header() {
     return leader?.ra === currentUserRa;
   }, [getGlobalLeader, currentUserRa]);
   const isAdminView = pathname.startsWith('/admin') || pathname.startsWith('/super-admin');
+  const { theme, toggleTheme } = useTheme();
 
   const searchParams = useSearchParams();
   const previewId = searchParams.get('preview');
@@ -135,7 +140,7 @@ export function Header() {
   }, [pathname, isAdminView]);
 
   return (
-    <header className="relative z-40 flex h-14 items-center gap-3 px-4 sm:h-14 sm:px-6 transition-all border-b bg-[#070913]/90 border-white/5 text-white backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.3)]">
+    <header className="relative z-40 flex h-14 items-center gap-3 px-4 sm:h-14 sm:px-6 transition-all border-b bg-white/80 dark:bg-[#070913]/90 border-slate-200 dark:border-white/5 text-slate-800 dark:text-white backdrop-blur-xl shadow-sm dark:shadow-[0_4px_30px_rgba(0,0,0,0.3)]">
       {/* Links de Navegação Horizontal */}
       <nav className="hidden md:flex items-center gap-1 mx-2">
         {menuItems.map((item) => {
@@ -220,6 +225,21 @@ export function Header() {
 
         {hasMounted ? (
           <div className="flex items-center gap-2">
+            {/* Theme Toggle Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full h-8 w-8 transition-all hover:bg-slate-100 dark:hover:bg-white/5 active:scale-95 text-slate-500 dark:text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-400 shrink-0"
+              onClick={toggleTheme}
+              title={theme === 'light' ? 'Modo Escuro' : 'Modo Claro'}
+            >
+              {theme === 'light' ? (
+                <Moon className="h-4 w-4 animate-in spin-in-90 duration-300" />
+              ) : (
+                <Sun className="h-4 w-4 animate-in spin-in-90 duration-300" />
+              )}
+            </Button>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -228,7 +248,7 @@ export function Header() {
                   className={cn(
                     "overflow-hidden rounded-full transition-all h-8 w-8",
                     isAdminView 
-                      ? "border-white/10 hover:ring-2 hover:ring-indigo-500/35 bg-slate-950" 
+                      ? "border-slate-200 dark:border-white/10 hover:ring-2 hover:ring-indigo-500/35 bg-white dark:bg-slate-950" 
                       : "border-slate-200 dark:border-white/10 hover:ring-2 hover:ring-primary/20"
                   )}
                 >
@@ -242,18 +262,18 @@ export function Header() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className={cn(
-                "w-56 rounded-2xl shadow-2xl p-2",
+                "w-56 rounded-2xl shadow-2xl p-2 backdrop-blur-xl",
                 isAdminView 
-                  ? "bg-slate-950/95 border-white/10 text-white backdrop-blur-xl" 
+                  ? "bg-white/95 dark:bg-slate-950/95 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white" 
                   : "bg-white dark:bg-slate-900 border-slate-200 dark:border-white/5 text-slate-800 dark:text-slate-200"
               )}>
                 <DropdownMenuLabel className="px-3 py-2">
-                  <p className="font-black text-xs uppercase tracking-wider text-slate-200">{displayUser.name}</p>
-                  <p className="text-[10px] text-slate-400 font-bold tracking-tight mt-0.5">
+                  <p className="font-black text-xs uppercase tracking-wider text-slate-900 dark:text-slate-200">{displayUser.name}</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold tracking-tight mt-0.5">
                     {displayUser.email || (displayUser.ra ? `RA: ${displayUser.ra}` : '')}
                   </p>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator className={cn(isAdminView ? "bg-white/5" : "bg-slate-100 dark:bg-white/5")} />
+                <DropdownMenuSeparator className={cn(isAdminView ? "bg-slate-200/50 dark:bg-white/5" : "bg-slate-100 dark:bg-white/5")} />
                 
                 {isAdminView ? (
                   adminMenuItems.map((item) => (
@@ -261,7 +281,7 @@ export function Header() {
                       <DropdownMenuItem className={cn(
                         "rounded-xl px-3 py-2 text-xs font-black uppercase tracking-wider mb-1 cursor-pointer transition-colors",
                         isAdminView 
-                          ? "hover:bg-white/5 text-slate-300 hover:text-white" 
+                          ? "hover:bg-slate-100 dark:hover:bg-white/5 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white" 
                           : "hover:bg-slate-100 dark:hover:bg-white/5"
                       )}>
                         <item.icon className="mr-2 h-4 w-4 text-indigo-400" />

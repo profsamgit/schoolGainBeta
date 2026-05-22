@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { EcosystemProvider } from '@/contexts/EcosystemContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 
 export const metadata: Metadata = {
   title: 'SchoolGain Hub',
@@ -28,15 +29,31 @@ export default function RootLayout({
           rel="stylesheet"
           crossOrigin="anonymous"
         />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                  document.documentElement.classList.add('dark');
+                } else {
+                  document.documentElement.classList.remove('dark');
+                }
+              } catch (_) {}
+            `,
+          }}
+        />
       </head>
       <body className="font-body antialiased">
         <Suspense fallback={null}>
-          <EcosystemProvider>
-            {children}
-            <Toaster />
-          </EcosystemProvider>
+          <ThemeProvider>
+            <EcosystemProvider>
+              {children}
+              <Toaster />
+            </EcosystemProvider>
+          </ThemeProvider>
         </Suspense>
       </body>
     </html>
   );
 }
+

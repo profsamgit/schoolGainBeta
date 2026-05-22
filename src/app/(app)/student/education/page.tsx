@@ -36,23 +36,23 @@ export default function EducationPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
-      <div className="relative overflow-hidden rounded-[2rem] border border-white/5 bg-slate-900/40 backdrop-blur-xl p-8 text-white shadow-2xl">
+      <div className="relative overflow-hidden rounded-[2rem] border border-slate-200/60 dark:border-white/5 bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl p-8 text-slate-800 dark:text-white shadow-2xl dark:shadow-[0_25px_60px_rgba(0,0,0,0.5)]">
         <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 blur-[100px] rounded-full" />
         <div className="relative z-10 space-y-4">
           <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.15)]">
-            <BookOpen className="h-6 w-6 text-emerald-400" />
+            <BookOpen className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
           </div>
           <div>
-            <h1 className="text-3xl font-black uppercase tracking-tight flex items-center gap-2 text-white">
+            <h1 className="text-3xl font-black uppercase tracking-tight flex items-center gap-2 text-slate-900 dark:text-white">
               Jornada do Conhecimento
             </h1>
-            <p className="text-slate-400 max-w-lg font-medium text-sm mt-1 leading-relaxed">
+            <p className="text-slate-600 dark:text-slate-400 max-w-lg font-medium text-sm mt-1 leading-relaxed">
               Transforme informação em ação. Explore nossos guias exclusivos e 
               torne-se um guardião da sustentabilidade.
             </p>
           </div>
         </div>
-        <div className="absolute right-[-40px] top-[-40px] opacity-5 rotate-12 text-emerald-400">
+        <div className="absolute right-[-40px] top-[-40px] opacity-5 rotate-12 text-emerald-600 dark:text-emerald-400">
             <Leaf className="h-64 w-64" />
         </div>
       </div>
@@ -61,7 +61,7 @@ export default function EducationPage() {
         {schoolArticles.map((article) => (
           <Card
             key={article.id}
-            className="group flex flex-col overflow-hidden border border-white/5 shadow-2xl hover:border-emerald-500/20 hover:shadow-[0_0_30px_rgba(16,185,129,0.05)] transition-all duration-500 rounded-[2rem] bg-slate-900/40 text-white backdrop-blur-xl"
+            className="group flex flex-col overflow-hidden border border-slate-200/60 dark:border-white/5 shadow-2xl hover:border-emerald-500/20 dark:hover:border-emerald-500/20 hover:shadow-[0_0_30px_rgba(16,185,129,0.05)] transition-all duration-500 rounded-[2rem] bg-white/80 dark:bg-slate-900/40 text-slate-800 dark:text-white backdrop-blur-xl"
           >
             <Link href={`/student/education/${article.slug}`} className="block relative h-56 w-full overflow-hidden" onClick={handleReadArticle}>
               <Image
@@ -74,22 +74,22 @@ export default function EducationPage() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent"></div>
               <div className="absolute bottom-4 left-4">
-                 <div className="h-1 w-10 bg-emerald-400 rounded-full mb-2 animate-pulse"></div>
+                 <div className="h-1 w-10 bg-emerald-500 dark:bg-emerald-400 rounded-full mb-2 animate-pulse"></div>
                  <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400">Pedagógico</span>
               </div>
             </Link>
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-black text-white group-hover:text-emerald-400 transition-colors leading-snug uppercase tracking-tight line-clamp-2">
+              <CardTitle className="text-lg font-black text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors leading-snug uppercase tracking-tight line-clamp-2">
                 {article.title}
               </CardTitle>
             </CardHeader>
             <CardContent className="flex-grow pt-0">
-              <CardDescription className="text-slate-400 font-medium text-xs line-clamp-3 leading-relaxed">
+              <CardDescription className="text-slate-650 dark:text-slate-400 font-medium text-xs line-clamp-3 leading-relaxed">
                 {article.summary}
               </CardDescription>
             </CardContent>
-            <CardFooter className="pt-4 border-t border-white/5 bg-slate-950/40">
-              <Button asChild variant="ghost" className="w-full justify-between font-black uppercase text-[9px] tracking-widest text-emerald-400 hover:text-white hover:bg-emerald-500 hover:border-emerald-500 border border-white/5 rounded-2xl h-11 px-5 transition-all duration-300 group/btn" onClick={handleReadArticle}>
+            <CardFooter className="pt-4 border-t border-slate-200/60 dark:border-white/5 bg-slate-50/40 dark:bg-slate-950/40">
+              <Button asChild variant="ghost" className="w-full justify-between font-black uppercase text-[9px] tracking-widest text-emerald-600 dark:text-emerald-400 hover:text-white hover:bg-emerald-600 dark:hover:bg-emerald-500 hover:border-emerald-600 dark:hover:border-emerald-500 border border-slate-200 dark:border-white/5 rounded-2xl h-11 px-5 transition-all duration-300 group/btn" onClick={handleReadArticle}>
                 <Link href={`/student/education/${article.slug}`}>
                   Explorar Conteúdo <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
                 </Link>

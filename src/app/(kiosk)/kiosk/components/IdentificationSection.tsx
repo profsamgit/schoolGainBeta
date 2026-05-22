@@ -287,7 +287,7 @@ export function IdentificationSection({
   }, [activeLoginCameraSource, activeLoginUrl, activeTab, onIdentify]);
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center bg-[#070913] text-slate-100 overflow-hidden font-sans selection:bg-emerald-500/30 selection:text-emerald-400">
+    <div className="relative flex min-h-screen flex-col items-center justify-center bg-slate-100 dark:bg-[#070913] text-slate-800 dark:text-slate-100 overflow-hidden font-sans selection:bg-emerald-500/30 selection:text-emerald-400">
       
       {/* 🚀 Estilos de Animação Inline Otimizados */}
       <style>{`
@@ -325,7 +325,7 @@ export function IdentificationSection({
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center p-6 w-full max-w-md">
         
         {/* 📟 Glassmorphic Unified Console Container */}
-        <div className="w-full backdrop-blur-3xl bg-slate-950/40 border border-white/10 rounded-[2.5rem] shadow-[0_25px_60px_rgba(0,0,0,0.8)] p-8 sm:p-10 transition-all duration-500 hover:border-emerald-500/20 ring-1 ring-white/5">
+        <div className="w-full backdrop-blur-3xl bg-white/90 dark:bg-slate-950/40 border border-slate-200 dark:border-white/10 rounded-[2.5rem] shadow-[0_25px_60px_rgba(0,0,0,0.15)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.8)] p-8 sm:p-10 transition-all duration-500 hover:border-emerald-500/20 ring-1 ring-slate-200/60 dark:ring-white/5">
           
           {/* Header Section */}
           <div className="mb-8 text-center flex flex-col items-center">
@@ -340,10 +340,10 @@ export function IdentificationSection({
                 SchoolGain
               </h1>
             </div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-2">
               Terminal de Autoatendimento
             </p>
-            <p className="text-xs text-slate-400 font-medium tracking-wide">
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium tracking-wide">
               Identifique-se para registrar um resíduo
             </p>
 
@@ -366,7 +366,7 @@ export function IdentificationSection({
             
             {/* Pill-Style TabsList */}
             <TabsList className={cn(
-              "grid w-full mb-6 bg-slate-950/80 p-1 border border-white/5 rounded-2xl gap-1 h-12 shadow-inner",
+              "grid w-full mb-6 bg-slate-100/80 dark:bg-slate-950/80 p-1 border border-slate-200/50 dark:border-white/5 rounded-2xl gap-1 h-12 shadow-inner",
               activeLoginMethod === 'all' ? "grid-cols-3" : "grid-cols-1"
             )}>
               {(activeLoginMethod === 'all' || activeLoginMethod === 'manual') && (
@@ -406,7 +406,7 @@ export function IdentificationSection({
               
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label htmlFor="ra-input" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1.5">
+                  <label htmlFor="ra-input" className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1.5">
                     Identificação Digital (RA ou ID Temporário)
                   </label>
                   <Input 
@@ -416,7 +416,7 @@ export function IdentificationSection({
                     value={studentRa}
                     onChange={(e) => setStudentRa(e.target.value.toUpperCase())}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleLogin(studentRa)}}
-                    className="text-2xl p-4 h-16 text-center font-black tracking-wider uppercase bg-[#090b14]/90 text-white placeholder:text-slate-600 border border-white/10 focus:border-emerald-500/50 focus:ring-emerald-500/10 focus:ring-4 rounded-2xl transition-all shadow-inner"
+                    className="text-2xl p-4 h-16 text-center font-black tracking-wider uppercase bg-white dark:bg-[#090b14]/90 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 border border-slate-200 dark:border-white/10 focus:border-emerald-500/50 focus:ring-emerald-500/10 focus:ring-4 rounded-2xl transition-all shadow-inner"
                     autoFocus
                     disabled={lockoutSecs > 0}
                     inputMode={showKeyboard ? 'none' : 'text'}
@@ -428,7 +428,7 @@ export function IdentificationSection({
                 </div>
                 
                 {showKeyboard && (
-                  <div className="animate-in fade-in slide-in-from-top-3 duration-300 bg-slate-950/60 p-4 border border-white/5 rounded-2xl shadow-inner">
+                  <div className="animate-in fade-in slide-in-from-top-3 duration-300 bg-slate-100/80 dark:bg-slate-950/60 p-4 border border-slate-200/50 dark:border-white/5 rounded-2xl shadow-inner">
                     <VirtualKeyboard
                       layout="alphanumeric"
                       onInput={handleKeyboardInput}
@@ -456,7 +456,7 @@ export function IdentificationSection({
 
               <Button
                 variant="ghost"
-                className="w-full text-slate-400 hover:text-white hover:bg-white/5 h-11 text-xs font-semibold rounded-xl"
+                className="w-full text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 h-11 text-xs font-semibold rounded-xl"
                 onClick={() => setShowKeyboard((prev) => !prev)}
               >
                 <Keyboard className="mr-2.5 h-4.5 w-4.5 text-emerald-400" />
@@ -468,7 +468,7 @@ export function IdentificationSection({
             <TabsContent value="qr" className="space-y-4 animate-in fade-in-50 duration-300">
               {activeLoginCameraSource === 'browser' ? (
                 <div className="space-y-4">
-                  <div className="relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl bg-slate-950 aspect-video">
+                  <div className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl bg-slate-200/50 dark:bg-slate-950 aspect-video">
                     {/* Futuristic Corner Scan Scope Brackets */}
                     <div className="absolute inset-0 z-20 pointer-events-none rounded-2xl">
                       <div className="absolute top-4 left-4 w-6 h-6 border-t-2 border-l-2 border-emerald-400 rounded-tl-md" />
@@ -493,7 +493,7 @@ export function IdentificationSection({
               ) : (
                 <div className="space-y-4">
                   {streamUrlWithRetry ? (
-                    <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-slate-950 flex items-center justify-center">
+                    <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 shadow-2xl bg-slate-200/50 dark:bg-slate-950 flex items-center justify-center">
                       {!streamError ? (
                         <>
                           {/* Corner Brackets for Stream */}
@@ -517,25 +517,25 @@ export function IdentificationSection({
                             }}
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex flex-col justify-end p-4 z-10">
-                            <p className="text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
+                            <p className="text-slate-900 dark:text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
                               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
                               Login ESP32-CAM Ao Vivo
                             </p>
                           </div>
                         </>
                       ) : (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#070913] p-6 text-center animate-in fade-in duration-300">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-200 dark:bg-slate-900 p-6 text-center animate-in fade-in duration-300">
                           <div className="p-3 bg-amber-500/10 rounded-full border border-amber-500/20 text-amber-400 mb-2">
                             <AlertTriangle className="h-6 w-6 animate-pulse" />
                           </div>
-                          <h4 className="text-xs font-black uppercase tracking-tight text-white">Sinal de Login Instável</h4>
-                          <p className="text-[10px] text-slate-400 max-w-xs mt-0.5 mb-3 leading-snug">
+                          <h4 className="text-xs font-black uppercase tracking-tight text-slate-900 dark:text-white">Sinal de Login Instável</h4>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 max-w-xs mt-0.5 mb-3 leading-snug">
                             Não conseguimos conectar com a câmera de login externa.
                           </p>
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            className="h-8 border-white/10 hover:bg-white/5 text-white gap-2 font-bold uppercase tracking-wider text-[9px]"
+                            className="h-8 border-slate-300 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-800 dark:text-white gap-2 font-bold uppercase tracking-wider text-[9px]"
                             onClick={() => {
                               setImageLoaded(false);
                               setStreamError(false);
@@ -549,10 +549,10 @@ export function IdentificationSection({
                       )}
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center p-8 border border-white/10 rounded-2xl bg-white/5 animate-pulse">
+                    <div className="flex flex-col items-center justify-center p-8 border border-slate-200/50 dark:border-white/10 rounded-2xl bg-slate-100/50 dark:bg-white/5 animate-pulse">
                       <QrCode className="h-16 w-16 text-emerald-400 mb-4" />
                       <div className="text-center space-y-1">
-                        <p className="font-bold text-white uppercase tracking-tight">Câmera Externa Ativa</p>
+                        <p className="font-bold text-slate-900 dark:text-white uppercase tracking-tight">Câmera Externa Ativa</p>
                         <p className="text-xs text-slate-400">O terminal fará a leitura automática via hardware externo.</p>
                       </div>
                     </div>
@@ -566,7 +566,7 @@ export function IdentificationSection({
 
             {/* TAB: RFID LOGIN */}
             <TabsContent value="rfid" className="space-y-4 animate-in fade-in-50 duration-300">
-              <div className="flex flex-col items-center justify-center p-10 border border-white/10 rounded-[2rem] space-y-6 bg-slate-950/40 shadow-2xl relative overflow-hidden">
+              <div className="flex flex-col items-center justify-center p-10 border border-slate-200/60 dark:border-white/10 rounded-[2rem] space-y-6 bg-slate-100/60 dark:bg-slate-950/40 shadow-2xl relative overflow-hidden">
                 
                 {/* 3D Concentric expands ripples RFID */}
                 <div className="relative w-36 h-36 flex items-center justify-center mb-1">
@@ -581,8 +581,8 @@ export function IdentificationSection({
                 </div>
                 
                 <div className="text-center space-y-2 relative z-10">
-                  <p className="text-lg font-black text-white uppercase tracking-tight">Aproxime seu Cartão</p>
-                  <p className="text-xs text-slate-400 max-w-xs leading-relaxed">
+                  <p className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Aproxime seu Cartão</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs leading-relaxed">
                     O sensor RFID está aguardando sua leitura física para login instantâneo.
                   </p>
                 </div>
@@ -605,7 +605,7 @@ export function IdentificationSection({
             {!isLocked ? (
               <Link 
                 href="/" 
-                className="group inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-slate-400 hover:text-emerald-400 hover:bg-white/10 hover:border-emerald-500/30 hover:scale-105 active:scale-95 shadow-sm font-black text-[10px] tracking-widest uppercase transition-all duration-300 backdrop-blur-md"
+                className="group inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-white/5 text-slate-500 dark:text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-400 hover:bg-white dark:hover:bg-white/10 hover:border-emerald-500/30 hover:scale-105 active:scale-95 shadow-sm font-black text-[10px] tracking-widest uppercase transition-all duration-300 backdrop-blur-md"
               >
                 <ArrowLeft className="w-3.5 h-3.5 transform group-hover:-translate-x-1 transition-transform duration-200" />
                 <span>Voltar</span>
@@ -636,8 +636,8 @@ export function IdentificationSection({
 
       {/* 🔐 CARD DE AUTENTICAÇÃO DO DIALOG DE BLOQUEIO */}
       {showLockAuth && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-300">
-          <div className="relative w-full max-w-md backdrop-blur-2xl bg-slate-950/80 border border-white/10 rounded-[2rem] shadow-[0_25px_60px_rgba(0,0,0,0.8)] overflow-hidden ring-1 ring-white/5 animate-in zoom-in-95 duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 dark:bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-300">
+          <div className="relative w-full max-w-md backdrop-blur-2xl bg-white/95 dark:bg-slate-950/80 border border-slate-200 dark:border-white/10 rounded-[2rem] shadow-[0_25px_60px_rgba(0,0,0,0.2)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.8)] overflow-hidden ring-1 ring-slate-200/50 dark:ring-white/5 animate-in zoom-in-95 duration-300">
             {/* Linha decorativa de neon */}
             <div className="h-1.5 bg-gradient-to-r from-emerald-500 to-indigo-600 shadow-[0_0_15px_rgba(16,185,129,0.3)]"></div>
             
@@ -648,10 +648,10 @@ export function IdentificationSection({
                 <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-emerald-500/5 text-indigo-400 border border-indigo-500/30 mb-4 shadow-[0_0_15px_rgba(99,102,241,0.15)]">
                   <Lock className="w-6 h-6 animate-pulse" />
                 </div>
-                <h3 className="text-lg font-black uppercase tracking-wider text-white">
+                <h3 className="text-lg font-black uppercase tracking-wider text-slate-900 dark:text-white">
                   Controle Administrativo
                 </h3>
-                <p className="text-[10px] text-slate-400 font-medium tracking-wide mt-1">
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium tracking-wide mt-1">
                   {isLocked ? "Autentique-se para DESTRAVAR o Kiosk" : "Autentique-se para TRAVAR o Kiosk"}
                 </p>
               </div>
@@ -666,7 +666,7 @@ export function IdentificationSection({
               {/* Campos */}
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <label htmlFor="auth-username" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                  <label htmlFor="auth-username" className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">
                     Login (RA ou E-mail)
                   </label>
                   <Input
@@ -675,7 +675,7 @@ export function IdentificationSection({
                     value={authUsername}
                     onChange={(e) => setAuthUsername(e.target.value)}
                     onFocus={() => setActiveAuthInput('username')}
-                    className="h-12 bg-[#090b14]/90 text-white placeholder:text-slate-600 border border-white/10 focus:border-indigo-500/50 focus:ring-indigo-500/10 focus:ring-4 rounded-xl px-4 text-sm"
+                    className="h-12 bg-white dark:bg-[#090b14]/90 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 border border-slate-200 dark:border-white/10 focus:border-indigo-500/50 focus:ring-indigo-500/10 focus:ring-4 rounded-xl px-4 text-sm"
                     disabled={authLoading}
                     autoComplete="off"
                     autoCorrect="off"
@@ -686,7 +686,7 @@ export function IdentificationSection({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label htmlFor="auth-password" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                  <label htmlFor="auth-password" className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">
                     Senha de Gestão
                   </label>
                   <Input
@@ -696,7 +696,7 @@ export function IdentificationSection({
                     value={authPassword}
                     onChange={(e) => setAuthPassword(e.target.value)}
                     onFocus={() => setActiveAuthInput('password')}
-                    className="h-12 bg-[#090b14]/90 text-white placeholder:text-slate-600 border border-white/10 focus:border-indigo-500/50 focus:ring-indigo-500/10 focus:ring-4 rounded-xl px-4 text-sm"
+                    className="h-12 bg-white dark:bg-[#090b14]/90 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 border border-slate-200 dark:border-white/10 focus:border-indigo-500/50 focus:ring-indigo-500/10 focus:ring-4 rounded-xl px-4 text-sm"
                     disabled={authLoading}
                     autoComplete="off"
                   />
@@ -705,7 +705,7 @@ export function IdentificationSection({
 
               {/* Teclado Virtual no Dialog */}
               {showAuthKeyboard && (
-                <div className="animate-in fade-in slide-in-from-top-2 duration-300 bg-slate-950/60 p-4 border border-white/5 rounded-2xl shadow-inner">
+                <div className="animate-in fade-in slide-in-from-top-2 duration-300 bg-slate-100/80 dark:bg-slate-950/60 p-4 border border-slate-200/50 dark:border-white/5 rounded-2xl shadow-inner">
                   <VirtualKeyboard
                     layout="alphanumeric"
                     onInput={(key) => activeAuthInput === 'username' ? setAuthUsername(p => p + key) : setAuthPassword(p => p + key)}
@@ -734,7 +734,7 @@ export function IdentificationSection({
                     type="button"
                     variant="ghost"
                     onClick={() => setShowAuthKeyboard(p => !p)}
-                    className="flex-1 h-11 text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 rounded-xl border border-white/5"
+                    className="flex-1 h-11 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl border border-slate-200/60 dark:border-white/5"
                   >
                     <Keyboard className="mr-2 h-4.5 w-4.5 text-indigo-400" />
                     Teclado

@@ -81,65 +81,65 @@ export function OverviewSection({
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* MÉTRICAS DE REDE */}
       <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-4">
-        <Card className="bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border-indigo-500/30 text-white shadow-2xl rounded-[2rem] overflow-hidden relative group hover:scale-[1.01] transition-transform duration-300">
-          <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500" />
+        <Card className="bg-gradient-to-br from-indigo-500/10 via-indigo-500/20 to-purple-500/20 border-indigo-500/30 text-slate-800 dark:text-white shadow-2xl rounded-[2rem] overflow-hidden relative group hover:scale-[1.01] transition-transform duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-indigo-500/10 dark:bg-white/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 dark:group-hover:bg-white/20 transition-all duration-500" />
           <CardContent className="pt-6 relative z-10">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Escolas Parceiras</p>
-                <h3 className="text-4xl font-black mt-1 bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">{activeSchools.length}</h3>
+                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-700 dark:text-indigo-200 opacity-80">Escolas Parceiras</p>
+                <h3 className="text-4xl font-black mt-1 bg-gradient-to-r from-indigo-900 to-purple-800 dark:from-white dark:to-indigo-200 bg-clip-text text-transparent">{activeSchools.length}</h3>
               </div>
-              <div className="p-3 bg-white/10 rounded-2xl border border-white/10 text-white"><SchoolIcon className="h-5 w-5" /></div>
+              <div className="p-3 bg-indigo-500/10 dark:bg-white/10 rounded-2xl border border-indigo-500/20 dark:border-white/10 text-indigo-600 dark:text-white"><SchoolIcon className="h-5 w-5" /></div>
             </div>
-            <div className="mt-4 flex items-center gap-2 text-xs font-bold text-indigo-200">
+            <div className="mt-4 flex items-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-200">
               <TrendingUp className="h-3.5 w-3.5" /> Expansão de rede ativa
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-900/40 backdrop-blur-xl border border-white/10 text-white shadow-2xl rounded-[2rem] overflow-hidden relative group hover:scale-[1.01] transition-transform duration-300">
+        <Card className="bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white shadow-2xl rounded-[2rem] overflow-hidden relative group hover:scale-[1.01] transition-transform duration-300">
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all duration-500" />
           <CardContent className="pt-6 relative z-10">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Bio-Coins na Rede</p>
-                <h3 className="text-3xl font-black mt-1 text-emerald-400">{(totalPoints / 1000).toFixed(1)}k</h3>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Bio-Coins na Rede</p>
+                <h3 className="text-3xl font-black mt-1 text-emerald-600 dark:text-emerald-400">{(totalPoints / 1000).toFixed(1)}k</h3>
               </div>
               <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 text-emerald-400"><Zap className="h-5 w-5" /></div>
             </div>
-            <div className="mt-4 flex items-center gap-2 text-xs font-bold text-slate-400">
+            <div className="mt-4 flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400">
               Moeda global estabilizada
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-900/40 backdrop-blur-xl border border-white/10 text-white shadow-2xl rounded-[2rem] overflow-hidden relative group hover:scale-[1.01] transition-transform duration-300">
+        <Card className="bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white shadow-2xl rounded-[2rem] overflow-hidden relative group hover:scale-[1.01] transition-transform duration-300">
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all duration-500" />
           <CardContent className="pt-6 relative z-10">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Agentes Ativos</p>
-                <h3 className="text-3xl font-black mt-1 text-indigo-400">{studentsCount}</h3>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Agentes Ativos</p>
+                <h3 className="text-3xl font-black mt-1 text-indigo-600 dark:text-indigo-400">{studentsCount}</h3>
               </div>
               <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 text-indigo-400"><Users className="h-5 w-5" /></div>
             </div>
-            <div className="mt-4 flex items-center gap-2 text-xs font-bold text-slate-400">
+            <div className="mt-4 flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400">
               Alunos engajados na causa
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-900/40 backdrop-blur-xl border border-white/10 text-white shadow-2xl rounded-[2rem] overflow-hidden relative group hover:scale-[1.01] transition-transform duration-300">
+        <Card className="bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white shadow-2xl rounded-[2rem] overflow-hidden relative group hover:scale-[1.01] transition-transform duration-300">
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl group-hover:bg-amber-500/20 transition-all duration-500" />
           <CardContent className="pt-6 relative z-10">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Totens Ativos</p>
-                <h3 className="text-3xl font-black mt-1 text-amber-400">{terminals.filter(t => t.status === 'active').length}</h3>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Totens Ativos</p>
+                <h3 className="text-3xl font-black mt-1 text-amber-600 dark:text-amber-400">{terminals.filter(t => t.status === 'active').length}</h3>
               </div>
               <div className="p-3 bg-amber-500/10 rounded-2xl border border-amber-500/20 text-amber-400"><Zap className="h-5 w-5" /></div>
             </div>
-            <div className="mt-4 flex items-center gap-2 text-xs font-bold text-slate-400">
+            <div className="mt-4 flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400">
               Hardware IoT operando
             </div>
           </CardContent>
@@ -148,30 +148,30 @@ export function OverviewSection({
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* SOLICITAÇÕES PENDENTES */}
-        <Card className="lg:col-span-1 border-amber-500/20 bg-amber-500/5 backdrop-blur-lg rounded-[2rem] text-white">
+        <Card className="lg:col-span-1 border-amber-500/30 dark:border-amber-500/20 bg-amber-500/5 backdrop-blur-lg rounded-[2rem] text-slate-800 dark:text-white">
           <CardHeader>
-            <CardTitle className="text-sm font-black uppercase tracking-widest text-amber-400 flex items-center gap-2">
+            <CardTitle className="text-sm font-black uppercase tracking-widest text-amber-550 dark:text-amber-400 flex items-center gap-2">
               <ShieldAlert className="h-4 w-4 animate-pulse" /> Novas Solicitações
             </CardTitle>
-            <CardDescription className="text-slate-400 text-xs">Aprovação de novos parceiros de rede.</CardDescription>
+            <CardDescription className="text-slate-550 dark:text-slate-400 text-xs">Aprovação de novos parceiros de rede.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {pendingSchools.map(school => (
-              <div key={school.id} className="p-4 bg-slate-950/60 border border-white/5 rounded-2xl shadow-lg space-y-3">
+              <div key={school.id} className="p-4 bg-white/60 dark:bg-slate-950/60 border border-slate-200/60 dark:border-white/5 rounded-2xl shadow-lg space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                  <div className="h-10 w-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 dark:text-amber-400">
                     <SchoolIcon className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="font-bold text-white leading-tight">{school.name}</p>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{school.city}, {school.state}</p>
+                    <p className="font-bold text-slate-900 dark:text-white leading-tight">{school.name}</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">{school.city}, {school.state}</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <Button 
                     size="sm" 
                     variant="ghost" 
-                    className="text-[10px] font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl"
+                    className="text-[10px] font-bold text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl"
                     onClick={async () => {
                       const res = await deleteSchool(school.id);
                       if (res.success) {
@@ -197,7 +197,7 @@ export function OverviewSection({
               </div>
             ))}
             {pendingSchools.length === 0 && (
-              <div className="text-center py-12 text-slate-500 text-xs font-bold uppercase tracking-wider">
+              <div className="text-center py-12 text-slate-550 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">
                 Nenhuma solicitação pendente
               </div>
             )}
@@ -205,10 +205,10 @@ export function OverviewSection({
         </Card>
 
         {/* ÚLTIMOS EVENTOS DE REDE */}
-        <Card className="lg:col-span-2 bg-slate-900/40 backdrop-blur-xl border border-white/10 text-white shadow-2xl rounded-[2rem]">
+        <Card className="lg:col-span-2 bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white shadow-2xl rounded-[2rem]">
           <CardHeader>
-            <CardTitle className="text-sm font-black uppercase tracking-widest text-white">Atividade Recente da Rede</CardTitle>
-            <CardDescription className="text-slate-400 text-xs">Monitoramento em tempo real de novos ingressos e coletas.</CardDescription>
+            <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-white">Atividade Recente da Rede</CardTitle>
+            <CardDescription className="text-slate-500 dark:text-slate-400 text-xs">Monitoramento em tempo real de novos ingressos e coletas.</CardDescription>
           </CardHeader>
           <CardContent className="px-6">
              <div className="space-y-6">
@@ -216,15 +216,15 @@ export function OverviewSection({
                   <div key={activity.id} className="flex gap-4 animate-in fade-in slide-in-from-left-4 duration-500 items-start">
                      <div className={`mt-1.5 h-2.5 w-2.5 rounded-full ${activity.color} shrink-0`} />
                      <div className="space-y-1 flex-1">
-                        <p className="text-sm font-bold text-slate-100">{activity.title}</p>
-                        <p className="text-xs text-slate-400 font-medium">{activity.description}</p>
-                        <p className="text-[9px] text-slate-500 uppercase font-black tracking-widest flex items-center gap-1">
+                        <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{activity.title}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{activity.description}</p>
+                        <p className="text-[9px] text-slate-500 dark:text-slate-500 uppercase font-black tracking-widest flex items-center gap-1">
                           <TrendingUp className="h-3 w-3" /> {formatTime(activity.date)}
                         </p>
                      </div>
                   </div>
                 )) : (
-                  <div className="text-center py-12 text-slate-500 text-xs font-bold uppercase tracking-wider">
+                  <div className="text-center py-12 text-slate-500 dark:text-slate-500 text-xs font-bold uppercase tracking-wider">
                     Aguardando atividades da rede...
                   </div>
                 )}

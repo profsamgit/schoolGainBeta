@@ -687,25 +687,21 @@ function AdminContent() {
       toast({ title: "Sucesso!", description: "Crachá salvo como imagem." });
     } catch (error) {
       console.error('Erro ao gerar imagem:', error);
-      toast({ variant: "destructive", title: "Erro ao salvar", description: "Falha ao gerar imagem do crachá." });
+      toast({ variant: "destructive", title: "Erro ao salvar", description: "Falha ao gerar crachá." });
     }
   };
 
-
-
-  if (!hasMounted) return null;
-
   if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'super_admin')) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#070913] text-center p-6 space-y-6 relative overflow-hidden">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#EFF7EF] dark:bg-[#070913] text-center p-6 space-y-6 relative overflow-hidden text-slate-800 dark:text-white">
         {/* Background decorative neon blobs */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-rose-500/10 rounded-full blur-[100px] pointer-events-none" />
         <div className="h-24 w-24 rounded-[2rem] bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500 animate-pulse shadow-[0_0_30px_rgba(239,68,68,0.1)] relative z-10">
           <ShieldAlert className="h-12 w-12" />
         </div>
         <div className="space-y-2 relative z-10">
-          <h2 className="text-3xl font-black uppercase tracking-tighter text-white">Acesso Restrito</h2>
-          <p className="text-slate-400 font-bold uppercase tracking-wider text-xs max-w-xs mx-auto">Esta área é exclusiva para gestores e administradores da rede SchoolGain.</p>
+          <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-850 dark:text-white">Acesso Restrito</h2>
+          <p className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-xs max-w-xs mx-auto">Esta área é exclusiva para gestores e administradores da rede SchoolGain.</p>
         </div>
         <Button asChild className="bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-400 hover:to-red-500 text-white border border-rose-400/20 font-black uppercase text-xs tracking-widest h-12 px-8 rounded-xl shadow-xl relative z-10"><Link href="/">Voltar para o Dashboard</Link></Button>
       </div>
@@ -713,22 +709,22 @@ function AdminContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#070913] text-white relative overflow-hidden font-sans pb-12">
+    <div className="min-h-screen bg-[#EFF7EF] dark:bg-[#070913] text-slate-800 dark:text-white relative overflow-hidden font-sans pb-12 animate-in fade-in duration-500">
       {/* Background decorative neon blobs */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/10 rounded-full blur-[130px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-500/10 rounded-full blur-[130px] pointer-events-none" />
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/5 dark:bg-indigo-500/10 rounded-full blur-[130px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-500/5 dark:bg-purple-500/10 rounded-full blur-[130px] pointer-events-none" />
       {/* Fine futuristic digital grid overlay */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.015)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
 
       <div className="p-6 space-y-8 max-w-7xl mx-auto relative z-10 animate-in fade-in duration-500">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900/40 p-6 rounded-[2rem] border border-white/10 shadow-2xl backdrop-blur-xl">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/80 dark:bg-slate-900/40 p-6 rounded-[2rem] border border-slate-200/60 dark:border-white/10 shadow-2xl backdrop-blur-xl">
           <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-lg">
+            <div className="h-12 w-12 rounded-xl bg-indigo-500/5 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 flex items-center justify-center text-indigo-650 dark:text-indigo-400 shadow-lg">
               <Shield className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-3xl font-black uppercase tracking-tighter bg-gradient-to-r from-white via-indigo-100 to-indigo-300 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(99,102,241,0.2)]">Painel do Gestor</h1>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 mt-1">{schools.find(s => s.id === currentUser.schoolId)?.name || 'Unidade SchoolGain'}</p>
+              <h1 className="text-3xl font-black uppercase tracking-tighter bg-gradient-to-r from-slate-900 via-indigo-950 to-indigo-900 dark:from-white dark:via-indigo-100 dark:to-indigo-300 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(99,102,241,0.2)]">Painel do Gestor</h1>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-605 dark:text-indigo-400 mt-1">{schools.find(s => s.id === currentUser.schoolId)?.name || 'Unidade SchoolGain'}</p>
             </div>
           </div>
           {currentUser.role === 'super_admin' && (
@@ -739,12 +735,12 @@ function AdminContent() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 w-full">
-          <TabsList className="!flex !w-full h-16 bg-slate-950/80 p-1.5 rounded-2xl border border-white/5 shadow-2xl backdrop-blur-xl">
-            <TabsTrigger value="povoamento" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-indigo-500 data-[state=active]:text-slate-950 font-black uppercase text-[10px] tracking-widest transition-all duration-300 text-slate-400 hover:text-white"><Database className="mr-2 h-4 w-4" /> Povoamento</TabsTrigger>
-            <TabsTrigger value="academic" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-indigo-500 data-[state=active]:text-slate-950 font-black uppercase text-[10px] tracking-widest transition-all duration-300 text-slate-400 hover:text-white"><Users className="mr-2 h-4 w-4" /> Acadêmico</TabsTrigger>
-            <TabsTrigger value="pedagogic" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-indigo-500 data-[state=active]:text-slate-950 font-black uppercase text-[10px] tracking-widest transition-all duration-300 text-slate-400 hover:text-white"><BookOpen className="mr-2 h-4 w-4" /> Pedagógico</TabsTrigger>
-            <TabsTrigger value="economic" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-indigo-500 data-[state=active]:text-slate-950 font-black uppercase text-[10px] tracking-widest transition-all duration-300 text-slate-400 hover:text-white"><Gift className="mr-2 h-4 w-4" /> Econômico</TabsTrigger>
-            <TabsTrigger value="infra" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-indigo-500 data-[state=active]:text-slate-950 font-black uppercase text-[10px] tracking-widest transition-all duration-300 text-slate-400 hover:text-white"><Cpu className="mr-2 h-4 w-4" /> Infra</TabsTrigger>
+          <TabsList className="!flex !w-full h-16 bg-slate-100/80 dark:bg-slate-950/80 p-1.5 rounded-2xl border border-slate-200/60 dark:border-white/5 shadow-2xl backdrop-blur-xl">
+            <TabsTrigger value="povoamento" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-indigo-600 dark:data-[state=active]:bg-indigo-500 data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest transition-all duration-300 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"><Database className="mr-2 h-4 w-4" /> Povoamento</TabsTrigger>
+            <TabsTrigger value="academic" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-indigo-600 dark:data-[state=active]:bg-indigo-500 data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest transition-all duration-300 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"><Users className="mr-2 h-4 w-4" /> Acadêmico</TabsTrigger>
+            <TabsTrigger value="pedagogic" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-indigo-600 dark:data-[state=active]:bg-indigo-500 data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest transition-all duration-300 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"><BookOpen className="mr-2 h-4 w-4" /> Pedagógico</TabsTrigger>
+            <TabsTrigger value="economic" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-indigo-600 dark:data-[state=active]:bg-indigo-500 data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest transition-all duration-300 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"><Gift className="mr-2 h-4 w-4" /> Econômico</TabsTrigger>
+            <TabsTrigger value="infra" className="flex-1 !inline-flex rounded-xl data-[state=active]:bg-indigo-600 dark:data-[state=active]:bg-indigo-500 data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest transition-all duration-300 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"><Cpu className="mr-2 h-4 w-4" /> Infra</TabsTrigger>
           </TabsList>
 
           <TabsContent value="povoamento">

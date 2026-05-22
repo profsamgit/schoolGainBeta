@@ -38,7 +38,7 @@ export function LevelJourney({ currentLevel, totalScore }: LevelJourneyProps) {
       {/* HEADER DA JORNADA */}
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-3">
         <div className="space-y-0.5">
-          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Jornada do Guardião</h3>
+          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Jornada do Guardião</h3>
           <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
              {currentLevel}
              <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -46,10 +46,10 @@ export function LevelJourney({ currentLevel, totalScore }: LevelJourneyProps) {
         </div>
         
         {nextLevel && (
-            <div className="bg-slate-950/40 backdrop-blur-md border border-white/5 px-4 py-2 rounded-xl flex items-center gap-3 shadow-lg group transition-all hover:bg-slate-900/40">
+            <div className="bg-slate-100 dark:bg-slate-950/40 backdrop-blur-md border border-slate-200/65 dark:border-white/5 px-4 py-2 rounded-xl flex items-center gap-3 shadow-lg group transition-all hover:bg-slate-200 dark:hover:bg-slate-900/40">
                 <div className="text-right">
-                    <p className="text-[9px] font-black uppercase text-slate-400 tracking-wider leading-none">Próxima Evolução</p>
-                    <p className="text-xs font-bold text-slate-200">{nextLevel.name}</p>
+                    <p className="text-[9px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider leading-none">Próxima Evolução</p>
+                    <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{nextLevel.name}</p>
                 </div>
                 <div className={cn("p-1.5 rounded-lg transition-transform group-hover:scale-110", nextLevel.bg, nextLevel.color)}>
                     <nextLevel.icon className="w-4 h-4" />
@@ -61,7 +61,7 @@ export function LevelJourney({ currentLevel, totalScore }: LevelJourneyProps) {
       {/* TIMELINE VISUAL */}
       <div className="relative max-w-4xl mx-auto">
         {/* Linha de Base */}
-        <div className="absolute top-1/2 left-4 right-4 h-1 bg-white/5 -translate-y-1/2 rounded-full overflow-hidden">
+        <div className="absolute top-1/2 left-4 right-4 h-1 bg-slate-200 dark:bg-white/5 -translate-y-1/2 rounded-full overflow-hidden">
             <div 
                 className="h-full bg-gradient-to-r from-emerald-500 to-indigo-500 transition-all duration-1000 ease-out"
                 style={{ width: `${(currentIndex / (LEVELS.length - 1)) * 100}%` }}
@@ -85,8 +85,8 @@ export function LevelJourney({ currentLevel, totalScore }: LevelJourneyProps) {
                 <div className={cn(
                   "relative w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center transition-all duration-500 border-2",
                   isReached 
-                    ? cn("bg-slate-950 border-current shadow-[0_0_20px_rgba(255,255,255,0.05)] scale-110", level.color) 
-                    : "bg-slate-900/20 border-white/5 text-slate-500 scale-90 grayscale opacity-50"
+                    ? cn("bg-white dark:bg-slate-950 border-current shadow-md dark:shadow-[0_0_20px_rgba(255,255,255,0.05)] scale-110", level.color) 
+                    : "bg-slate-100 dark:bg-slate-900/20 border-slate-200/60 dark:border-white/5 text-slate-400 scale-90 grayscale opacity-50"
                 )}>
                   {isCurrent && (
                     <div className={cn("absolute inset-0 rounded-2xl animate-ping opacity-10", level.bg)} />
@@ -96,7 +96,9 @@ export function LevelJourney({ currentLevel, totalScore }: LevelJourneyProps) {
                   {/* Badge de Pontos */}
                   <div className={cn(
                     "absolute -bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter transition-all duration-500 border",
-                    isReached ? "bg-white text-slate-950 border-white" : "bg-slate-950 text-slate-500 border-white/5"
+                    isReached 
+                      ? "bg-slate-900 text-white dark:bg-white dark:text-slate-950 border-slate-900 dark:border-white" 
+                      : "bg-slate-100 dark:bg-slate-950 text-slate-400 dark:text-slate-500 border-slate-200/60 dark:border-white/5"
                   )}>
                     {level.minScore.toLocaleString()} pts
                   </div>
@@ -105,7 +107,7 @@ export function LevelJourney({ currentLevel, totalScore }: LevelJourneyProps) {
                 {/* Nome do Nível */}
                 <span className={cn(
                   "mt-14 text-[10px] font-black uppercase tracking-widest transition-all text-center",
-                  isReached ? "text-white" : "text-slate-500"
+                  isReached ? "text-slate-800 dark:text-white" : "text-slate-400 dark:text-slate-500"
                 )}>
                   {level.name}
                 </span>
@@ -116,9 +118,9 @@ export function LevelJourney({ currentLevel, totalScore }: LevelJourneyProps) {
       </div>
       
       {/* LEGENDA MOBILE */}
-      <div className="mt-8 md:hidden flex items-center justify-center gap-2 bg-slate-950/40 border border-white/5 py-3 rounded-2xl">
+      <div className="mt-8 md:hidden flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-950/40 border border-slate-200/60 dark:border-white/5 py-3 rounded-2xl">
           <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+          <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
               Continue coletando para evoluir
           </p>
       </div>

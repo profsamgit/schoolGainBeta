@@ -181,56 +181,56 @@ export function SecuritySection({
   return (
     <div className="space-y-6">
       {/* HEADER DA SEÇÃO */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/40 p-6 rounded-[2rem] border border-white/10 shadow-2xl backdrop-blur-xl">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/80 dark:bg-slate-900/40 p-6 rounded-[2rem] border border-slate-200/60 dark:border-white/10 shadow-2xl backdrop-blur-xl">
         <div className="flex items-center gap-4">
-          <div className="h-12 w-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-lg animate-pulse">
+          <div className="h-12 w-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-650 dark:text-indigo-400 shadow-lg animate-pulse">
             <Shield className="h-6 w-6" />
           </div>
           <div>
-            <h2 className="text-2xl font-black uppercase tracking-tight text-white">Controle de Identidade</h2>
-            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-400">Gestão Global de Acessos, Mestres e Identificadores Digitais.</p>
+            <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Controle de Identidade</h2>
+            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">Gestão Global de Acessos, Mestres e Identificadores Digitais.</p>
           </div>
         </div>
         <Button onClick={() => {
           setEditingUser(null);
           setUserFormData({ name: '', email: '', password: '', role: 'super_admin', schoolId: 'global', ra: '', rfid: '' });
           setIsUserFormOpen(true);
-        }} className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white border border-indigo-400/20 font-black uppercase text-[10px] tracking-widest gap-2 h-12 px-6 rounded-xl hover:scale-[1.03] transition-transform shadow-lg shadow-indigo-500/10">
+        }} className="bg-gradient-to-r from-indigo-600 to-purple-750 hover:from-indigo-500 hover:to-purple-655 text-white border border-indigo-500/20 font-black uppercase text-[10px] tracking-widest gap-2 h-12 px-6 rounded-xl hover:scale-[1.03] transition-transform shadow-lg shadow-indigo-500/10">
           <UserPlus className="h-4 w-4" /> Novo Mestre ou Gestor
         </Button>
       </div>
 
       <div className="space-y-6">
-        {/* LISTA DE MESTRES (SUPER ADMINS) */}
-        <Card className="border border-white/10 shadow-2xl bg-slate-900/40 backdrop-blur-xl rounded-[2rem] overflow-hidden">
-          <CardHeader className="border-b border-white/5 bg-slate-950/40 px-8 py-5">
-            <div className="flex items-center gap-2 text-indigo-400">
+        {/* LISTA DE MESTRES (MESTRES CONSELHO) */}
+        <Card className="border border-slate-200/60 dark:border-white/10 shadow-2xl bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl rounded-[2rem] overflow-hidden">
+          <CardHeader className="border-b border-slate-200/60 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/40 px-8 py-5">
+            <div className="flex items-center gap-2 text-indigo-650 dark:text-indigo-400">
               <Key className="h-4 w-4" />
-              <CardTitle className="text-sm font-black uppercase tracking-widest text-white">Conselho de Mestres (Super Admins)</CardTitle>
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Conselho de Mestres (Super Admins)</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="p-0">
             <div className="hidden md:block overflow-x-auto">
               <Table>
-                <TableHeader className="bg-slate-950/60">
-                  <TableRow className="hover:bg-transparent border-b border-white/5">
+                <TableHeader className="bg-slate-100/50 dark:bg-slate-950/60">
+                  <TableRow className="hover:bg-transparent border-b border-slate-200/60 dark:border-b-white/5">
                     <TableHead className="w-16 pl-8"></TableHead>
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nome / Cargo</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">RA / Identidade</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Status</TableHead>
-                    <TableHead className="text-right text-[10px] font-black uppercase tracking-widest px-8 text-slate-400">Ações</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Nome / Cargo</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">RA / Identidade</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Status</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase tracking-widest px-8 text-slate-500 dark:text-slate-400">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {superAdminUsers.map((user) => (
-                    <TableRow key={user.id} className="group hover:bg-white/5 transition-colors border-b border-white/5 text-slate-300">
+                    <TableRow key={user.id} className="group hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-b border-slate-200/60 dark:border-white/5 text-slate-700 dark:text-slate-300">
                       <TableCell className="pl-8">
                         <div className="relative group/avatar">
                           <Avatar className="h-10 w-10 rounded-xl border-2 border-indigo-500/20 group-hover/avatar:border-indigo-400 transition-all shadow-md">
                             <AvatarImage src={user.avatar || undefined} className="object-cover" />
                             <AvatarFallback className="bg-indigo-600 text-white text-[11px] font-black">{user.name.charAt(0)}</AvatarFallback>
                           </Avatar>
-                          <div className="absolute inset-0 flex items-center justify-center bg-slate-950/60 opacity-0 group-hover/avatar:opacity-100 rounded-xl transition-opacity gap-2 border border-indigo-500/20">
+                          <div className="absolute inset-0 flex items-center justify-center bg-slate-950/80 opacity-0 group-hover/avatar:opacity-100 rounded-xl transition-opacity gap-2 border border-indigo-500/20">
                             {uploadingUserId === user.id ? (
                               <Loader2 className="h-4 w-4 text-white animate-spin" />
                             ) : (
@@ -251,17 +251,17 @@ export function SecuritySection({
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col">
-                          <span className="text-xs font-bold text-white">{user.name}</span>
-                          <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Super Administrador</span>
+                          <span className="text-xs font-bold text-slate-900 dark:text-white">{user.name}</span>
+                          <span className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-0.5">Super Administrador</span>
                         </div>
                       </TableCell>
-                      <TableCell className="font-mono text-[10.5px] font-bold text-indigo-400">{user.ra || 'SEM RA'}</TableCell>
+                      <TableCell className="font-mono text-[10.5px] font-bold text-indigo-600 dark:text-indigo-400">{user.ra || 'SEM RA'}</TableCell>
                       <TableCell>
-                        <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-black uppercase tracking-widest py-0.5 px-2 rounded-lg">Ativo</Badge>
+                        <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[9px] font-black uppercase tracking-widest py-0.5 px-2 rounded-lg">Ativo</Badge>
                       </TableCell>
                       <TableCell className="text-right px-8">
                         <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded-lg" title="Reset de Senha" onClick={() => {
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 rounded-lg" title="Reset de Senha" onClick={() => {
                               setUserToReset(user);
                               setResetGeneratedPass(null);
                               setAdminPasswordForAction('');
@@ -269,12 +269,12 @@ export function SecuritySection({
                           }}>
                               <Lock className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-indigo-400 hover:bg-white/5 rounded-lg" onClick={() => {
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-indigo-650 dark:text-slate-400 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg" onClick={() => {
                             setEditingUser(user);
                             setUserFormData({ ...user, password: '', confirmPassword: '' });
                             setIsUserFormOpen(true);
                           }}><Edit className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg" onClick={() => {
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-555 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg" onClick={() => {
                               setUserToDelete(user);
                               setIsDeleteModalOpen(true);
                           }} disabled={user.id === currentUser.id && superAdminUsers.length <= 1}><Trash2 className="h-4 w-4" /></Button>
@@ -289,14 +289,14 @@ export function SecuritySection({
             {/* Mobile Cards View */}
             <div className="md:hidden space-y-3 p-4">
               {superAdminUsers.map((user) => (
-                <div key={user.id} className="p-4 rounded-2xl border border-white/5 bg-slate-950/40 shadow-md flex flex-col gap-3 text-slate-350">
+                <div key={user.id} className="p-4 rounded-2xl border border-slate-200/60 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/40 shadow-md flex flex-col gap-3 text-slate-700 dark:text-slate-350">
                   <div className="flex items-center gap-3">
                     <div className="relative group/avatar">
                       <Avatar className="h-10 w-10 rounded-xl border-2 border-indigo-500/20 shadow-md">
                         <AvatarImage src={user.avatar || undefined} className="object-cover" />
                         <AvatarFallback className="bg-indigo-600 text-white text-[11px] font-black">{user.name.charAt(0)}</AvatarFallback>
                       </Avatar>
-                      <div className="absolute inset-0 flex items-center justify-center bg-slate-950/60 rounded-xl gap-2 border border-indigo-500/20">
+                      <div className="absolute inset-0 flex items-center justify-center bg-slate-950/80 rounded-xl gap-2 border border-indigo-500/20">
                         {uploadingUserId === user.id ? (
                           <Loader2 className="h-4 w-4 text-white animate-spin" />
                         ) : (
@@ -315,26 +315,26 @@ export function SecuritySection({
                       </div>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-xs font-bold text-white">{user.name}</span>
-                      <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Super Administrador</span>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">{user.name}</span>
+                      <span className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-0.5">Super Administrador</span>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs pt-2 border-t border-white/5">
-                    <span className="text-slate-400 font-medium">RA:</span>
-                    <span className="font-mono text-[10.5px] font-bold text-indigo-400">{user.ra || 'SEM RA'}</span>
+                  <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-200/60 dark:border-white/5">
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">RA:</span>
+                    <span className="font-mono text-[10.5px] font-bold text-indigo-600 dark:text-indigo-400">{user.ra || 'SEM RA'}</span>
                   </div>
 
                   <div className="flex items-center justify-between text-xs pb-1">
-                    <span className="text-slate-400 font-medium">Status:</span>
-                    <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-black uppercase tracking-widest py-0.5 px-2 rounded-lg">Ativo</Badge>
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">Status:</span>
+                    <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[9px] font-black uppercase tracking-widest py-0.5 px-2 rounded-lg">Ativo</Badge>
                   </div>
 
-                  <div className="flex justify-end gap-2 pt-2 border-t border-white/5">
+                  <div className="flex justify-end gap-2 pt-2 border-t border-slate-200/60 dark:border-white/5">
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="h-8 border-amber-500/20 text-amber-400 hover:bg-amber-500/10 rounded-xl text-[9px] font-black uppercase tracking-wider gap-1.5"
+                      className="h-8 border-amber-500/20 text-amber-600 dark:text-amber-400 bg-white/80 dark:bg-transparent hover:bg-amber-500/10 rounded-xl text-[9px] font-black uppercase tracking-wider gap-1.5"
                       onClick={() => {
                         setUserToReset(user);
                         setResetGeneratedPass(null);
@@ -348,7 +348,7 @@ export function SecuritySection({
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="h-8 border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/10 rounded-xl text-[9px] font-black uppercase tracking-wider gap-1.5"
+                      className="h-8 border-indigo-500/20 text-indigo-600 dark:text-indigo-400 bg-white/80 dark:bg-transparent hover:bg-indigo-500/10 rounded-xl text-[9px] font-black uppercase tracking-wider gap-1.5"
                       onClick={() => {
                         setEditingUser(user);
                         setUserFormData({ ...user, password: '', confirmPassword: '' });
@@ -361,7 +361,7 @@ export function SecuritySection({
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="h-8 border-rose-500/20 text-rose-500 hover:bg-rose-500/10 rounded-xl text-[9px] font-black uppercase tracking-wider gap-1.5"
+                      className="h-8 border-rose-500/20 text-rose-600 dark:text-rose-500 bg-white/80 dark:bg-transparent hover:bg-rose-500/10 rounded-xl text-[9px] font-black uppercase tracking-wider gap-1.5"
                       disabled={user.id === currentUser.id && superAdminUsers.length <= 1}
                       onClick={() => {
                         setUserToDelete(user);
@@ -379,34 +379,34 @@ export function SecuritySection({
         </Card>
 
         {/* LISTA DE GESTORES DE UNIDADE */}
-        <Card className="border border-white/10 shadow-2xl bg-slate-900/40 backdrop-blur-xl rounded-[2rem] overflow-hidden">
-          <CardHeader className="border-b border-white/5 bg-slate-950/40 px-8 py-5">
-            <div className="flex items-center gap-2 text-indigo-400">
+        <Card className="border border-slate-200/60 dark:border-white/10 shadow-2xl bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl rounded-[2rem] overflow-hidden">
+          <CardHeader className="border-b border-slate-200/60 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/40 px-8 py-5">
+            <div className="flex items-center gap-2 text-indigo-650 dark:text-indigo-400">
               <Building2 className="h-4 w-4" />
-              <CardTitle className="text-sm font-black uppercase tracking-widest text-white">Gestores de Unidade (Admin Local)</CardTitle>
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Gestores de Unidade (Admin Local)</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
-              <TableHeader className="bg-slate-950/60">
-                <TableRow className="hover:bg-transparent border-b border-white/5">
+              <TableHeader className="bg-slate-100/50 dark:bg-slate-950/60">
+                <TableRow className="hover:bg-transparent border-b border-slate-200/60 dark:border-b-white/5">
                   <TableHead className="w-16 pl-8"></TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nome / Unidade</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">RA / RFID</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Status</TableHead>
-                  <TableHead className="text-right text-[10px] font-black uppercase tracking-widest px-8 text-slate-400">Ações</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Nome / Unidade</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">RA / RFID</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Status</TableHead>
+                  <TableHead className="text-right text-[10px] font-black uppercase tracking-widest px-8 text-slate-500 dark:text-slate-400">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {unitAdminUsers.map((user) => (
-                  <TableRow key={user.id} className="group hover:bg-white/5 transition-colors border-b border-white/5 text-slate-300">
+                  <TableRow key={user.id} className="group hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-b border-slate-200/60 dark:border-white/5 text-slate-700 dark:text-slate-300">
                     <TableCell className="pl-8">
                       <div className="relative group/avatar">
                         <Avatar className="h-10 w-10 rounded-xl border-2 border-indigo-500/20 group-hover/avatar:border-indigo-400 transition-all shadow-md">
                           <AvatarImage src={user.avatar || undefined} className="object-cover" />
                           <AvatarFallback className="bg-indigo-600 text-white text-[11px] font-black">{user.name.charAt(0)}</AvatarFallback>
                         </Avatar>
-                        <div className="absolute inset-0 flex items-center justify-center bg-slate-950/60 opacity-0 group-hover/avatar:opacity-100 rounded-xl transition-opacity gap-2 border border-indigo-500/20">
+                        <div className="absolute inset-0 flex items-center justify-center bg-slate-950/80 opacity-0 group-hover/avatar:opacity-100 rounded-xl transition-opacity gap-2 border border-indigo-500/20">
                           {uploadingUserId === user.id ? (
                             <Loader2 className="h-4 w-4 text-white animate-spin" />
                           ) : (
@@ -427,24 +427,24 @@ export function SecuritySection({
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col">
-                        <span className="text-xs font-bold text-white">{user.name}</span>
-                        <span className="text-[9px] text-indigo-400 font-black uppercase tracking-widest mt-0.5">
+                        <span className="text-xs font-bold text-slate-900 dark:text-white">{user.name}</span>
+                        <span className="text-[9px] text-indigo-600 dark:text-indigo-400 font-black uppercase tracking-widest mt-0.5">
                           {schools.find(s => s.id === user.schoolId)?.name || 'Unidade não encontrada'}
                         </span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col">
-                        <span className="font-mono text-[10px] font-bold text-indigo-400">{user.ra || 'SEM RA'}</span>
-                        <span className="text-[8.5px] text-slate-400 font-bold mt-0.5 tracking-wider">{user.rfid || 'SEM RFID'}</span>
+                        <span className="font-mono text-[10px] font-bold text-indigo-600 dark:text-indigo-400">{user.ra || 'SEM RA'}</span>
+                        <span className="text-[8.5px] text-slate-550 dark:text-slate-400 font-bold mt-0.5 tracking-wider">{user.rfid || 'SEM RFID'}</span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[9px] font-black uppercase tracking-widest py-0.5 px-2 rounded-lg">Local</Badge>
+                      <Badge className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 text-[9px] font-black uppercase tracking-widest py-0.5 px-2 rounded-lg">Local</Badge>
                     </TableCell>
                     <TableCell className="text-right px-8">
                       <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded-lg" title="Reset de Senha" onClick={() => {
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 rounded-lg" title="Reset de Senha" onClick={() => {
                             setUserToReset(user);
                             setResetGeneratedPass(null);
                             setAdminPasswordForAction('');
@@ -452,12 +452,12 @@ export function SecuritySection({
                         }}>
                             <Lock className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-indigo-400 hover:bg-white/5 rounded-lg" onClick={() => {
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-indigo-650 dark:text-slate-400 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg" onClick={() => {
                           setEditingUser(user);
                           setUserFormData({ ...user, password: '', confirmPassword: '' });
                           setIsUserFormOpen(true);
                         }}><Edit className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg" onClick={() => {
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-555 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg" onClick={() => {
                             setUserToDelete(user);
                             setIsDeleteModalOpen(true);
                         }}><Trash2 className="h-4 w-4" /></Button>
@@ -468,7 +468,7 @@ export function SecuritySection({
                 {unitAdminUsers.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-12">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Nenhum gestor de unidade cadastrado</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500">Nenhum gestor de unidade cadastrado</p>
                     </TableCell>
                   </TableRow>
                 )}
@@ -480,15 +480,15 @@ export function SecuritySection({
 
       {/* MODAL DE CADASTRO/EDIÇÃO */}
       <Dialog open={isUserFormOpen} onOpenChange={setIsUserFormOpen}>
-        <DialogContent className="max-w-2xl bg-[#0a0f24]/95 backdrop-blur-3xl border border-white/10 text-white rounded-[2.5rem] p-0 overflow-hidden shadow-2xl">
-          <DialogHeader className="bg-slate-950 text-white p-8 border-b border-white/5 relative">
+        <DialogContent className="max-w-2xl bg-white dark:bg-[#0a0f24]/95 backdrop-blur-3xl border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-[2.5rem] p-0 overflow-hidden shadow-2xl">
+          <DialogHeader className="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white p-8 border-b border-slate-200/60 dark:border-white/5 relative">
             <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+              <div className="h-12 w-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                 <UserPlus className="h-6 w-6 animate-pulse" />
               </div>
               <div>
-                <DialogTitle className="text-2xl font-black uppercase tracking-tight text-white">{editingUser ? 'Atualizar Identidade' : 'Nova Identidade Admin'}</DialogTitle>
-                <DialogDescription className="text-slate-400 font-bold uppercase text-[9px] tracking-widest mt-1">Defina o nível de acesso e os identificadores de hardware.</DialogDescription>
+                <DialogTitle className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">{editingUser ? 'Atualizar Identidade' : 'Nova Identidade Admin'}</DialogTitle>
+                <DialogDescription className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[9px] tracking-widest mt-1">Defina o nível de acesso e os identificadores de hardware.</DialogDescription>
               </div>
             </div>
           </DialogHeader>
@@ -497,55 +497,55 @@ export function SecuritySection({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Nome Completo</Label>
-                  <Input value={userFormData.name} onChange={(e) => setUserFormData({ ...userFormData, name: e.target.value })} placeholder="Ex: Mestre Carlos" className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold" required />
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Nome Completo</Label>
+                  <Input value={userFormData.name} onChange={(e) => setUserFormData({ ...userFormData, name: e.target.value })} placeholder="Ex: Carlos Mestre" className="h-12 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold" required />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">E-mail Corporativo</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">E-mail Corporativo</Label>
                   <Input 
                     disabled={!!editingUser && userFormData.role === 'super_admin'}
                     value={userFormData.email} 
                     onChange={(e) => setUserFormData({ ...userFormData, email: e.target.value })} 
                     placeholder="mestre@escola.com" 
                     type="email" 
-                    className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold" 
+                    className="h-12 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold" 
                     required 
                   />
                   {editingUser && userFormData.role === 'super_admin' && (
-                    <p className="text-[9px] text-slate-500 mt-1 italic font-bold">
+                    <p className="text-[9px] text-slate-500 dark:text-slate-500 mt-1 italic font-bold">
                       * O e-mail de um Super Admin não pode ser alterado para evitar a perda de acesso com o Firebase Authentication.
                     </p>
                   )}
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Perfil de Acesso</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Perfil de Acesso</Label>
                   <Select 
                     disabled={!!editingUser}
                     value={userFormData.role || ""} 
                     onValueChange={(v) => setUserFormData({ ...userFormData, role: v, schoolId: v === 'super_admin' ? 'global' : '' })}
                   >
-                    <SelectTrigger className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold">
+                    <SelectTrigger className="h-12 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold">
                       <SelectValue placeholder="Selecione o nível" />
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-950 border-white/10 text-white">
+                    <SelectContent className="bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white">
                       <SelectItem value="super_admin">Mestre Global (Super Admin)</SelectItem>
                       <SelectItem value="admin">Gestor de Unidade (Admin Local)</SelectItem>
                     </SelectContent>
                   </Select>
-                  {editingUser && <p className="text-[9px] text-slate-500 mt-1.5 italic font-bold">* O perfil de acesso não pode ser alterado após o cadastro.</p>}
+                  {editingUser && <p className="text-[9px] text-slate-500 dark:text-slate-500 mt-1.5 italic font-bold">* O perfil de acesso não pode ser alterado após o cadastro.</p>}
                 </div>
                 {userFormData.role === 'admin' && (
                   <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Unidade Responsável</Label>
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Unidade Responsável</Label>
                     <Select 
                       disabled={!!editingUser}
                       value={userFormData.schoolId || ""} 
                       onValueChange={(v) => setUserFormData({ ...userFormData, schoolId: v })}
                     >
-                      <SelectTrigger className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold">
+                      <SelectTrigger className="h-12 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold">
                         <SelectValue placeholder="Selecione a Escola" />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-950 border-white/10 text-white">
+                      <SelectContent className="bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white">
                         {schools.map(school => (
                           <SelectItem key={school.id} value={school.id}>{school.name}</SelectItem>
                         ))}
@@ -556,18 +556,18 @@ export function SecuritySection({
               </div>
 
               <div className="space-y-4">
-                <div className="p-5 bg-indigo-500/5 rounded-2xl border border-indigo-500/20 space-y-4 shadow-inner">
+                <div className="p-5 bg-indigo-50/40 dark:bg-indigo-500/5 rounded-2xl border border-indigo-200 dark:border-indigo-500/20 space-y-4 shadow-inner">
                   <div className="flex justify-between items-center">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Identificadores de Hardware</Label>
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-indigo-650 dark:text-indigo-400">Identificadores de Hardware</Label>
                   </div>
                   
                   <div className="space-y-3">
                      <div className="flex flex-col gap-1.5">
-                        <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">RA / QR Code (12 Chars)</Label>
+                        <Label className="text-[9px] font-black uppercase text-slate-500 dark:text-slate-400 ml-1">RA / QR Code (12 Chars)</Label>
                         <div className="flex gap-1.5">
-                          <Input value={userFormData.ra} onChange={(e) => setUserFormData({ ...userFormData, ra: e.target.value.toUpperCase() })} className="h-10 bg-slate-950 border-white/10 text-white font-mono font-bold text-xs rounded-lg" placeholder="GERAR OU ESCANEAR" />
-                          <Button type="button" variant="outline" size="icon" className="h-10 w-10 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 rounded-lg shrink-0" onClick={generateRandomRA} title="Gerar ID Aleatório"><Sparkles className="h-4 w-4" /></Button>
-                          <Button type="button" variant="outline" size="icon" className={`h-10 w-10 rounded-lg shrink-0 ${isQRScannerOpen ? 'bg-indigo-500 text-slate-950 border-indigo-400' : 'border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10'}`} onClick={() => setIsQRScannerOpen(!isQRScannerOpen)}><QrCode className="h-4 w-4" /></Button>
+                          <Input value={userFormData.ra} onChange={(e) => setUserFormData({ ...userFormData, ra: e.target.value.toUpperCase() })} className="h-10 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white font-mono font-bold text-xs rounded-lg" placeholder="GERAR OU ESCANEAR" />
+                          <Button type="button" variant="outline" size="icon" className="h-10 w-10 border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 bg-white dark:bg-transparent rounded-lg shrink-0" onClick={generateRandomRA} title="Gerar ID Aleatório"><Sparkles className="h-4 w-4" /></Button>
+                          <Button type="button" variant="outline" size="icon" className={`h-10 w-10 rounded-lg shrink-0 ${isQRScannerOpen ? 'bg-indigo-600 text-white border-indigo-400' : 'border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 bg-white dark:bg-transparent'}`} onClick={() => setIsQRScannerOpen(!isQRScannerOpen)}><QrCode className="h-4 w-4" /></Button>
                         </div>
                      </div>
 
@@ -585,24 +585,24 @@ export function SecuritySection({
                      )}
 
                      <div className="flex flex-col gap-1.5">
-                        <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Cartão de Acesso (RFID)</Label>
+                        <Label className="text-[9px] font-black uppercase text-slate-500 dark:text-slate-400 ml-1">Cartão de Acesso (RFID)</Label>
                         <div className="flex gap-1.5">
-                          <Input value={userFormData.rfid} onChange={(e) => setUserFormData({ ...userFormData, rfid: e.target.value.toUpperCase() })} className="h-10 bg-slate-950 border-white/10 text-white font-mono font-bold text-xs rounded-lg" placeholder="APROXIME O CARTÃO" />
-                          <Button type="button" variant={isRFIDCapturing ? 'destructive' : 'outline'} size="icon" className={`h-10 w-10 rounded-lg shrink-0 ${isRFIDCapturing ? 'animate-pulse bg-rose-600 hover:bg-rose-500 border-rose-400' : 'border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10'}`} onClick={() => setIsRFIDCapturing(!isRFIDCapturing)}><Rss className="h-4 w-4" /></Button>
+                          <Input value={userFormData.rfid} onChange={(e) => setUserFormData({ ...userFormData, rfid: e.target.value.toUpperCase() })} className="h-10 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white font-mono font-bold text-xs rounded-lg" placeholder="APROXIME O CARTÃO" />
+                          <Button type="button" variant={isRFIDCapturing ? 'destructive' : 'outline'} size="icon" className={`h-10 w-10 rounded-lg shrink-0 bg-white dark:bg-transparent ${isRFIDCapturing ? 'animate-pulse bg-rose-600 hover:bg-rose-500 border-rose-400 text-white' : 'border-indigo-500/30 text-indigo-650 dark:text-indigo-400 hover:bg-indigo-500/10'}`} onClick={() => setIsRFIDCapturing(!isRFIDCapturing)}><Rss className="h-4 w-4" /></Button>
                         </div>
                      </div>
                   </div>
                 </div>
 
                 {!editingUser && (
-                   <div className="p-5 bg-slate-950/60 rounded-2xl border border-white/5 space-y-3">
+                   <div className="p-5 bg-slate-50/80 dark:bg-slate-950/60 rounded-2xl border border-slate-200/60 dark:border-white/5 space-y-3">
                       <div className="flex justify-between items-center">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Segurança de Acesso</Label>
-                        <Button type="button" variant="ghost" onClick={generateStrongPassword} className="h-6 text-[9px] font-black uppercase text-indigo-400 hover:bg-indigo-500/10 rounded-lg px-2">Gerar Senha</Button>
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Segurança de Acesso</Label>
+                        <Button type="button" variant="ghost" onClick={generateStrongPassword} className="h-6 text-[9px] font-black uppercase text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 rounded-lg px-2">Gerar Senha</Button>
                       </div>
-                      <Input value={userFormData.password} onChange={(e) => setUserFormData({ ...userFormData, password: e.target.value })} type="password" placeholder="Definir Senha" className="h-10 bg-slate-950 border-white/10 text-white rounded-lg font-bold" required />
-                      <Input value={userFormData.confirmPassword} onChange={(e) => setUserFormData({ ...userFormData, confirmPassword: e.target.value })} type="password" placeholder="Confirmar Senha" className="h-10 bg-slate-950 border-white/10 text-white rounded-lg font-bold" required />
-                      {tempGeneratedPass && <p className="text-[9px] text-emerald-400 font-bold bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20 font-mono mt-2">Senha Gerada: <span className="text-white select-all">{tempGeneratedPass}</span></p>}
+                      <Input value={userFormData.password} onChange={(e) => setUserFormData({ ...userFormData, password: e.target.value })} type="password" placeholder="Definir Senha" className="h-10 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-lg font-bold" required />
+                      <Input value={userFormData.confirmPassword} onChange={(e) => setUserFormData({ ...userFormData, confirmPassword: e.target.value })} type="password" placeholder="Confirmar Senha" className="h-10 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-lg font-bold" required />
+                      {tempGeneratedPass && <p className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20 font-mono mt-2">Senha Gerada: <span className="text-slate-900 dark:text-white select-all">{tempGeneratedPass}</span></p>}
                    </div>
                 )}
               </div>
@@ -610,7 +610,7 @@ export function SecuritySection({
 
             {/* CONFIRMAÇÃO COM SENHA MASTER */}
             <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-6 space-y-3">
-               <div className="flex items-center gap-2 text-amber-400">
+               <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
                   <Lock className="h-4 w-4" />
                   <span className="text-[10px] font-black uppercase tracking-widest">Autorização do Mestre</span>
                </div>
@@ -619,15 +619,15 @@ export function SecuritySection({
                  value={adminPasswordForAction} 
                  onChange={(e) => setAdminPasswordForAction(e.target.value)}
                  placeholder="Sua senha de Super Admin para confirmar" 
-                 className="h-12 bg-slate-950 border-white/10 text-white rounded-xl font-bold focus:border-amber-500/50"
+                 className="h-12 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-850 dark:text-white rounded-xl font-bold focus:border-amber-500/50"
                  required
                />
-               <p className="text-[9px] text-amber-400/50 font-bold italic ml-1">Esta ação exige confirmação de identidade global para ser persistida no banco.</p>
+               <p className="text-[9px] text-amber-600/70 dark:text-amber-400/50 font-bold italic ml-1">Esta ação exige confirmação de identidade global para ser persistida no banco.</p>
             </div>
 
             <DialogFooter className="pt-4 gap-3">
-              <Button type="button" variant="ghost" onClick={() => setIsUserFormOpen(false)} className="h-12 px-8 font-bold uppercase text-[10px] tracking-widest text-slate-400 hover:text-white hover:bg-white/5 rounded-xl">Cancelar</Button>
-              <Button type="submit" disabled={isSubmitting} className="h-12 px-12 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white border border-indigo-400/20 font-black uppercase text-[10px] tracking-widest rounded-xl hover:scale-105 transition-all shadow-xl shadow-indigo-500/20">
+              <Button type="button" variant="ghost" onClick={() => setIsUserFormOpen(false)} className="h-12 px-8 font-bold uppercase text-[10px] tracking-widest text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl">Cancelar</Button>
+              <Button type="submit" disabled={isSubmitting} className="h-12 px-12 bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-500 hover:to-purple-600 text-white border border-indigo-400/20 font-black uppercase text-[10px] tracking-widest rounded-xl hover:scale-105 transition-all shadow-xl shadow-indigo-500/20">
                 {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : editingUser ? 'Salvar Alterações' : 'Finalizar Cadastro'}
               </Button>
             </DialogFooter>
@@ -637,37 +637,37 @@ export function SecuritySection({
 
       {/* DIÁLOGO DE CONFIRMAÇÃO DE EXCLUSÃO */}
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
-        <DialogContent className="max-w-md bg-[#0a0f24]/95 backdrop-blur-3xl border border-white/10 text-white rounded-[2rem] p-0 overflow-hidden shadow-2xl">
-          <DialogHeader className="bg-rose-950/40 text-white p-8 border-b border-rose-500/20 relative">
+        <DialogContent className="max-w-md bg-white dark:bg-[#0a0f24]/95 backdrop-blur-3xl border border-slate-200/60 dark:border-white/10 text-slate-850 dark:text-white rounded-[2rem] p-0 overflow-hidden shadow-2xl">
+          <DialogHeader className="bg-rose-50/80 dark:bg-rose-955/40 text-slate-900 dark:text-white p-8 border-b border-rose-200 dark:border-rose-500/20 relative">
             <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+              <div className="h-12 w-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-450">
                 <Trash2 className="h-6 w-6 animate-pulse" />
               </div>
               <div>
-                <DialogTitle className="text-xl font-black uppercase tracking-tight text-white">Confirmar Exclusão</DialogTitle>
-                <DialogDescription className="text-rose-300/80 font-bold uppercase text-[9px] tracking-widest mt-1">Ação irreversível.</DialogDescription>
+                <DialogTitle className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Confirmar Exclusão</DialogTitle>
+                <DialogDescription className="text-rose-600/80 dark:text-rose-300/80 font-bold uppercase text-[9px] tracking-widest mt-1">Ação irreversível.</DialogDescription>
               </div>
             </div>
           </DialogHeader>
           <div className="p-8 space-y-6">
-            <p className="text-sm font-bold text-slate-300">
-                Você está removendo o {userToDelete?.role === 'super_admin' ? 'Mestre' : 'Gestor'} <span className="text-rose-400">{(userToDelete as any)?.name}</span>. Todos os acessos serão revogados.
+            <p className="text-sm font-bold text-slate-600 dark:text-slate-300">
+                Você está removendo o {userToDelete?.role === 'super_admin' ? 'Mestre' : 'Gestor'} <span className="text-rose-600 dark:text-rose-400">{(userToDelete as any)?.name}</span>. Todos os acessos serão revogados.
             </p>
             
             <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 space-y-3">
-               <Label className="text-[10px] font-black uppercase tracking-widest text-amber-400 block ml-1">Senha Master (Sua Senha)</Label>
+               <Label className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 block ml-1">Senha Master (Sua Senha)</Label>
                <Input 
                  type="password" 
                  value={adminPasswordForAction} 
                  onChange={(e) => setAdminPasswordForAction(e.target.value)}
-                 className="h-11 bg-slate-950 border-white/10 text-white rounded-xl focus:border-amber-500/50" 
+                 className="h-11 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-amber-500/50 font-bold" 
                  placeholder="Confirme para deletar" 
                  required 
                />
             </div>
 
             <DialogFooter className="gap-3 pt-2">
-              <Button type="button" variant="ghost" onClick={() => setIsDeleteModalOpen(false)} className="h-11 font-bold uppercase text-[10px] tracking-widest text-slate-400 hover:text-white hover:bg-white/5 rounded-xl">Voltar</Button>
+              <Button type="button" variant="ghost" onClick={() => setIsDeleteModalOpen(false)} className="h-11 font-bold uppercase text-[10px] tracking-widest text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl">Voltar</Button>
               <Button onClick={handleConfirmDelete} disabled={isSubmitting} className="h-11 bg-rose-600 hover:bg-rose-500 border border-rose-400/20 text-white font-black uppercase text-[10px] tracking-widest px-8 rounded-xl">
                 {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirmar Exclusão'}
               </Button>
@@ -678,42 +678,42 @@ export function SecuritySection({
 
       {/* DIÁLOGO DE TROCA DE SENHA */}
       <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
-        <DialogContent className="max-w-md bg-[#0a0f24]/95 backdrop-blur-3xl border border-white/10 text-white rounded-[2rem] p-0 overflow-hidden shadow-2xl">
-          <DialogHeader className="bg-slate-950 text-white p-8 border-b border-white/5 relative">
+        <DialogContent className="max-w-md bg-white dark:bg-[#0a0f24]/95 backdrop-blur-3xl border border-slate-200/60 dark:border-white/10 text-slate-850 dark:text-white rounded-[2rem] p-0 overflow-hidden shadow-2xl">
+          <DialogHeader className="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white p-8 border-b border-slate-200/60 dark:border-white/5 relative">
             <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+              <div className="h-12 w-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-650 dark:text-indigo-400">
                 <Lock className="h-6 w-6 animate-pulse" />
               </div>
-              <DialogTitle className="text-xl font-black uppercase tracking-tight text-white">Redefinir Acesso</DialogTitle>
+              <DialogTitle className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Redefinir Acesso</DialogTitle>
             </div>
           </DialogHeader>
           <form onSubmit={handleUpdatePassword} className="p-8 space-y-6">
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Nova Senha</Label>
-                <Input type="password" value={passFormData.newPassword} onChange={(e) => setPassFormData({ ...passFormData, newPassword: e.target.value })} className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold" required />
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Nova Senha</Label>
+                <Input type="password" value={passFormData.newPassword} onChange={(e) => setPassFormData({ ...passFormData, newPassword: e.target.value })} className="h-12 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold" required />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Confirmar Nova Senha</Label>
-                <Input type="password" value={passFormData.confirmPassword} onChange={(e) => setPassFormData({ ...passFormData, confirmPassword: e.target.value })} className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold" required />
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Confirmar Nova Senha</Label>
+                <Input type="password" value={passFormData.confirmPassword} onChange={(e) => setPassFormData({ ...passFormData, confirmPassword: e.target.value })} className="h-12 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold" required />
               </div>
             </div>
 
             <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 space-y-3">
-               <Label className="text-[10px] font-black uppercase tracking-widest text-amber-400 block ml-1">Senha Master (Sua Senha)</Label>
+               <Label className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 block ml-1">Senha Master (Sua Senha)</Label>
                <Input 
                  type="password" 
                  value={adminPasswordForAction} 
                  onChange={(e) => setAdminPasswordForAction(e.target.value)}
-                 className="h-11 bg-slate-950 border-white/10 text-white rounded-xl focus:border-amber-500/50" 
+                 className="h-11 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-amber-500/50" 
                  placeholder="Confirme sua identidade" 
                  required 
                />
             </div>
 
             <DialogFooter className="gap-3 pt-2">
-              <Button type="button" variant="ghost" onClick={() => setIsPasswordDialogOpen(false)} className="h-11 font-bold uppercase text-[10px] tracking-widest text-slate-400 hover:text-white hover:bg-white/5 rounded-xl">Voltar</Button>
-              <Button type="submit" disabled={isSubmitting} className="h-11 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-slate-950 border border-indigo-400/20 text-white font-black uppercase text-[10px] tracking-widest px-8 rounded-xl">
+              <Button type="button" variant="ghost" onClick={() => setIsPasswordDialogOpen(false)} className="h-11 font-bold uppercase text-[10px] tracking-widest text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl">Voltar</Button>
+              <Button type="submit" disabled={isSubmitting} className="h-11 bg-gradient-to-r from-indigo-650 to-purple-700 hover:from-indigo-550 hover:to-purple-650 text-white border border-indigo-400/20 font-black uppercase text-[10px] tracking-widest px-8 rounded-xl">
                 {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Atualizar Senha'}
               </Button>
             </DialogFooter>
@@ -760,15 +760,15 @@ export function SecuritySection({
           setAdminPasswordForAction('');
         }
       }}>
-        <DialogContent className="max-w-md bg-[#0a0f24]/95 backdrop-blur-3xl border border-white/10 text-white rounded-[2rem] p-0 overflow-hidden shadow-2xl">
-          <DialogHeader className="bg-amber-950/40 text-white p-8 border-b border-amber-500/20 relative">
+        <DialogContent className="max-w-md bg-white dark:bg-[#0a0f24]/95 backdrop-blur-3xl border border-slate-200/60 dark:border-white/10 text-slate-850 dark:text-white rounded-[2rem] p-0 overflow-hidden shadow-2xl">
+          <DialogHeader className="bg-amber-50 dark:bg-amber-955/40 text-slate-900 dark:text-white p-8 border-b border-amber-200 dark:border-amber-500/20 relative">
             <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+              <div className="h-12 w-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-450">
                 <Lock className="h-6 w-6 animate-pulse" />
               </div>
               <div>
-                <DialogTitle className="text-xl font-black uppercase tracking-tight text-white">Reset de Senha</DialogTitle>
-                <DialogDescription className="text-amber-300/80 font-bold uppercase text-[9px] tracking-widest mt-1">Gerador de Credencial Temporária</DialogDescription>
+                <DialogTitle className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Reset de Senha</DialogTitle>
+                <DialogDescription className="text-amber-600 dark:text-amber-300/80 font-bold uppercase text-[9px] tracking-widest mt-1">Gerador de Credencial Temporária</DialogDescription>
               </div>
             </div>
           </DialogHeader>
@@ -776,10 +776,10 @@ export function SecuritySection({
           {resetGeneratedPass ? (
             <div className="p-8 space-y-6">
               <div className="flex flex-col items-center justify-center p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-center space-y-3">
-                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Senha Temporária Gerada</span>
-                <div className="text-3xl font-mono font-black text-white select-all tracking-widest bg-slate-950 px-6 py-3 rounded-xl border border-white/5">{resetGeneratedPass}</div>
-                <p className="text-[9px] text-slate-400 font-bold max-w-[250px] leading-relaxed">
-                  Copie e envie esta senha para o usuário <span className="text-indigo-400 font-extrabold">{userToReset?.name}</span>. Ele deverá alterá-la no primeiro acesso.
+                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-450">Senha Temporária Gerada</span>
+                <div className="text-3xl font-mono font-black text-slate-900 dark:text-white select-all tracking-widest bg-slate-100 dark:bg-slate-950 px-6 py-3 rounded-xl border border-slate-200/60 dark:border-white/5">{resetGeneratedPass}</div>
+                <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold max-w-[250px] leading-relaxed">
+                  Copie e envie esta senha para o usuário <span className="text-indigo-650 dark:text-indigo-400 font-extrabold">{userToReset?.name}</span>. Ele deverá alterá-la no primeiro acesso.
                 </p>
                 <Button 
                   type="button" 
@@ -797,7 +797,7 @@ export function SecuritySection({
                 <Button 
                   type="button" 
                   onClick={() => setIsResetModalOpen(false)} 
-                  className="w-full h-11 bg-slate-800 hover:bg-slate-700 text-white border border-white/10 font-black uppercase text-[10px] tracking-widest rounded-xl"
+                  className="w-full h-11 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 dark:border-white/10 font-black uppercase text-[10px] tracking-widest rounded-xl"
                 >
                   Concluir e Fechar
                 </Button>
@@ -805,25 +805,25 @@ export function SecuritySection({
             </div>
           ) : (
             <form onSubmit={handleConfirmReset} className="p-8 space-y-6">
-              <p className="text-sm font-bold text-slate-300">
-                Você está gerando uma nova senha temporária para o usuário <span className="text-amber-400">{(userToReset as any)?.name}</span>. A senha antiga será revogada imediatamente.
+              <p className="text-sm font-bold text-slate-655 dark:text-slate-300">
+                Você está gerando uma nova senha temporária para o usuário <span className="text-amber-600 dark:text-amber-400">{(userToReset as any)?.name}</span>. A senha antiga será revogada imediatamente.
               </p>
 
               <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 space-y-3">
-                 <Label className="text-[10px] font-black uppercase tracking-widest text-amber-400 block ml-1">Senha Master (Sua Senha)</Label>
+                 <Label className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 block ml-1">Senha Master (Sua Senha)</Label>
                  <Input 
                    type="password" 
                    value={adminPasswordForAction} 
                    onChange={(e) => setAdminPasswordForAction(e.target.value)}
-                   className="h-11 bg-slate-950 border-white/10 text-white rounded-xl focus:border-amber-500/50 font-bold" 
+                   className="h-11 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-amber-500/50 font-bold" 
                    placeholder="Confirme sua identidade" 
                    required 
                  />
               </div>
 
               <DialogFooter className="gap-3 pt-2">
-                <Button type="button" variant="ghost" onClick={() => setIsResetModalOpen(false)} className="h-11 font-bold uppercase text-[10px] tracking-widest text-slate-400 hover:text-white hover:bg-white/5 rounded-xl">Cancelar</Button>
-                <Button type="submit" disabled={resettingSubmitting} className="h-11 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black uppercase text-[10px] tracking-widest px-8 rounded-xl hover:scale-[1.03] transition-all">
+                <Button type="button" variant="ghost" onClick={() => setIsResetModalOpen(false)} className="h-11 font-bold uppercase text-[10px] tracking-widest text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl">Cancelar</Button>
+                <Button type="submit" disabled={resettingSubmitting} className="h-11 bg-amber-500 hover:bg-amber-600 text-slate-950 dark:text-slate-950 font-black uppercase text-[10px] tracking-widest px-8 rounded-xl hover:scale-[1.03] transition-all">
                   {resettingSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirmar Reset'}
                 </Button>
               </DialogFooter>

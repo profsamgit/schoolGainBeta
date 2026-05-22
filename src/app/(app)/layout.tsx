@@ -67,10 +67,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (isInitializing) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+      <div className="flex min-h-screen items-center justify-center bg-[#EFF7EF] dark:bg-slate-950 transition-colors duration-300">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-emerald-500 font-black uppercase tracking-[0.3em] text-[10px] animate-pulse">Sincronizando Ecossistema...</p>
+          <p className="text-emerald-600 dark:text-emerald-500 font-black uppercase tracking-[0.3em] text-[10px] animate-pulse">Sincronizando Ecossistema...</p>
         </div>
       </div>
     );
@@ -168,22 +168,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <Header />
         </div>
 
-        <main className={cn("flex-1 overflow-y-auto pb-20 md:pb-0", isAdminView ? "bg-[#070913]" : "p-4 sm:p-6 lg:p-8")}>
+        <main className={cn("flex-1 overflow-y-auto pb-20 md:pb-0 transition-colors duration-300", isAdminView ? "bg-[#EFF7EF] dark:bg-[#070913]" : "p-4 sm:p-6 lg:p-8")}>
           <div className="mx-auto w-full max-w-7xl">
             <div className={cn(isAdminView ? "bg-transparent border-none shadow-none flex flex-col w-full" : "bg-white border border-slate-200/50 dark:border-slate-800/60 rounded-[2rem] shadow-sm overflow-hidden flex flex-col")}>
               <div className={cn(isAdminView ? "p-0" : "p-4 sm:p-10")}>
                 {children}
               </div>
               
-              <footer className={cn("w-full border-t py-6 md:py-8 text-center text-[10px] md:text-xs", isAdminView ? "border-white/5 bg-slate-950/40 text-slate-500 mt-6 md:mt-12 rounded-t-[1.5rem] md:rounded-[2rem]" : "border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/30")}>
+              <footer className={cn("w-full border-t py-6 md:py-8 text-center text-[10px] md:text-xs transition-colors duration-300", isAdminView ? "border-slate-200/60 dark:border-white/5 bg-white/40 dark:bg-slate-950/40 text-slate-500 dark:text-slate-400 mt-6 md:mt-12 rounded-t-[1.5rem] md:rounded-[2rem]" : "border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/30")}>
                 <div className="flex flex-col items-center gap-2">
                   <div className="flex items-center gap-2">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <Link href="/about" className={cn("font-bold tracking-tight transition-colors", isAdminView ? "text-slate-400 hover:text-emerald-400" : "text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400")}>
+                    <Link href="/about" className={cn("font-bold tracking-tight transition-colors", isAdminView ? "text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400" : "text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400")}>
                       TDS 2B 2026 — CETI Frei José Apicella
                     </Link>
                   </div>
-                  <p className={cn("font-medium tracking-wider text-[9px] md:text-[10px]", isAdminView ? "text-slate-500" : "text-slate-400 dark:text-slate-500")}>
+                  <p className={cn("font-medium tracking-wider text-[9px] md:text-[10px] transition-colors duration-300", isAdminView ? "text-slate-400 dark:text-slate-500" : "text-slate-400 dark:text-slate-500")}>
                     SCHOOLGAIN HUB &copy; 2026 &bull; TECNOLOGIA E SUSTENTABILIDADE
                   </p>
                 </div>
@@ -193,7 +193,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </main>
 
         {/* Dynamic Mobile Bottom Navigation Bar */}
-        <nav className="fixed bottom-0 left-0 right-0 z-50 h-16 bg-[#070913]/90 border-t border-white/5 backdrop-blur-xl md:hidden flex items-center justify-around px-2 text-white shadow-[0_-4px_25px_rgba(0,0,0,0.5)]">
+        <nav className="fixed bottom-0 left-0 right-0 z-50 h-16 bg-white/90 dark:bg-[#070913]/90 border-t border-slate-200/60 dark:border-white/5 backdrop-blur-xl md:hidden flex items-center justify-around px-2 text-slate-800 dark:text-white shadow-[0_-4px_25px_rgba(0,0,0,0.05)] dark:shadow-[0_-4px_25px_rgba(0,0,0,0.5)] transition-colors duration-300">
           {bottomMenuItems.map((item) => {
             const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
             return (
@@ -203,17 +203,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     "h-5 w-5 transition-all duration-300",
                     isActive 
                       ? pathname.startsWith('/admin') || pathname.startsWith('/super-admin')
-                        ? "text-indigo-400 drop-shadow-[0_0_10px_rgba(99,102,241,0.5)] scale-110"
-                        : "text-emerald-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.5)] scale-110"
-                      : "text-slate-400 group-hover:text-slate-200"
+                        ? "text-indigo-600 dark:text-indigo-400 drop-shadow-[0_0_10px_rgba(99,102,241,0.2)] dark:drop-shadow-[0_0_10px_rgba(99,102,241,0.5)] scale-110"
+                        : "text-emerald-600 dark:text-emerald-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.2)] dark:drop-shadow-[0_0_10px_rgba(16,185,129,0.5)] scale-110"
+                      : "text-slate-450 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-250"
                   )} />
                   <span className={cn(
                     "text-[9px] font-black uppercase tracking-wider transition-colors",
                     isActive
                       ? pathname.startsWith('/admin') || pathname.startsWith('/super-admin')
-                        ? "text-indigo-400"
-                        : "text-emerald-400"
-                      : "text-slate-500 group-hover:text-slate-350"
+                        ? "text-indigo-600 dark:text-indigo-400"
+                        : "text-emerald-600 dark:text-emerald-400"
+                      : "text-slate-450 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-350"
                   )}>
                     {item.label}
                   </span>
@@ -221,8 +221,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     <span className={cn(
                       "absolute -bottom-1.5 w-1 h-1 rounded-full",
                       pathname.startsWith('/admin') || pathname.startsWith('/super-admin')
-                        ? "bg-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.8)]"
-                        : "bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]"
+                        ? "bg-indigo-600 dark:bg-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.8)]"
+                        : "bg-emerald-600 dark:bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]"
                     )} />
                   )}
                 </div>

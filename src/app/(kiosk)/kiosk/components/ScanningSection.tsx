@@ -137,30 +137,30 @@ export function ScanningSection({
 
   // Cores personalizadas dependendo do resíduo identificado
   const getMaterialTheme = (type?: string) => {
-    if (!type) return { bg: 'bg-slate-950/90', border: 'border-white/10', text: 'text-primary', glow: 'shadow-[0_0_20px_rgba(52,211,153,0.15)]' };
+    if (!type) return { bg: 'bg-slate-50/90 dark:bg-slate-950/90', border: 'border-slate-200/60 dark:border-white/10', text: 'text-primary', glow: 'shadow-[0_0_20px_rgba(52,211,153,0.15)]' };
     
     switch (type.toLowerCase()) {
       case 'plástico':
-        return { bg: 'bg-red-950/70 backdrop-blur-md', border: 'border-red-500/30', text: 'text-red-400', glow: 'shadow-[0_0_25px_rgba(239,68,68,0.25)]' };
+        return { bg: 'bg-red-50/90 dark:bg-red-950/70 backdrop-blur-md', border: 'border-red-300/60 dark:border-red-500/30', text: 'text-red-600 dark:text-red-400', glow: 'shadow-[0_0_25px_rgba(239,68,68,0.25)]' };
       case 'papel':
-        return { bg: 'bg-blue-950/70 backdrop-blur-md', border: 'border-blue-500/30', text: 'text-blue-400', glow: 'shadow-[0_0_25px_rgba(59,130,246,0.25)]' };
+        return { bg: 'bg-blue-50/90 dark:bg-blue-950/70 backdrop-blur-md', border: 'border-blue-300/60 dark:border-blue-500/30', text: 'text-blue-600 dark:text-blue-400', glow: 'shadow-[0_0_25px_rgba(59,130,246,0.25)]' };
       case 'metal':
-        return { bg: 'bg-amber-950/70 backdrop-blur-md', border: 'border-amber-500/30', text: 'text-amber-400', glow: 'shadow-[0_0_25px_rgba(245,158,11,0.25)]' };
+        return { bg: 'bg-amber-50/90 dark:bg-amber-950/70 backdrop-blur-md', border: 'border-amber-300/60 dark:border-amber-500/30', text: 'text-amber-600 dark:text-amber-400', glow: 'shadow-[0_0_25px_rgba(245,158,11,0.25)]' };
       case 'orgânico':
-        return { bg: 'bg-emerald-950/70 backdrop-blur-md', border: 'border-emerald-500/30', text: 'text-emerald-400', glow: 'shadow-[0_0_25px_rgba(16,185,129,0.25)]' };
+        return { bg: 'bg-emerald-50/90 dark:bg-emerald-950/70 backdrop-blur-md', border: 'border-emerald-300/60 dark:border-emerald-500/30', text: 'text-emerald-600 dark:text-emerald-400', glow: 'shadow-[0_0_25px_rgba(16,185,129,0.25)]' };
       case 'vidro':
-        return { bg: 'bg-teal-950/70 backdrop-blur-md', border: 'border-teal-500/30', text: 'text-teal-400', glow: 'shadow-[0_0_25px_rgba(20,184,166,0.25)]' };
+        return { bg: 'bg-teal-50/90 dark:bg-teal-950/70 backdrop-blur-md', border: 'border-teal-300/60 dark:border-teal-500/30', text: 'text-teal-600 dark:text-teal-400', glow: 'shadow-[0_0_25px_rgba(20,184,166,0.25)]' };
       case 'eletrônico':
-        return { bg: 'bg-purple-950/70 backdrop-blur-md', border: 'border-purple-500/30', text: 'text-purple-400', glow: 'shadow-[0_0_25px_rgba(168,85,247,0.25)]' };
+        return { bg: 'bg-purple-50/90 dark:bg-purple-950/70 backdrop-blur-md', border: 'border-purple-300/60 dark:border-purple-500/30', text: 'text-purple-600 dark:text-purple-400', glow: 'shadow-[0_0_25px_rgba(168,85,247,0.25)]' };
       default:
-        return { bg: 'bg-slate-900/80 backdrop-blur-md', border: 'border-slate-700/50', text: 'text-slate-300', glow: 'shadow-[0_0_20px_rgba(148,163,184,0.15)]' };
+        return { bg: 'bg-slate-50/90 dark:bg-slate-900/80 backdrop-blur-md', border: 'border-slate-200/60 dark:border-slate-700/50', text: 'text-slate-700 dark:text-slate-300', glow: 'shadow-[0_0_20px_rgba(148,163,184,0.15)]' };
     }
   };
 
   const matTheme = getMaterialTheme(identificationResult?.wasteType);
 
   return (
-    <div className="relative flex min-h-screen flex-col bg-[#070913] text-slate-100 overflow-hidden font-sans selection:bg-emerald-500/30 selection:text-emerald-400">
+    <div className="relative flex min-h-screen flex-col bg-slate-100 dark:bg-[#070913] text-slate-800 dark:text-slate-100 overflow-hidden font-sans selection:bg-emerald-500/30 selection:text-emerald-400">
       
       {/* Estilos Inline de Laser e Pulsos */}
       <style>{`
@@ -192,17 +192,17 @@ export function ScanningSection({
       </div>
 
       <main className="relative z-10 flex-1 w-full flex flex-col items-center justify-center p-4">
-        <Card className="w-full max-w-2xl backdrop-blur-3xl bg-slate-950/40 border border-white/10 rounded-[2.5rem] shadow-[0_25px_60px_rgba(0,0,0,0.8)] ring-1 ring-white/5 overflow-hidden animate-in zoom-in duration-500">
+        <Card className="w-full max-w-2xl backdrop-blur-3xl bg-white/90 dark:bg-slate-950/40 border border-slate-200 dark:border-white/10 rounded-[2.5rem] shadow-[0_25px_60px_rgba(0,0,0,0.15)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.8)] ring-1 ring-slate-200/60 dark:ring-white/5 overflow-hidden animate-in zoom-in duration-500">
           
-          <CardHeader className="border-b border-white/5 pb-5">
-            <div className="w-full flex justify-between items-center mb-3 pb-2 border-b border-white/5">
+          <CardHeader className="border-b border-slate-200/50 dark:border-white/5 pb-5">
+            <div className="w-full flex justify-between items-center mb-3 pb-2 border-b border-slate-200/50 dark:border-white/5">
               <div className="flex items-center gap-1.5 select-none">
                 <Leaf className="h-3.5 w-3.5 text-emerald-400 fill-emerald-500/20 animate-pulse shrink-0" />
                 <span className="text-[10px] font-black uppercase tracking-[0.25em] bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-400 text-transparent bg-clip-text">
                   SchoolGain Kiosk
                 </span>
               </div>
-              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">
+              <span className="text-[9px] font-bold text-slate-500 dark:text-slate-500 uppercase tracking-wider">
                 Módulo de Escaneamento
               </span>
             </div>
@@ -223,7 +223,7 @@ export function ScanningSection({
                       className="w-12 h-12 rounded-[14px] object-cover"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-[14px] bg-slate-900 flex items-center justify-center text-slate-300 font-extrabold uppercase text-lg border border-white/5">
+                    <div className="w-12 h-12 rounded-[14px] bg-slate-200 dark:bg-slate-900 flex items-center justify-center text-slate-700 dark:text-slate-300 font-extrabold uppercase text-lg border border-slate-300/60 dark:border-white/5">
                       {identifiedStudent?.name?.substring(0, 2) || <User className="h-5 w-5" />}
                     </div>
                   )}
@@ -236,7 +236,7 @@ export function ScanningSection({
 
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-black text-white text-base leading-none uppercase tracking-wide">
+                    <h3 className="font-black text-slate-900 dark:text-white text-base leading-none uppercase tracking-wide">
                       {identifiedStudent?.name}
                     </h3>
                     
@@ -253,7 +253,7 @@ export function ScanningSection({
                   </div>
                   
                   {/* Status do Ecossistema no Totem */}
-                  <div className="flex items-center gap-4 text-xs font-bold text-slate-400">
+                  <div className="flex items-center gap-4 text-xs font-bold text-slate-500 dark:text-slate-400">
                     <span className="flex items-center gap-1">
                       <Leaf className="h-3.5 w-3.5 text-emerald-400" />
                       {currentLevel}
@@ -271,7 +271,7 @@ export function ScanningSection({
                 variant="outline" 
                 size="sm" 
                 onClick={handleExit} 
-                className="h-10 border-white/10 hover:bg-white/5 hover:text-white text-slate-400 gap-2 font-bold uppercase tracking-wider text-[10px] rounded-xl transition-all"
+                className="h-10 border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white text-slate-500 dark:text-slate-400 gap-2 font-bold uppercase tracking-wider text-[10px] rounded-xl transition-all"
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
                 Trocar Usuário
@@ -282,7 +282,7 @@ export function ScanningSection({
           <CardContent className="flex flex-col items-center gap-4 pt-6">
             
             {/* Câmera / Preview do Descarte */}
-            <div className="w-full aspect-video rounded-3xl overflow-hidden border border-white/10 bg-[#090b14] relative shadow-2xl">
+            <div className="w-full aspect-video rounded-3xl overflow-hidden border border-slate-200 dark:border-white/10 bg-slate-200/50 dark:bg-[#090b14] relative shadow-2xl">
               
               {/* O canvas oculto para IA */}
               <canvas ref={canvasRef} className="hidden" />
@@ -316,7 +316,7 @@ export function ScanningSection({
                   playsInline 
                 />
               ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 text-white overflow-hidden">
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-200/80 dark:bg-slate-900 text-slate-900 dark:text-white overflow-hidden">
                   {streamUrlWithRetry && !streamError ? (
                     <>
                       {/* Mira de câmera externa */}
@@ -340,18 +340,18 @@ export function ScanningSection({
                       />
                     </>
                   ) : streamError ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#070913] p-6 text-center animate-in fade-in duration-300">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-200/80 dark:bg-[#070913] p-6 text-center animate-in fade-in duration-300">
                       <div className="p-4 bg-amber-500/10 rounded-full border border-amber-500/20 text-amber-400 mb-2">
                         <AlertTriangle className="h-10 w-10 animate-pulse" />
                       </div>
-                      <h3 className="text-lg font-black uppercase tracking-tight text-white">Sinal de Câmera Instável</h3>
+                      <h3 className="text-lg font-black uppercase tracking-tight text-slate-900 dark:text-white">Sinal de Câmera Instável</h3>
                       <p className="text-xs text-slate-400 max-w-sm mt-1 mb-4 leading-relaxed">
                         Não conseguimos receber a transmissão de vídeo do Totem. Verifique a conexão Wi-Fi da placa ESP32-CAM.
                       </p>
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="border-white/10 hover:bg-white/5 text-white gap-2 font-bold uppercase tracking-wider text-[10px]"
+                        className="border-slate-300 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-800 dark:text-white gap-2 font-bold uppercase tracking-wider text-[10px]"
                         onClick={() => {
                           setImageLoaded(false);
                           setStreamError(false);
@@ -363,10 +363,10 @@ export function ScanningSection({
                       </Button>
                     </div>
                   ) : (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#070913] p-6 text-center animate-in fade-in">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-200/80 dark:bg-[#070913] p-6 text-center animate-in fade-in">
                       <Cpu className="h-16 w-16 text-emerald-400 animate-pulse mb-3" />
-                      <h3 className="text-xl font-bold uppercase tracking-tight text-white">Hardware Externo Ativo</h3>
-                      <p className="text-sm text-slate-400 max-w-xs leading-relaxed mt-1">Aguardando sinal do sensor de imagem do terminal (ESP32-CAM).</p>
+                      <h3 className="text-xl font-bold uppercase tracking-tight text-slate-900 dark:text-white">Hardware Externo Ativo</h3>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs leading-relaxed mt-1">Aguardando sinal do sensor de imagem do terminal (ESP32-CAM).</p>
                     </div>
                   )}
                   {!streamError && streamUrlWithRetry && (
@@ -384,7 +384,7 @@ export function ScanningSection({
                 <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-30">
                   <div className="text-center p-6 max-w-md">
                     <AlertTriangle className="h-12 w-12 text-rose-500 mx-auto mb-3 animate-pulse" />
-                    <p className="text-white font-black uppercase text-sm mb-1">Permissão Negada</p>
+                    <p className="text-slate-900 dark:text-white font-black uppercase text-sm mb-1">Permissão Negada</p>
                     <p className="text-xs text-slate-400">Você precisa habilitar o acesso à webcam local nas configurações do navegador.</p>
                   </div>
                 </div>
@@ -393,7 +393,7 @@ export function ScanningSection({
               {/* Holographic Loader de IA */}
               {isLoading && (
                 <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex flex-col items-center justify-center transition-all duration-300 z-30">
-                  <div className="flex flex-col items-center gap-4 bg-slate-950/90 border border-white/10 px-8 py-7 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] animate-in zoom-in duration-300 max-w-xs w-full text-center relative overflow-hidden">
+                  <div className="flex flex-col items-center gap-4 bg-white dark:bg-slate-950/90 border border-slate-200 dark:border-white/10 px-8 py-7 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.8)] animate-in zoom-in duration-300 max-w-xs w-full text-center relative overflow-hidden">
                     <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
                     
                     {/* Ring Loader */}
@@ -403,7 +403,7 @@ export function ScanningSection({
                     </div>
 
                     <div className="space-y-1">
-                      <span className="text-xs font-black text-white tracking-widest uppercase">Processador IA</span>
+                      <span className="text-xs font-black text-slate-900 dark:text-white tracking-widest uppercase">Processador IA</span>
                       <p className="text-[11px] font-bold text-emerald-400 tracking-wide animate-pulse">
                         {loaderText}
                       </p>
@@ -423,11 +423,11 @@ export function ScanningSection({
                   {/* Glowing header */}
                   <div className="flex items-center gap-2 text-yellow-400">
                     <Sparkles className="h-5 w-5 animate-pulse" />
-                    <h3 className="text-xs font-black text-white uppercase tracking-widest leading-none">Resíduo Detectado!</h3>
+                    <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest leading-none">Resíduo Detectado!</h3>
                   </div>
                   
                   {/* Info Box */}
-                  <div className="bg-slate-950/60 p-4 rounded-2xl border border-white/5 shadow-inner">
+                  <div className="bg-white/70 dark:bg-slate-950/60 p-4 rounded-2xl border border-slate-200/50 dark:border-white/5 shadow-inner">
                     <div className="flex items-center gap-3.5">
                       {WasteIcon && (
                         <div className="p-2.5 bg-white/5 rounded-xl border border-white/10">
@@ -435,7 +435,7 @@ export function ScanningSection({
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-black text-white leading-tight truncate uppercase tracking-wide">
+                        <p className="text-sm font-black text-slate-900 dark:text-white leading-tight truncate uppercase tracking-wide">
                           {identificationResult.material}
                         </p>
                         <p className={cn("text-[10px] font-black uppercase tracking-wider mt-0.5", matTheme.text)}>
@@ -453,15 +453,15 @@ export function ScanningSection({
                   </div>
 
                   {/* Instruction */}
-                  <div className="bg-slate-950/40 p-3.5 rounded-xl border border-white/5">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Instrução de Descarte:</p>
-                    <p className="text-[11px] text-slate-300 leading-normal font-bold">
+                  <div className="bg-white/50 dark:bg-slate-950/40 p-3.5 rounded-xl border border-slate-200/50 dark:border-white/5">
+                    <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Instrução de Descarte:</p>
+                    <p className="text-[11px] text-slate-700 dark:text-slate-300 leading-normal font-bold">
                       {identificationResult.recyclingInstructions}
                     </p>
                   </div>
 
                   {/* Justification quote */}
-                  <p className="text-[10px] text-slate-400 italic leading-snug border-l-2 border-emerald-500/50 pl-2">
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 italic leading-snug border-l-2 border-emerald-500/50 pl-2">
                     "{identificationResult.justification}"
                   </p>
                 </div>
@@ -469,11 +469,11 @@ export function ScanningSection({
             </div>
             
             {hasCameraPermission === null && !identificationResult && activeScanningCameraSource === 'browser' && (
-              <Alert className="bg-slate-950/60 border border-white/5 rounded-2xl p-4 flex items-start gap-3 animate-pulse">
+              <Alert className="bg-slate-100/80 dark:bg-slate-950/60 border border-slate-200/60 dark:border-white/5 rounded-2xl p-4 flex items-start gap-3 animate-pulse">
                 <Loader2 className="h-5 w-5 animate-spin text-emerald-400 shrink-0 mt-0.5" />
                 <div>
-                  <AlertTitle className="text-white font-extrabold text-xs uppercase tracking-wider">Aguardando Câmera...</AlertTitle>
-                  <AlertDescription className="text-slate-400 text-xs mt-0.5">
+                  <AlertTitle className="text-slate-900 dark:text-white font-extrabold text-xs uppercase tracking-wider">Aguardando Câmera...</AlertTitle>
+                  <AlertDescription className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
                     Aguardando liberação física ou digital dos drivers da webcam.
                   </AlertDescription>
                 </div>
@@ -481,7 +481,7 @@ export function ScanningSection({
             )}
           </CardContent>
 
-          <CardFooter className="flex flex-col sm:flex-row justify-center gap-4 border-t border-white/5 mt-4 pt-6">
+          <CardFooter className="flex flex-col sm:flex-row justify-center gap-4 border-t border-slate-200/50 dark:border-white/5 mt-4 pt-6">
             {!identificationResult ? (
               <Button
                 onClick={handleScan}
@@ -505,7 +505,7 @@ export function ScanningSection({
               <>
                 <Button
                   onClick={handleReset}
-                  className="w-full sm:w-auto h-14 text-sm font-bold text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 rounded-2xl border border-white/5 transition-all"
+                  className="w-full sm:w-auto h-14 text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl border border-slate-200 dark:border-white/5 transition-all"
                   variant="outline"
                 >
                   <ArrowLeft className="mr-2 h-4 w-4" />

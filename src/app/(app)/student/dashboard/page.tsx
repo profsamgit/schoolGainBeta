@@ -213,11 +213,11 @@ export default function DashboardPage() {
   const progressToNextLevel = Math.min(100, (globalScore / nextLevelScore) * 100);
 
   return (
-    <div className="p-3 sm:p-6 space-y-4 sm:space-y-8 max-w-7xl mx-auto relative z-10 text-white">
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-8 max-w-7xl mx-auto relative z-10 text-slate-800 dark:text-white">
       <div className="grid gap-4 sm:gap-6 flex-grow">
         
         {pointsExpiringSoon > 0 && (
-          <Alert className="bg-amber-950/20 border border-amber-500/30 shadow-lg shadow-amber-500/5 text-amber-400 rounded-[2rem] mb-4">
+          <Alert className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-500/30 shadow-lg shadow-amber-500/5 text-amber-800 dark:text-amber-400 rounded-[2rem] mb-4">
             <AlertTriangle className="h-6 w-6 text-amber-550 animate-bounce" />
             <AlertTitle className="text-lg font-black uppercase tracking-tight text-amber-450">Bio-Coins Próximos da Expiração</AlertTitle>
             <AlertDescription className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mt-3 text-amber-300">
@@ -235,10 +235,10 @@ export default function DashboardPage() {
         )}
 
         {!vitalityActivated && vitality <= 20 && (
-          <Alert className="bg-red-950/20 border border-red-500/30 shadow-lg shadow-red-500/5 text-red-400 rounded-[2rem] mb-4">
+          <Alert className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-500/30 shadow-lg shadow-red-500/5 text-red-800 dark:text-red-400 rounded-[2rem] mb-4">
             <AlertTriangle className="h-6 w-6 text-red-500" />
-            <AlertTitle className="text-lg font-black uppercase tracking-tight text-red-450">Ecossistema Inativo</AlertTitle>
-            <AlertDescription className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mt-3 text-red-300">
+            <AlertTitle className="text-lg font-black uppercase tracking-tight text-red-700 dark:text-red-450">Ecossistema Inativo</AlertTitle>
+            <AlertDescription className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mt-3 text-red-655 dark:text-red-300">
               <span className="text-base font-bold leading-relaxed">
                 Para ativar seu ecossistema e começar com 100% de vitalidade, você precisa completar um <b>Quiz de 10 perguntas</b> no nível <b>Médio</b>.
               </span>
@@ -253,50 +253,50 @@ export default function DashboardPage() {
         )}
 
         {/* JORNADA DE NÍVEL PREMIUM */}
-        <Card className="overflow-hidden rounded-[2rem] border border-white/5 bg-slate-900/40 shadow-2xl backdrop-blur-xl">
+        <Card className="overflow-hidden rounded-[2rem] border border-slate-200/60 dark:border-white/5 bg-white/80 dark:bg-slate-900/40 shadow-2xl backdrop-blur-xl">
            <LevelJourney currentLevel={currentLevel} totalScore={globalScore} />
         </Card>
         
         {/* CARD DE BOAS-VINDAS E RESUMO */}
-        <Card className="border border-white/5 rounded-[2rem] bg-slate-900/40 shadow-2xl backdrop-blur-xl text-white">
+        <Card className="border border-slate-200/60 dark:border-white/5 rounded-[2rem] bg-white/80 dark:bg-slate-900/40 shadow-2xl backdrop-blur-xl text-slate-800 dark:text-white">
           <CardHeader className="flex flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-6">
               <div className="relative group/avatar">
-                <Avatar className="h-16 w-16 rounded-2xl border-4 border-white/10 shadow-xl bg-slate-900 text-white flex items-center justify-center text-xl font-black uppercase transition-transform group-hover/avatar:scale-105">
-                   <AvatarImage src={currentUser?.avatar || undefined} className="object-cover" />
-                   <AvatarFallback className="bg-slate-900 text-white">{currentUser?.name?.charAt(0) || '?'}</AvatarFallback>
+                <Avatar className="h-16 w-16 rounded-2xl border-4 border-slate-200/60 dark:border-white/10 shadow-xl bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-white flex items-center justify-center text-xl font-black uppercase transition-transform group-hover/avatar:scale-105">
+                  <AvatarImage src={currentUser?.avatar || undefined} className="object-cover" />
+                  <AvatarFallback className="bg-slate-105 dark:bg-slate-900 text-slate-800 dark:text-white">{currentUser?.name?.charAt(0) || '?'}</AvatarFallback>
                 </Avatar>
-                  {!isPreviewMode && (
-                    <div className="flex flex-col gap-2">
-                      <label className="flex items-center justify-center bg-black/40 opacity-0 group-hover/avatar:opacity-100 rounded-2xl cursor-pointer transition-opacity border-2 border-white/20 absolute inset-0 z-10">
-                        {isUploading ? (
-                          <Loader2 className="h-5 w-5 text-white animate-spin" />
-                        ) : (
-                          <Camera className="h-5 w-5 text-white" />
-                        )}
-                        <input type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} disabled={isUploading} />
-                      </label>
-                      <Button 
-                        variant="secondary" 
-                        size="icon" 
-                        className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full border-2 border-white/10 shadow-lg z-20 opacity-0 group-hover/avatar:opacity-100 transition-opacity"
-                        onClick={() => setIsCameraOpen(true)}
-                        disabled={isUploading}
-                      >
-                        <Camera className="h-4 w-4 text-slate-800" />
-                      </Button>
-                    </div>
-                  )}
+                {!isPreviewMode && (
+                  <>
+                    <label className="flex items-center justify-center bg-black/40 opacity-0 group-hover/avatar:opacity-100 rounded-2xl cursor-pointer transition-opacity border-2 border-white/20 absolute inset-0 z-10">
+                      {isUploading ? (
+                        <Loader2 className="h-5 w-5 text-white animate-spin" />
+                      ) : (
+                        <Camera className="h-5 w-5 text-white" />
+                      )}
+                      <input type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} disabled={isUploading} />
+                    </label>
+                    <Button 
+                      variant="secondary" 
+                      size="icon" 
+                      className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full border-2 border-white/10 shadow-lg z-20 opacity-0 group-hover/avatar:opacity-100 transition-opacity"
+                      onClick={() => setIsCameraOpen(true)}
+                      disabled={isUploading}
+                    >
+                      <Camera className="h-4 w-4 text-slate-800" />
+                    </Button>
+                  </>
+                )}
               </div>
               <div className="space-y-1">
                 <CardTitle className={cn(
-                  "text-2xl transition-all font-black uppercase tracking-tight",
-                  isLegend ? "text-amber-400 flex items-center gap-2" : ""
+                  "text-2xl transition-all font-black uppercase tracking-tight text-slate-800 dark:text-white",
+                  isLegend ? "text-amber-500 dark:text-amber-400 flex items-center gap-2" : ""
                 )}>
                   Olá, {currentUser?.name?.split(' ')[0] || 'Agente'}!
-                  {isLegend && <Sparkles className="h-5 w-5 text-amber-400 animate-pulse" />}
+                  {isLegend && <Sparkles className="h-5 w-5 text-amber-500 dark:text-amber-400 animate-pulse" />}
                 </CardTitle>
-                <CardDescription className="font-semibold text-slate-400">
+                <CardDescription className="font-semibold text-slate-500 dark:text-slate-400">
                   Seu progresso na jornada sustentável hoje.
                 </CardDescription>
               </div>
@@ -306,25 +306,25 @@ export default function DashboardPage() {
           <CardContent className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
             
             {/* Bloco de Saldo */}
-            <Card className="bg-emerald-550/10 border border-emerald-500/20 rounded-[1.5rem] shadow-lg">
+            <Card className="bg-emerald-500/5 dark:bg-emerald-555/10 border border-emerald-500/20 rounded-[1.5rem] shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-xs font-black uppercase tracking-wider text-emerald-400">Bio-Coins</CardTitle>
-                <Target className="h-4 w-4 text-emerald-400" />
+                <CardTitle className="text-xs font-black uppercase tracking-wider text-emerald-650 dark:text-emerald-400">Bio-Coins</CardTitle>
+                <Target className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-black text-white">{balance.toLocaleString()}</div>
-                <p className="text-xs text-slate-400 font-medium">Saldo disponível para upgrades</p>
+                <div className="text-3xl font-black text-slate-850 dark:text-white">{balance.toLocaleString()}</div>
+                <p className="text-xs text-slate-505 dark:text-slate-400 font-medium">Saldo disponível para upgrades</p>
               </CardContent>
             </Card>
 
             {/* Bloco de Ranking */}
-            <Card className="bg-indigo-550/10 border border-indigo-500/20 rounded-[1.5rem] shadow-lg">
+            <Card className="bg-indigo-500/5 dark:bg-indigo-555/10 border border-indigo-500/20 rounded-[1.5rem] shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-xs font-black uppercase tracking-wider text-indigo-400">Sua Posição</CardTitle>
-                <Trophy className="h-4 w-4 text-indigo-400" />
+                <CardTitle className="text-xs font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400">Sua Posição</CardTitle>
+                <Trophy className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-black text-white">
+                <div className="text-3xl font-black text-slate-850 dark:text-white">
                   #
                   {(() => {
                     if (!Array.isArray(users) || !currentUser) return 0;
@@ -337,19 +337,19 @@ export default function DashboardPage() {
                     return sorted.findIndex((u: any) => u.ra?.toUpperCase() === currentUser?.ra?.toUpperCase()) + 1;
                   })()}
                 </div>
-                <p className="text-xs text-slate-400 font-medium">de {users.filter(u => u.role === 'student').length} alunos</p>
+                <p className="text-xs text-slate-550 dark:text-slate-400 font-medium">de {users.filter(u => u.role === 'student').length} alunos</p>
               </CardContent>
             </Card>
 
             {/* Bloco de Vitalidade */}
-            <Card className="bg-rose-550/10 border border-rose-500/20 rounded-[1.5rem] shadow-lg">
+            <Card className="bg-rose-500/5 dark:bg-rose-555/10 border border-rose-500/20 rounded-[1.5rem] shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-xs font-black uppercase tracking-wider text-rose-400">Vitalidade</CardTitle>
-                <Activity className="h-4 w-4 text-rose-400" />
+                <CardTitle className="text-xs font-black uppercase tracking-wider text-rose-655 dark:text-rose-400">Vitalidade</CardTitle>
+                <Activity className="h-4 w-4 text-rose-600 dark:text-rose-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-black text-white">{vitality}%</div>
-                <p className="text-xs text-slate-400 font-medium">Saúde do seu ecossistema</p>
+                <div className="text-3xl font-black text-slate-850 dark:text-white">{vitality}%</div>
+                <p className="text-xs text-slate-550 dark:text-slate-400 font-medium">Saúde do seu ecossistema</p>
               </CardContent>
             </Card>
 
@@ -358,16 +358,16 @@ export default function DashboardPage() {
           {/* BARRA DE PROGRESSO DE NÍVEL */}
           <CardFooter>
             <div className="w-full">
-              <div className="flex justify-between text-xs text-slate-400 mb-1">
+              <div className="flex justify-between text-xs text-slate-550 dark:text-slate-400 mb-1">
                 <span>{isMaxLevel ? "Nível Máximo Atingido" : "Rumo ao próximo nível"}</span>
-                <span className="text-emerald-400 font-black">
+                <span className="text-emerald-600 dark:text-emerald-400 font-black">
                   {isMaxLevel 
                     ? `${globalScore.toLocaleString()} Score XP`
                     : `${globalScore.toLocaleString()} / ${nextLevelScore.toLocaleString()} Score XP`
                   }
                 </span>
               </div>
-              <Progress value={progressToNextLevel} className="h-2 bg-slate-950/60 [&>div]:bg-gradient-to-r [&>div]:from-emerald-500 [&>div]:to-teal-400" />
+              <Progress value={progressToNextLevel} className="h-2 bg-slate-200 dark:bg-slate-950/60 [&>div]:bg-gradient-to-r [&>div]:from-emerald-500 [&>div]:to-teal-400" />
             </div>
           </CardFooter>
         </Card>
@@ -375,25 +375,24 @@ export default function DashboardPage() {
         <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
           
           {/* CARD DE MISSÃO DIÁRIA */}
-          {/* Ele muda de cor (fica laranja) se a vitalidade do aluno estiver baixa! */}
           <Card className={cn(
             "relative overflow-hidden transition-all duration-500 rounded-[2rem] border",
             isMissionDone 
-              ? "opacity-65 bg-slate-950/20 border-white/5" 
+              ? "opacity-65 bg-slate-105/50 dark:bg-slate-950/20 border-slate-200/60 dark:border-white/5" 
               : (vitality < 70 
-                  ? "border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-transparent shadow-[0_0_20px_rgba(245,158,11,0.05)] text-white" 
-                  : "bg-slate-900/40 border-white/5 shadow-2xl backdrop-blur-xl text-white")
+                  ? "border-amber-350 dark:border-amber-500/30 bg-gradient-to-br from-amber-500/5 dark:from-amber-500/10 to-transparent shadow-[0_0_20px_rgba(245,158,11,0.05)] text-slate-850 dark:text-white" 
+                  : "bg-white/80 dark:bg-slate-900/40 border-slate-200/60 dark:border-white/5 shadow-2xl backdrop-blur-xl text-slate-800 dark:text-white")
           )}>
             <CardHeader>
               <div className="flex items-center gap-2">
                 {isMissionDone ? (
-                  <CheckCircle2 className="h-5 w-5 text-emerald-400 animate-pulse" />
+                  <CheckCircle2 className="h-5 w-5 text-emerald-500 dark:text-emerald-400 animate-pulse" />
                 ) : (
-                  vitality < 70 ? <AlertTriangle className="h-5 w-5 text-amber-400" /> : <Target className="h-5 w-5 text-emerald-400 animate-pulse" />
+                  vitality < 70 ? <AlertTriangle className="h-5 w-5 text-amber-500 dark:text-amber-400" /> : <Target className="h-5 w-5 text-emerald-500 dark:text-emerald-400 animate-pulse" />
                 )}
-                <CardTitle className="text-white font-black uppercase tracking-tight text-lg">Missão Diária</CardTitle>
+                <CardTitle className="text-slate-805 dark:text-white font-black uppercase tracking-tight text-lg">Missão Diária</CardTitle>
               </div>
-              <CardDescription className="text-slate-400 text-xs">
+              <CardDescription className="text-slate-550 dark:text-slate-400 text-xs">
                 {isMissionDone 
                   ? "Parabéns! Missão cumprida por hoje." 
                   : (vitality < 70 ? "Alerta! Seu ecossistema está fraco. Recupere vitalidade." : "Complete um desafio para ganhar Bio-Coins.")
@@ -403,13 +402,13 @@ export default function DashboardPage() {
             <CardContent>
               {!isMissionDone && (
                 <div className="space-y-4">
-                  <p className="text-sm font-semibold text-slate-200">
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
                     {vitality < 70 
                       ? "O rio está poluído! Faça um Quiz sobre Reciclagem para limpar o ambiente." 
                       : "Aprenda sobre energia limpa para fortalecer sua base."
                     }
                   </p>
-                  <Button asChild className={cn("w-full gap-2 rounded-xl border-none shadow-lg", vitality < 70 ? "bg-amber-600 hover:bg-amber-700 text-white" : "bg-emerald-600 hover:bg-emerald-700 text-white")}>
+                  <Button asChild className={cn("w-full gap-2 rounded-xl border-none shadow-lg text-white", vitality < 70 ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700")}>
                     {vitality < 70 ? (
                       <Link href="/student/quiz?topic=Reciclagem&autoStart=true&difficulty=medium&questions=5">
                         Fazer Quiz de Emergência
@@ -427,20 +426,20 @@ export default function DashboardPage() {
               {isMissionDone && (
                 <div className="flex flex-col items-center justify-center py-4 text-center">
                   <div className="h-12 w-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mb-2 animate-bounce">
-                    <CheckCircle2 className="h-6 w-6 text-emerald-450" />
+                    <CheckCircle2 className="h-6 w-6 text-emerald-500 dark:text-emerald-450" />
                   </div>
-                  <p className="text-sm font-black uppercase tracking-tight text-emerald-400">Missão Concluída</p>
-                  <p className="text-xs text-slate-400 mt-1">Sua recompensa foi creditada.</p>
+                  <p className="text-sm font-black uppercase tracking-tight text-emerald-600 dark:text-emerald-400">Missão Concluída</p>
+                  <p className="text-xs text-slate-550 dark:text-slate-400 mt-1">Sua recompensa foi creditada.</p>
                 </div>
               )}
             </CardContent>
           </Card>
 
           {/* CARD DE RANKING RÁPIDO */}
-          <Card className="border border-white/5 rounded-[2rem] bg-slate-900/40 shadow-2xl backdrop-blur-xl text-white">
+          <Card className="border border-slate-200/60 dark:border-white/5 rounded-[2rem] bg-white/80 dark:bg-slate-900/40 shadow-2xl backdrop-blur-xl text-slate-800 dark:text-white">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-white font-black uppercase tracking-tight text-lg">Top 3 Alunos</CardTitle>
-              <Button asChild size="sm" className="rounded-full text-slate-400 hover:text-white hover:bg-white/5" variant="ghost">
+              <CardTitle className="text-slate-800 dark:text-white font-black uppercase tracking-tight text-lg">Top 3 Alunos</CardTitle>
+              <Button asChild size="sm" className="rounded-full text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-105 dark:hover:bg-white/5" variant="ghost">
                 <Link href="/student/leaderboard" className="gap-1 flex items-center">
                   Ver Ranking de XP
                   <ArrowRight className="h-4 w-4" />
@@ -450,10 +449,10 @@ export default function DashboardPage() {
             <CardContent>
               <Table>
                 <TableHeader>
-                  <TableRow className="hover:bg-transparent border-white/5">
-                    <TableHead className="w-12 text-center text-slate-400 font-bold uppercase text-[9px] tracking-wider">Pos</TableHead>
-                    <TableHead className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Nome</TableHead>
-                    <TableHead className="text-right text-slate-400 font-bold uppercase text-[9px] tracking-wider">Score XP</TableHead>
+                  <TableRow className="hover:bg-transparent border-slate-200/60 dark:border-white/5">
+                    <TableHead className="w-12 text-center text-slate-505 dark:text-slate-400 font-bold uppercase text-[9px] tracking-wider">Pos</TableHead>
+                    <TableHead className="text-slate-505 dark:text-slate-400 font-bold uppercase text-[9px] tracking-wider">Nome</TableHead>
+                    <TableHead className="text-right text-slate-505 dark:text-slate-400 font-bold uppercase text-[9px] tracking-wider">Score XP</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -480,14 +479,14 @@ export default function DashboardPage() {
                     
                     return dynamicLeaderboard.slice(0, 3).map((user: any, index: number) => (
                       <TableRow key={user.id} className={cn(
-                        "transition-colors border-white/5",
+                        "transition-colors border-slate-200/60 dark:border-white/5",
                         user.ra === currentUser?.ra 
-                          ? "bg-emerald-500/10 hover:bg-emerald-500/15" 
-                          : "hover:bg-white/5"
+                          ? "bg-emerald-500/5 dark:bg-emerald-500/10 hover:bg-emerald-500/10 dark:hover:bg-emerald-500/15" 
+                          : "hover:bg-slate-105/50 dark:hover:bg-white/5"
                       )}>
-                        <TableCell className="font-bold text-center text-slate-200">{index + 1}º</TableCell>
-                        <TableCell className="font-medium text-slate-200">{user.name}</TableCell>
-                        <TableCell className="text-right font-black text-emerald-400">
+                        <TableCell className="font-bold text-center text-slate-705 dark:text-slate-200">{index + 1}º</TableCell>
+                        <TableCell className="font-medium text-slate-705 dark:text-slate-200">{user.name}</TableCell>
+                        <TableCell className="text-right font-black text-emerald-600 dark:text-emerald-400">
                           {user.totalScore.toLocaleString()}
                         </TableCell>
                       </TableRow>
@@ -499,80 +498,80 @@ export default function DashboardPage() {
           </Card>
 
           {/* CARD DE CÁLCULO DE PONTOS */}
-          <Card className="border border-white/5 rounded-[2rem] bg-slate-900/40 shadow-2xl backdrop-blur-xl text-white flex flex-col justify-between">
+          <Card className="border border-slate-200/60 dark:border-white/5 rounded-[2rem] bg-white/80 dark:bg-slate-900/40 shadow-2xl backdrop-blur-xl text-slate-800 dark:text-white flex flex-col justify-between">
             <CardHeader>
-              <div className="flex items-center gap-2 text-emerald-400">
-                <BrainCircuit className="h-5 w-5 text-emerald-400 animate-pulse" />
-                <CardTitle className="text-white font-black uppercase tracking-tight text-lg">Cálculo de Pontos</CardTitle>
+              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                <BrainCircuit className="h-5 w-5 text-emerald-600 dark:text-emerald-400 animate-pulse" />
+                <CardTitle className="text-slate-800 dark:text-white font-black uppercase tracking-tight text-lg">Cálculo de Pontos</CardTitle>
               </div>
-              <CardDescription className="text-slate-400 text-xs">
+              <CardDescription className="text-slate-500 dark:text-slate-400 text-xs">
                 Entenda como é calculado o seu Score Global.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4 text-slate-300 flex-1 flex flex-col justify-between">
+            <CardContent className="space-y-4 text-slate-650 dark:text-slate-300 flex-1 flex flex-col justify-between">
               {/* Fórmula Visual */}
-              <div className="relative overflow-hidden bg-slate-950/60 border border-white/5 rounded-2xl p-4 text-center shadow-2xl backdrop-blur-md group/formula select-none">
+              <div className="relative overflow-hidden bg-slate-100 dark:bg-slate-950/60 border border-slate-200/60 dark:border-white/5 rounded-2xl p-4 text-center shadow-2xl backdrop-blur-md group/formula select-none">
                 <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-indigo-500/5 to-rose-500/5 opacity-50 group-hover/formula:opacity-80 transition-opacity" />
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 relative z-10 flex items-center justify-center gap-1.5">
-                  <BrainCircuit className="h-3.5 w-3.5 text-emerald-450 animate-pulse" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-505 dark:text-slate-400 mb-2 relative z-10 flex items-center justify-center gap-1.5">
+                  <BrainCircuit className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-405 animate-pulse" />
                   Fórmula do Score Global
                 </p>
                 <div className="text-xs font-black tracking-tight mt-1 flex flex-col sm:flex-row items-center justify-center gap-2 relative z-10">
-                  <span className="bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 rounded-xl text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.05)]">
+                  <span className="bg-indigo-500/5 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 px-2.5 py-1 rounded-xl text-indigo-650 dark:text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.05)]">
                     Pontos XP
                   </span>
                   <span className="text-slate-500 font-bold text-sm sm:inline">+</span>
-                  <span className="bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-xl text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.05)]">
+                  <span className="bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 px-2.5 py-1 rounded-xl text-emerald-650 dark:text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.05)]">
                     (Upgrades × 250)
                   </span>
                   <span className="text-slate-500 font-bold text-sm sm:inline">+</span>
-                  <span className="bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 rounded-xl text-rose-450 shadow-[0_0_15px_rgba(244,63,94,0.05)]">
+                  <span className="bg-rose-500/5 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 px-2.5 py-1 rounded-xl text-rose-655 dark:text-rose-455 shadow-[0_0_15px_rgba(244,63,94,0.05)]">
                     Vitalidade
                   </span>
                 </div>
               </div>
 
               {/* Detalhes dos Fatores */}
-              <div className="space-y-3.5 text-xs flex-1 py-1 text-slate-300">
+              <div className="space-y-3.5 text-xs flex-1 py-1 text-slate-655 dark:text-slate-300">
                 {/* Fator 1: Descarte */}
-                <div className="relative overflow-hidden bg-slate-950/20 hover:bg-slate-950/40 border border-white/5 rounded-2xl p-3 flex gap-3.5 transition-all duration-300 hover:border-emerald-500/20 group/factor1">
-                  <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 group-hover/factor1:scale-105 transition-transform shrink-0">
+                <div className="relative overflow-hidden bg-slate-55 dark:bg-slate-950/20 hover:bg-slate-105 dark:hover:bg-slate-950/40 border border-slate-200/60 dark:border-white/5 rounded-2xl p-3 flex gap-3.5 transition-all duration-300 hover:border-emerald-500/20 group/factor1">
+                  <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-650 dark:text-emerald-400 group-hover/factor1:scale-105 transition-transform shrink-0">
                     <Target className="h-5 w-5 animate-pulse" />
                   </div>
                   <div className="flex-grow min-w-0">
                     <div className="flex items-center justify-between flex-wrap gap-1">
-                      <p className="font-black text-slate-100 text-[11px] uppercase tracking-wider select-none">Descarte no Totem</p>
-                      <span className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg shadow-sm select-none">Ativo</span>
+                      <p className="font-black text-slate-800 dark:text-slate-101 text-[11px] uppercase tracking-wider select-none">Descarte no Totem</p>
+                      <span className="bg-emerald-555/10 dark:bg-emerald-500/15 border border-emerald-250 dark:border-emerald-500/30 text-emerald-650 dark:text-emerald-400 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg shadow-sm select-none">Ativo</span>
                     </div>
-                    <p className="text-slate-400 font-medium leading-relaxed mt-1 text-[11px]">
+                    <p className="text-slate-500 dark:text-slate-400 font-medium leading-relaxed mt-1 text-[11px]">
                       Ganhe pontos por cada resíduo descartado no totem coletor:
                     </p>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 mt-2">
-                      <span className="bg-slate-950/60 border border-slate-800/80 px-2 py-1 rounded-lg text-[9px] font-bold text-slate-300 flex items-center justify-center gap-1 hover:border-slate-700 transition-colors">
-                        <span className="text-[10px] select-none">⚙️</span> Metal: <span className="text-emerald-400 font-black">+15</span>
+                      <span className="bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 px-2 py-1 rounded-lg text-[9px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-center gap-1 hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
+                        <span className="text-[10px] select-none">⚙️</span> Metal: <span className="text-emerald-600 dark:text-emerald-400 font-black">+15</span>
                       </span>
-                      <span className="bg-slate-950/60 border border-slate-800/80 px-2 py-1 rounded-lg text-[9px] font-bold text-slate-300 flex items-center justify-center gap-1 hover:border-slate-700 transition-colors">
-                        <span className="text-[10px] select-none">💎</span> Vidro: <span className="text-emerald-400 font-black">+12</span>
+                      <span className="bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 px-2 py-1 rounded-lg text-[9px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-center gap-1 hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
+                        <span className="text-[10px] select-none">💎</span> Vidro: <span className="text-emerald-600 dark:text-emerald-400 font-black">+12</span>
                       </span>
-                      <span className="bg-slate-950/60 border border-slate-800/80 px-2 py-1 rounded-lg text-[9px] font-bold text-slate-300 flex items-center justify-center gap-1 hover:border-slate-700 transition-colors">
-                        <span className="text-[10px] select-none">🥤</span> Plástico: <span className="text-emerald-400 font-black">+10</span>
+                      <span className="bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 px-2 py-1 rounded-lg text-[9px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-center gap-1 hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
+                        <span className="text-[10px] select-none">🥤</span> Plástico: <span className="text-emerald-600 dark:text-emerald-400 font-black">+10</span>
                       </span>
-                      <span className="bg-slate-950/60 border border-slate-800/80 px-2 py-1 rounded-lg text-[9px] font-bold text-slate-300 flex items-center justify-center gap-1 hover:border-slate-700 transition-colors">
-                        <span className="text-[10px] select-none">📦</span> Papel: <span className="text-emerald-400 font-black">+8</span>
+                      <span className="bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 px-2 py-1 rounded-lg text-[9px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-center gap-1 hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
+                        <span className="text-[10px] select-none">📦</span> Papel: <span className="text-emerald-600 dark:text-emerald-400 font-black">+8</span>
                       </span>
                     </div>
                   </div>
                 </div>
 
                 {/* Fator 2: Bioshop */}
-                <div className="relative overflow-hidden bg-slate-950/20 hover:bg-slate-950/40 border border-white/5 rounded-2xl p-3 flex gap-3.5 transition-all duration-300 hover:border-indigo-500/20 group/factor2">
-                  <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 group-hover/factor2:scale-105 transition-transform shrink-0">
-                    <Sparkles className="h-5 w-5 text-indigo-450" />
+                <div className="relative overflow-hidden bg-slate-55 dark:bg-slate-950/20 hover:bg-slate-105 dark:hover:bg-slate-950/40 border border-slate-200/60 dark:border-white/5 rounded-2xl p-3 flex gap-3.5 transition-all duration-300 hover:border-indigo-500/20 group/factor2">
+                  <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-indigo-500/5 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-650 dark:text-indigo-400 group-hover/factor2:scale-105 transition-transform shrink-0">
+                    <Sparkles className="h-5 w-5 text-indigo-600 dark:text-indigo-455" />
                   </div>
                   <div className="flex-grow min-w-0">
                     <div className="flex items-center justify-between flex-wrap gap-1">
-                      <p className="font-black text-slate-100 text-[11px] uppercase tracking-wider select-none">Itens da Bioshop</p>
-                      <span className="bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg shadow-sm select-none">+250 XP / item</span>
+                      <p className="font-black text-slate-800 dark:text-slate-101 text-[11px] uppercase tracking-wider select-none">Itens da Bioshop</p>
+                      <span className="bg-indigo-555/10 dark:bg-indigo-500/15 border border-indigo-250 dark:border-indigo-500/30 text-indigo-650 dark:text-indigo-400 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg shadow-sm select-none">+250 XP / item</span>
                     </div>
                     <p className="text-slate-400 font-medium leading-relaxed mt-1 text-[11px]">
                       Cada bioma ou animal adquirido no seu ecossistema virtual adiciona um multiplicador de score fixo permanente.
@@ -581,70 +580,70 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Fator 3: Vitalidade */}
-                <div className="relative overflow-hidden bg-slate-950/20 hover:bg-slate-950/40 border border-white/5 rounded-2xl p-3 flex gap-3.5 transition-all duration-300 hover:border-rose-500/20 group/factor3">
-                  <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-450 group-hover/factor3:scale-105 transition-transform shrink-0">
-                    <Leaf className="h-5 w-5 text-rose-400" />
+                <div className="relative overflow-hidden bg-slate-55 dark:bg-slate-950/20 hover:bg-slate-105 dark:hover:bg-slate-950/40 border border-white/5 rounded-2xl p-3 flex gap-3.5 transition-all duration-300 hover:border-rose-500/20 group/factor3">
+                  <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-rose-500/5 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-650 dark:text-rose-455 group-hover/factor3:scale-105 transition-transform shrink-0">
+                    <Leaf className="h-5 w-5 text-rose-650 dark:text-rose-400" />
                   </div>
                   <div className="flex-grow min-w-0">
                     <div className="flex items-center justify-between flex-wrap gap-1">
-                      <p className="font-black text-slate-100 text-[11px] uppercase tracking-wider select-none">Saúde da Biosfera</p>
-                      <span className="bg-rose-500/15 border border-rose-500/30 text-rose-400 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg shadow-sm select-none">Bônus Vital</span>
+                      <p className="font-black text-slate-800 dark:text-slate-101 text-[11px] uppercase tracking-wider select-none">Saúde da Biosfera</p>
+                      <span className="bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg shadow-sm select-none">Bônus Vital</span>
                     </div>
                     <p className="text-slate-400 font-medium leading-relaxed mt-1 text-[11px]">
-                      A porcentagem da saúde do ecossistema é convertida em um bônus linear que adiciona até <b className="text-rose-400 font-bold">+100 pontos</b> diretamente.
+                      A porcentagem da saúde do ecossistema é convertida em um bônus linear que adiciona até <b className="text-rose-500 dark:text-rose-400 font-bold">+100 pontos</b> diretamente.
                     </p>
                   </div>
                 </div>
               </div>
             </CardContent>
             <CardFooter className="pt-0 flex flex-col gap-3">
-              <div className="w-full flex flex-col gap-3 bg-slate-950/50 p-4 rounded-2xl border border-white/5 shadow-2xl backdrop-blur-md">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1 select-none">
-                  <Sparkles className="h-3.5 w-3.5 text-indigo-400 animate-pulse" />
+              <div className="w-full flex flex-col gap-3 bg-slate-100 dark:bg-slate-950/50 p-4 rounded-2xl border border-slate-200/60 dark:border-white/5 shadow-2xl backdrop-blur-md">
+                <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1 select-none">
+                  <Sparkles className="h-3.5 w-3.5 text-indigo-650 dark:text-indigo-400 animate-pulse" />
                   Sua Pontuação Detalhada
                 </span>
                 
                 <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 py-1">
                   {/* Pontos Base */}
-                  <div className="flex-1 min-w-[70px] bg-slate-900/60 border border-white/5 rounded-xl p-2.5 flex flex-col items-center justify-center hover:bg-indigo-500/5 hover:border-indigo-500/20 transition-all group/base">
-                    <span className="text-[8px] font-black text-indigo-400 uppercase tracking-wider group-hover/base:scale-105 transition-transform select-none">Base XP</span>
-                    <span className="text-sm font-black text-slate-100 mt-0.5">{points}</span>
+                  <div className="flex-1 min-w-[70px] bg-white dark:bg-slate-900/60 border border-slate-200/60 dark:border-white/5 rounded-xl p-2.5 flex flex-col items-center justify-center hover:bg-indigo-500/5 hover:border-indigo-500/20 transition-all group/base">
+                    <span className="text-[8px] font-black text-indigo-605 dark:text-indigo-400 uppercase tracking-wider group-hover/base:scale-105 transition-transform select-none">Base XP</span>
+                    <span className="text-sm font-black text-slate-800 dark:text-slate-101 mt-0.5">{points}</span>
                   </div>
 
                   {/* Operador + */}
-                  <div className="text-slate-500 font-bold text-xs px-0.5 select-none">
+                  <div className="text-slate-400 dark:text-slate-505 font-bold text-xs px-0.5 select-none">
                     +
                   </div>
 
                   {/* Upgrades */}
-                  <div className="flex-1 min-w-[80px] bg-slate-900/60 border border-white/5 rounded-xl p-2.5 flex flex-col items-center justify-center hover:bg-emerald-500/5 hover:border-emerald-500/20 transition-all group/upg">
-                    <span className="text-[8px] font-black text-emerald-400 uppercase tracking-wider group-hover/upg:scale-105 transition-transform select-none">Upgrades</span>
-                    <span className="text-sm font-black text-slate-100 mt-0.5">+{purchasedItems.length * 250}</span>
-                    <span className="text-[7px] text-slate-400 font-medium select-none">({purchasedItems.length} × 250)</span>
+                  <div className="flex-1 min-w-[80px] bg-white dark:bg-slate-900/60 border border-slate-200/60 dark:border-white/5 rounded-xl p-2.5 flex flex-col items-center justify-center hover:bg-emerald-500/5 hover:border-emerald-500/20 transition-all group/upg">
+                    <span className="text-[8px] font-black text-emerald-605 dark:text-emerald-400 uppercase tracking-wider group-hover/upg:scale-105 transition-transform select-none">Upgrades</span>
+                    <span className="text-sm font-black text-slate-800 dark:text-slate-101 mt-0.5">+{purchasedItems.length * 250}</span>
+                    <span className="text-[7px] text-slate-500 dark:text-slate-405 font-medium select-none">({purchasedItems.length} × 250)</span>
                   </div>
 
                   {/* Operador + */}
-                  <div className="text-slate-500 font-bold text-xs px-0.5 select-none">
+                  <div className="text-slate-400 dark:text-slate-550 font-bold text-xs px-0.5 select-none">
                     +
                   </div>
 
                   {/* Vitalidade */}
-                  <div className="flex-1 min-w-[70px] bg-slate-900/60 border border-white/5 rounded-xl p-2.5 flex flex-col items-center justify-center hover:bg-rose-500/5 hover:border-rose-500/20 transition-all group/vit">
-                    <span className="text-[8px] font-black text-rose-400 uppercase tracking-wider group-hover/vit:scale-105 transition-transform select-none">Vitalidade</span>
-                    <span className="text-sm font-black text-slate-100 mt-0.5">+{vitality}</span>
-                    <span className="text-[7px] text-rose-450/70 font-medium select-none">{vitality}% de bônus</span>
+                  <div className="flex-1 min-w-[70px] bg-white dark:bg-slate-900/60 border border-slate-200/60 dark:border-white/5 rounded-xl p-2.5 flex flex-col items-center justify-center hover:bg-rose-500/5 hover:border-rose-500/20 transition-all group/vit">
+                    <span className="text-[8px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-wider group-hover/vit:scale-105 transition-transform select-none">Vitalidade</span>
+                    <span className="text-sm font-black text-slate-800 dark:text-slate-101 mt-0.5">+{vitality}</span>
+                    <span className="text-[7px] text-rose-650/70 dark:text-rose-455/70 font-medium select-none">{vitality}% de bônus</span>
                   </div>
                 </div>
 
                 {/* Total */}
-                <div className="mt-1 pt-3 border-t border-white/5 flex items-center justify-between">
+                <div className="mt-1 pt-3 border-t border-slate-200/60 dark:border-white/5 flex items-center justify-between">
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider select-none">Score Global</span>
-                    <span className="text-[8px] text-slate-500 font-medium select-none">Seu nível de experiência consolidado</span>
+                    <span className="text-[10px] font-black text-slate-505 dark:text-slate-400 uppercase tracking-wider select-none">Score Global</span>
+                    <span className="text-[8px] text-slate-405 dark:text-slate-500 font-medium select-none">Seu nível de experiência consolidado</span>
                   </div>
-                  <div className="flex items-center gap-2 bg-gradient-to-r from-amber-500/10 to-yellow-500/15 border border-amber-500/20 px-3.5 py-1.5 rounded-xl shadow-[0_0_15px_rgba(245,158,11,0.05)] hover:shadow-[0_0_20px_rgba(245,158,11,0.15)] transition-all duration-300 group/total">
-                    <Trophy className="h-4 w-4 text-yellow-450 animate-pulse group-hover/total:scale-110 transition-transform" />
-                    <span className="text-base font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 drop-shadow-[0_0_10px_rgba(245,158,11,0.2)]">
+                  <div className="flex items-center gap-2 bg-gradient-to-r from-amber-500/5 to-yellow-500/10 dark:from-amber-500/10 dark:to-yellow-500/15 border border-amber-300 dark:border-amber-500/20 px-3.5 py-1.5 rounded-xl shadow-[0_0_15px_rgba(245,158,11,0.05)] hover:shadow-[0_0_20px_rgba(245,158,11,0.15)] transition-all duration-300 group/total">
+                    <Trophy className="h-4 w-4 text-yellow-600 dark:text-yellow-455 animate-pulse group-hover/total:scale-110 transition-transform" />
+                    <span className="text-base font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-600 via-yellow-600 to-amber-650 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-400 drop-shadow-[0_0_10px_rgba(245,158,11,0.2)]">
                       {globalScore} XP
                     </span>
                   </div>
@@ -652,46 +651,45 @@ export default function DashboardPage() {
               </div>
             </CardFooter>
           </Card>
-        </div>
 
         {/* CARD DE HISTÓRICO DE DESCARTES */}
-        <Card className="border border-white/5 rounded-[2rem] bg-slate-900/40 shadow-2xl backdrop-blur-xl overflow-hidden mt-2 text-white">
+        <Card className="border border-slate-200/60 dark:border-white/5 rounded-[2rem] bg-white/80 dark:bg-slate-900/40 shadow-2xl backdrop-blur-xl overflow-hidden mt-2 text-slate-800 dark:text-white">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div>
-              <CardTitle className="text-lg font-black text-white flex items-center gap-2 uppercase tracking-tight">
+              <CardTitle className="text-lg font-black text-slate-800 dark:text-white flex items-center gap-2 uppercase tracking-tight">
                 <span className="text-xl">♻️</span>
                 Histórico Recente de Descartes
               </CardTitle>
-              <CardDescription className="text-slate-400 font-medium mt-1 text-xs">
+              <CardDescription className="text-slate-550 dark:text-slate-400 font-medium mt-1 text-xs">
                 Acompanhe suas pesagens e os Bio-Coins creditados em cada coleta válida.
               </CardDescription>
             </div>
-            <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm">
+            <div className="bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-250 dark:border-emerald-500/20 text-emerald-650 dark:text-emerald-400 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               {studentDiscards.length} {studentDiscards.length === 1 ? 'Pesagem' : 'Pesagens'}
             </div>
           </CardHeader>
           <CardContent>
             {studentDiscards.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 text-center border border-dashed border-white/10 rounded-2xl bg-slate-950/20">
-                <div className="h-16 w-16 rounded-2xl bg-slate-900/40 border border-white/5 flex items-center justify-center mb-4 text-3xl">
+              <div className="flex flex-col items-center justify-center py-10 text-center border border-dashed border-slate-250 dark:border-white/10 rounded-2xl bg-slate-50 dark:bg-slate-950/20">
+                <div className="h-16 w-16 rounded-2xl bg-slate-100 dark:bg-slate-900/40 border border-slate-200 dark:border-white/5 flex items-center justify-center mb-4 text-3xl">
                   🍃
                 </div>
-                <p className="text-sm font-bold text-slate-200">Nenhum descarte registrado ainda</p>
-                <p className="text-xs text-slate-400 mt-1 max-w-xs leading-relaxed font-medium">
+                <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Nenhum descarte registrado ainda</p>
+                <p className="text-xs text-slate-505 dark:text-slate-400 mt-1 max-w-xs leading-relaxed font-medium">
                   Seus descartes e pesagens aparecerão aqui em tempo real assim que você usar o Totem Kiosk da escola!
                 </p>
               </div>
             ) : (
               <>
-                <div className="hidden md:block overflow-x-auto rounded-xl border border-white/5 bg-slate-950/20">
+                <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200/60 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20">
                   <Table>
-                    <TableHeader className="bg-slate-950/40">
-                      <TableRow className="border-white/5">
-                        <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider">Data e Hora</TableHead>
-                        <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider">Material Descartado</TableHead>
-                        <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider text-center">Peso Coletado</TableHead>
-                        <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider text-right">Recompensa</TableHead>
+                    <TableHeader className="bg-slate-105 dark:bg-slate-950/40">
+                      <TableRow className="border-slate-200/60 dark:border-white/5">
+                        <TableHead className="font-bold text-slate-650 dark:text-slate-300 border-b border-slate-200/60 dark:border-white/5 text-[9px] uppercase tracking-wider">Data e Hora</TableHead>
+                        <TableHead className="font-bold text-slate-650 dark:text-slate-300 border-b border-slate-200/60 dark:border-white/5 text-[9px] uppercase tracking-wider">Material Descartado</TableHead>
+                        <TableHead className="font-bold text-slate-650 dark:text-slate-300 border-b border-slate-200/60 dark:border-white/5 text-[9px] uppercase tracking-wider text-center">Peso Coletado</TableHead>
+                        <TableHead className="font-bold text-slate-650 dark:text-slate-300 border-b border-slate-200/60 dark:border-white/5 text-[9px] uppercase tracking-wider text-right">Recompensa</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -707,20 +705,20 @@ export default function DashboardPage() {
                         });
 
                         const materialColorMap: Record<string, string> = {
-                          'Plástico': 'bg-red-500/10 text-red-400 border-red-500/20',
-                          'Papel': 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-                          'Vidro': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-                          'Metal': 'bg-amber-500/10 text-amber-450 border-amber-500/20',
-                          'Orgânico': 'bg-stone-500/10 text-stone-400 border-stone-500/20',
-                          'Eletrônico': 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-                          'Não reciclável': 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+                          'Plástico': 'bg-red-500/10 text-red-650 dark:text-red-400 border-red-500/20',
+                          'Papel': 'bg-blue-500/10 text-blue-650 dark:text-blue-400 border-blue-500/20',
+                          'Vidro': 'bg-emerald-500/10 text-emerald-650 dark:text-emerald-400 border-emerald-500/20',
+                          'Metal': 'bg-amber-500/10 text-amber-650 dark:text-amber-450 border-amber-500/20',
+                          'Orgânico': 'bg-stone-500/10 text-stone-650 dark:text-stone-400 border-stone-500/20',
+                          'Eletrônico': 'bg-purple-500/10 text-purple-655 dark:text-purple-400 border-purple-500/20',
+                          'Não reciclável': 'bg-slate-500/10 text-slate-650 dark:text-slate-400 border-slate-500/20',
                         };
 
-                        const materialPillClass = materialColorMap[entry.type] || 'bg-slate-900 border-white/5 text-slate-350';
+                        const materialPillClass = materialColorMap[entry.type] || 'bg-slate-105 dark:bg-slate-900 border-slate-200/60 dark:border-white/5 text-slate-600 dark:text-slate-350';
 
                         return (
-                          <TableRow key={entry.id} className="hover:bg-white/5 transition-colors border-white/5">
-                            <TableCell className="font-medium text-slate-300 text-xs">
+                          <TableRow key={entry.id} className="hover:bg-slate-105/50 dark:hover:bg-white/5 transition-colors border-slate-200/60 dark:border-white/5">
+                            <TableCell className="font-medium text-slate-700 dark:text-slate-300 text-xs">
                               {formattedDate}
                             </TableCell>
                             <TableCell>
@@ -728,10 +726,10 @@ export default function DashboardPage() {
                                 {entry.type}
                               </span>
                             </TableCell>
-                            <TableCell className="text-center font-bold text-slate-200 text-xs">
+                            <TableCell className="text-center font-bold text-slate-705 dark:text-slate-202 text-xs">
                               {entry.collected.toFixed(3)} kg
                             </TableCell>
-                            <TableCell className="text-right font-black text-emerald-400 text-xs">
+                            <TableCell className="text-right font-black text-emerald-600 dark:text-emerald-400 text-xs">
                               +{earnedPoints} Bio-Coins
                             </TableCell>
                           </TableRow>
@@ -755,28 +753,28 @@ export default function DashboardPage() {
                     });
 
                     const materialColorMap: Record<string, string> = {
-                      'Plástico': 'bg-red-500/10 text-red-400 border-red-500/20',
-                      'Papel': 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-                      'Vidro': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-                      'Metal': 'bg-amber-500/10 text-amber-450 border-amber-500/20',
-                      'Orgânico': 'bg-stone-500/10 text-stone-400 border-stone-500/20',
-                      'Eletrônico': 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-                      'Não reciclável': 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+                      'Plástico': 'bg-red-500/10 text-red-650 dark:text-red-400 border-red-500/20',
+                      'Papel': 'bg-blue-500/10 text-blue-650 dark:text-blue-400 border-blue-500/20',
+                      'Vidro': 'bg-emerald-500/10 text-emerald-650 dark:text-emerald-400 border-emerald-500/20',
+                      'Metal': 'bg-amber-500/10 text-amber-655 dark:text-amber-450 border-amber-500/20',
+                      'Orgânico': 'bg-stone-500/10 text-stone-655 dark:text-stone-400 border-stone-500/20',
+                      'Eletrônico': 'bg-purple-500/10 text-purple-655 dark:text-purple-400 border-purple-500/20',
+                      'Não reciclável': 'bg-slate-500/10 text-slate-655 dark:text-slate-400 border-slate-500/20',
                     };
 
-                    const materialPillClass = materialColorMap[entry.type] || 'bg-slate-900 border-white/5 text-slate-350';
+                    const materialPillClass = materialColorMap[entry.type] || 'bg-slate-105 dark:bg-slate-900 border-slate-200/60 dark:border-white/5 text-slate-600 dark:text-slate-350';
 
                     return (
-                      <div key={entry.id} className="p-4 rounded-2xl border border-white/5 bg-slate-950/40 shadow-md flex flex-col gap-2.5">
+                      <div key={entry.id} className="p-4 rounded-2xl border border-slate-200/60 dark:border-white/5 bg-white/50 dark:bg-slate-950/40 shadow-md flex flex-col gap-2.5">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] text-slate-400 font-bold">{formattedDate}</span>
+                          <span className="text-[10px] text-slate-505 dark:text-slate-400 font-bold">{formattedDate}</span>
                           <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-black border", materialPillClass)}>
                             {entry.type}
                           </span>
                         </div>
-                        <div className="flex items-center justify-between text-xs pt-1.5 border-t border-white/5">
-                          <span className="text-slate-400 font-medium">Peso: <strong className="text-slate-200">{entry.collected.toFixed(3)} kg</strong></span>
-                          <span className="font-black text-emerald-450">+{earnedPoints} Bio-Coins</span>
+                        <div className="flex items-center justify-between text-xs pt-1.5 border-t border-slate-200/60 dark:border-white/5">
+                          <span className="text-slate-505 dark:text-slate-400 font-medium">Peso: <strong className="text-slate-800 dark:text-slate-202">{entry.collected.toFixed(3)} kg</strong></span>
+                          <span className="font-black text-emerald-600 dark:text-emerald-455">+{earnedPoints} Bio-Coins</span>
                         </div>
                       </div>
                     );
@@ -788,41 +786,41 @@ export default function DashboardPage() {
         </Card>
 
         {/* EXTRATO E LEDGER DE BIO-COINS */}
-        <Card className="border border-white/5 rounded-[2rem] bg-slate-900/40 shadow-2xl backdrop-blur-xl mt-2 text-white">
+        <Card className="border border-slate-200/60 dark:border-white/5 rounded-[2rem] bg-white/80 dark:bg-slate-900/40 shadow-2xl backdrop-blur-xl mt-2 text-slate-800 dark:text-white">
           <CardHeader className="flex flex-row items-center justify-between gap-4">
             <div>
-              <CardTitle className="text-lg font-black text-white flex items-center gap-2 uppercase tracking-tight">
+              <CardTitle className="text-lg font-black text-slate-800 dark:text-white flex items-center gap-2 uppercase tracking-tight">
                 🪙 Extrato Detalhado de Bio-Coins
               </CardTitle>
-              <CardDescription className="text-slate-400 font-medium mt-1 text-xs">
+              <CardDescription className="text-slate-550 dark:text-slate-400 font-medium mt-1 text-xs">
                 Acompanhe o histórico de créditos, resgates e a validade de suas moedas em tempo real.
               </CardDescription>
             </div>
-            <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm">
+            <div className="bg-amber-500/5 dark:bg-amber-500/10 border border-amber-250 dark:border-amber-500/20 text-amber-650 dark:text-amber-400 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm">
               Validade: 30 dias
             </div>
           </CardHeader>
           <CardContent>
             {pointTransactions.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 text-center border border-dashed border-white/10 rounded-2xl bg-slate-950/20">
-                <div className="h-16 w-16 rounded-2xl bg-slate-900/40 border border-white/5 flex items-center justify-center mb-4 text-3xl">
+              <div className="flex flex-col items-center justify-center py-10 text-center border border-dashed border-slate-250 dark:border-white/10 rounded-2xl bg-slate-50 dark:bg-slate-950/20">
+                <div className="h-16 w-16 rounded-2xl bg-slate-100 dark:bg-slate-900/40 border border-slate-200 dark:white/5 flex items-center justify-center mb-4 text-3xl">
                   🪙
                 </div>
-                <p className="text-sm font-bold text-slate-200">Seu extrato está vazio</p>
-                <p className="text-xs text-slate-400 mt-1 max-w-xs leading-relaxed font-medium">
+                <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Seu extrato está vazio</p>
+                <p className="text-xs text-slate-505 dark:text-slate-400 mt-1 max-w-xs leading-relaxed font-medium">
                   Seus créditos de moedas e movimentações aparecerão aqui assim que você realizar descartes ou missões!
                 </p>
               </div>
             ) : (
               <>
-                <div className="hidden md:block overflow-x-auto rounded-xl border border-white/5 bg-slate-950/20">
+                <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200/60 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20">
                   <Table>
-                    <TableHeader className="bg-slate-950/40">
-                      <TableRow className="border-white/5">
-                        <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider">Data</TableHead>
-                        <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider">Histórico / Origem</TableHead>
-                        <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider text-center">Validade / Estado</TableHead>
-                        <TableHead className="font-bold text-slate-300 border-b border-white/5 text-[9px] uppercase tracking-wider text-right">Lançamento</TableHead>
+                    <TableHeader className="bg-slate-105 dark:bg-slate-950/40">
+                      <TableRow className="border-slate-200/60 dark:border-white/5">
+                        <TableHead className="font-bold text-slate-655 border-b border-slate-200/60 dark:border-white/5 text-[9px] uppercase tracking-wider">Data</TableHead>
+                        <TableHead className="font-bold text-slate-655 border-b border-slate-200/60 dark:border-white/5 text-[9px] uppercase tracking-wider">Histórico / Origem</TableHead>
+                        <TableHead className="font-bold text-slate-655 border-b border-slate-200/60 dark:border-white/5 text-[9px] uppercase tracking-wider text-center">Validade / Estado</TableHead>
+                        <TableHead className="font-bold text-slate-655 border-b border-slate-200/60 dark:border-white/5 text-[9px] uppercase tracking-wider text-right">Lançamento</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -841,20 +839,20 @@ export default function DashboardPage() {
                         if (isDebit) {
                           if (tx.description.includes("Expiração")) {
                             statusBadge = (
-                              <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-red-500/10 text-red-400 border-red-500/20">
+                              <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-red-500/10 text-red-650 dark:text-red-400 border-red-500/20">
                                 Expirado
                               </span>
                             );
                           } else {
                             statusBadge = (
-                              <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-slate-950 text-slate-400 border-white/5">
+                              <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-slate-100 dark:bg-slate-950 text-slate-500 dark:text-slate-400 border-slate-200/60 dark:border-white/5">
                                 Consumido / Resgate
                               </span>
                             );
                           }
                         } else if (tx.expired) {
                           statusBadge = (
-                            <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-slate-950 text-slate-555 border-white/5">
+                            <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-slate-100 dark:bg-slate-950 text-slate-400 dark:text-slate-500 border-slate-200/60 dark:border-white/5">
                               Amortizado
                             </span>
                           );
@@ -866,13 +864,13 @@ export default function DashboardPage() {
 
                           if (daysLeft <= 7) {
                             statusBadge = (
-                              <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse">
+                              <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-amber-500/10 text-amber-500 dark:text-amber-400 border-amber-200 dark:border-amber-500/20 animate-pulse">
                                 Expira em {daysLeft}d
                               </span>
                             );
                           } else {
                             statusBadge = (
-                              <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-emerald-500/10 text-emerald-450 border-emerald-500/20">
+                              <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-emerald-500/5 dark:bg-emerald-555/10 text-emerald-650 dark:text-emerald-450 border-emerald-250 dark:border-emerald-500/20">
                                 Ativo ({daysLeft}d restantes)
                               </span>
                             );
@@ -880,11 +878,11 @@ export default function DashboardPage() {
                         }
 
                         return (
-                          <TableRow key={tx.id} className="hover:bg-white/5 transition-colors border-white/5">
-                            <TableCell className="font-medium text-slate-300 text-xs">
+                          <TableRow key={tx.id} className="hover:bg-slate-105/50 dark:hover:bg-white/5 transition-colors border-slate-200/60 dark:border-white/5">
+                            <TableCell className="font-medium text-slate-700 dark:text-slate-300 text-xs">
                               {formattedDate}
                             </TableCell>
-                            <TableCell className="font-bold text-slate-200 text-xs">
+                            <TableCell className="font-bold text-slate-800 dark:text-slate-200 text-xs">
                               {tx.description}
                             </TableCell>
                             <TableCell className="text-center">
@@ -892,7 +890,7 @@ export default function DashboardPage() {
                             </TableCell>
                             <TableCell className={cn(
                               "text-right font-black text-xs",
-                              isDebit ? "text-red-400" : "text-emerald-400"
+                              isDebit ? "text-red-655 dark:text-red-400" : "text-emerald-655 dark:text-emerald-400"
                             )}>
                               {isDebit ? "" : "+"}{tx.amount} Bio-Coins
                             </TableCell>
@@ -920,20 +918,20 @@ export default function DashboardPage() {
                     if (isDebit) {
                       if (tx.description.includes("Expiração")) {
                         statusBadge = (
-                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold border bg-red-500/10 text-red-400 border-red-500/20">
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold border bg-red-500/10 text-red-650 dark:text-red-400 border-red-500/20">
                             Expirado
                           </span>
                         );
                       } else {
                         statusBadge = (
-                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold border bg-slate-950 text-slate-400 border-white/5">
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold border bg-slate-101 dark:bg-slate-950 text-slate-500 dark:text-slate-400 border-slate-200/60 dark:border-white/5">
                             Resgate
                           </span>
                         );
                       }
                     } else if (tx.expired) {
                       statusBadge = (
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold border bg-slate-950 text-slate-500 border-white/5">
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold border bg-slate-101 dark:bg-slate-950 text-slate-400 dark:text-slate-500 border-slate-200/60 dark:border-white/5">
                           Amortizado
                         </span>
                       );
@@ -945,13 +943,13 @@ export default function DashboardPage() {
 
                       if (daysLeft <= 7) {
                         statusBadge = (
-                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold border bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse">
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold border bg-amber-500/10 text-amber-500 dark:text-amber-400 border-amber-200 dark:border-amber-500/20 animate-pulse">
                             Expira em {daysLeft}d
                           </span>
                         );
                       } else {
                         statusBadge = (
-                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold border bg-emerald-500/10 text-emerald-450 border-emerald-500/20">
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold border bg-emerald-500/5 dark:bg-emerald-555/10 text-emerald-650 dark:text-emerald-450 border-emerald-250 dark:border-emerald-500/20">
                             Ativo ({daysLeft}d)
                           </span>
                         );
@@ -959,16 +957,16 @@ export default function DashboardPage() {
                     }
 
                     return (
-                      <div key={tx.id} className="p-4 rounded-2xl border border-white/5 bg-slate-950/40 shadow-md flex flex-col gap-2.5">
+                      <div key={tx.id} className="p-4 rounded-2xl border border-slate-200/60 dark:border-white/5 bg-white/50 dark:bg-slate-950/40 shadow-md flex flex-col gap-2.5">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] text-slate-400 font-bold">{formattedDate}</span>
+                          <span className="text-[10px] text-slate-505 dark:text-slate-400 font-bold">{formattedDate}</span>
                           {statusBadge}
                         </div>
-                        <div className="flex items-center justify-between text-xs pt-1.5 border-t border-white/5">
-                          <span className="text-slate-200 font-bold">{tx.description}</span>
+                        <div className="flex items-center justify-between text-xs pt-1.5 border-t border-slate-200/60 dark:border-white/5">
+                          <span className="text-slate-800 dark:text-slate-202 font-bold">{tx.description}</span>
                           <span className={cn(
                             "font-black text-xs",
-                            isDebit ? "text-red-400" : "text-emerald-400"
+                            isDebit ? "text-red-655 dark:text-red-400" : "text-emerald-655 dark:text-emerald-400"
                           )}>
                             {isDebit ? "" : "+"}{tx.amount} Bio-Coins
                           </span>
@@ -982,15 +980,16 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+      </div>
 
       {/* RODAPÉ INFORMATIVO */}
-      <footer className="mt-8 border border-white/5 py-6 bg-slate-950/40 rounded-t-[2rem] shadow-inner text-white">
+      <footer className="mt-8 border border-slate-200/60 dark:border-white/5 py-6 bg-white/60 dark:bg-slate-950/40 rounded-t-[2rem] shadow-inner text-slate-800 dark:text-white">
         <div className="container px-4 flex flex-col items-center text-center gap-3">
-          <p className="text-xs text-slate-400 font-semibold flex items-center gap-2">
+          <p className="text-xs text-slate-505 dark:text-slate-400 font-semibold flex items-center gap-2">
             <span className="text-xl">♻️</span>
             Dica: Ganhe Bio-Coins descartando materiais recicláveis nos totens da escola.
           </p>
-          <p className="text-[9px] text-slate-400 px-4 py-1.5 bg-slate-950 border border-white/5 rounded-full uppercase tracking-widest font-black shadow-lg flex items-center justify-center">
+          <p className="text-[9px] text-slate-505 dark:text-slate-400 px-4 py-1.5 bg-slate-101 dark:bg-slate-950 border border-slate-200/60 dark:border-white/5 rounded-full uppercase tracking-widest font-black shadow-lg flex items-center justify-center">
             Powered by SchoolGain Technology
           </p>
         </div>

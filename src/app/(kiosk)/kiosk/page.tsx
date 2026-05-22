@@ -534,7 +534,7 @@ export default function KioskPage() {
 
   if (isMobileDevice) {
     return (
-      <div className="relative flex min-h-screen flex-col bg-[#070913] items-center justify-center p-4 text-slate-100 overflow-hidden font-sans">
+      <div className="relative flex min-h-screen flex-col bg-slate-100 dark:bg-[#070913] items-center justify-center p-4 text-slate-800 dark:text-slate-100 overflow-hidden font-sans">
         <style>{`
           .cyber-grid {
             background-size: 30px 30px;
@@ -547,17 +547,17 @@ export default function KioskPage() {
           <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-rose-500/5 blur-[120px] animate-pulse" />
           <div className="absolute inset-0 cyber-grid [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_80%,transparent_100%)]" />
         </div>
-        <Card className="relative z-10 w-full max-w-lg backdrop-blur-3xl bg-slate-950/40 border border-white/10 rounded-[2.5rem] shadow-[0_25px_60px_rgba(0,0,0,0.8)] ring-1 ring-white/5 overflow-hidden animate-in zoom-in duration-500">
+        <Card className="relative z-10 w-full max-w-lg backdrop-blur-3xl bg-white/90 dark:bg-slate-950/40 border border-slate-200 dark:border-white/10 rounded-[2.5rem] shadow-[0_25px_60px_rgba(0,0,0,0.15)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.8)] ring-1 ring-slate-200/60 dark:ring-white/5 overflow-hidden animate-in zoom-in duration-500">
           <div className="h-2 bg-gradient-to-r from-rose-600 to-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]"></div>
           <CardHeader className="text-center pt-8">
              <div className="mx-auto w-20 h-20 rounded-full flex items-center justify-center mb-5 bg-rose-500/10 border border-rose-500/20 text-rose-400 shadow-[0_0_20px_rgba(239,68,68,0.15)] animate-pulse">
                 <MonitorOff className="h-9 w-9" />
              </div>
-             <CardTitle className="text-2xl font-black uppercase tracking-wider text-white">Dispositivo Incompatível</CardTitle>
-             <CardDescription className="text-slate-400 text-xs mt-2 font-semibold">O modo Kiosk é exclusivo para totens fixos e não deve ser operado em dispositivos móveis.</CardDescription>
+             <CardTitle className="text-2xl font-black uppercase tracking-wider text-slate-900 dark:text-white">Dispositivo Incompatível</CardTitle>
+             <CardDescription className="text-slate-600 dark:text-slate-400 text-xs mt-2 font-semibold">O modo Kiosk é exclusivo para totens fixos e não deve ser operado em dispositivos móveis.</CardDescription>
           </CardHeader>
           <CardFooter className="pb-8 pt-4 px-8">
-            <Button variant="outline" className="w-full h-14 text-sm font-bold uppercase tracking-wider bg-slate-900 border border-white/5 rounded-2xl text-slate-300 hover:text-white hover:bg-slate-800 transition-all" asChild>
+            <Button variant="outline" className="w-full h-14 text-sm font-bold uppercase tracking-wider bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all" asChild>
               <Link href="/">
                 <ArrowLeft className="mr-2 h-4 w-4" /> 
                 Voltar ao Painel Principal

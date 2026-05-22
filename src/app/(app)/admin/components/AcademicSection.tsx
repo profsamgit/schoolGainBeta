@@ -261,15 +261,13 @@ export function AcademicSection({
     return registrationRequests.filter(req => 
       targetSchoolId ? req.schoolId === targetSchoolId : true
     );
-  }, [registrationRequests, targetSchoolId]);
-
-  // Componente interno para renderizar células de identificação de forma unificada
+  }, [registrationRequests, targetSchoolId])  // Componente interno para renderizar células de identificação de forma unificada
   const UserIdentificationCell = ({ user }: { user: User }) => (
     <div className="flex items-center gap-3">
       <div className="relative group/avatar">
-        <Avatar className="h-10 w-10 rounded-xl bg-slate-950 border border-white/10 group-hover/avatar:border-indigo-500/50 transition-all overflow-hidden shadow-md">
+        <Avatar className="h-10 w-10 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 group-hover/avatar:border-indigo-500/50 transition-all overflow-hidden shadow-md">
           <AvatarImage src={user.avatar || undefined} className="object-cover" />
-          <AvatarFallback className="text-xs font-black bg-slate-900 text-slate-300">{user.name.charAt(0)}</AvatarFallback>
+          <AvatarFallback className="text-xs font-black bg-slate-200 dark:bg-slate-900 text-slate-600 dark:text-slate-300">{user.name.charAt(0)}</AvatarFallback>
         </Avatar>
         <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover/avatar:opacity-100 rounded-xl transition-opacity gap-2">
           {uploadingUserId === user.id ? (
@@ -290,53 +288,53 @@ export function AcademicSection({
         </div>
       </div>
       <div className="flex flex-col">
-        <span className="text-sm font-bold text-slate-200">{user.name}</span>
+        <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{user.name}</span>
         {(user.role !== 'student' || user.email) && user.email && (
-          <span className="text-[10px] text-slate-400 font-medium lowercase italic">{user.email}</span>
+          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium lowercase italic">{user.email}</span>
         )}
       </div>
     </div>
   );
 
   const UserTable = ({ data, role }: { data: User[], role: string }) => (
-    <div className="rounded-2xl border border-white/10 bg-slate-950/50 overflow-hidden shadow-2xl">
+    <div className="rounded-2xl border border-slate-200/60 dark:border-white/10 bg-white/40 dark:bg-slate-950/50 overflow-hidden shadow-2xl">
       <Table>
-        <TableHeader className="bg-slate-950 border-b border-white/10">
+        <TableHeader className="bg-slate-100/80 dark:bg-slate-950 border-b border-slate-200/60 dark:border-white/10">
           <TableRow>
-            <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400 px-6 h-12">Identificação</TableHead>
-            <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400 h-12">RA / ID</TableHead>
-            <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400 h-12">Vínculo</TableHead>
-            <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400 h-12">Pontos</TableHead>
-            <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400 h-12">Status</TableHead>
-            <TableHead className="text-right px-6 font-black uppercase text-[10px] tracking-widest text-slate-400 h-12">Ações</TableHead>
+            <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-500 dark:text-slate-400 px-6 h-12">Identificação</TableHead>
+            <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-500 dark:text-slate-400 h-12">RA / ID</TableHead>
+            <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-500 dark:text-slate-400 h-12">Vínculo</TableHead>
+            <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-500 dark:text-slate-400 h-12">Pontos</TableHead>
+            <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-500 dark:text-slate-400 h-12">Status</TableHead>
+            <TableHead className="text-right px-6 font-black uppercase text-[10px] tracking-widest text-slate-500 dark:text-slate-400 h-12">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.length > 0 ? data.map((user) => (
-            <TableRow key={`${user.id}-${user.ra}`} className={isDeleteConfirmOpen && selectedItem?.id === user.id ? 'bg-rose-950/20 hover:bg-rose-950/30' : 'hover:bg-indigo-500/5 border-b border-white/5 transition-colors group'}>
+            <TableRow key={`${user.id}-${user.ra}`} className={isDeleteConfirmOpen && selectedItem?.id === user.id ? 'bg-rose-100/50 dark:bg-rose-950/20 hover:bg-rose-200/50 dark:hover:bg-rose-950/30' : 'hover:bg-indigo-50/40 dark:hover:bg-indigo-500/5 border-b border-slate-200/60 dark:border-white/5 transition-colors group'}>
               <TableCell className="px-6 py-4">
                 <UserIdentificationCell user={user} />
               </TableCell>
-              <TableCell className="font-mono text-[11px] font-bold text-indigo-400">{user.ra}</TableCell>
+              <TableCell className="font-mono text-[11px] font-bold text-indigo-600 dark:text-indigo-400">{user.ra}</TableCell>
               <TableCell>
                 <div className="flex flex-col gap-1">
                   <Badge 
                     className={`w-fit uppercase text-[7px] font-black tracking-tighter h-4 px-1.5 shadow-sm ${
-                      user.role === 'super_admin' ? 'bg-indigo-500/10 border border-indigo-500/20 text-indigo-400' : 
-                      user.role === 'admin' ? 'bg-indigo-500/10 border border-indigo-500/20 text-indigo-400' : 
-                      user.role === 'staff' ? 'bg-purple-500/10 border border-purple-500/20 text-purple-400' : 
-                      user.role === 'visitor' ? 'bg-blue-500/10 border border-blue-500/20 text-blue-400' : 
-                      'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                      user.role === 'super_admin' ? 'bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 
+                      user.role === 'admin' ? 'bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 
+                      user.role === 'staff' ? 'bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/20 text-purple-600 dark:text-purple-400' : 
+                      user.role === 'visitor' ? 'bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400' : 
+                      'bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
                     }`}
                   >
                     {user.role === 'super_admin' ? 'Mestre' : user.role === 'admin' ? 'Gestor' : user.role === 'staff' ? 'Funcionário' : user.role === 'visitor' ? 'Visita' : 'Aluno'}
                   </Badge>
-                  {user.position && <span className="font-black text-slate-200 text-[9px] uppercase tracking-widest">{user.position}</span>}
-                  <span className="text-[10px] text-slate-400 font-bold">{user.turma || (user.role === 'visitor' ? 'Visitante' : user.role === 'staff' || user.role === 'admin' ? 'Corporativo' : 'Sem Turma')}</span>
+                  {user.position && <span className="font-black text-slate-700 dark:text-slate-200 text-[9px] uppercase tracking-widest">{user.position}</span>}
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">{user.turma || (user.role === 'visitor' ? 'Visitante' : user.role === 'staff' || user.role === 'admin' ? 'Corporativo' : 'Sem Turma')}</span>
                 </div>
               </TableCell>
               <TableCell>
-                <div className="font-bold text-indigo-400">{userStates[user.id]?.points || 0}</div>
+                <div className="font-bold text-indigo-600 dark:text-indigo-400">{userStates[user.id]?.points || 0}</div>
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
@@ -345,7 +343,7 @@ export function AcademicSection({
                     onCheckedChange={(checked) => updateUserStatus(user.id, checked ? 'active' : 'inactive')}
                     className="data-[state=checked]:bg-indigo-500"
                   />
-                  <Badge className={`text-[9px] uppercase font-bold ${user.status === 'inactive' ? 'bg-rose-500/10 border border-rose-500/20 text-rose-400' : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'}`}>
+                  <Badge className={`text-[9px] uppercase font-bold ${user.status === 'inactive' ? 'bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-600 dark:text-rose-400' : 'bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400'}`}>
                     {user.status === 'inactive' ? 'Inativo' : 'Ativo'}
                   </Badge>
                 </div>
@@ -357,13 +355,13 @@ export function AcademicSection({
                       variant="ghost" 
                       size="icon" 
                       onClick={() => router.push(`/student/dashboard?preview=${user.id}${targetSchoolId ? `&schoolId=${targetSchoolId}` : ''}`)} 
-                      className="h-8 w-8 text-slate-400 hover:text-white hover:bg-white/5 rounded-full" 
+                      className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-full" 
                       title="Visualizar Perfil"
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
                   )}
-                  <Button variant="ghost" size="icon" onClick={() => { setBadgeUser(user as any); setIsBadgeOpen(true); }} className="h-8 w-8 text-slate-400 hover:text-white hover:bg-white/5 rounded-full" title="Ver Carteira">
+                  <Button variant="ghost" size="icon" onClick={() => { setBadgeUser(user as any); setIsBadgeOpen(true); }} className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-full" title="Ver Carteira">
                     <QrCode className="h-4 w-4" />
                   </Button>
 
@@ -372,7 +370,7 @@ export function AcademicSection({
                       variant="ghost" 
                       size="icon" 
                       title="Trocar Senha"
-                      className="h-8 w-8 text-slate-400 hover:text-amber-400 hover:bg-white/5 rounded-full"
+                      className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-white/5 rounded-full"
                       onClick={() => {
                         setSelectedItem(user);
                         setIsPasswordDialogOpen(true);
@@ -385,7 +383,7 @@ export function AcademicSection({
                     variant="ghost" 
                     size="icon" 
                     title="Editar"
-                    className="h-8 w-8 text-slate-400 hover:text-white hover:bg-white/5 rounded-full"
+                    className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-full"
                     onClick={() => handleEdit(user, 'user')}
                   >
                     <Edit className="h-4 w-4" />
@@ -394,7 +392,7 @@ export function AcademicSection({
                     variant="ghost" 
                     size="icon" 
                     title="Excluir"
-                    className="h-8 w-8 text-slate-400 hover:text-rose-500 hover:bg-rose-500/5 rounded-full"
+                    className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/5 rounded-full"
                     onClick={() => handleDelete(user, 'user')}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -404,7 +402,7 @@ export function AcademicSection({
             </TableRow>
           )) : (
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-10 text-slate-400 uppercase text-[10px] font-black tracking-widest">Nenhum registro encontrado</TableCell>
+              <TableCell colSpan={6} className="text-center py-10 text-slate-500 dark:text-slate-400 uppercase text-[10px] font-black tracking-widest">Nenhum registro encontrado</TableCell>
             </TableRow>
           )}
         </TableBody>
@@ -417,19 +415,19 @@ export function AcademicSection({
     const roleLabel = currentRole === 'admin' || currentRole === 'super_admin' ? 'Gestor' : currentRole === 'staff' ? 'Funcionário' : currentRole === 'visitor' ? 'Visitante' : 'Aluno';
 
     return (
-      <Card className="border border-white/10 shadow-2xl overflow-hidden bg-slate-900/40 rounded-[2rem] backdrop-blur-xl text-white animate-in fade-in duration-300">
-        <CardHeader className="flex flex-row items-center justify-between border-b border-white/5 bg-slate-950/20 px-6 py-5">
+      <Card className="border border-slate-200/60 dark:border-white/10 shadow-2xl overflow-hidden bg-white/80 dark:bg-slate-900/40 rounded-[2rem] backdrop-blur-xl text-slate-800 dark:text-white animate-in fade-in duration-300">
+        <CardHeader className="flex flex-row items-center justify-between border-b border-slate-200/60 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20 px-6 py-5">
           <div>
-            <CardTitle className="text-lg font-black uppercase tracking-tight text-indigo-400">{isNew ? `Cadastrar Novo ${roleLabel}` : `Editar Dados do ${roleLabel}`}</CardTitle>
-            <CardDescription className="text-slate-400 text-xs mt-1">
+            <CardTitle className="text-lg font-black uppercase tracking-tight text-indigo-600 dark:text-indigo-400">{isNew ? `Cadastrar Novo ${roleLabel}` : `Editar Dados do ${roleLabel}`}</CardTitle>
+            <CardDescription className="text-slate-500 dark:text-slate-400 text-xs mt-1">
               {isNew ? (
                 allTurmas.length === 0 || allCursos.length === 0 || allCargos.length === 0 || allSetores.length === 0 ? (
-                  <span className="text-rose-400 font-bold uppercase text-[10px] animate-pulse">Atenção: Povoamento de dados incompleto para novos cadastros.</span>
+                  <span className="text-rose-600 dark:text-rose-400 font-bold uppercase text-[10px] animate-pulse">Atenção: Povoamento de dados incompleto para novos cadastros.</span>
                 ) : `Preencha as informações de ${currentRole === 'visitor' ? 'acesso temporário' : 'identificação'}.`
               ) : `Atualize os dados de ${currentRole === 'visitor' ? 'acesso' : 'identificação'}.`}
             </CardDescription>
           </div>
-          <Button variant="ghost" onClick={closeAllForms} className="text-slate-400 hover:text-white hover:bg-white/5 rounded-xl gap-2 font-bold text-xs uppercase"><ArrowLeft className="h-4 w-4" />Voltar para a Lista</Button>
+          <Button variant="ghost" onClick={closeAllForms} className="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl gap-2 font-bold text-xs uppercase"><ArrowLeft className="h-4 w-4" />Voltar para a Lista</Button>
         </CardHeader>
         <CardContent className="p-8">
           <Form {...userForm}>
@@ -437,16 +435,16 @@ export function AcademicSection({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField control={userForm.control} name="name" render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{userForm.watch('role') === 'visitor' ? 'Identificação do Visitante' : 'Nome Completo'}</FormLabel>
-                    <FormControl><Input {...field} placeholder={userForm.watch('role') === 'visitor' ? "Ex: Visitante - João da Silva" : "Ex: João Silva"} className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold" /></FormControl>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">{userForm.watch('role') === 'visitor' ? 'Identificação do Visitante' : 'Nome Completo'}</FormLabel>
+                    <FormControl><Input {...field} placeholder={userForm.watch('role') === 'visitor' ? "Ex: Visitante - João da Silva" : "Ex: João Silva"} className="h-12 bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold" /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
                 {(userForm.watch('role') === 'admin' || userForm.watch('role') === 'staff') && (
                   <FormField control={userForm.control} name="email" render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">E-mail de Acesso</FormLabel>
-                      <FormControl><Input {...field} type="email" placeholder="email@escola.com" className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold" /></FormControl>
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">E-mail de Acesso</FormLabel>
+                      <FormControl><Input {...field} type="email" placeholder="email@escola.com" className="h-12 bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold" /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
@@ -454,12 +452,12 @@ export function AcademicSection({
               </div>
 
               {userForm.watch('role') !== 'visitor' && (
-                <div className="bg-slate-950/50 p-6 rounded-2xl border border-white/5 space-y-4">
+                <div className="bg-slate-50/50 dark:bg-slate-950/50 p-6 rounded-2xl border border-slate-200/60 dark:border-white/5 space-y-4">
                   <div className="flex items-center gap-4">
-                    <div className="relative group/form-avatar h-24 w-24 border-4 border-slate-950 shadow-xl rounded-2xl overflow-hidden bg-slate-900 shrink-0">
+                    <div className="relative group/form-avatar h-24 w-24 border-4 border-slate-100 dark:border-slate-950 shadow-xl rounded-2xl overflow-hidden bg-slate-200 dark:bg-slate-900 shrink-0">
                       <Avatar className="h-full w-full rounded-none">
                         <AvatarImage src={userForm.watch('avatar')} className="object-cover" />
-                        <AvatarFallback className="bg-slate-900 text-slate-400 flex items-center justify-center">
+                        <AvatarFallback className="bg-slate-200 dark:bg-slate-900 text-slate-600 dark:text-slate-400 flex items-center justify-center">
                           <Camera className="h-8 w-8" />
                         </AvatarFallback>
                       </Avatar>
@@ -477,7 +475,7 @@ export function AcademicSection({
                       )}
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block ml-1">Foto de Perfil</Label>
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 block ml-1">Foto de Perfil</Label>
                       <div className="flex gap-2">
                         <Input 
                           type="file" 
@@ -493,7 +491,7 @@ export function AcademicSection({
                             }
                           }}
                         />
-                        <Button type="button" variant="outline" onClick={() => document.getElementById('avatar-upload')?.click()} className="bg-slate-950 border-white/10 text-slate-300 hover:text-white rounded-xl gap-2 font-bold text-[10px] uppercase tracking-wider h-10 px-4">
+                        <Button type="button" variant="outline" onClick={() => document.getElementById('avatar-upload')?.click()} className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 rounded-xl gap-2 font-bold text-[10px] uppercase tracking-wider h-10 px-4">
                           <Camera className="h-4 w-4" /> Enviar Foto
                         </Button>
                         {userForm.watch('avatar') && (
@@ -502,16 +500,16 @@ export function AcademicSection({
                               type="button" 
                               variant="outline" 
                               onClick={() => setPreviewAvatar!(userForm.watch('avatar'))} 
-                              className="bg-slate-950 border-white/10 text-slate-300 hover:text-white rounded-xl h-10 w-10 p-0 flex items-center justify-center"
+                              className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 rounded-xl h-10 w-10 p-0 flex items-center justify-center"
                               title="Visualizar Foto"
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button type="button" variant="ghost" onClick={() => userForm.setValue('avatar', '')} className="text-rose-400 hover:text-rose-300 font-bold text-[10px] uppercase tracking-wider h-10 px-4">Remover</Button>
+                            <Button type="button" variant="ghost" onClick={() => userForm.setValue('avatar', '')} className="text-rose-600 dark:text-rose-400 hover:text-rose-500 dark:hover:text-rose-300 font-bold text-[10px] uppercase tracking-wider h-10 px-4">Remover</Button>
                           </>
                         )}
                       </div>
-                      <p className="text-[9px] text-slate-500 font-medium italic">Recomendado: Imagem quadrada 500x500px.</p>
+                      <p className="text-[9px] text-slate-500 dark:text-slate-400 font-medium italic">Recomendado: Imagem quadrada 500x500px.</p>
                     </div>
                   </div>
                 </div>
@@ -522,28 +520,28 @@ export function AcademicSection({
                       <div className="flex gap-2 items-end">
                           <FormField control={userForm.control} name="ra" render={({ field }) => (
                           <FormItem className="flex-1">
-                              <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{currentRole === 'student' ? 'RA (Identificação QR)' : currentRole === 'staff' ? 'Registro Funcional (QR)' : currentRole === 'visitor' ? 'ID Temporário (Acesso Kiosk)' : 'ID de Acesso (QR)'}</FormLabel>
-                              <FormControl><Input {...field} className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold font-mono uppercase" /></FormControl>
+                              <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">{currentRole === 'student' ? 'RA (Identificação QR)' : currentRole === 'staff' ? 'Registro Funcional (QR)' : currentRole === 'visitor' ? 'ID Temporário (Acesso Kiosk)' : 'ID de Acesso (QR)'}</FormLabel>
+                              <FormControl><Input {...field} className="h-12 bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold font-mono uppercase" /></FormControl>
                               <FormMessage />
                           </FormItem>
                           )} />
                           <div className="flex gap-1 mb-[2px]">
-                            <Button type="button" variant="outline" size="icon" className="h-12 w-12 bg-slate-950 border-white/10 text-indigo-400 hover:text-indigo-300 rounded-xl" onClick={generateRandomRA} title="Gerar ID Aleatório">
+                            <Button type="button" variant="outline" size="icon" className="h-12 w-12 bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 rounded-xl" onClick={generateRandomRA} title="Gerar ID Aleatório">
                                 <Wand2 className="h-4 w-4" />
                             </Button>
-                            <Button type="button" variant="outline" size="icon" className={`h-12 w-12 rounded-xl border-white/10 ${isQRScannerOpen ? 'bg-indigo-500 text-slate-950' : 'bg-slate-950 text-indigo-400'}`} onClick={() => setIsQRScannerOpen(!isQRScannerOpen)} title="Escanear QR Code">
+                            <Button type="button" variant="outline" size="icon" className={`h-12 w-12 rounded-xl border border-slate-200/60 dark:border-white/10 ${isQRScannerOpen ? 'bg-indigo-600 dark:bg-indigo-500 text-white dark:text-slate-950' : 'bg-white dark:bg-slate-950 text-indigo-600 dark:text-indigo-400'}`} onClick={() => setIsQRScannerOpen(!isQRScannerOpen)} title="Escanear QR Code">
                                 <QrCode className="h-4 w-4" />
                             </Button>
                           </div>
                       </div>
 
                       {isQRScannerOpen && (
-                          <div className="border border-indigo-500/30 rounded-2xl p-4 bg-slate-950 space-y-3 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                          <div className="border border-indigo-500/20 dark:border-indigo-500/30 rounded-2xl p-4 bg-slate-50 dark:bg-slate-950 space-y-3 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                               <div className="flex justify-between items-center">
-                                  <span className="text-[9px] text-indigo-400 font-black uppercase tracking-widest">Câmera Ativa: Aponte o QR Code</span>
-                                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-slate-400 hover:text-rose-400 rounded-full" onClick={() => setIsQRScannerOpen(false)}><X className="h-4 w-4" /></Button>
+                                  <span className="text-[9px] text-indigo-600 dark:text-indigo-400 font-black uppercase tracking-widest">Câmera Ativa: Aponte o QR Code</span>
+                                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-full" onClick={() => setIsQRScannerOpen(false)}><X className="h-4 w-4" /></Button>
                               </div>
-                              <div className="rounded-xl overflow-hidden border border-white/5">
+                              <div className="rounded-xl overflow-hidden border border-slate-200/60 dark:border-white/5">
                                 <QRScanner 
                                   onScan={(text: string) => {
                                     userForm.setValue('ra', text.toUpperCase());
@@ -559,12 +557,12 @@ export function AcademicSection({
                           <div className="flex gap-2 items-end">
                               <FormField control={userForm.control} name="rfid" render={({ field }) => (
                               <FormItem className="flex-1">
-                                  <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">ID do Cartão (RFID)</FormLabel>
-                                  <FormControl><Input {...field} placeholder="Aguardando..." autoComplete="off" className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold font-mono uppercase" /></FormControl>
+                                  <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">ID do Cartão (RFID)</FormLabel>
+                                  <FormControl><Input {...field} placeholder="Aguardando..." autoComplete="off" className="h-12 bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold font-mono uppercase" /></FormControl>
                                   <FormMessage />
                               </FormItem>
                               )} />
-                              <Button type="button" variant={isRFIDCapturing ? 'destructive' : 'outline'} size="icon" className={`h-12 w-12 rounded-xl mb-[2px] ${isRFIDCapturing ? 'bg-rose-600 hover:bg-rose-500 border-rose-400/20 text-white animate-pulse' : 'bg-slate-950 border-white/10 text-indigo-400'}`} onClick={() => setIsRFIDCapturing(!isRFIDCapturing)}>
+                              <Button type="button" variant={isRFIDCapturing ? 'destructive' : 'outline'} size="icon" className={`h-12 w-12 rounded-xl mb-[2px] ${isRFIDCapturing ? 'bg-rose-600 hover:bg-rose-500 border-rose-400/20 text-white animate-pulse' : 'bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-indigo-600 dark:text-indigo-400'}`} onClick={() => setIsRFIDCapturing(!isRFIDCapturing)}>
                                   <Rss className="h-4 w-4" />
                               </Button>
                           </div>
@@ -575,12 +573,12 @@ export function AcademicSection({
                       {(userForm.watch('role') === 'admin' || userForm.watch('role') === 'staff') && (
                         <FormField control={userForm.control} name="position" render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{currentRole === 'staff' ? 'Cargo / Função' : 'Cargo Administrativo'}</FormLabel>
+                            <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">{currentRole === 'staff' ? 'Cargo / Função' : 'Cargo Administrativo'}</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value || ""}>
-                              <SelectTrigger className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                              <SelectContent className="bg-slate-950 border border-white/10 text-white">
+                              <SelectTrigger className="h-12 bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                              <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white">
                                 {allCargos.filter(c => c.status === 'active').map(c => (
-                                  <SelectItem key={c.id} value={c.name} className="hover:bg-indigo-500/10">{c.name}</SelectItem>
+                                  <SelectItem key={c.id} value={c.name} className="hover:bg-indigo-50 dark:hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-white">{c.name}</SelectItem>
                                 ))}
                                 {allCargos.length === 0 && <SelectItem value="none" disabled>Nenhum cargo cadastrado</SelectItem>}
                               </SelectContent>
@@ -593,14 +591,14 @@ export function AcademicSection({
                       {(userForm.watch('role') === 'student' || userForm.watch('role') === 'staff') && (
                         <FormField control={userForm.control} name="turma" render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{currentRole === 'student' ? 'Turma' : 'Setor / Departamento'}</FormLabel>
+                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">{currentRole === 'student' ? 'Turma' : 'Setor / Departamento'}</FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value || ""}>
-                                    <SelectTrigger className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                    <SelectContent className="bg-slate-950 border border-white/10 text-white">
+                                    <SelectTrigger className="h-12 bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                    <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white">
                                         {userForm.watch('role') === 'student' ? (
-                                            sortedTurmas.filter(t => t.status === 'active').map(t => <SelectItem key={t.id} value={t.name} className="hover:bg-indigo-500/10">{t.name}</SelectItem>)
+                                            sortedTurmas.filter(t => t.status === 'active').map(t => <SelectItem key={t.id} value={t.name} className="hover:bg-indigo-50 dark:hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-white">{t.name}</SelectItem>)
                                         ) : (
-                                            sortedSetores.filter(s => s.status === 'active').map(s => <SelectItem key={s.id} value={s.name} className="hover:bg-indigo-500/10">{s.name}</SelectItem>)
+                                            sortedSetores.filter(s => s.status === 'active').map(s => <SelectItem key={s.id} value={s.name} className="hover:bg-indigo-50 dark:hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-white">{s.name}</SelectItem>)
                                         )}
                                     </SelectContent>
                                 </Select>
@@ -611,11 +609,11 @@ export function AcademicSection({
                       {userForm.watch('role') === 'student' && (
                         <FormField control={userForm.control} name="curso" render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Curso</FormLabel>
+                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Curso</FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value || ""}>
-                                    <SelectTrigger className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold"><SelectValue placeholder="Selecione o curso" /></SelectTrigger>
-                                    <SelectContent className="bg-slate-950 border border-white/10 text-white">
-                                        {sortedCursos.filter(c => c.status === 'active' && c.name !== 'Gestão Escolar').map(c => <SelectItem key={c.id} value={c.name} className="hover:bg-indigo-500/10">{c.name}</SelectItem>)}
+                                    <SelectTrigger className="h-12 bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold"><SelectValue placeholder="Selecione o curso" /></SelectTrigger>
+                                    <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white">
+                                        {sortedCursos.filter(c => c.status === 'active' && c.name !== 'Gestão Escolar').map(c => <SelectItem key={c.id} value={c.name} className="hover:bg-indigo-50 dark:hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-white">{c.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -623,25 +621,25 @@ export function AcademicSection({
                         )} />
                       )}
                       {(userForm.watch('role') === 'admin' || userForm.watch('role') === 'staff') && isNew && (
-                        <div className="p-4 bg-slate-950 border border-white/5 rounded-2xl space-y-4">
+                        <div className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200/60 dark:border-white/5 rounded-2xl space-y-4">
                           <div className="flex justify-between items-center">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Senha Inicial</Label>
-                            <Button type="button" variant="ghost" size="sm" onClick={generateStrongPassword} className="h-7 text-[10px] font-bold uppercase tracking-tighter text-indigo-400 hover:text-indigo-300">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Senha Inicial</Label>
+                            <Button type="button" variant="ghost" size="sm" onClick={generateStrongPassword} className="h-7 text-[10px] font-bold uppercase tracking-tighter text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300">
                               <Wand2 className="h-3 w-3 mr-1 animate-pulse" /> Gerar Forte
                             </Button>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField control={userForm.control} name="password" render={({ field }) => (
                               <FormItem>
-                                <FormLabel className="text-[9px] font-bold uppercase text-slate-400">Senha</FormLabel>
-                                <FormControl><Input {...field} type="password" autoComplete="new-password" placeholder="Min 6 char" className="h-10 bg-slate-900 border-white/5 text-white rounded-lg focus:border-indigo-500/50" /></FormControl>
+                                <FormLabel className="text-[9px] font-bold uppercase text-slate-500 dark:text-slate-400">Senha</FormLabel>
+                                <FormControl><Input {...field} type="password" autoComplete="new-password" placeholder="Min 6 char" className="h-10 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 text-slate-800 dark:text-white rounded-lg focus:border-indigo-500/50" /></FormControl>
                                 <FormMessage />
                               </FormItem>
                             )} />
                             <FormField control={userForm.control} name="confirmPassword" render={({ field }) => (
                               <FormItem>
-                                <FormLabel className="text-[9px] font-bold uppercase text-slate-400">Confirmar</FormLabel>
-                                <FormControl><Input {...field} type="password" autoComplete="new-password" placeholder="Repita" className="h-10 bg-slate-900 border-white/5 text-white rounded-lg focus:border-indigo-500/50" /></FormControl>
+                                <FormLabel className="text-[9px] font-bold uppercase text-slate-500 dark:text-slate-400">Confirmar</FormLabel>
+                                <FormControl><Input {...field} type="password" autoComplete="new-password" placeholder="Repita" className="h-10 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 text-slate-800 dark:text-white rounded-lg focus:border-indigo-500/50" /></FormControl>
                                 <FormMessage />
                               </FormItem>
                             )} />
@@ -652,8 +650,8 @@ export function AcademicSection({
               </div>
 
 
-                <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 space-y-2 mt-4 animate-pulse">
-                  <div className="flex items-center gap-2 text-amber-400">
+                <div className="bg-amber-500/5 border border-amber-500/20 dark:border-amber-500/30 rounded-2xl p-4 space-y-2 mt-4 animate-pulse">
+                  <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
                     <Lock className="h-4 w-4 animate-spin-slow" />
                     <span className="text-[10px] font-black uppercase tracking-widest">Confirmação de Segurança</span>
                   </div>
@@ -676,13 +674,13 @@ export function AcademicSection({
                     value={securityPassword} 
                     onChange={(e) => setSecurityPassword(e.target.value)} 
                     placeholder="Digite sua senha de segurança ou Master" 
-                    className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-amber-500/50 font-bold"
+                    className="h-12 bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-amber-500/50 font-bold"
                   />
-                  <p className="text-[9px] text-amber-500/60 font-medium italic">Esta ação necessita de validação criptográfica (Chave Mestra).</p>
+                  <p className="text-[9px] text-amber-600/70 dark:text-amber-500/60 font-medium italic">Esta ação necessita de validação criptográfica (Chave Mestra).</p>
                </div>
 
-               <div className="flex justify-end gap-4 pt-6 border-t border-white/5 mt-6">
-                   <Button type="button" variant="ghost" onClick={closeAllForms} disabled={isSubmitting} className="text-slate-400 hover:text-white">Cancelar</Button>
+               <div className="flex justify-end gap-4 pt-6 border-t border-slate-200/60 dark:border-white/5 mt-6">
+                   <Button type="button" variant="ghost" onClick={closeAllForms} disabled={isSubmitting} className="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white">Cancelar</Button>
                    <Button type="submit" size="lg" disabled={isSubmitting} className="px-8 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white border border-indigo-400/20 font-black uppercase text-xs tracking-widest rounded-xl shadow-xl transition-all">{isSubmitting ? 'Salvando...' : 'Confirmar e Salvar'}</Button>
                </div>
             </form>
@@ -694,20 +692,20 @@ export function AcademicSection({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      <Card className="border border-white/10 shadow-2xl overflow-hidden bg-slate-900/40 rounded-[2rem] backdrop-blur-xl hover:border-indigo-500/10 transition-all duration-300 text-white">
-        <CardHeader className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-white/5 bg-slate-950/20 px-6 py-5">
+      <Card className="border border-slate-200/60 dark:border-white/10 shadow-2xl overflow-hidden bg-white/80 dark:bg-slate-900/40 rounded-[2rem] backdrop-blur-xl hover:border-indigo-500/10 dark:hover:border-indigo-500/10 transition-all duration-300 text-slate-800 dark:text-white">
+        <CardHeader className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-slate-200/60 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20 px-6 py-5">
           <div className="flex items-center gap-4">
-             <div className="h-12 w-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-md">
+             <div className="h-12 w-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500 dark:text-indigo-400 shadow-md">
                 <Users className="h-5 w-5" />
              </div>
              <div>
-                <CardTitle className="text-xl font-black uppercase tracking-tight text-slate-200">Corpo Acadêmico</CardTitle>
-                <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Gestão de alunos, visitantes e equipe administrativa local.</CardDescription>
+                <CardTitle className="text-xl font-black uppercase tracking-tight text-slate-800 dark:text-slate-200">Corpo Acadêmico</CardTitle>
+                <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mt-1">Gestão de alunos, visitantes e equipe administrativa local.</CardDescription>
              </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 bg-slate-950 border border-white/10 p-2 rounded-xl shadow-md">
-              <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-2">Inativos</Label>
+            <div className="flex items-center gap-2 bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 p-2 rounded-xl shadow-md">
+              <Label className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-2">Inativos</Label>
               <Switch 
                 checked={showInactive} 
                 onCheckedChange={setShowInactive}
@@ -726,7 +724,7 @@ export function AcademicSection({
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input 
                   placeholder="Pesquisar por nome ou RA..." 
-                  className="pl-12 h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold"
+                  className="pl-12 h-12 bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold"
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
                 />
@@ -734,21 +732,21 @@ export function AcademicSection({
             
             {userRoleFilter !== 'visitor' && (
               <div className="w-full md:w-64 space-y-1.5">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-550 dark:text-slate-400 ml-1">
                   {userRoleFilter === 'admin' || userRoleFilter === 'staff' ? 'Filtrar por Setor' : 'Filtrar por Turma'}
                 </Label>
                 <Select value={userTurmaFilter || ""} onValueChange={setUserTurmaFilter}>
-                  <SelectTrigger className="h-12 bg-slate-950 border-white/10 text-white rounded-xl focus:border-indigo-500/50 font-bold">
+                  <SelectTrigger className="h-12 bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold">
                     <SelectValue placeholder={userRoleFilter === 'admin' || userRoleFilter === 'staff' ? "Todos os Setores" : "Todas as Turmas"} />
                   </SelectTrigger>
-                    <SelectContent className="bg-slate-950 border border-white/10 text-white">
+                    <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white">
                       {userRoleFilter === 'admin' || userRoleFilter === 'staff' ? (
                         sortedSetores.filter(s => s.status === 'active').map((s, idx) => (
-                          <SelectItem key={s.id || `filter-s-${idx}`} value={s.name} className="hover:bg-indigo-500/10">{s.name}</SelectItem>
+                          <SelectItem key={s.id || `filter-s-${idx}`} value={s.name} className="hover:bg-indigo-50 dark:hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-white">{s.name}</SelectItem>
                         ))
                       ) : (
                         sortedTurmas.filter(t => t.status === 'active').map((t, idx) => (
-                          <SelectItem key={t.id || `filter-t-${idx}`} value={t.name} className="hover:bg-indigo-500/10">{t.name}</SelectItem>
+                          <SelectItem key={t.id || `filter-t-${idx}`} value={t.name} className="hover:bg-indigo-50 dark:hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-white">{t.name}</SelectItem>
                         ))
                       )}
                     </SelectContent>
@@ -765,16 +763,16 @@ export function AcademicSection({
             }} 
             className="w-full space-y-6"
           >
-            <TabsList className="grid w-full grid-cols-5 h-14 bg-slate-950/80 p-1 rounded-2xl border border-white/5 shadow-2xl backdrop-blur-xl">
-              <TabsTrigger value="student" className="gap-2 uppercase font-black text-[10px] tracking-widest text-slate-400 hover:text-white rounded-xl data-[state=active]:bg-indigo-500 data-[state=active]:text-slate-950 transition-all duration-300">
+            <TabsList className="grid w-full grid-cols-5 h-14 bg-slate-100/80 dark:bg-slate-950/80 p-1 rounded-2xl border border-slate-200/60 dark:border-white/5 shadow-2xl backdrop-blur-xl">
+              <TabsTrigger value="student" className="gap-2 uppercase font-black text-[10px] tracking-widest text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-xl data-[state=active]:bg-indigo-600 dark:data-[state=active]:bg-indigo-500 data-[state=active]:text-white dark:data-[state=active]:text-slate-950 transition-all duration-300">
                 Alunos ({filteredUsersForAdmin.filter(u => u.role === 'student').length})
               </TabsTrigger>
-              <TabsTrigger value="staff" className="gap-2 uppercase font-black text-[10px] tracking-widest text-slate-400 hover:text-white rounded-xl data-[state=active]:bg-indigo-500 data-[state=active]:text-slate-950 transition-all duration-300">
+              <TabsTrigger value="staff" className="gap-2 uppercase font-black text-[10px] tracking-widest text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-xl data-[state=active]:bg-indigo-600 dark:data-[state=active]:bg-indigo-500 data-[state=active]:text-white dark:data-[state=active]:text-slate-950 transition-all duration-300">
                 Funcionários ({filteredUsersForAdmin.filter(u => u.role === 'staff').length})
               </TabsTrigger>
-              <TabsTrigger value="admin" className="gap-2 uppercase font-black text-[10px] tracking-widest text-slate-400 hover:text-white rounded-xl data-[state=active]:bg-indigo-500 data-[state=active]:text-slate-950 transition-all duration-300">Gestores ({filteredUsersForAdmin.filter(u => u.role === 'admin' || u.role === 'super_admin').length})</TabsTrigger>
-              <TabsTrigger value="visitor" className="gap-2 uppercase font-black text-[10px] tracking-widest text-slate-400 hover:text-white rounded-xl data-[state=active]:bg-indigo-500 data-[state=active]:text-slate-950 transition-all duration-300">Visitantes ({filteredUsersForAdmin.filter(u => u.role === 'visitor').length})</TabsTrigger>
-              <TabsTrigger value="requests" className="gap-2 uppercase font-black text-[10px] tracking-widest text-slate-400 hover:text-white rounded-xl data-[state=active]:bg-indigo-500 data-[state=active]:text-slate-950 transition-all duration-300">
+              <TabsTrigger value="admin" className="gap-2 uppercase font-black text-[10px] tracking-widest text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-xl data-[state=active]:bg-indigo-600 dark:data-[state=active]:bg-indigo-500 data-[state=active]:text-white dark:data-[state=active]:text-slate-950 transition-all duration-300">Gestores ({filteredUsersForAdmin.filter(u => u.role === 'admin' || u.role === 'super_admin').length})</TabsTrigger>
+              <TabsTrigger value="visitor" className="gap-2 uppercase font-black text-[10px] tracking-widest text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-xl data-[state=active]:bg-indigo-600 dark:data-[state=active]:bg-indigo-500 data-[state=active]:text-white dark:data-[state=active]:text-slate-950 transition-all duration-300">Visitantes ({filteredUsersForAdmin.filter(u => u.role === 'visitor').length})</TabsTrigger>
+              <TabsTrigger value="requests" className="gap-2 uppercase font-black text-[10px] tracking-widest text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-xl data-[state=active]:bg-indigo-600 dark:data-[state=active]:bg-indigo-500 data-[state=active]:text-white dark:data-[state=active]:text-slate-950 transition-all duration-300">
                 Solicitações 
                 {filteredRequests.length > 0 && (
                   <Badge className="h-4 w-4 p-0 flex items-center justify-center text-[8px] bg-rose-600 border border-rose-500/20 text-white animate-pulse ml-1 rounded-full">
@@ -786,18 +784,18 @@ export function AcademicSection({
             
             <TabsContent value="student">
               {!userTurmaFilter && !userSearch ? (
-                <div className="flex flex-col items-center justify-center py-16 bg-slate-950/20 border border-dashed rounded-3xl border-white/10 text-center italic">
-                  <div className="h-16 w-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4 animate-pulse shadow-lg">
+                <div className="flex flex-col items-center justify-center py-16 bg-slate-50/50 dark:bg-slate-950/20 border border-dashed rounded-3xl border-slate-200/60 dark:border-white/10 text-center italic">
+                  <div className="h-16 w-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500 dark:text-indigo-400 mb-4 animate-pulse shadow-lg">
                     <Users className="h-8 w-8" />
                   </div>
-                  <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest">Aguardando Seleção</h3>
-                  <p className="text-[10px] text-slate-500 mt-1 uppercase font-black">Escolha uma turma específica acima para visualizar os alunos.</p>
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-300 uppercase tracking-widest">Aguardando Seleção</h3>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 uppercase font-black">Escolha uma turma específica acima para visualizar os alunos.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {userTurmaFilter && (
                     <div className="flex items-center gap-2 px-1">
-                      <Badge className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[9px] font-black uppercase tracking-widest h-6 px-3">
+                      <Badge className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 dark:text-indigo-400 text-[9px] font-black uppercase tracking-widest h-6 px-3">
                         {filteredUsers.filter(u => u.role === 'student').length} Alunos na Turma {userTurmaFilter}
                       </Badge>
                     </div>
@@ -809,18 +807,18 @@ export function AcademicSection({
 
             <TabsContent value="staff">
                {!userTurmaFilter && !userSearch ? (
-                <div className="flex flex-col items-center justify-center py-16 bg-slate-950/20 border border-dashed rounded-3xl border-white/10 text-center italic">
-                  <div className="h-16 w-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4 animate-pulse shadow-lg">
+                <div className="flex flex-col items-center justify-center py-16 bg-slate-50/50 dark:bg-slate-950/20 border border-dashed rounded-3xl border-slate-200/60 dark:border-white/10 text-center italic">
+                  <div className="h-16 w-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500 dark:text-indigo-400 mb-4 animate-pulse shadow-lg">
                     <Users className="h-8 w-8" />
                   </div>
-                  <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest">Aguardando Seleção</h3>
-                  <p className="text-[10px] text-slate-500 mt-1 uppercase font-black">Escolha um setor específico acima para visualizar os funcionários.</p>
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-300 uppercase tracking-widest">Aguardando Seleção</h3>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 uppercase font-black">Escolha um setor específico acima para visualizar os funcionários.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {userTurmaFilter && (
                     <div className="flex items-center gap-2 px-1">
-                      <Badge className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[9px] font-black uppercase tracking-widest h-6 px-3">
+                      <Badge className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 dark:text-indigo-400 text-[9px] font-black uppercase tracking-widest h-6 px-3">
                         {filteredUsers.filter(u => u.role === 'staff').length} Funcionários no Setor {userTurmaFilter}
                       </Badge>
                     </div>
@@ -837,7 +835,7 @@ export function AcademicSection({
             <TabsContent value="visitor">
               <div className="space-y-4">
                 <div className="flex items-center gap-2 px-1">
-                  <Badge className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[9px] font-black uppercase tracking-widest h-6 px-3">
+                  <Badge className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 dark:text-indigo-400 text-[9px] font-black uppercase tracking-widest h-6 px-3">
                     {filteredUsers.filter(u => u.role === 'visitor').length} Visitantes Cadastrados
                   </Badge>
                 </div>
@@ -846,32 +844,32 @@ export function AcademicSection({
             </TabsContent>
 
             <TabsContent value="requests">
-              <div className="rounded-2xl border border-white/10 bg-slate-950/50 overflow-hidden shadow-2xl">
+              <div className="rounded-2xl border border-slate-200/60 dark:border-white/10 bg-white/50 dark:bg-slate-950/50 overflow-hidden shadow-2xl">
                 <Table>
-                  <TableHeader className="bg-slate-950 border-b border-white/10">
+                  <TableHeader className="bg-slate-50/50 dark:bg-slate-950 border-b border-slate-200/60 dark:border-white/10">
                     <TableRow>
-                      <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400 px-6 h-12">Data</TableHead>
-                      <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400 h-12">Aluno</TableHead>
-                      <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400 h-12">RA</TableHead>
-                      <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400 h-12">Escolaridade</TableHead>
-                      <TableHead className="text-right px-6 font-black uppercase text-[10px] tracking-widest text-slate-400 h-12">Decisão</TableHead>
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-500 dark:text-slate-400 px-6 h-12">Data</TableHead>
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-500 dark:text-slate-400 h-12">Aluno</TableHead>
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-500 dark:text-slate-400 h-12">RA</TableHead>
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-500 dark:text-slate-400 h-12">Escolaridade</TableHead>
+                      <TableHead className="text-right px-6 font-black uppercase text-[10px] tracking-widest text-slate-500 dark:text-slate-400 h-12">Decisão</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredRequests.length > 0 ? filteredRequests.map((req) => (
-                      <TableRow key={req.id} className="hover:bg-indigo-500/5 border-b border-white/5 transition-colors group">
-                        <TableCell className="px-6 py-4 font-medium text-[11px] text-slate-400">
+                      <TableRow key={req.id} className="hover:bg-indigo-50/40 dark:hover:bg-indigo-500/5 border-b border-slate-100 dark:border-white/5 transition-colors group">
+                        <TableCell className="px-6 py-4 font-medium text-[11px] text-slate-550 dark:text-slate-400">
                           <div className="flex items-center gap-2">
                             <Clock className="h-3 w-3" />
                             {new Date(req.createdAt).toLocaleDateString('pt-BR')}
                           </div>
                         </TableCell>
-                        <TableCell className="font-bold text-sm text-slate-200">{req.name}</TableCell>
-                        <TableCell className="font-mono text-[11px] font-bold text-indigo-400">{req.ra}</TableCell>
+                        <TableCell className="font-bold text-sm text-slate-850 dark:text-slate-200">{req.name}</TableCell>
+                        <TableCell className="font-mono text-[11px] font-bold text-indigo-600 dark:text-indigo-400">{req.ra}</TableCell>
                         <TableCell>
                           <div className="flex flex-col">
-                            <span className="text-[10px] font-black uppercase text-slate-200">{req.turma}</span>
-                            <span className="text-[9px] font-bold text-slate-400">{req.curso}</span>
+                            <span className="text-[10px] font-black uppercase text-slate-800 dark:text-slate-200">{req.turma}</span>
+                            <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400">{req.curso}</span>
                           </div>
                         </TableCell>
                         <TableCell className="text-right px-6 py-4">
@@ -886,7 +884,7 @@ export function AcademicSection({
                             <Button 
                               size="sm" 
                               variant="outline" 
-                              className="h-9 rounded-xl bg-slate-950 border border-rose-500/20 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 gap-1 font-bold text-[10px] uppercase px-4"
+                              className="h-9 rounded-xl bg-white dark:bg-slate-950 border border-rose-500/20 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 hover:text-rose-700 dark:hover:text-rose-300 gap-1 font-bold text-[10px] uppercase px-4"
                               onClick={() => rejectRegistration(req.id)}
                             >
                               <X className="h-3 w-3" /> Recusar
@@ -909,9 +907,9 @@ export function AcademicSection({
               </div>
             </TabsContent>
           </Tabs>
-
+ 
           <Dialog open={isBadgeOpen} onOpenChange={setIsBadgeOpen}>
-            <DialogContent className="sm:max-w-[480px] bg-[#070913]/95 backdrop-blur-2xl border-white/10 text-white shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden">
+            <DialogContent className="sm:max-w-[480px] bg-white/95 dark:bg-[#070913]/95 backdrop-blur-2xl border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden">
               {badgeUser && (
                 <>
                   {(() => {
@@ -922,37 +920,37 @@ export function AcademicSection({
                       super_admin: { glow: 'shadow-[0_0_50px_rgba(79,70,229,0.35)] border-indigo-500/20 text-indigo-400', text: 'text-indigo-400' },
                       visitor: { glow: 'shadow-[0_0_50px_rgba(217,119,6,0.35)] border-amber-500/20 text-amber-400', text: 'text-amber-400' },
                     }[badgeUser.role as string] || { glow: 'shadow-[0_0_50px_rgba(16,185,129,0.35)] border-emerald-500/20 text-emerald-400', text: 'text-emerald-400' };
-
+ 
                     return (
                       <>
                         <DialogHeader className="pb-2">
-                          <DialogTitle className="flex items-center gap-2 text-white text-lg font-black tracking-tight">
+                          <DialogTitle className="flex items-center gap-2 text-slate-900 dark:text-white text-lg font-black tracking-tight">
                             <UserIcon className={`h-5 w-5 animate-pulse shrink-0 ${roleConfig.text}`} />
                             Carteira Digital SchoolGain
                           </DialogTitle>
-                          <DialogDescription className="text-slate-400 text-xs">
+                          <DialogDescription className="text-slate-500 dark:text-slate-400 text-xs">
                             Visualização de crachá de identificação para {badgeUser.name}.
                           </DialogDescription>
                         </DialogHeader>
-
+ 
                         {/* Container Premium tridimensional com escala de visualização de 1.18 */}
                         <div className="py-8 my-2 flex justify-center items-center overflow-visible [perspective:1000px]">
                           <div id={`badge-${badgeUser.id}`} className={`transform scale-[1.18] hover:scale-[1.25] hover:rotate-y-[6deg] hover:rotate-x-[4deg] transition-all duration-500 ease-out origin-center cursor-pointer select-none rounded-[16px] border ${roleConfig.glow}`}>
                             <PrintableBadge user={badgeUser} />
                           </div>
                         </div>
-
-                        <div className="mt-4 text-center text-[10px] text-slate-400 uppercase font-black tracking-widest px-6 leading-relaxed">
+ 
+                        <div className="mt-4 text-center text-[10px] text-slate-500 dark:text-slate-400 uppercase font-black tracking-widest px-6 leading-relaxed">
                           Use o arquivo digital ou imprima o crachá físico para identificação nos totens.
                         </div>
-
+ 
                         <div className="mt-6 flex flex-col gap-3">
                           <div className="grid grid-cols-2 gap-3">
                             <Button onClick={() => handleDownloadBadgeImage(badgeUser)} className="gap-2 shadow-lg bg-emerald-600 hover:bg-emerald-700 text-white border-none font-bold uppercase tracking-wider text-[10px] h-10 rounded-xl">
                               <ImageIcon className="h-4 w-4" />
                               Salvar Imagem
                             </Button>
-                            <Button onClick={() => handleBadgePrint(badgeUser)} variant="outline" className="gap-2 shadow-lg border-white/10 hover:bg-white/5 hover:text-white text-slate-300 font-bold uppercase tracking-wider text-[10px] h-10 rounded-xl">
+                            <Button onClick={() => handleBadgePrint(badgeUser)} variant="outline" className="gap-2 shadow-lg border-slate-200/60 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white text-slate-600 dark:text-slate-300 font-bold uppercase tracking-wider text-[10px] h-10 rounded-xl">
                               <Printer className="h-4 w-4" />
                               PDF / Imprimir
                             </Button>
@@ -965,7 +963,7 @@ export function AcademicSection({
               )}
             </DialogContent>
           </Dialog>
-
+ 
           {/* DIÁLOGO DE PREVISÃO DE AVATAR */}
           <Dialog open={!!previewAvatar} onOpenChange={() => setPreviewAvatar!(null)}>
             <DialogContent className="max-w-xl border-none bg-transparent shadow-none p-0 overflow-hidden flex items-center justify-center">

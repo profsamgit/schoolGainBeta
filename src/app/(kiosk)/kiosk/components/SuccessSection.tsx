@@ -20,7 +20,7 @@ export function SuccessSection({
   handleExit
 }: SuccessSectionProps) {
   return (
-    <div className="relative flex min-h-screen flex-col bg-[#070913] items-center justify-center p-4 text-slate-100 overflow-hidden font-sans">
+    <div className="relative flex min-h-screen flex-col bg-slate-100 dark:bg-[#070913] items-center justify-center p-4 text-slate-800 dark:text-slate-100 overflow-hidden font-sans">
       
       {/* 🚀 Estilos de Animação e Partículas */}
       <style>{`
@@ -55,7 +55,7 @@ export function SuccessSection({
       </div>
 
       <main className="relative z-10 w-full max-w-md flex flex-col items-center">
-        <Card className="w-full backdrop-blur-3xl bg-slate-950/40 border border-white/10 rounded-[2.5rem] shadow-[0_25px_60px_rgba(0,0,0,0.8)] ring-1 ring-white/5 overflow-hidden animate-in fade-in zoom-in duration-500">
+        <Card className="w-full backdrop-blur-3xl bg-white/90 dark:bg-slate-950/40 border border-slate-200 dark:border-white/10 rounded-[2.5rem] shadow-[0_25px_60px_rgba(0,0,0,0.15)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.8)] ring-1 ring-slate-200/60 dark:ring-white/5 overflow-hidden animate-in fade-in zoom-in duration-500">
           <div className="h-2 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
           
           <CardHeader className="text-center pb-2 pt-8">
@@ -72,24 +72,24 @@ export function SuccessSection({
               </div>
             </div>
             
-            <CardTitle className="text-2xl font-black text-white uppercase tracking-wider bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+            <CardTitle className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-wider bg-gradient-to-r from-slate-900 via-slate-700 to-slate-500 dark:from-white dark:via-slate-200 dark:to-slate-400 bg-clip-text text-transparent">
               Ação Registrada!
             </CardTitle>
           </CardHeader>
           
           <CardContent className="text-center py-6 px-8 space-y-4">
             {/* Success Quote Panel */}
-            <div className="bg-slate-950/60 p-6 border border-white/5 rounded-2xl shadow-inner relative overflow-hidden">
+            <div className="bg-slate-100/80 dark:bg-slate-950/60 p-6 border border-slate-200/60 dark:border-white/5 rounded-2xl shadow-inner relative overflow-hidden">
               <div className="absolute -top-3 -right-3 text-emerald-500/10 pointer-events-none">
                 <PartyPopper className="w-20 h-20 rotate-12" />
               </div>
               
-              <p className="text-base font-extrabold text-slate-100 leading-relaxed relative z-10">
+              <p className="text-base font-extrabold text-slate-800 dark:text-slate-100 leading-relaxed relative z-10">
                 "{successMessage}"
               </p>
             </div>
             
-            <div className="flex items-center justify-center gap-1.5 text-xs text-slate-500 font-black uppercase tracking-widest pt-2">
+            <div className="flex items-center justify-center gap-1.5 text-xs text-slate-500 dark:text-slate-500 font-black uppercase tracking-widest pt-2">
               <Sparkles className="w-4 h-4 text-emerald-400 animate-pulse" />
               <span>Sua Atitude Sustentável Transforma o Ecossistema</span>
             </div>
