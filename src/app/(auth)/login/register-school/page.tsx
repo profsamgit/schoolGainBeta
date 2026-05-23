@@ -125,7 +125,7 @@ export default function RegisterSchoolPage() {
                 required 
                 value={formData.name}
                 onChange={e => setFormData({...formData, name: e.target.value})}
-                className="h-12 px-4 rounded-xl bg-slate-900/90 dark:bg-slate-950/60 text-white placeholder:text-slate-400 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400"
+                className="h-12 px-4 rounded-xl bg-white/80 dark:bg-slate-950/60 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400"
               />
             </div>
 
@@ -139,7 +139,7 @@ export default function RegisterSchoolPage() {
                   required 
                   value={formData.city}
                   onChange={e => setFormData({...formData, city: e.target.value})}
-                  className="h-12 px-4 rounded-xl bg-slate-900/90 dark:bg-slate-950/60 text-white placeholder:text-slate-400 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400"
+                  className="h-12 px-4 rounded-xl bg-white/80 dark:bg-slate-950/60 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400"
                 />
               </div>
               <div className="space-y-1.5">
@@ -151,7 +151,7 @@ export default function RegisterSchoolPage() {
                   required 
                   value={formData.state}
                   onChange={e => setFormData({...formData, state: e.target.value.toUpperCase()})}
-                  className="h-12 px-4 rounded-xl bg-slate-900/90 dark:bg-slate-950/60 text-white placeholder:text-slate-400 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400 text-center font-bold"
+                  className="h-12 px-4 rounded-xl bg-white/80 dark:bg-slate-950/60 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400 text-center font-bold"
                 />
               </div>
             </div>
@@ -166,7 +166,7 @@ export default function RegisterSchoolPage() {
                 required 
                 value={formData.contactEmail}
                 onChange={e => setFormData({...formData, contactEmail: e.target.value})}
-                className="h-12 px-4 rounded-xl bg-slate-900/90 dark:bg-slate-950/60 text-white placeholder:text-slate-400 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400"
+                className="h-12 px-4 rounded-xl bg-white/80 dark:bg-slate-950/60 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400"
               />
             </div>
 
@@ -189,7 +189,7 @@ export default function RegisterSchoolPage() {
                     required 
                     value={formData.managerEmail}
                     onChange={e => setFormData({...formData, managerEmail: e.target.value})}
-                    className="h-12 px-4 rounded-xl bg-slate-900/90 dark:bg-slate-950/60 text-white placeholder:text-slate-400 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400"
+                    className="h-12 px-4 rounded-xl bg-white/80 dark:bg-slate-950/60 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400"
                   />
                 </div>
                 
@@ -205,7 +205,7 @@ export default function RegisterSchoolPage() {
                     required 
                     value={formData.initialManagerPassword}
                     onChange={e => setFormData({...formData, initialManagerPassword: e.target.value})}
-                    className="h-12 px-4 rounded-xl bg-slate-900/90 dark:bg-slate-950/60 text-white placeholder:text-slate-400 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400"
+                    className="h-12 px-4 rounded-xl bg-white/80 dark:bg-slate-950/60 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400"
                   />
                 </div>
               </div>

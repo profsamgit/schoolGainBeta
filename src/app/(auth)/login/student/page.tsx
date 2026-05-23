@@ -271,7 +271,7 @@ export default function StudentLoginPage() {
                     value={ra}
                     onChange={(e) => setRa(e.target.value.toUpperCase())}
                     placeholder="Seu RA"
-                    className="text-center text-xl h-13 uppercase bg-slate-900/90 dark:bg-slate-950/60 text-white placeholder:text-slate-400 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:focus:border-emerald-400 rounded-xl"
+                    className="text-center text-xl h-13 uppercase bg-white/80 dark:bg-slate-950/60 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:focus:border-emerald-400 rounded-xl"
                     disabled={lockoutSecs > 0}
                     inputMode={showKeyboard ? 'none' : 'text'}
                     autoComplete="off"

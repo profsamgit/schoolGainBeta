@@ -27,8 +27,8 @@ interface EcosystemContextType {
   completeDailyMission: (points: number) => boolean; // Função para ganhar pontos diários
   deductPoints: (points: number) => boolean;         // Função para gastar pontos
   registerAttendance: (status: 'presente' | 'falta') => void; // Registra presença/falta
-  buyUpgrade: (item: EcosystemItem) => boolean;      // Compra um item para o mundo virtual
-  healVitality: (points: number) => boolean;         // Recupera saúde do mundo gastando pontos
+  buyUpgrade: (item: EcosystemItem) => { success: boolean; error?: string };      // Compra um item para o mundo virtual
+  healVitality: (points: number) => { success: boolean; error?: string };         // Recupera saúde do mundo gastando pontos
   allParticipants: Participant[]; // Lista da equipe do projeto
   updateParticipants: (newParticipants: Participant[]) => Promise<boolean>;
   users: User[];              // Lista mestre (legado/ranking)
@@ -367,8 +367,12 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   };
   const deductPoints = service.deductPoints.bind(service);
   const registerAttendance = service.registerAttendance.bind(service);
-  const buyUpgrade = (item: EcosystemItem) => service.buyUpgrade(item);
-  const healVitality = (points: number) => service.healVitality(points);
+  const buyUpgrade = (item: EcosystemItem) => {
+    return service.buyUpgrade(item, isPreviewMode && displayUser?.id ? displayUser.id : undefined);
+  };
+  const healVitality = (points: number) => {
+    return service.healVitality(points, isPreviewMode && displayUser?.id ? displayUser.id : undefined);
+  };
   const updateParticipants = service.updateParticipants.bind(service);
   const login = (ra: string, pass?: string, terminalSchoolId?: string) => service.login(ra, pass, terminalSchoolId);
   const logout = service.logout.bind(service);
@@ -387,7 +391,9 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const updateSetores = async (newSetores: SetorEscolar[], sid?: string) => await service.updateSetores(newSetores, sid);
   const grantPoints = (ra: string, pts: number, sec: string, act: string, adm: string, pass?: string, tSId?: string) => service.grantPoints(ra, pts, sec, act, adm, pass, tSId);
   const getMonthlyLegends = () => service.getMonthlyLegends(targetSchoolId || undefined);
-  const isNessieAvailable = service.isNessieAvailable.bind(service);
+  const isNessieAvailable = () => {
+    return service.isNessieAvailable(isPreviewMode && displayUser?.id ? displayUser.id : undefined);
+  };
   const getGlobalLeader = service.getGlobalLeader.bind(service);
   const grantSightingBonus = service.grantSightingBonus.bind(service);
   const updateSystemSettings = service.updateSystemSettings.bind(service);

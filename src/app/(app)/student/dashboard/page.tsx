@@ -671,12 +671,12 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             {studentDiscards.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 text-center border border-dashed border-slate-250 dark:border-white/10 rounded-2xl bg-slate-50 dark:bg-slate-950/20">
+              <div className="flex flex-col items-center justify-center py-10 text-center border border-dashed border-slate-200 dark:border-white/10 rounded-2xl bg-slate-50 dark:bg-slate-950/20">
                 <div className="h-16 w-16 rounded-2xl bg-slate-100 dark:bg-slate-900/40 border border-slate-200 dark:border-white/5 flex items-center justify-center mb-4 text-3xl">
                   🍃
                 </div>
                 <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Nenhum descarte registrado ainda</p>
-                <p className="text-xs text-slate-505 dark:text-slate-400 mt-1 max-w-xs leading-relaxed font-medium">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs leading-relaxed font-medium">
                   Seus descartes e pesagens aparecerão aqui em tempo real assim que você usar o Totem Kiosk da escola!
                 </p>
               </div>
@@ -684,12 +684,12 @@ export default function DashboardPage() {
               <>
                 <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200/60 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20">
                   <Table>
-                    <TableHeader className="bg-slate-105 dark:bg-slate-950/40">
+                    <TableHeader className="bg-slate-100 dark:bg-slate-950/40">
                       <TableRow className="border-slate-200/60 dark:border-white/5">
-                        <TableHead className="font-bold text-slate-650 dark:text-slate-300 border-b border-slate-200/60 dark:border-white/5 text-[9px] uppercase tracking-wider">Data e Hora</TableHead>
-                        <TableHead className="font-bold text-slate-650 dark:text-slate-300 border-b border-slate-200/60 dark:border-white/5 text-[9px] uppercase tracking-wider">Material Descartado</TableHead>
-                        <TableHead className="font-bold text-slate-650 dark:text-slate-300 border-b border-slate-200/60 dark:border-white/5 text-[9px] uppercase tracking-wider text-center">Peso Coletado</TableHead>
-                        <TableHead className="font-bold text-slate-650 dark:text-slate-300 border-b border-slate-200/60 dark:border-white/5 text-[9px] uppercase tracking-wider text-right">Recompensa</TableHead>
+                        <TableHead className="font-bold text-slate-600 dark:text-slate-300 border-b border-slate-200/60 dark:border-white/5 text-[9px] uppercase tracking-wider">Data e Hora</TableHead>
+                        <TableHead className="font-bold text-slate-600 dark:text-slate-300 border-b border-slate-200/60 dark:border-white/5 text-[9px] uppercase tracking-wider">Material Descartado</TableHead>
+                        <TableHead className="font-bold text-slate-600 dark:text-slate-300 border-b border-slate-200/60 dark:border-white/5 text-[9px] uppercase tracking-wider text-center">Peso Coletado</TableHead>
+                        <TableHead className="font-bold text-slate-600 dark:text-slate-300 border-b border-slate-200/60 dark:border-white/5 text-[9px] uppercase tracking-wider text-right">Recompensa</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -714,10 +714,10 @@ export default function DashboardPage() {
                           'Não reciclável': 'bg-slate-500/10 text-slate-650 dark:text-slate-400 border-slate-500/20',
                         };
 
-                        const materialPillClass = materialColorMap[entry.type] || 'bg-slate-105 dark:bg-slate-900 border-slate-200/60 dark:border-white/5 text-slate-600 dark:text-slate-350';
+                        const materialPillClass = materialColorMap[entry.type] || 'bg-slate-100 dark:bg-slate-900 border-slate-200/60 dark:border-white/5 text-slate-600 dark:text-slate-350';
 
                         return (
-                          <TableRow key={entry.id} className="hover:bg-slate-105/50 dark:hover:bg-white/5 transition-colors border-slate-200/60 dark:border-white/5">
+                          <TableRow key={entry.id} className="hover:bg-slate-100/50 dark:hover:bg-white/5 transition-colors border-slate-200/60 dark:border-white/5">
                             <TableCell className="font-medium text-slate-700 dark:text-slate-300 text-xs">
                               {formattedDate}
                             </TableCell>
@@ -726,7 +726,7 @@ export default function DashboardPage() {
                                 {entry.type}
                               </span>
                             </TableCell>
-                            <TableCell className="text-center font-bold text-slate-705 dark:text-slate-202 text-xs">
+                            <TableCell className="text-center font-bold text-slate-700 dark:text-slate-200 text-xs">
                               {entry.collected.toFixed(3)} kg
                             </TableCell>
                             <TableCell className="text-right font-black text-emerald-600 dark:text-emerald-400 text-xs">
@@ -753,28 +753,28 @@ export default function DashboardPage() {
                     });
 
                     const materialColorMap: Record<string, string> = {
-                      'Plástico': 'bg-red-500/10 text-red-650 dark:text-red-400 border-red-500/20',
-                      'Papel': 'bg-blue-500/10 text-blue-650 dark:text-blue-400 border-blue-500/20',
-                      'Vidro': 'bg-emerald-500/10 text-emerald-650 dark:text-emerald-400 border-emerald-500/20',
-                      'Metal': 'bg-amber-500/10 text-amber-655 dark:text-amber-450 border-amber-500/20',
-                      'Orgânico': 'bg-stone-500/10 text-stone-655 dark:text-stone-400 border-stone-500/20',
-                      'Eletrônico': 'bg-purple-500/10 text-purple-655 dark:text-purple-400 border-purple-500/20',
-                      'Não reciclável': 'bg-slate-500/10 text-slate-655 dark:text-slate-400 border-slate-500/20',
+                      'Plástico': 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20',
+                      'Papel': 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+                      'Vidro': 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+                      'Metal': 'bg-amber-500/10 text-amber-600 dark:text-amber-500 border-amber-500/20',
+                      'Orgânico': 'bg-stone-500/10 text-stone-600 dark:text-stone-400 border-stone-500/20',
+                      'Eletrônico': 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20',
+                      'Não reciclável': 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20',
                     };
 
-                    const materialPillClass = materialColorMap[entry.type] || 'bg-slate-105 dark:bg-slate-900 border-slate-200/60 dark:border-white/5 text-slate-600 dark:text-slate-350';
+                    const materialPillClass = materialColorMap[entry.type] || 'bg-slate-100 dark:bg-slate-900 border-slate-200/60 dark:border-white/5 text-slate-600 dark:text-slate-350';
 
                     return (
                       <div key={entry.id} className="p-4 rounded-2xl border border-slate-200/60 dark:border-white/5 bg-white/50 dark:bg-slate-950/40 shadow-md flex flex-col gap-2.5">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] text-slate-505 dark:text-slate-400 font-bold">{formattedDate}</span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">{formattedDate}</span>
                           <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-black border", materialPillClass)}>
                             {entry.type}
                           </span>
                         </div>
                         <div className="flex items-center justify-between text-xs pt-1.5 border-t border-slate-200/60 dark:border-white/5">
-                          <span className="text-slate-505 dark:text-slate-400 font-medium">Peso: <strong className="text-slate-800 dark:text-slate-202">{entry.collected.toFixed(3)} kg</strong></span>
-                          <span className="font-black text-emerald-600 dark:text-emerald-455">+{earnedPoints} Bio-Coins</span>
+                          <span className="text-slate-500 dark:text-slate-400 font-medium">Peso: <strong className="text-slate-800 dark:text-slate-202">{entry.collected.toFixed(3)} kg</strong></span>
+                          <span className="font-black text-emerald-600 dark:text-emerald-400">+{earnedPoints} Bio-Coins</span>
                         </div>
                       </div>
                     );
@@ -792,22 +792,22 @@ export default function DashboardPage() {
               <CardTitle className="text-lg font-black text-slate-800 dark:text-white flex items-center gap-2 uppercase tracking-tight">
                 🪙 Extrato Detalhado de Bio-Coins
               </CardTitle>
-              <CardDescription className="text-slate-550 dark:text-slate-400 font-medium mt-1 text-xs">
+              <CardDescription className="text-slate-500 dark:text-slate-400 font-medium mt-1 text-xs">
                 Acompanhe o histórico de créditos, resgates e a validade de suas moedas em tempo real.
               </CardDescription>
             </div>
-            <div className="bg-amber-500/5 dark:bg-amber-500/10 border border-amber-250 dark:border-amber-500/20 text-amber-650 dark:text-amber-400 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm">
+            <div className="bg-amber-500/5 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm">
               Validade: 30 dias
             </div>
           </CardHeader>
           <CardContent>
             {pointTransactions.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 text-center border border-dashed border-slate-250 dark:border-white/10 rounded-2xl bg-slate-50 dark:bg-slate-950/20">
-                <div className="h-16 w-16 rounded-2xl bg-slate-100 dark:bg-slate-900/40 border border-slate-200 dark:white/5 flex items-center justify-center mb-4 text-3xl">
+              <div className="flex flex-col items-center justify-center py-10 text-center border border-dashed border-slate-200 dark:border-white/10 rounded-2xl bg-slate-50 dark:bg-slate-950/20">
+                <div className="h-16 w-16 rounded-2xl bg-slate-100 dark:bg-slate-900/40 border border-slate-200 dark:border-white/5 flex items-center justify-center mb-4 text-3xl">
                   🪙
                 </div>
                 <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Seu extrato está vazio</p>
-                <p className="text-xs text-slate-505 dark:text-slate-400 mt-1 max-w-xs leading-relaxed font-medium">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs leading-relaxed font-medium">
                   Seus créditos de moedas e movimentações aparecerão aqui assim que você realizar descartes ou missões!
                 </p>
               </div>
@@ -815,12 +815,12 @@ export default function DashboardPage() {
               <>
                 <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200/60 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20">
                   <Table>
-                    <TableHeader className="bg-slate-105 dark:bg-slate-950/40">
+                    <TableHeader className="bg-slate-100 dark:bg-slate-950/40">
                       <TableRow className="border-slate-200/60 dark:border-white/5">
-                        <TableHead className="font-bold text-slate-655 border-b border-slate-200/60 dark:border-white/5 text-[9px] uppercase tracking-wider">Data</TableHead>
-                        <TableHead className="font-bold text-slate-655 border-b border-slate-200/60 dark:border-white/5 text-[9px] uppercase tracking-wider">Histórico / Origem</TableHead>
-                        <TableHead className="font-bold text-slate-655 border-b border-slate-200/60 dark:border-white/5 text-[9px] uppercase tracking-wider text-center">Validade / Estado</TableHead>
-                        <TableHead className="font-bold text-slate-655 border-b border-slate-200/60 dark:border-white/5 text-[9px] uppercase tracking-wider text-right">Lançamento</TableHead>
+                        <TableHead className="font-bold text-slate-600 border-b border-slate-200/60 dark:border-white/5 text-[9px] uppercase tracking-wider">Data</TableHead>
+                        <TableHead className="font-bold text-slate-600 border-b border-slate-200/60 dark:border-white/5 text-[9px] uppercase tracking-wider">Histórico / Origem</TableHead>
+                        <TableHead className="font-bold text-slate-600 border-b border-slate-200/60 dark:border-white/5 text-[9px] uppercase tracking-wider text-center">Validade / Estado</TableHead>
+                        <TableHead className="font-bold text-slate-600 border-b border-slate-200/60 dark:border-white/5 text-[9px] uppercase tracking-wider text-right">Lançamento</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -839,7 +839,7 @@ export default function DashboardPage() {
                         if (isDebit) {
                           if (tx.description.includes("Expiração")) {
                             statusBadge = (
-                              <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-red-500/10 text-red-650 dark:text-red-400 border-red-500/20">
+                              <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20">
                                 Expirado
                               </span>
                             );
@@ -870,7 +870,7 @@ export default function DashboardPage() {
                             );
                           } else {
                             statusBadge = (
-                              <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-emerald-500/5 dark:bg-emerald-555/10 text-emerald-650 dark:text-emerald-450 border-emerald-250 dark:border-emerald-500/20">
+                              <span className="px-2.5 py-1 rounded-full text-[9px] font-bold border bg-emerald-500/5 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25 dark:border-emerald-500/20">
                                 Ativo ({daysLeft}d restantes)
                               </span>
                             );
@@ -878,7 +878,7 @@ export default function DashboardPage() {
                         }
 
                         return (
-                          <TableRow key={tx.id} className="hover:bg-slate-105/50 dark:hover:bg-white/5 transition-colors border-slate-200/60 dark:border-white/5">
+                          <TableRow key={tx.id} className="hover:bg-slate-100/50 dark:hover:bg-white/5 transition-colors border-slate-200/60 dark:border-white/5">
                             <TableCell className="font-medium text-slate-700 dark:text-slate-300 text-xs">
                               {formattedDate}
                             </TableCell>
@@ -890,7 +890,7 @@ export default function DashboardPage() {
                             </TableCell>
                             <TableCell className={cn(
                               "text-right font-black text-xs",
-                              isDebit ? "text-red-655 dark:text-red-400" : "text-emerald-655 dark:text-emerald-400"
+                              isDebit ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"
                             )}>
                               {isDebit ? "" : "+"}{tx.amount} Bio-Coins
                             </TableCell>
@@ -924,14 +924,14 @@ export default function DashboardPage() {
                         );
                       } else {
                         statusBadge = (
-                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold border bg-slate-101 dark:bg-slate-950 text-slate-500 dark:text-slate-400 border-slate-200/60 dark:border-white/5">
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold border bg-slate-100 dark:bg-slate-950 text-slate-500 dark:text-slate-400 border-slate-200/60 dark:border-white/5">
                             Resgate
                           </span>
                         );
                       }
                     } else if (tx.expired) {
                       statusBadge = (
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold border bg-slate-101 dark:bg-slate-950 text-slate-400 dark:text-slate-500 border-slate-200/60 dark:border-white/5">
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold border bg-slate-100 dark:bg-slate-950 text-slate-400 dark:text-slate-500 border-slate-200/60 dark:border-white/5">
                           Amortizado
                         </span>
                       );
@@ -949,7 +949,7 @@ export default function DashboardPage() {
                         );
                       } else {
                         statusBadge = (
-                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold border bg-emerald-500/5 dark:bg-emerald-555/10 text-emerald-650 dark:text-emerald-450 border-emerald-250 dark:border-emerald-500/20">
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold border bg-emerald-500/5 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25 dark:border-emerald-500/20">
                             Ativo ({daysLeft}d)
                           </span>
                         );
@@ -959,14 +959,14 @@ export default function DashboardPage() {
                     return (
                       <div key={tx.id} className="p-4 rounded-2xl border border-slate-200/60 dark:border-white/5 bg-white/50 dark:bg-slate-950/40 shadow-md flex flex-col gap-2.5">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] text-slate-505 dark:text-slate-400 font-bold">{formattedDate}</span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">{formattedDate}</span>
                           {statusBadge}
                         </div>
                         <div className="flex items-center justify-between text-xs pt-1.5 border-t border-slate-200/60 dark:border-white/5">
                           <span className="text-slate-800 dark:text-slate-202 font-bold">{tx.description}</span>
                           <span className={cn(
                             "font-black text-xs",
-                            isDebit ? "text-red-655 dark:text-red-400" : "text-emerald-655 dark:text-emerald-400"
+                            isDebit ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"
                           )}>
                             {isDebit ? "" : "+"}{tx.amount} Bio-Coins
                           </span>
@@ -985,11 +985,11 @@ export default function DashboardPage() {
       {/* RODAPÉ INFORMATIVO */}
       <footer className="mt-8 border border-slate-200/60 dark:border-white/5 py-6 bg-white/60 dark:bg-slate-950/40 rounded-t-[2rem] shadow-inner text-slate-800 dark:text-white">
         <div className="container px-4 flex flex-col items-center text-center gap-3">
-          <p className="text-xs text-slate-505 dark:text-slate-400 font-semibold flex items-center gap-2">
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-2">
             <span className="text-xl">♻️</span>
             Dica: Ganhe Bio-Coins descartando materiais recicláveis nos totens da escola.
           </p>
-          <p className="text-[9px] text-slate-505 dark:text-slate-400 px-4 py-1.5 bg-slate-101 dark:bg-slate-950 border border-slate-200/60 dark:border-white/5 rounded-full uppercase tracking-widest font-black shadow-lg flex items-center justify-center">
+          <p className="text-[9px] text-slate-500 dark:text-slate-400 px-4 py-1.5 bg-slate-100 dark:bg-slate-950 border border-slate-200/60 dark:border-white/5 rounded-full uppercase tracking-widest font-black shadow-lg flex items-center justify-center">
             Powered by SchoolGain Technology
           </p>
         </div>

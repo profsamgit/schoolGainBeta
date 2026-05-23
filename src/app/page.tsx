@@ -133,7 +133,10 @@ export default function Home() {
           Quero ser uma Escola Parceira (Solicitar Acesso)
         </Link>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
+          <Link href="/brand" className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline transition-colors font-semibold">
+            Identidade Visual (Logos)
+          </Link>
           <span className="hidden sm:inline-block w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-800" />
           <Link href="/about" className="hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline transition-colors">
             TDS 2B 2026 - CETI Frei José Apicella

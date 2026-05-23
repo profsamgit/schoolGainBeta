@@ -181,18 +181,18 @@ export default function StudentCard() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2 bg-slate-900/40 backdrop-blur-md border-white/10 text-white hover:bg-white/10 transition-all shadow-lg">
-          <CreditCard className="h-4 w-4 text-emerald-400" />
+        <Button variant="outline" className="gap-2 bg-slate-900/10 dark:bg-slate-900/40 backdrop-blur-md border-slate-200 dark:border-white/10 text-slate-800 dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all shadow-lg">
+          <CreditCard className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
           Minha Carteira
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[480px] bg-[#070913]/95 backdrop-blur-2xl border-white/10 text-white shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden">
+      <DialogContent className="sm:max-w-[480px] bg-white/95 dark:bg-[#070913]/95 backdrop-blur-2xl border-slate-200/60 dark:border-white/10 text-slate-850 dark:text-white shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden">
         <DialogHeader className="pb-2">
-          <DialogTitle className="flex items-center gap-2 text-white text-lg font-black tracking-tight">
+          <DialogTitle className="flex items-center gap-2 text-slate-900 dark:text-white text-lg font-black tracking-tight">
             <UserIcon className={`h-5 w-5 animate-pulse shrink-0 ${roleConfig.text || 'text-emerald-400'}`} />
             Carteira Digital SchoolGain
           </DialogTitle>
-          <DialogDescription className="text-slate-400 text-xs">
+          <DialogDescription className="text-slate-500 dark:text-slate-400 text-xs">
             Use esta Carteira virtual para identificação e registro de resíduos.
           </DialogDescription>
         </DialogHeader>
@@ -204,17 +204,17 @@ export default function StudentCard() {
           </div>
         </div>
 
-        <div className="mt-4 text-center text-[10px] text-slate-400 uppercase font-black tracking-widest px-6 leading-relaxed">
+        <div className="mt-4 text-center text-[10px] text-slate-500 dark:text-slate-400 uppercase font-black tracking-widest px-6 leading-relaxed">
           Aponte o QR Code acima nos terminais Kiosk da escola para login automático.
         </div>
 
         <div className="mt-6 flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-3">
-            <Button className="gap-2 shadow-lg bg-emerald-600 hover:bg-emerald-700 text-white border-none font-bold uppercase tracking-wider text-[10px] h-10 rounded-xl" onClick={handleDownloadImage}>
+            <Button className="gap-2 shadow-lg bg-emerald-600 hover:bg-emerald-700 text-white border-none font-bold uppercase tracking-wider text-[10px] h-10 rounded-xl animate-in fade-in" onClick={handleDownloadImage}>
               <ImageIcon className="h-4 w-4" />
               Salvar Imagem
             </Button>
-            <Button className="gap-2 shadow-lg border-white/10 hover:bg-white/5 hover:text-white text-slate-300 font-bold uppercase tracking-wider text-[10px] h-10 rounded-xl" variant="outline" onClick={handlePrint}>
+            <Button className="gap-2 shadow-lg border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider text-[10px] h-10 rounded-xl" variant="outline" onClick={handlePrint}>
               <Download className="h-4 w-4" />
               PDF / Imprimir
             </Button>

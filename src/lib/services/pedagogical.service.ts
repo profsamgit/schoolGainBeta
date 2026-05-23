@@ -110,15 +110,18 @@ export class PedagogicalService {
    * Verifica se o item especial "Nessie" ainda está disponível para compra este mês.
    * (Limitado a 3 pessoas por mês POR UNIDADE ESCOLAR).
    */
-  isNessieAvailable(): boolean {
+  isNessieAvailable(targetUserId?: string): boolean {
     const today = new Date();
     const currentMonth = today.getMonth() + 1;
     const currentYear = today.getFullYear();
-    const currentRa = this.service.currentUserRa;
-    const user = this.service.data.users.find((u: User) => u.ra === currentRa);
-    if (!user || !user.schoolId) return false;
+    
+    const targetUser = targetUserId 
+      ? this.service.data.users.find((u: User) => u.id === targetUserId || u.ra === targetUserId)
+      : this.service.data.users.find((u: User) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
+      
+    if (!targetUser || !targetUser.schoolId) return false;
 
-    const schoolId = user.schoolId;
+    const schoolId = targetUser.schoolId;
     const legends = this.service.legendsSubject.value;
 
     const nessieOwnersInMonth = legends.filter((l: any) => 
@@ -214,7 +217,7 @@ export class PedagogicalService {
       .slice(0, 3);
   }
 
-  buyUpgrade(item: EcosystemItem): boolean {
+  buyUpgrade(item: EcosystemItem, targetUserId?: string): { success: boolean; error?: string } {
     const catalog: Record<EcosystemItem, { price: number; minVitality?: number; required?: string }> = {
       'limpar_rio': { price: 300, minVitality: 70 },
       'filtro_ar': { price: 200, minVitality: 70 },
@@ -242,23 +245,52 @@ export class PedagogicalService {
     };
 
     const upgrade = catalog[item];
-    if (this.service.purchasedItems.includes(item)) return false; 
-    if (upgrade.minVitality && this.service.vitality < upgrade.minVitality) return false; 
+    if (!upgrade) return { success: false, error: "Item não encontrado no catálogo." };
 
-    const legendaryItems: EcosystemItem[] = ['casa', 'barco_1', 'barco_2', 'monstro_lago'];
-    const isLegendary = legendaryItems.includes(item);
+    const targetUser = targetUserId 
+      ? this.service.data.users.find((u: User) => u.id === targetUserId || u.ra === targetUserId)
+      : this.service.data.users.find((u: User) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
 
-    if (isLegendary) {
-      const regularItems = Object.keys(catalog).filter(id => !legendaryItems.includes(id as EcosystemItem));
-      if (regularItems.some(id => !this.service.purchasedItems.includes(id as EcosystemItem))) return false;
-    } else if (upgrade.required && !this.service.purchasedItems.includes(upgrade.required as EcosystemItem)) {
-      return false; 
+    if (!targetUser) return { success: false, error: "Usuário não identificado para compra." };
+
+    const state = this.service.data.userStates[targetUser.id] || this.service.getDefaultState(targetUser);
+
+    if (state.purchasedItems.includes(item)) {
+      return { success: false, error: "Este item já foi adquirido!" };
     }
 
-    if (this.service.balance < upgrade.price || !this.service.currentUserRa) return false; 
+    if (upgrade.minVitality && state.vitality < upgrade.minVitality) {
+      return { success: false, error: `Sua biosfera precisa de pelo menos ${upgrade.minVitality}% de vitalidade!` };
+    }
 
-    const newItems = [...this.service.purchasedItems, item];
-    this.service.purchasedItemsSubject.next(newItems);
+    if (upgrade.required && !state.purchasedItems.includes(upgrade.required as EcosystemItem)) {
+      const reqName = upgrade.required.replace(/_/g, ' ');
+      return { success: false, error: `Requisito não atendido! Requer '${reqName}'.` };
+    }
+
+    if (item === 'monstro_lago') {
+      const allOtherItems = Object.keys(catalog).filter(id => id !== 'monstro_lago') as EcosystemItem[];
+      if (allOtherItems.some(id => !state.purchasedItems.includes(id))) {
+        return { success: false, error: "A Lenda do Lago (Nessie) só pode ser adquirida quando todos os outros itens do ecossistema forem comprados!" };
+      }
+    }
+
+    if (item === 'monstro_lago' && !this.isNessieAvailable(targetUser.id)) {
+      return { success: false, error: "Sem vagas para o Nessie este mês! Limite de 3 por escola." };
+    }
+
+    if (state.balance < upgrade.price) {
+      return { success: false, error: `Saldo insuficiente! Você precisa de ₵${upgrade.price} Bio-Coins.` };
+    }
+
+    // Registrar compra localmente
+    const newItems = [...state.purchasedItems, item];
+    state.purchasedItems = newItems;
+    this.service.data.userStates[targetUser.id] = state;
+
+    if (targetUser.id === this.service.data.currentUserId || targetUser.ra === this.service.currentUserRa) {
+      this.service.purchasedItemsSubject.next(newItems);
+    }
 
     let balanceAdjust = -upgrade.price;
     let pointsAdjust = 0;
@@ -267,32 +299,24 @@ export class PedagogicalService {
       pointsAdjust = 5000;
       balanceAdjust += 5000;
       
-      const currentUserId = this.service.data.currentUserId;
-      if (currentUserId) {
-        const state = this.service.data.userStates[currentUserId] || this.service.getDefaultState();
-        const today = new Date();
-        state.nessiePurchaseDate = today.toISOString();
-        this.service.data.userStates[currentUserId] = state;
-        
-        const user = this.service.data.users.find((u: User) => u.id === currentUserId);
-        if (user) {
-          const newLegend = {
-            id: `${user.id}-${today.getMonth() + 1}-${today.getFullYear()}`,
-            studentId: user.id,
-            studentName: user.name,
-            schoolId: user.schoolId || 'global',
-            month: today.getMonth() + 1,
-            year: today.getFullYear(),
-            purchaseDate: today.toISOString(),
-            benefitActive: true
-          };
-          setDoc(doc(db, "ecosystemLegends", newLegend.id), newLegend);
-        }
-      }
+      const today = new Date();
+      state.nessiePurchaseDate = today.toISOString();
+      
+      const newLegend = {
+        id: `${targetUser.id}-${today.getMonth() + 1}-${today.getFullYear()}`,
+        studentId: targetUser.id,
+        studentName: targetUser.name,
+        schoolId: targetUser.schoolId || 'global',
+        month: today.getMonth() + 1,
+        year: today.getFullYear(),
+        purchaseDate: today.toISOString(),
+        benefitActive: true
+      };
+      setDoc(doc(db, "ecosystemLegends", newLegend.id), newLegend);
     }
 
-    this.service.syncUserPoints(this.service.data.currentUserId || this.service.currentUserRa, balanceAdjust, pointsAdjust, `Compra de Item: ${item}`);
-    return true;
+    this.service.syncUserPoints(targetUser.id, balanceAdjust, pointsAdjust, `Compra de Item: ${item}`);
+    return { success: true };
   }
 
   async deleteReward(id: string, sid?: string): Promise<boolean> {

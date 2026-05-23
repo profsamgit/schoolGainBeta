@@ -23,6 +23,7 @@ import { EcossistemaHUD } from './components/EcossistemaHUD';
 import { EcossistemaVitalityPortal } from './components/EcossistemaVitalityPortal';
 import { EcossistemaShop } from './components/EcossistemaShop';
 import { EcossistemaEffects } from './components/EcossistemaEffects';
+import { useToast } from '@/hooks/use-toast';
 
 export default function MeuEcossistemaPage() {
   const { 
@@ -33,6 +34,8 @@ export default function MeuEcossistemaPage() {
     healVitality,
     isNessieAvailable
   } = useEcosystem();
+
+  const { toast } = useToast();
 
   const [isShopVisible, setIsShopVisible] = useState(false);
   const [lastPurchased, setLastPurchased] = useState<string | null>(null);
@@ -61,18 +64,38 @@ export default function MeuEcossistemaPage() {
   };
 
   const handleBuy = (id: EcosystemItem) => {
-    const success = buyUpgrade(id);
-    if (success) {
+    const res = buyUpgrade(id);
+    if (res.success) {
       setLastPurchased(id);
       setTimeout(() => setLastPurchased(null), 2000);
+      toast({
+        title: "Item Adquirido! 🎉",
+        description: "O item foi adicionado à sua biosfera com sucesso.",
+      });
+    } else {
+      toast({
+        title: "Erro na Compra ❌",
+        description: res.error || "Não foi possível adquirir o item.",
+        variant: "destructive",
+      });
     }
   };
 
   const handleHealAction = (amount: number) => {
-    const success = healVitality(amount);
-    if (success) {
+    const res = healVitality(amount);
+    if (res.success) {
       setIsHealing(true);
       setTimeout(() => setIsHealing(false), 3000);
+      toast({
+        title: "Biosfera Restaurada! ❤️",
+        description: "A vitalidade do seu ecossistema aumentou.",
+      });
+    } else {
+      toast({
+        title: "Erro na Restauração ❌",
+        description: res.error || "Não foi possível restaurar a vitalidade.",
+        variant: "destructive",
+      });
     }
   };
 

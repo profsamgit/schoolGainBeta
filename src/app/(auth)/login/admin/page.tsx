@@ -240,7 +240,7 @@ export default function AdminLoginPage() {
                     onChange={(e) => setUsername(e.target.value)} 
                     onFocus={() => setActiveInput('username')} 
                     placeholder="admin@escola.com" 
-                    className="h-12 bg-slate-900/90 dark:bg-slate-950/60 text-white placeholder:text-slate-400 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400 rounded-xl px-4 text-sm"
+                    className="h-12 bg-white/80 dark:bg-slate-950/60 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400 rounded-xl px-4 text-sm"
                     inputMode={showKeyboard ? 'none' : 'email'} 
                     disabled={lockoutSecs > 0}
                     autoComplete="username"
@@ -259,7 +259,7 @@ export default function AdminLoginPage() {
                     onChange={(e) => setPassword(e.target.value)} 
                     onFocus={() => setActiveInput('password')} 
                     placeholder="••••••••" 
-                    className="h-12 bg-slate-900/90 dark:bg-slate-950/60 text-white placeholder:text-slate-400 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400 rounded-xl px-4 text-sm"
+                    className="h-12 bg-white/80 dark:bg-slate-950/60 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400 rounded-xl px-4 text-sm"
                     inputMode={showKeyboard ? 'none' : 'text'} 
                     disabled={lockoutSecs > 0}
                     autoComplete="current-password"

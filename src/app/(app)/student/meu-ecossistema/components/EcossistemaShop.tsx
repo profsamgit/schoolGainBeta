@@ -118,9 +118,9 @@ export function EcossistemaShop({
                                         const isPurchased = purchasedItems.includes(item.id as EcosystemItem);
                                         const isRequirementLocked = item.reqId ? (!purchasedItems.includes(item.reqId as EcosystemItem) && !isPurchased) : false;
                                         const isVitalityLocked = item.minVitality ? (vitality < item.minVitality && !isPurchased) : false;
-                                        const regularItemsCount = shopItems.filter(i => i.category !== 'Lendário').length;
-                                        const purchasedRegularCount = shopItems.filter(i => i.category !== 'Lendário' && purchasedItems.includes(i.id as EcosystemItem)).length;
-                                        const isLegendaryLocked = item.category === 'Lendário' && purchasedRegularCount < regularItemsCount && !isPurchased;
+                                        const isLegendaryLocked = item.id === 'monstro_lago' && 
+                                            shopItems.filter(i => i.id !== 'monstro_lago').some(i => !purchasedItems.includes(i.id as EcosystemItem)) && 
+                                            !isPurchased;
                                         const isNessieSoldOut = item.id === 'monstro_lago' && !isNessieAvailable() && !isPurchased;
                                         const isLocked = isRequirementLocked || isVitalityLocked || isLegendaryLocked || isNessieSoldOut;
                                         const canAfford = balance >= item.price;
@@ -191,7 +191,7 @@ export function EcossistemaShop({
                                                             <>
                                                                 <Lock className="w-5 h-5 md:w-8 md:h-8 text-white/20 mb-2" />
                                                                 <p className="text-white/60 text-[8px] md:text-[9px] font-black uppercase tracking-wider leading-tight">
-                                                                    {isRequirementLocked ? `Requer ${item.req}` : `Requer Vitalidade ${item.minVitality}%`}
+                                                                    {isLegendaryLocked ? "Requer Ecossistema Completo" : isRequirementLocked ? `Requer ${item.req}` : `Requer Vitalidade ${item.minVitality}%`}
                                                                 </p>
                                                             </>
                                                         )}

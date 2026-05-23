@@ -97,6 +97,7 @@ export class PointsService {
     if (userId === this.service.data.currentUserId || user.ra?.toUpperCase() === this.service.kioskUserRaSubject.value?.toUpperCase()) {
       this.service.balanceSubject.next(state.balance);
       this.service.pointsSubject.next(state.points);
+      this.service.vitalitySubject.next(state.vitality);
       this.service.levelSubject.next(state.level);
     }
 
@@ -105,6 +106,7 @@ export class PointsService {
     setDoc(doc(db, "userStates", user.id), state);
 
     this.service.usersSubject.next([...this.service.data.users]);
+    this.service.userStatesSubject.next({ ...this.service.data.userStates });
     this.service.saveToStorage();
   }
 
@@ -246,15 +248,43 @@ export class PointsService {
     return true;
   }
 
-  healVitality(points: number): boolean {
-    if (this.service.balance < points || !this.service.currentUserRa) return false;
+  healVitality(points: number, targetUserId?: string): { success: boolean; error?: string } {
+    const targetUser = targetUserId 
+      ? this.service.data.users.find((u: User) => u.id === targetUserId || u.ra === targetUserId)
+      : this.service.data.users.find((u: User) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
+
+    if (!targetUser) return { success: false, error: "Usuário não identificado para restauração." };
+
+    const state = this.service.data.userStates[targetUser.id] || this.service.getDefaultState(targetUser);
+
+    if (state.balance < points) {
+      return { success: false, error: `Saldo insuficiente! Você precisa de ₵${points} Bio-Coins.` };
+    }
+
     const vitalityGain = Math.floor(points / 10);
-    const newVitality = Math.min(100, this.service.vitality + vitalityGain);
-    if (newVitality === this.service.vitality) return false;
-    
-    this.service.vitalitySubject.next(newVitality);
-    this.syncUserPoints(this.service.currentUserRa, -points, 0, "Restauração de Vitalidade");
-    return true;
+    if (vitalityGain <= 0) {
+      return { success: false, error: "Quantidade muito baixa! Mínimo de 10 Bio-Coins para curar 1%." };
+    }
+
+    const currentVitality = state.vitality !== undefined ? state.vitality : 100;
+    if (currentVitality >= 100) {
+      return { success: false, error: "Sua vitalidade já está no máximo (100%)!" };
+    }
+
+    const newVitality = Math.min(100, currentVitality + vitalityGain);
+    if (newVitality === currentVitality) {
+      return { success: false, error: "Vitalidade já está no máximo!" };
+    }
+
+    state.vitality = newVitality;
+    this.service.data.userStates[targetUser.id] = state;
+
+    if (targetUser.id === this.service.data.currentUserId || targetUser.ra === this.service.currentUserRa) {
+      this.service.vitalitySubject.next(newVitality);
+    }
+
+    this.syncUserPoints(targetUser.id, -points, 0, "Restauração de Vitalidade");
+    return { success: true };
   }
 
   registerAttendance(status: 'presente' | 'falta'): void {

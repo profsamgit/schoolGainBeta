@@ -1082,8 +1082,8 @@ export class EcosystemService {
   async recordRewardRedemption(rewardId: string) {
     return this.pedagogicalService.recordRewardRedemption(rewardId);
   }
-  isNessieAvailable() {
-    return this.pedagogicalService.isNessieAvailable();
+  isNessieAvailable(targetUserId?: string) {
+    return this.pedagogicalService.isNessieAvailable(targetUserId);
   }
   getMonthlyLegends(targetSchoolId?: string) {
     return this.pedagogicalService.getMonthlyLegends(targetSchoolId);
@@ -1476,8 +1476,8 @@ export class EcosystemService {
   deductPoints(points: number) {
     return this.pointsService.deductPoints(points);
   }
-  healVitality(points: number) {
-    return this.pointsService.healVitality(points);
+  healVitality(points: number, targetUserId?: string) {
+    return this.pointsService.healVitality(points, targetUserId);
   }
   registerAttendance(status: 'presente' | 'falta') {
     this.pointsService.registerAttendance(status);
@@ -1487,8 +1487,8 @@ export class EcosystemService {
   }
 
   // Shop & Upgrades (PedagogicalService)
-  buyUpgrade(item: EcosystemItem) {
-    return this.pedagogicalService.buyUpgrade(item);
+  buyUpgrade(item: EcosystemItem, targetUserId?: string) {
+    return this.pedagogicalService.buyUpgrade(item, targetUserId);
   }
 
   // School, Turmas, Cursos (SchoolService)

@@ -225,7 +225,7 @@ export default function RegisterStudentPage() {
                 required
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className="h-12 px-4 rounded-xl bg-slate-900/90 dark:bg-slate-950/60 text-white placeholder:text-slate-400 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:focus:border-emerald-400"
+                className="h-12 px-4 rounded-xl bg-white/80 dark:bg-slate-950/60 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:focus:border-emerald-400"
               />
             </div>
 
@@ -237,7 +237,7 @@ export default function RegisterStudentPage() {
                   <Input 
                     id="ra" 
                     placeholder="AGUARDANDO ID..." 
-                    className="uppercase h-12 pr-12 font-semibold tracking-wide bg-slate-900/90 dark:bg-slate-950/60 text-white placeholder:text-slate-400 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:focus:border-emerald-400 rounded-xl"
+                    className="uppercase h-12 pr-12 font-semibold tracking-wide bg-white/80 dark:bg-slate-950/60 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:focus:border-emerald-400 rounded-xl"
                     required
                     value={formData.ra}
                     onChange={(e) => setFormData(prev => ({ ...prev, ra: e.target.value.toUpperCase() }))}
@@ -261,7 +261,7 @@ export default function RegisterStudentPage() {
                 <Button 
                   type="button" 
                   variant="outline" 
-                  className="h-12 w-12 p-0 border-slate-200/60 dark:border-slate-800/80 bg-slate-900/90 dark:bg-slate-950/60 text-white hover:bg-slate-800 dark:hover:bg-slate-900 rounded-xl" 
+                  className="h-12 w-12 p-0 border-slate-200/60 dark:border-slate-800/80 bg-white/80 dark:bg-slate-950/60 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-xl" 
                   onClick={generateRA}
                   title="Gerar RA"
                 >
@@ -272,8 +272,8 @@ export default function RegisterStudentPage() {
                   type="button" 
                   variant="outline" 
                   className={cn(
-                    "h-12 w-12 p-0 border-slate-200/60 dark:border-slate-800/80 rounded-xl bg-slate-900/90 dark:bg-slate-950/60 text-white transition-all",
-                    isScanning ? 'bg-emerald-500 hover:bg-emerald-600 border-emerald-500 text-white dark:text-slate-950' : 'hover:bg-slate-800 dark:hover:bg-slate-900'
+                    "h-12 w-12 p-0 border-slate-200/60 dark:border-slate-800/80 rounded-xl bg-white/80 dark:bg-slate-950/60 text-slate-700 dark:text-slate-300 transition-all",
+                    isScanning ? 'bg-emerald-500 hover:bg-emerald-600 border-emerald-500 text-white dark:text-slate-950' : 'hover:bg-slate-100 dark:hover:bg-slate-900'
                   )}
                   onClick={() => setIsScanning(!isScanning)}
                   title="Escanear QR"
@@ -315,7 +315,7 @@ export default function RegisterStudentPage() {
                   id="rfid" 
                   placeholder={isRFIDCapturing ? "AGUARDANDO APROXIMAÇÃO..." : "ID DO CARTÃO (OPCIONAL)"} 
                   className={cn(
-                    "uppercase h-12 flex-1 font-semibold tracking-wide bg-slate-900/90 dark:bg-slate-950/60 text-white placeholder:text-slate-400 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:focus:border-emerald-400 rounded-xl",
+                    "uppercase h-12 flex-1 font-semibold tracking-wide bg-white/80 dark:bg-slate-950/60 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-200/60 dark:border-slate-800/80 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:focus:border-emerald-400 rounded-xl",
                     isRFIDCapturing ? 'animate-pulse border-emerald-500/55 dark:border-emerald-500/55 bg-emerald-500/5' : ''
                   )}
                   value={formData.rfid}
@@ -325,8 +325,8 @@ export default function RegisterStudentPage() {
                   type="button" 
                   variant="outline" 
                   className={cn(
-                    "h-12 w-12 p-0 border-slate-200/60 dark:border-slate-800/80 rounded-xl bg-slate-900/90 dark:bg-slate-950/60 text-white transition-all",
-                    isRFIDCapturing ? 'bg-emerald-500 hover:bg-emerald-600 border-emerald-500 text-white dark:text-slate-950' : 'hover:bg-slate-800 dark:hover:bg-slate-900'
+                    "h-12 w-12 p-0 border-slate-200/60 dark:border-slate-800/80 rounded-xl bg-white/80 dark:bg-slate-950/60 text-slate-700 dark:text-slate-300 transition-all",
+                    isRFIDCapturing ? 'bg-emerald-500 hover:bg-emerald-600 border-emerald-500 text-white dark:text-slate-950' : 'hover:bg-slate-100 dark:hover:bg-slate-900'
                   )}
                   onClick={() => setIsRFIDCapturing(!isRFIDCapturing)}
                   title="Capturar RFID"
@@ -348,7 +348,7 @@ export default function RegisterStudentPage() {
                   setFormData(prev => ({ ...prev, schoolId: val }));
                   setTargetSchoolId(val);
                 }} required>
-                  <SelectTrigger className="h-13 bg-slate-900/90 dark:bg-slate-950/60 text-white border-slate-200/60 dark:border-slate-800/80 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:focus:border-emerald-400">
+                  <SelectTrigger className="h-13 bg-white/80 dark:bg-slate-950/60 text-slate-900 dark:text-white border-slate-200/60 dark:border-slate-800/80 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:focus:border-emerald-400">
                     <SelectValue placeholder="Selecione sua escola" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border border-slate-200/50 dark:border-slate-800/50 bg-white text-slate-900 dark:bg-white dark:text-slate-900 shadow-xl z-50">
@@ -366,7 +366,7 @@ export default function RegisterStudentPage() {
                   <BookOpen className="h-3 w-3 text-emerald-500" /> Série / Turma
                 </Label>
                 <Select onValueChange={(val) => setFormData(prev => ({ ...prev, turma: val }))} required>
-                  <SelectTrigger className="h-13 bg-slate-900/90 dark:bg-slate-950/60 text-white border-slate-200/60 dark:border-slate-800/80 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:focus:border-emerald-400">
+                  <SelectTrigger className="h-13 bg-white/80 dark:bg-slate-950/60 text-slate-900 dark:text-white border-slate-200/60 dark:border-slate-800/80 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:focus:border-emerald-400">
                     <SelectValue placeholder="Selecione sua turma" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border border-slate-200/50 dark:border-slate-800/50 bg-white text-slate-900 dark:bg-white dark:text-slate-900 shadow-xl z-50">
@@ -386,7 +386,7 @@ export default function RegisterStudentPage() {
                   <GraduationCap className="h-3 w-3 text-emerald-500" /> Curso Técnico
                 </Label>
                 <Select onValueChange={(val) => setFormData(prev => ({ ...prev, curso: val }))} required>
-                  <SelectTrigger className="h-13 bg-slate-900/90 dark:bg-slate-950/60 text-white border-slate-200/60 dark:border-slate-800/80 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:focus:border-emerald-400">
+                  <SelectTrigger className="h-13 bg-white/80 dark:bg-slate-950/60 text-slate-900 dark:text-white border-slate-200/60 dark:border-slate-800/80 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:focus:border-emerald-400">
                     <SelectValue placeholder="Selecione seu curso" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border border-slate-200/50 dark:border-slate-800/50 bg-white text-slate-900 dark:bg-white dark:text-slate-900 shadow-xl z-50">
