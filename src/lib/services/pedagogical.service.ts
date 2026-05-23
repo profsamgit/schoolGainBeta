@@ -233,7 +233,6 @@ export class PedagogicalService {
       'peixe_3': { price: 100, required: 'limpar_rio' },
       'cachorro': { price: 400, required: 'reparar_grama' },
       'gato': { price: 400, required: 'reparar_grama' },
-      'coelho': { price: 250, required: 'reparar_grama' },
       'borboletas': { price: 150, required: 'reparar_grama' },
       'borboletas_2': { price: 200, required: 'borboletas' },
       'borboletas_3': { price: 250, required: 'borboletas_2' },

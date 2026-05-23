@@ -238,7 +238,7 @@ export type EcosystemItem =
   'arvore_1' | 'arvore_2' | 'arvore_3' | 
   'passaro_1' | 'passaro_2' | 'passaro_3' |
   'peixe_1' | 'peixe_2' | 'peixe_3' | 
-  'cachorro' | 'gato' | 'coelho' | 'borboletas' | 'borboletas_2' | 'borboletas_3' | 'borboletas_4' |
+  'cachorro' | 'gato' | 'borboletas' | 'borboletas_2' | 'borboletas_3' | 'borboletas_4' |
   'casa' | 'barco_1' | 'barco_2' | 'monstro_lago';
 
 /**
@@ -255,6 +255,7 @@ export interface EcosystemUserState {
   purchasedItems: EcosystemItem[]; // Lista de itens comprados
   itemsCount: number;        // Quantidade de itens
   lastMissionDate: string | null;  // Data da última missão diária completada
+  lastQuizDates?: Record<'easy' | 'medium' | 'hard', string | null>; // Data de conclusão de cada dificuldade
   nessiePurchaseDate?: string | null;     // Data de compra do item especial (Nessie/Casa)
   curso?: string | null;            // Curso do aluno
   level: UserLevel;             // Título do aluno

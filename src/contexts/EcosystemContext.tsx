@@ -24,7 +24,7 @@ interface EcosystemContextType {
   isMissionDone: boolean;    // Indica se a missão do dia já foi concluída
   purchasedItems: EcosystemItem[]; // Lista de objetos/animais que o aluno já comprou
   level: UserLevel;             // Título do aluno (ex: "Semente", "Árvore")
-  completeDailyMission: (points: number) => boolean; // Função para ganhar pontos diários
+  completeDailyMission: (points: number, difficulty?: 'easy' | 'medium' | 'hard') => boolean; // Função para ganhar pontos diários
   deductPoints: (points: number) => boolean;         // Função para gastar pontos
   registerAttendance: (status: 'presente' | 'falta') => void; // Registra presença/falta
   buyUpgrade: (item: EcosystemItem) => { success: boolean; error?: string };      // Compra um item para o mundo virtual
@@ -358,8 +358,8 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
     return setores.filter((s: SetorEscolar) => (sid && s.schoolId === sid));
   }, [setores, currentUser, targetSchoolId]);
 
-  const completeDailyMission = (points: number) => {
-    const res = service.completeDailyMission(points);
+  const completeDailyMission = (points: number, difficulty?: 'easy' | 'medium' | 'hard') => {
+    const res = service.completeDailyMission(points, difficulty);
     if (res) {
       setIsMissionDone(true);
     }

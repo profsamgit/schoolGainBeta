@@ -1470,8 +1470,8 @@ export class EcosystemService {
   }
 
   // Points & Vitality Facades (PointsService)
-  completeDailyMission(points: number) {
-    return this.pointsService.completeDailyMission(points);
+  completeDailyMission(points: number, difficulty: 'easy' | 'medium' | 'hard' = 'medium') {
+    return this.pointsService.completeDailyMission(points, difficulty);
   }
   deductPoints(points: number) {
     return this.pointsService.deductPoints(points);

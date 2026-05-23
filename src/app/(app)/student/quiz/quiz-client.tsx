@@ -59,7 +59,25 @@ export function QuizClient() {
   const [showResults, setShowResults] = useState(false);
 
   const { toast } = useToast();
-  const { completeDailyMission, allQuizTopics: rawTopics, currentUser, recordQuizCompletion } = useEcosystem();
+  const { completeDailyMission, allQuizTopics: rawTopics, currentUser, recordQuizCompletion, userStates = {} } = useEcosystem();
+  
+  const studentState = useMemo(() => {
+    if (currentUser?.id && userStates[currentUser.id]) {
+      return userStates[currentUser.id];
+    }
+    return null;
+  }, [currentUser, userStates]);
+
+  const today = useMemo(() => new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }), []);
+
+  const completedToday = useMemo(() => {
+    const dates = studentState?.lastQuizDates || {};
+    return {
+      easy: dates.easy === today,
+      medium: dates.medium === today,
+      hard: dates.hard === today,
+    };
+  }, [studentState, today]);
   const allQuizTopics = useMemo(() => {
     return rawTopics
       .filter(t => 
@@ -117,16 +135,22 @@ export function QuizClient() {
       setShowResults(true);
       
       // Lógica de Recompensas do Ecossistema
+      const diff = form.getValues('difficulty');
       const isRecovery = form.getValues('topic') === 'Reciclagem';
       const score = calculateScore();
       const total = quizData!.questions.length;
       const errors = total - score;
-      const basePoints = isRecovery ? 20 : 10;
+      
+      // Base points based on difficulty and topic
+      let basePoints = 10;
+      if (diff === 'easy') basePoints = isRecovery ? 20 : 10;
+      else if (diff === 'medium') basePoints = isRecovery ? 30 : 20;
+      else if (diff === 'hard') basePoints = isRecovery ? 40 : 30;
       
       // Penalidade: -2 pontos por erro
       const points = Math.max(0, basePoints - (errors * 2));
       
-      const success = completeDailyMission(points);
+      const success = completeDailyMission(points, diff);
       
       if (success) {
         toast({
@@ -137,9 +161,10 @@ export function QuizClient() {
             : `Você finalizou o quiz, mas teve muitos erros para ganhar pontos. Tente novamente!`,
         });
       } else {
+        const diffLabel = diff === 'easy' ? 'Fácil' : diff === 'medium' ? 'Médio' : 'Difícil';
         toast({
           title: 'Quiz finalizado!',
-          description: 'Você já completou sua missão diária hoje, mas continue praticando!',
+          description: `Você já completou sua missão diária hoje na dificuldade ${diffLabel}, mas continue praticando!`,
         });
       }
 
@@ -169,10 +194,10 @@ export function QuizClient() {
 
   if (isLoading) {
     return (
-      <Card className="w-full max-w-2xl mx-auto border border-white/5 shadow-2xl bg-slate-900/40 text-white backdrop-blur-xl rounded-[2rem]">
+      <Card className="w-full max-w-2xl mx-auto border border-slate-200 dark:border-white/5 shadow-2xl bg-white dark:bg-slate-900/40 text-slate-950 dark:text-white backdrop-blur-xl rounded-[2rem]">
         <CardContent className="p-12 flex flex-col items-center justify-center gap-6">
-          <Loader2 className="h-12 w-12 animate-spin text-emerald-400" />
-          <p className="text-base text-slate-350 font-bold uppercase tracking-wider">Gerando seu quiz personalizado...</p>
+          <Loader2 className="h-12 w-12 animate-spin text-emerald-500" />
+          <p className="text-base text-slate-650 dark:text-slate-350 font-bold uppercase tracking-wider">Gerando seu quiz personalizado...</p>
         </CardContent>
       </Card>
     );
@@ -181,17 +206,17 @@ export function QuizClient() {
   if (quizData && !showResults) {
     const question = quizData.questions[currentQuestionIndex];
     return (
-      <Card className="w-full max-w-2xl mx-auto border border-white/5 shadow-2xl bg-slate-900/40 text-white backdrop-blur-xl rounded-[2rem] overflow-hidden animate-in fade-in zoom-in-95 duration-500">
-        <CardHeader className="border-b border-white/5 p-6 md:p-8">
-          <CardTitle className="text-xl font-black text-white uppercase tracking-tight leading-snug">{quizData.quizTitle}</CardTitle>
-          <CardDescription className="text-slate-450 font-black text-[9px] mt-1.5 flex justify-between items-center uppercase tracking-wider">
+      <Card className="w-full max-w-2xl mx-auto border border-slate-200 dark:border-white/5 shadow-2xl bg-white dark:bg-slate-900/40 text-slate-950 dark:text-white backdrop-blur-xl rounded-[2rem] overflow-hidden animate-in fade-in zoom-in-95 duration-500">
+        <CardHeader className="border-b border-slate-100 dark:border-white/5 p-6 md:p-8">
+          <CardTitle className="text-xl font-black text-slate-950 dark:text-white uppercase tracking-tight leading-snug">{quizData.quizTitle}</CardTitle>
+          <CardDescription className="text-slate-500 dark:text-slate-450 font-black text-[9px] mt-1.5 flex justify-between items-center uppercase tracking-wider">
             <span>Pergunta {currentQuestionIndex + 1} de {quizData.questions.length}</span>
-            <span className="text-emerald-400">{Math.round(((currentQuestionIndex + 1) / quizData.questions.length) * 100)}% concluído</span>
+            <span className="text-emerald-500">{Math.round(((currentQuestionIndex + 1) / quizData.questions.length) * 100)}% concluído</span>
           </CardDescription>
-          <Progress value={((currentQuestionIndex + 1) / quizData.questions.length) * 100} className="h-1.5 bg-slate-950/60 [&>div]:bg-gradient-to-r [&>div]:from-emerald-500 [&>div]:to-teal-400 mt-4"/>
+          <Progress value={((currentQuestionIndex + 1) / quizData.questions.length) * 100} className="h-1.5 bg-slate-200 dark:bg-slate-955 [&>div]:bg-gradient-to-r [&>div]:from-emerald-500 [&>div]:to-teal-400 mt-4"/>
         </CardHeader>
         <CardContent className="p-6 md:p-8 space-y-6">
-          <p className="text-base font-bold text-slate-100 leading-snug">{question.questionText}</p>
+          <p className="text-base font-bold text-slate-900 dark:text-slate-100 leading-snug">{question.questionText}</p>
           <RadioGroup value={selectedAnswers[currentQuestionIndex]} onValueChange={handleAnswerSelect} className="space-y-3">
             {question.options.map((option, index) => {
               const optionId = `option-${currentQuestionIndex}-${index}`;
@@ -202,19 +227,19 @@ export function QuizClient() {
                   className={cn(
                     "flex items-center space-x-3 p-4 rounded-2xl border transition-all duration-300 cursor-pointer select-none",
                     isSelected 
-                      ? "bg-emerald-500/10 border-emerald-500/30 text-white shadow-[0_0_15px_rgba(16,185,129,0.05)]" 
-                      : "bg-slate-950/40 border-white/5 hover:bg-white/5 text-slate-350"
+                      ? "bg-emerald-500/10 border-emerald-500 text-slate-950 dark:text-white shadow-[0_0_15px_rgba(16,185,129,0.05)]" 
+                      : "bg-slate-50 dark:bg-slate-950/40 border-slate-200 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-700 dark:text-slate-350"
                   )}
                   onClick={() => handleAnswerSelect(option)}
                 >
-                  <RadioGroupItem value={option} id={optionId} className="border-white/20 text-emerald-450 focus:ring-emerald-500 focus:ring-offset-0 bg-transparent" />
-                  <Label htmlFor={optionId} className="font-medium text-xs leading-relaxed cursor-pointer flex-grow text-slate-350">{option}</Label>
+                  <RadioGroupItem value={option} id={optionId} className="border-slate-300 dark:border-white/20 text-emerald-500 dark:text-emerald-450 focus:ring-emerald-500 focus:ring-offset-0 bg-transparent" />
+                  <Label htmlFor={optionId} className="font-medium text-xs leading-relaxed cursor-pointer flex-grow text-slate-700 dark:text-slate-350">{option}</Label>
                 </div>
               )
             })}
           </RadioGroup>
         </CardContent>
-        <CardFooter className="border-t border-white/5 bg-slate-950/20 p-6 md:p-8 flex justify-end">
+        <CardFooter className="border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-950/20 p-6 md:p-8 flex justify-end">
           <Button onClick={handleNextQuestion} disabled={!selectedAnswers[currentQuestionIndex]} className="h-11 px-8 rounded-2xl text-[9px] font-black uppercase tracking-widest bg-emerald-500 hover:bg-emerald-600 text-white disabled:opacity-40 transition-all duration-300">
             {currentQuestionIndex < quizData.questions.length - 1 ? 'Próxima Pergunta' : 'Ver Resultados'}
           </Button>
@@ -227,33 +252,33 @@ export function QuizClient() {
     const score = calculateScore();
     const totalQuestions = quizData.questions.length;
     return (
-      <Card className="w-full max-w-2xl mx-auto border border-white/5 shadow-2xl bg-slate-900/40 text-white backdrop-blur-xl rounded-[2rem] overflow-hidden">
-        <CardHeader className="items-center p-8 border-b border-white/5 text-center">
+      <Card className="w-full max-w-2xl mx-auto border border-slate-200 dark:border-white/5 shadow-2xl bg-white dark:bg-slate-900/40 text-slate-950 dark:text-white backdrop-blur-xl rounded-[2rem] overflow-hidden">
+        <CardHeader className="items-center p-8 border-b border-slate-100 dark:border-white/5 text-center">
             <div className="w-16 h-16 rounded-full bg-yellow-500/10 border border-yellow-500/20 shadow-[0_0_20px_rgba(234,179,8,0.1)] flex items-center justify-center mb-4">
-              <PartyPopper className="h-8 w-8 text-yellow-400 animate-bounce" />
+              <PartyPopper className="h-8 w-8 text-yellow-500" />
             </div>
-            <CardTitle className="text-2xl font-black uppercase tracking-tight text-white">Resultados do Quiz!</CardTitle>
-            <CardDescription className="text-slate-400 font-bold uppercase tracking-wider text-xs mt-1.5">
-              Você acertou <span className="text-emerald-400 font-black">{score}</span> de <span className="text-white font-black">{totalQuestions}</span> perguntas.
+            <CardTitle className="text-2xl font-black uppercase tracking-tight text-slate-950 dark:text-white">Resultados do Quiz!</CardTitle>
+            <CardDescription className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-xs mt-1.5">
+              Você acertou <span className="text-emerald-500 font-black">{score}</span> de <span className="text-slate-950 dark:text-white font-black">{totalQuestions}</span> perguntas.
             </CardDescription>
         </CardHeader>
         <CardContent className="p-6 md:p-8 space-y-4 max-h-[50vh] overflow-y-auto custom-scrollbar">
           {quizData.questions.map((q, i) => {
             const isCorrect = selectedAnswers[i] === q.correctAnswer;
             return (
-              <div key={i} className={cn("p-5 rounded-2xl border transition-all duration-300", isCorrect ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-rose-500/20 bg-rose-500/5' )}>
-                <p className="font-bold text-slate-100 text-sm">{i+1}. {q.questionText}</p>
+              <div key={i} className={cn("p-5 rounded-2xl border transition-all duration-300", isCorrect ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-950 dark:text-emerald-400' : 'border-rose-500/20 bg-rose-500/5 text-rose-950 dark:text-rose-450' )}>
+                <p className="font-bold text-slate-900 dark:text-slate-100 text-sm">{i+1}. {q.questionText}</p>
                 <div className='flex items-center gap-2 mt-3 text-xs'>
-                  {isCorrect ? <CheckCircle className="h-4.5 w-4.5 text-emerald-400" /> : <XCircle className="h-4.5 w-4.5 text-rose-400" />}
-                  <p className="font-semibold text-slate-350">Sua resposta: <span className={isCorrect ? 'text-emerald-400 font-bold' : 'text-rose-450 font-bold'}>{selectedAnswers[i] || 'Não respondida'}</span></p>
+                  {isCorrect ? <CheckCircle className="h-4.5 w-4.5 text-emerald-500" /> : <XCircle className="h-4.5 w-4.5 text-rose-500 animate-pulse" />}
+                  <p className="font-semibold text-slate-600 dark:text-slate-350">Sua resposta: <span className={isCorrect ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-rose-600 dark:text-rose-450 font-bold'}>{selectedAnswers[i] || 'Não respondida'}</span></p>
                 </div>
                 {!isCorrect && (
-                  <p className='mt-2 text-xs text-slate-400 font-medium pl-6.5'>
-                    Resposta correta: <span className="text-emerald-400 font-bold">{q.correctAnswer}</span>
+                  <p className='mt-2 text-xs text-slate-500 dark:text-slate-400 font-medium pl-6.5'>
+                    Resposta correta: <span className="text-emerald-600 dark:text-emerald-400 font-bold">{q.correctAnswer}</span>
                   </p>
                 )}
                 {q.explanation && (
-                  <Alert className="mt-4 border-white/5 bg-slate-950/40 text-slate-400 text-xs rounded-xl py-3 pl-4">
+                  <Alert className="mt-4 border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-955 text-slate-600 dark:text-slate-400 text-xs rounded-xl py-3 pl-4">
                     <AlertDescription className="font-medium leading-relaxed">{q.explanation}</AlertDescription>
                   </Alert>
                 )}
@@ -261,7 +286,7 @@ export function QuizClient() {
             );
           })}
         </CardContent>
-        <CardFooter className='border-t border-white/5 bg-slate-950/20 p-6 md:p-8 flex justify-center'>
+        <CardFooter className='border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-950/20 p-6 md:p-8 flex justify-center'>
            <Button onClick={() => setQuizData(null)} className="h-12 px-8 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-emerald-500 hover:bg-emerald-600 text-white transition-all duration-300">
              Gerar Novo Quiz
            </Button>
@@ -271,39 +296,91 @@ export function QuizClient() {
   }
 
   return (
-    <Card className="w-full max-w-2xl mx-auto border border-white/5 shadow-2xl bg-slate-900/40 text-white backdrop-blur-xl rounded-[2rem] overflow-hidden animate-in fade-in duration-500">
-      <CardHeader className="border-b border-white/5 p-6 md:p-8">
-        <CardTitle className="flex items-center gap-3 text-2xl font-black uppercase tracking-tight text-white">
+    <Card className="w-full max-w-2xl mx-auto border border-slate-200 dark:border-white/5 shadow-2xl bg-white dark:bg-slate-900/40 text-slate-950 dark:text-white backdrop-blur-xl rounded-[2rem] overflow-hidden animate-in fade-in duration-500 transition-all">
+      <CardHeader className="border-b border-slate-100 dark:border-white/5 p-6 md:p-8">
+        <CardTitle className="flex items-center gap-3 text-2xl font-black uppercase tracking-tight text-slate-950 dark:text-white">
           <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.15)] flex items-center justify-center">
-            <BrainCircuit className="h-5 w-5 text-emerald-400" />
+            <BrainCircuit className="h-5 w-5 text-emerald-500" />
           </div>
           Gerador de Quiz Sustentável
         </CardTitle>
-        <CardDescription className="text-slate-455 font-bold text-[9px] mt-1.5 leading-relaxed uppercase tracking-widest">
+        <CardDescription className="text-slate-500 dark:text-slate-400 font-bold text-[9px] mt-1.5 leading-relaxed uppercase tracking-widest">
           Teste seus conhecimentos e ganhe pontos! Escolha um tópico e a dificuldade.
         </CardDescription>
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="p-6 md:p-8 space-y-6">
+            <div className="p-5 md:p-6 rounded-[1.5rem] border border-indigo-100 dark:border-indigo-500/10 bg-indigo-50/30 dark:bg-indigo-500/5 space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-indigo-700 dark:text-indigo-400 flex items-center gap-1.5">
+                  <BrainCircuit size={14} className="animate-pulse" />
+                  Metas de Aprendizado Diário
+                </span>
+                <span className="text-[8px] md:text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest bg-slate-200/50 dark:bg-white/5 px-2.5 py-1 rounded-full">
+                  1 prêmio por dificuldade / dia
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[
+                  { key: 'easy', label: 'Fácil', points: '10', recPoints: '20' },
+                  { key: 'medium', label: 'Médio', points: '20', recPoints: '30' },
+                  { key: 'hard', label: 'Difícil', points: '30', recPoints: '40' },
+                ].map((diffItem) => {
+                  const isCompleted = completedToday[diffItem.key as 'easy' | 'medium' | 'hard'];
+                  return (
+                    <div 
+                      key={diffItem.key}
+                      className={cn(
+                        "p-3 rounded-2xl border flex flex-col justify-between transition-all duration-300",
+                        isCompleted 
+                          ? "bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-250 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-450 shadow-[0_4px_12px_rgba(16,185,129,0.05)]"
+                          : "bg-white dark:bg-slate-950/40 border-slate-100 dark:border-white/5 hover:border-indigo-500/20 hover:shadow-lg dark:hover:shadow-none text-slate-700 dark:text-slate-350"
+                      )}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-[10px] md:text-xs font-black uppercase tracking-wider">{diffItem.label}</span>
+                        {isCompleted ? (
+                          <CheckCircle className="w-4 h-4 text-emerald-500 animate-in zoom-in duration-500" />
+                        ) : (
+                          <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 animate-ping" />
+                        )}
+                      </div>
+                      
+                      <div className="space-y-0.5">
+                        <p className={cn("text-[9px] font-black tracking-wide", isCompleted ? "text-emerald-600 dark:text-emerald-500/80" : "text-indigo-600 dark:text-indigo-400")}>
+                          {isCompleted ? "₵0 / Concluído" : `Até ₵${diffItem.points}`}
+                        </p>
+                        {!isCompleted && (
+                          <p className="text-[7.5px] font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">
+                            Reciclagem: ₵{diffItem.recPoints}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
             <FormField
               control={form.control}
               name="topic"
               render={({ field }) => (
                 <FormItem className="space-y-2">
-                  <FormLabel className="text-[9px] font-black uppercase tracking-wider text-slate-400">Tópico</FormLabel>
+                  <FormLabel className="text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Tópico</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger className="bg-slate-950/40 border-white/5 text-slate-200 h-12 rounded-2xl focus:ring-emerald-500/50">
+                      <SelectTrigger className="bg-slate-100 dark:bg-slate-950/40 border-slate-200 dark:border-white/5 text-slate-800 dark:text-slate-200 h-12 rounded-2xl focus:ring-emerald-500/50">
                         <SelectValue placeholder="Selecione um tópico ambiental" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent className="bg-slate-950 border-white/10 text-slate-200 rounded-2xl">
+                    <SelectContent className="bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 rounded-2xl">
                       {allQuizTopics.map((topic, idx) => (
-                        <SelectItem key={topic.id || `topic-${idx}`} value={topic.name} className="focus:bg-emerald-500 focus:text-white rounded-xl">
+                        <SelectItem key={topic.id || `topic-${idx}`} value={topic.name} className="focus:bg-emerald-500 focus:text-white rounded-xl text-slate-850 dark:text-slate-200">
                           {topic.name}
                         </SelectItem>
                       ))}
@@ -319,20 +396,20 @@ export function QuizClient() {
                 name="difficulty"
                 render={({ field }) => (
                   <FormItem className="space-y-2">
-                    <FormLabel className="text-[9px] font-black uppercase tracking-wider text-slate-400">Dificuldade</FormLabel>
+                    <FormLabel className="text-[9px] font-black uppercase tracking-wider text-slate-550 dark:text-slate-400">Dificuldade</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger className="bg-slate-950/40 border-white/5 text-slate-200 h-12 rounded-2xl focus:ring-emerald-500/50">
+                        <SelectTrigger className="bg-slate-100 dark:bg-slate-950/40 border-slate-200 dark:border-white/5 text-slate-800 dark:text-slate-200 h-12 rounded-2xl focus:ring-emerald-500/50">
                           <SelectValue placeholder="Selecione a dificuldade" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="bg-slate-950 border-white/10 text-slate-200 rounded-2xl">
-                        <SelectItem value="easy" className="focus:bg-emerald-500 focus:text-white rounded-xl">Fácil</SelectItem>
-                        <SelectItem value="medium" className="focus:bg-emerald-500 focus:text-white rounded-xl">Médio</SelectItem>
-                        <SelectItem value="hard" className="focus:bg-emerald-500 focus:text-white rounded-xl">Difícil</SelectItem>
+                      <SelectContent className="bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 rounded-2xl">
+                        <SelectItem value="easy" className="focus:bg-emerald-500 focus:text-white rounded-xl text-slate-800 dark:text-slate-200">Fácil</SelectItem>
+                        <SelectItem value="medium" className="focus:bg-emerald-500 focus:text-white rounded-xl text-slate-800 dark:text-slate-200">Médio</SelectItem>
+                        <SelectItem value="hard" className="focus:bg-emerald-500 focus:text-white rounded-xl text-slate-800 dark:text-slate-200">Difícil</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -344,20 +421,20 @@ export function QuizClient() {
                 name="numberOfQuestions"
                 render={({ field }) => (
                   <FormItem className="space-y-2">
-                    <FormLabel className="text-[9px] font-black uppercase tracking-wider text-slate-400">Nº de Perguntas</FormLabel>
+                    <FormLabel className="text-[9px] font-black uppercase tracking-wider text-slate-550 dark:text-slate-400">Nº de Perguntas</FormLabel>
                     <Select
                       onValueChange={(val) => field.onChange(Number(val))}
                       defaultValue={String(field.value)}
                     >
                       <FormControl>
-                        <SelectTrigger className="bg-slate-950/40 border-white/5 text-slate-200 h-12 rounded-2xl focus:ring-emerald-500/50">
+                        <SelectTrigger className="bg-slate-100 dark:bg-slate-950/40 border-slate-200 dark:border-white/5 text-slate-800 dark:text-slate-200 h-12 rounded-2xl focus:ring-emerald-500/50">
                           <SelectValue placeholder="Número de perguntas" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="bg-slate-950 border-white/10 text-slate-200 rounded-2xl">
-                        <SelectItem value="3" className="focus:bg-emerald-500 focus:text-white rounded-xl">3 Perguntas</SelectItem>
-                        <SelectItem value="5" className="focus:bg-emerald-500 focus:text-white rounded-xl">5 Perguntas</SelectItem>
-                        <SelectItem value="10" className="focus:bg-emerald-500 focus:text-white rounded-xl">10 Perguntas</SelectItem>
+                      <SelectContent className="bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 rounded-2xl">
+                        <SelectItem value="3" className="focus:bg-emerald-500 focus:text-white rounded-xl text-slate-800 dark:text-slate-200">3 Perguntas</SelectItem>
+                        <SelectItem value="5" className="focus:bg-emerald-500 focus:text-white rounded-xl text-slate-800 dark:text-slate-200">5 Perguntas</SelectItem>
+                        <SelectItem value="10" className="focus:bg-emerald-500 focus:text-white rounded-xl text-slate-800 dark:text-slate-200">10 Perguntas</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -366,10 +443,10 @@ export function QuizClient() {
               />
             </div>
             {error && (
-              <p className="text-xs font-black text-rose-400 uppercase tracking-widest mt-2">{error}</p>
+              <p className="text-xs font-black text-rose-500 dark:text-rose-450 uppercase tracking-widest mt-2">{error}</p>
             )}
           </CardContent>
-          <CardFooter className="border-t border-white/5 bg-slate-950/20 p-6 md:p-8">
+          <CardFooter className="border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-955/20 p-6 md:p-8">
             <Button type="submit" className="h-12 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-emerald-500 hover:bg-emerald-600 text-white disabled:opacity-40 transition-all duration-300 w-full" disabled={isLoading}>
               {isLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

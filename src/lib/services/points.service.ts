@@ -231,14 +231,31 @@ export class PointsService {
     return true;
   }
 
-  completeDailyMission(points: number): boolean {
+  completeDailyMission(points: number, difficulty: 'easy' | 'medium' | 'hard' = 'medium'): boolean {
     const today = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-    if (this.service.lastMissionDateSubject.value === today) return false;
+    
+    if (!this.service.currentUserRa) return false;
+
+    const user = this.service.data.users.find((u: User) => u.ra === this.service.currentUserRa);
+    if (!user) return false;
+
+    const state = this.service.data.userStates[user.id] || this.service.getDefaultState(user);
+
+    if (!state.lastQuizDates) {
+      state.lastQuizDates = { easy: null, medium: null, hard: null };
+    }
+
+    if (state.lastQuizDates[difficulty] === today) {
+      return false; 
+    }
+
+    state.lastQuizDates[difficulty] = today;
+    state.lastMissionDate = today;
+    this.service.data.userStates[user.id] = state;
     this.service.lastMissionDateSubject.next(today);
     
-    if (this.service.currentUserRa) {
-      this.syncUserPoints(this.service.currentUserRa, points, points, "Missão Diária Concluída!");
-    }
+    const difficultyLabel = difficulty === 'easy' ? 'Fácil' : difficulty === 'medium' ? 'Médio' : 'Difícil';
+    this.syncUserPoints(this.service.currentUserRa, points, points, `Quiz Concluído: Dificuldade ${difficultyLabel}`);
     return true;
   }
 

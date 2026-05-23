@@ -654,12 +654,19 @@ const PainterlyButterflies = ({ color, className, initialDelay = 0 }: { color: s
  */
 export function EcosystemViewer({ 
   vitality, 
-  purchasedItems, 
+  purchasedItems = [], 
   className,
-  interactive = true 
-}: { vitality: number, purchasedItems: EcosystemItem[], className?: string, interactive?: boolean }) {
+  interactive = true,
+  isLegendary: isLegendaryProp
+}: { 
+  vitality: number; 
+  purchasedItems?: EcosystemItem[]; 
+  className?: string; 
+  interactive?: boolean;
+  isLegendary?: boolean;
+}) {
   const { level } = useEcosystem();
-  const isLegendary = level === 'Guardião da Lenda';
+  const isLegendary = isLegendaryProp ?? (level === 'Guardião da Lenda');
   const [realTime, setRealTime] = useState({ h: 12, m: 0 });
   const [forceTime, setForceTime] = useState<'real' | 'day' | 'night'>('real');
   const [isClient, setIsClient] = useState(false);

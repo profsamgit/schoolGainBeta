@@ -74,6 +74,7 @@ export default function LeaderboardPage() {
   const { users, currentUserRa, balance, vitality, purchasedItems, getUserState, initUserSpecificSync, getMonthlyLegends, isPreviewMode, currentUser, userStates, legends } = useEcosystem();
 
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [isExploreOpen, setIsExploreOpen] = useState(false);
   const [rankingRole, setRankingRole] = useState<'student' | 'staff'>(currentUser?.role === 'staff' ? 'staff' : 'student');
   
   const monthlyLegends = useMemo(() => getMonthlyLegends(), [getMonthlyLegends, legends, purchasedItems, userStates, users]);
@@ -187,60 +188,18 @@ export default function LeaderboardPage() {
                 </div>
 
                 <div className="pt-5">
-                   <Dialog>
-                    <DialogTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="rounded-full bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-[10px] uppercase font-black tracking-widest text-slate-700 dark:text-white h-10 px-6 transition-all duration-300 hover:scale-110 active:scale-95"
-                        onClick={() => {
-                          setSelectedUser(user);
-                          initUserSpecificSync(user.id);
-                        }}
-                      >
-                        <Eye size={14} className="mr-2" /> Explorar
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[90vw] h-[85vh] p-0 overflow-hidden border-none bg-slate-900 shadow-2xl">
-                        <DialogHeader className="sr-only">
-                          <DialogTitle>Explorando Ecossistema de {selectedUser?.name}</DialogTitle>
-                          <DialogDescription>Progresso ambiental em tempo real.</DialogDescription>
-                        </DialogHeader>
-                        {selectedUser && (() => {
-                          const state = userStates[selectedUser.id] || getUserState(selectedUser.id);
-                          return (
-                            <div className="relative w-full h-full">
-                              <EcosystemViewer 
-                                vitality={state.vitality} 
-                                purchasedItems={state.purchasedItems} 
-                                className="w-full h-full"
-                              />
-                              <div className="absolute top-8 left-8 z-50">
-                                <div className="px-8 py-4 bg-white/10 backdrop-blur-2xl rounded-[2rem] border border-white/20 shadow-2xl">
-                                  <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-emerald-500/40">
-                                      {selectedUser.name.charAt(0)}
-                                    </div>
-                                    <div>
-                                      <h3 className="text-base font-black text-white uppercase tracking-tight">{selectedUser.name}</h3>
-                                      <div className="flex items-center gap-2">
-                                        <MapPin size={14} className="text-emerald-400" />
-                                        <span className="text-[11px] text-white/70 font-bold uppercase tracking-wider">{selectedUser.level}</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="absolute bottom-8 right-8 z-50">
-                                   <div className="px-6 py-3 bg-emerald-500 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-full shadow-2xl shadow-emerald-500/40 animate-pulse">
-                                      Modo Visitante
-                                   </div>
-                                </div>
-                            </div>
-                          );
-                        })()}
-                      </DialogContent>
-                    </Dialog>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="rounded-full bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-[10px] uppercase font-black tracking-widest text-slate-700 dark:text-white h-10 px-6 transition-all duration-300 hover:scale-110 active:scale-95"
+                    onClick={() => {
+                      setSelectedUser(user);
+                      initUserSpecificSync(user.id);
+                      setIsExploreOpen(true);
+                    }}
+                  >
+                    <Eye size={14} className="mr-2" /> Explorar
+                  </Button>
                 </div>
             </div>
           </div>
@@ -319,7 +278,7 @@ export default function LeaderboardPage() {
                             )}>
                                {legend ? legend.name.split(' ')[0] : 'Vaga Aberta'}
                             </p>
-                            {legend && <p className="text-[8px] text-slate-400 dark:text-white/40 font-bold uppercase mt-1">{new Date(legend.purchaseDate).toLocaleDateString()}</p>}
+                            {legend && <p className="text-[8px] text-slate-400 dark:text-white/40 font-bold uppercase mt-1">{new Date(legend.date || legend.purchaseDate || new Date()).toLocaleDateString()}</p>}
                          </div>
                       </div>
                     );
@@ -441,58 +400,18 @@ export default function LeaderboardPage() {
                     </div>
                   </TableCell>
                   <TableCell className="text-center border-b border-slate-200 dark:border-white/5">
-                    <Dialog>
-                        <DialogTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-emerald-400 border border-slate-200 dark:border-white/5 transition-all duration-300"
-                            onClick={() => setSelectedUser(user)}
-                          >
-                            <Eye size={18} />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[90vw] h-[85vh] p-0 overflow-hidden border-none bg-slate-900 shadow-2xl">
-                          <DialogHeader className="sr-only">
-                            <DialogTitle>Explorando Ecossistema de {selectedUser?.name}</DialogTitle>
-                            <DialogDescription>Visualização em tempo real do progresso de restauração ambiental deste agente.</DialogDescription>
-                          </DialogHeader>
-                          {selectedUser && (() => {
-                            const state = userStates[selectedUser.id] || getUserState(selectedUser.id);
-                            return (
-                              <div className="relative w-full h-full">
-                                <EcosystemViewer 
-                                  vitality={state.vitality} 
-                                  purchasedItems={state.purchasedItems} 
-                                  className="w-full h-full"
-                                  interactive={true}
-                                />
-                                <div className="absolute top-8 left-8 z-50">
-                                  <div className="px-8 py-4 bg-white/10 backdrop-blur-2xl rounded-[2rem] border border-white/20 shadow-2xl">
-                                    <div className="flex items-center gap-4">
-                                      <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center text-white font-black text-xl">
-                                        {selectedUser.name.charAt(0)}
-                                      </div>
-                                      <div>
-                                        <h3 className="text-base font-black text-white uppercase tracking-tight">{selectedUser.name}</h3>
-                                        <div className="flex items-center gap-2">
-                                          <MapPin size={14} className="text-emerald-400" />
-                                          <span className="text-[11px] text-white/70 font-bold uppercase tracking-[0.1em]">{selectedUser.level}</span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="absolute bottom-8 right-8 z-50">
-                                   <div className="px-6 py-3 bg-emerald-500 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-full shadow-2xl shadow-emerald-500/40 animate-bounce">
-                                      Modo Visitante
-                                   </div>
-                                </div>
-                              </div>
-                            );
-                          })()}
-                        </DialogContent>
-                      </Dialog>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-emerald-400 border border-slate-200 dark:border-white/5 transition-all duration-300"
+                      onClick={() => {
+                        setSelectedUser(user);
+                        initUserSpecificSync(user.id);
+                        setIsExploreOpen(true);
+                      }}
+                    >
+                      <Eye size={18} />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -507,6 +426,50 @@ export default function LeaderboardPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={isExploreOpen} onOpenChange={setIsExploreOpen}>
+        <DialogContent className="sm:max-w-[90vw] h-[85vh] p-0 overflow-hidden border-none bg-slate-900 shadow-2xl">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Explorando Ecossistema de {selectedUser?.name}</DialogTitle>
+            <DialogDescription>Progresso ambiental em tempo real.</DialogDescription>
+          </DialogHeader>
+          {selectedUser && (() => {
+            const state = userStates[selectedUser.id] || getUserState(selectedUser.id);
+            return (
+              <div className="relative w-full h-full">
+                <EcosystemViewer 
+                  vitality={state.vitality} 
+                  purchasedItems={state.purchasedItems || []} 
+                  isLegendary={state.level === 'Guardião da Lenda'}
+                  className="w-full h-full"
+                  interactive={true}
+                />
+                <div className="absolute top-8 left-8 z-50">
+                  <div className="px-8 py-4 bg-white/10 backdrop-blur-2xl rounded-[2rem] border border-white/20 shadow-2xl">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-emerald-500/40">
+                        {selectedUser.name.charAt(0)}
+                      </div>
+                      <div>
+                        <h3 className="text-base font-black text-white uppercase tracking-tight">{selectedUser.name}</h3>
+                        <div className="flex items-center gap-2">
+                          <MapPin size={14} className="text-emerald-400" />
+                          <span className="text-[11px] text-white/70 font-bold uppercase tracking-wider">{selectedUser.level}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="absolute bottom-8 right-8 z-50">
+                  <div className="px-6 py-3 bg-emerald-500 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-full shadow-2xl shadow-emerald-500/40 animate-pulse">
+                    Modo Visitante
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
