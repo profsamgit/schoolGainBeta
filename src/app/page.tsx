@@ -23,6 +23,15 @@ export default function Home() {
           {/* Seção do Cabeçalho */}
           <div className="mb-12 text-center flex flex-col items-center">
             
+            {/* Logomarca da Escola Parceira */}
+            <div className="mb-4 flex items-center justify-center select-none scale-95 hover:scale-100 transition-all duration-500">
+              <img 
+                src="/brand/logo_apicella_menor.png" 
+                alt="Logomarca CETI Frei José Apicella" 
+                className="h-16 w-auto object-contain drop-shadow-md dark:brightness-110" 
+              />
+            </div>
+
             {/* Crachá com Efeito de Pulso de Status */}
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100/60 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200/40 dark:border-emerald-500/20 mb-6 shadow-sm">
               <span className="relative flex h-2 w-2">

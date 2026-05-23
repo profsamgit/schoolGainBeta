@@ -15,7 +15,10 @@ import {
   ShieldCheck,
   Trash2,
   CheckCircle,
-  X
+  X,
+  Camera,
+  Loader2,
+  ZoomIn
 } from 'lucide-react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
@@ -38,6 +41,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useEcosystem } from '@/contexts/EcosystemContext';
 import { EcosystemService } from '@/lib/ecosystem.service';
 import { toPng } from 'html-to-image';
+import { db } from '@/lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 import {
   User,
   Reward,
@@ -142,6 +147,7 @@ function AdminContent() {
     deleteTerminal,
     registerSchool,
     schools,
+    updateSchools,
     uploadUserAvatar,
     registrationRequests,
     approveRegistration,
@@ -237,6 +243,41 @@ function AdminContent() {
     if (currentUser?.role === 'super_admin' && qSchoolId) return qSchoolId;
     return currentUser?.schoolId;
   }, [searchParams, currentUser]);
+
+  const [isLogoUploading, setIsLogoUploading] = useState(false);
+  const [isLogoPreviewOpen, setIsLogoPreviewOpen] = useState(false);
+
+  const schoolLogo = useMemo(() => {
+    const activeSchool = schools.find(s => s.id === targetSchoolId);
+    return activeSchool?.logo || "/brand/logo_apicella_menor.png";
+  }, [schools, targetSchoolId]);
+
+  const handleSchoolLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !targetSchoolId) return;
+
+    setIsLogoUploading(true);
+    try {
+      const compressedBase64 = await EcosystemService.compressImageToBase64(file, 500, 500, 0.75);
+      
+      const updatedSchools = schools.map(s => 
+        s.id === targetSchoolId ? { ...s, logo: compressedBase64 } : s
+      );
+      updateSchools(updatedSchools);
+      
+      const targetSchool = schools.find(s => s.id === targetSchoolId);
+      if (targetSchool) {
+        const schoolDocRef = doc(db, "schools", targetSchoolId);
+        await setDoc(schoolDocRef, { ...targetSchool, logo: compressedBase64 }, { merge: true });
+        toast({ title: "Sucesso!", description: "Logomarca da escola atualizada com sucesso." });
+      }
+    } catch (error) {
+      console.error("Erro no upload do logo da escola:", error);
+      toast({ title: "Erro", description: "Falha ao enviar logo da escola.", variant: "destructive" });
+    } finally {
+      setIsLogoUploading(false);
+    }
+  };
 
   const filteredUsersForAdmin = useMemo(() => {
     let baseUsers = users;
@@ -719,8 +760,39 @@ function AdminContent() {
       <div className="p-6 space-y-8 max-w-7xl mx-auto relative z-10 animate-in fade-in duration-500">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/80 dark:bg-slate-900/40 p-6 rounded-[2rem] border border-slate-200/60 dark:border-white/10 shadow-2xl backdrop-blur-xl">
           <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-xl bg-indigo-500/5 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 flex items-center justify-center text-indigo-650 dark:text-indigo-400 shadow-lg">
-              <Shield className="h-6 w-6" />
+            {/* Logo da escola com botão de câmera e visualização */}
+            <div className="relative group/logo rounded-xl border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.15)] select-none flex items-center justify-center h-14 w-14 overflow-hidden shrink-0"
+              style={{ background: 'repeating-conic-gradient(#e2e8f0 0% 25%, #f8fafc 0% 50%) 0 0 / 8px 8px' }}>
+              <img 
+                src={schoolLogo} 
+                alt="Logomarca da Escola" 
+                className="h-12 w-12 object-contain p-1" 
+              />
+              {/* Overlay ao hover: câmera (upload) + lupa (visualizar) */}
+              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/logo:opacity-100 transition-opacity flex items-center justify-center gap-1 z-10">
+                <label className="cursor-pointer p-1 rounded hover:bg-white/20 transition-colors" title="Alterar logo">
+                  {isLogoUploading ? (
+                    <Loader2 className="h-3.5 w-3.5 text-white animate-spin" />
+                  ) : (
+                    <Camera className="h-3.5 w-3.5 text-white" />
+                  )}
+                  <input 
+                    type="file" 
+                    className="hidden" 
+                    accept="image/*" 
+                    onChange={handleSchoolLogoUpload} 
+                    disabled={isLogoUploading} 
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsLogoPreviewOpen(true)}
+                  className="p-1 rounded hover:bg-white/20 transition-colors"
+                  title="Visualizar em tamanho maior"
+                >
+                  <ZoomIn className="h-3.5 w-3.5 text-white" />
+                </button>
+              </div>
             </div>
             <div>
               <h1 className="text-3xl font-black uppercase tracking-tighter bg-gradient-to-r from-slate-900 via-indigo-950 to-indigo-900 dark:from-white dark:via-indigo-100 dark:to-indigo-300 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(99,102,241,0.2)]">Painel do Gestor</h1>
@@ -885,6 +957,22 @@ function AdminContent() {
 
         </Tabs>
       </div>
+
+      {/* Modal de visualização da logomarca */}
+      <Dialog open={isLogoPreviewOpen} onOpenChange={setIsLogoPreviewOpen}>
+        <DialogContent className="max-w-sm bg-white/95 dark:bg-slate-900/95 backdrop-blur-3xl border border-slate-200/60 dark:border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col items-center gap-4">
+          <DialogHeader className="w-full">
+            <DialogTitle className="text-sm font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 text-center">Logomarca da Escola</DialogTitle>
+          </DialogHeader>
+          <div className="rounded-2xl overflow-hidden border border-slate-200/60 dark:border-white/10 shadow-lg p-4 flex items-center justify-center"
+            style={{ background: 'repeating-conic-gradient(#e2e8f0 0% 25%, #f8fafc 0% 50%) 0 0 / 16px 16px', minHeight: 200, minWidth: 200 }}>
+            <img src={schoolLogo} alt="Logomarca da Escola" className="max-h-48 max-w-xs object-contain" />
+          </div>
+          <Button variant="outline" className="w-full rounded-xl border-slate-200/60 dark:border-white/10 text-slate-600 dark:text-slate-300 font-bold uppercase text-xs tracking-widest" onClick={() => setIsLogoPreviewOpen(false)}>
+            Fechar
+          </Button>
+        </DialogContent>
+      </Dialog>
 
       {/* Shared Dialogs */}
       <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>

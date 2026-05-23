@@ -17,6 +17,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { EcosystemService } from '@/lib/ecosystem.service';
+import { db } from '@/lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 import { useState, useMemo, useEffect } from 'react';
 import {
   Dialog,
@@ -123,6 +125,11 @@ export default function SuperAdminPage() {
   const [editingDev, setEditingDev] = useState<any>(null);
   const [devFormData, setDevFormData] = useState({ id: '', name: '', role: '', description: '', avatar: '', initials: '' });
 
+  // Estados de Beta Testers
+  const [isBetaDialogOpen, setIsBetaDialogOpen] = useState(false);
+  const [editingBeta, setEditingBeta] = useState<any>(null);
+  const [betaFormData, setBetaFormData] = useState({ id: '', name: '', role: 'Aluno Beta Tester', description: '', avatar: '', initials: '', isBetaTester: true });
+
   const [isSchoolEditDialogOpen, setIsSchoolEditDialogOpen] = useState(false);
   const [editingSchoolObj, setEditingSchoolObj] = useState<any>(null);
   const [schoolEditData, setSchoolEditData] = useState({ name: '', city: '', state: '', managerEmail: '' });
@@ -207,6 +214,10 @@ export default function SuperAdminPage() {
         managerEmail: schoolEditData.managerEmail.toLowerCase().trim()
       };
       const updatedSchools = schools.map(s => s.id === editingSchoolObj.id ? { ...s, ...sanitizedEditData } : s);
+      const targetSchool = updatedSchools.find(s => s.id === editingSchoolObj.id);
+      if (targetSchool) {
+        await setDoc(doc(db, "schools", editingSchoolObj.id), targetSchool);
+      }
       updateSchools(updatedSchools);
       toast({ title: "Sucesso", description: "Dados da escola atualizados!" });
       setIsSchoolEditDialogOpen(false);
@@ -245,6 +256,38 @@ export default function SuperAdminPage() {
       toast({ title: "Sucesso", description: "Participante removido." });
     } else {
       toast({ title: "Erro", description: "Falha ao remover o participante.", variant: "destructive" });
+    }
+  };
+
+  const handleSaveBeta = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const betaTesters = allParticipants.filter(p => p.isBetaTester);
+    const devs = allParticipants.filter(p => !p.isBetaTester);
+    let updatedBeta = [...betaTesters];
+    if (editingBeta) {
+      updatedBeta = updatedBeta.map(b => b.id === editingBeta.id ? { ...b, ...betaFormData } : b);
+    } else {
+      const newId = `BETA-${Date.now()}`;
+      updatedBeta.push({ ...betaFormData, id: newId, isBetaTester: true });
+    }
+    const success = await updateParticipants([...devs, ...updatedBeta]);
+    if (success) {
+      toast({ title: "Sucesso", description: "Beta Tester salvo!" });
+      setIsBetaDialogOpen(false);
+      setEditingBeta(null);
+      setBetaFormData({ id: '', name: '', role: 'Aluno Beta Tester', description: '', avatar: '', initials: '', isBetaTester: true });
+    } else {
+      toast({ title: "Erro", description: "Falha ao salvar beta tester.", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteBeta = async (id: string) => {
+    if (!confirm('Tem certeza que deseja remover este beta tester?')) return;
+    const success = await updateParticipants(allParticipants.filter(p => p.id !== id));
+    if (success) {
+      toast({ title: "Sucesso", description: "Beta Tester removido." });
+    } else {
+      toast({ title: "Erro", description: "Falha ao remover.", variant: "destructive" });
     }
   };
 
@@ -563,8 +606,12 @@ export default function SuperAdminPage() {
       <div className="relative z-10 p-6 space-y-8 max-w-7xl mx-auto">
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white/80 dark:bg-slate-900/40 p-6 rounded-[2rem] border border-slate-200/60 dark:border-white/10 shadow-2xl backdrop-blur-xl">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-indigo-500/10 rounded-xl border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.15)] select-none">
-              <Leaf className="h-7 w-7 text-indigo-600 dark:text-indigo-400 fill-indigo-500/20 animate-pulse" />
+            <div className="p-2.5 bg-indigo-500/10 rounded-xl border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.15)] select-none flex items-center justify-center h-12 w-12">
+              <img 
+                src="/brand/logo_apicella_menor.png" 
+                alt="Logomarca CETI Frei José Apicella" 
+                className="h-7 w-auto object-contain dark:brightness-110" 
+              />
             </div>
             <div className="space-y-0.5">
               <h1 className="text-2xl md:text-3xl font-black uppercase tracking-[0.05em] bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 dark:from-indigo-400 dark:via-purple-400 dark:to-indigo-400 text-transparent bg-clip-text">
@@ -712,6 +759,14 @@ export default function SuperAdminPage() {
               uploadUserAvatar={uploadUserAvatar}
               uploadingUserId={uploadingUserId}
               setUploadingUserId={setUploadingUserId}
+              isBetaDialogOpen={isBetaDialogOpen}
+              setIsBetaDialogOpen={setIsBetaDialogOpen}
+              editingBeta={editingBeta}
+              setEditingBeta={setEditingBeta}
+              betaFormData={betaFormData}
+              setBetaFormData={setBetaFormData}
+              handleSaveBeta={handleSaveBeta}
+              handleDeleteBeta={handleDeleteBeta}
             />
           </TabsContent>
 

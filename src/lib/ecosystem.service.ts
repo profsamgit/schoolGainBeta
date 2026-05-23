@@ -874,7 +874,7 @@ export class EcosystemService {
     return this.userService.updateUserStatus(userId, status);
   }
 
-  private static async compressImageToBase64(file: File, maxW = 400, maxH = 400, quality = 0.7): Promise<string> {
+  public static async compressImageToBase64(file: File, maxW = 400, maxH = 400, quality = 0.7): Promise<string> {
     if (typeof window === 'undefined') return '';
     return new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
@@ -907,10 +907,21 @@ export class EcosystemService {
             return;
           }
 
+          // Detecta se o arquivo possui transparência (PNG, WEBP, GIF) para preservá-la
+          const isPng = file.type === 'image/png' || file.type === 'image/webp' || file.type === 'image/gif';
+          
+          if (!isPng) {
+            // Para formatos sem transparência (JPEG), preenche com fundo branco
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, width, height);
+          }
+
           ctx.drawImage(img, 0, 0, width, height);
           
-          // Salva como JPEG com compressão
-          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          // Preserva transparência para PNG/WEBP; usa JPEG com compressão para outros formatos
+          const dataUrl = isPng
+            ? canvas.toDataURL('image/png')
+            : canvas.toDataURL('image/jpeg', quality);
           resolve(dataUrl);
         };
         img.onerror = reject;

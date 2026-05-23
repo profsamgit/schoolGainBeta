@@ -329,9 +329,14 @@ export function IdentificationSection({
           
           {/* Header Section */}
           <div className="mb-8 text-center flex flex-col items-center">
-            {/* Custom Icon Badge */}
-            <div className="inline-flex items-center justify-center p-3.5 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/5 text-emerald-400 border border-emerald-500/30 mb-5 shadow-[0_0_20px_rgba(16,185,129,0.15)] animate-[float-slow_6s_infinite_ease-in-out]">
-              <Recycle className="w-7 h-7 text-emerald-400 animate-spin [animation-duration:12s]" />
+            {/* Custom School Brand Badge */}
+            <div className="relative mb-5 flex items-center justify-center h-20 w-auto select-none">
+              <div className="absolute w-24 h-24 rounded-full border border-emerald-500/20 bg-emerald-500/5 animate-pulse" />
+              <img 
+                src={currentSchool?.logo || "/brand/logo_apicella_menor.png"} 
+                alt="Logomarca da Escola" 
+                className="relative z-10 h-14 w-auto object-contain drop-shadow-[0_0_15px_rgba(16,185,129,0.25)] dark:brightness-110" 
+              />
             </div>
             
             <div className="flex items-center gap-2 mb-2 select-none justify-center">

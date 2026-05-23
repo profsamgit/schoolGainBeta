@@ -208,6 +208,16 @@ export default function StudentLoginPage() {
           
           {/* Seção do Cabeçalho */}
           <div className="mb-8 text-center flex flex-col items-center">
+            
+            {/* Logomarca da Escola Parceira */}
+            <div className="mb-4 flex items-center justify-center select-none scale-95 hover:scale-100 transition-all duration-500">
+              <img 
+                src="/brand/logo_apicella_menor.png" 
+                alt="Logomarca CETI Frei José Apicella" 
+                className="h-14 w-auto object-contain drop-shadow-md dark:brightness-110" 
+              />
+            </div>
+
             {/* Distintivo de Ícone Personalizado */}
             <div className="inline-flex items-center justify-center p-3.5 rounded-2xl bg-emerald-100/80 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-500/20 mb-5 shadow-inner">
               <UserCheck className="w-7 h-7" />

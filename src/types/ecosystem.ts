@@ -68,6 +68,7 @@ export type Participant = {
     avatar: string;
     initials: string;
     schoolId?: string;
+    isBetaTester?: boolean; // Identifica alunos beta-testers (exibidos na seção de agradecimento da página Sobre)
 };
 
 export type AuditActionType = 

@@ -81,6 +81,13 @@ export function Header() {
   const searchParams = useSearchParams();
   const previewId = searchParams.get('preview');
 
+  const currentSchoolLogo = useMemo(() => {
+    if (!currentUser) return "/brand/logo_apicella_menor.png";
+    const activeSid = currentUser.role === 'super_admin' ? (searchParams.get('schoolId') || currentUser.schoolId) : currentUser.schoolId;
+    const school = schools.find(s => s.id === activeSid);
+    return school?.logo || "/brand/logo_apicella_menor.png";
+  }, [currentUser, schools, searchParams]);
+
   // Função auxiliar para injetar o parâmetro de preview nos links
   const getLink = (href: string) => {
     if (previewId) {
@@ -141,6 +148,18 @@ export function Header() {
 
   return (
     <header className="relative z-40 flex h-14 items-center gap-3 px-4 sm:h-14 sm:px-6 transition-all border-b bg-white/80 dark:bg-[#070913]/90 border-slate-200 dark:border-white/5 text-slate-800 dark:text-white backdrop-blur-xl shadow-sm dark:shadow-[0_4px_30px_rgba(0,0,0,0.3)]">
+      {/* School Logo */}
+      {currentUser && (
+        <div className="flex items-center gap-2 mr-2 select-none shrink-0">
+          <img
+            src={currentSchoolLogo}
+            alt="Logo da Escola"
+            className="h-7 w-auto max-h-7 object-contain max-w-[80px] dark:brightness-110"
+          />
+          <Separator orientation="vertical" className="h-6 bg-slate-200 dark:bg-white/10 hidden md:block" />
+        </div>
+      )}
+      
       {/* Links de Navegação Horizontal */}
       <nav className="hidden md:flex items-center gap-1 mx-2">
         {menuItems.map((item) => {

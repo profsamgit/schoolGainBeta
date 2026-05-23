@@ -88,6 +88,25 @@ export default function BrandAssetsPage() {
     }
   ];
 
+  const schoolAssets: LogoAsset[] = [
+    {
+      id: 'apicella-transparent',
+      name: 'Logomarca Apicella (Sem Fundo)',
+      description: 'Logomarca oficial transparente e otimizada para web. Recomendada para a maioria das aplicações do ecossistema SchoolGain.',
+      path: '/brand/logo_apicella_menor.png',
+      type: 'logo-vertical',
+      theme: 'any'
+    },
+    {
+      id: 'apicella-full',
+      name: 'Logomarca Apicella (Completa)',
+      description: 'Versão completa da logomarca oficial do CETI Frei José Apicella em alta definição para fundos claros ou impressos.',
+      path: '/brand/logo apicella.png',
+      type: 'logo-vertical',
+      theme: 'any'
+    }
+  ];
+
   const colors = [
     { name: 'Indigo Primary', hex: '#4F46E5', rgb: 'rgb(79, 70, 229)', desc: 'Cor principal da marca e liderança tecnológica' },
     { name: 'Violet Accent', hex: '#7C3AED', rgb: 'rgb(124, 58, 237)', desc: 'Destaque e identidade da administração geral' },
@@ -316,6 +335,101 @@ export default function BrandAssetsPage() {
                         >
                           <Download className="w-3.5 h-3.5 text-emerald-500" />
                           <span>Imagem PNG</span>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 🏫 Identidade Visual da Escola Parceira */}
+          <div className="space-y-6 mb-16 border-t border-slate-200/30 dark:border-slate-800/30 pt-12">
+            <div className="flex items-center gap-3 pb-2">
+              <Layout className="w-5 h-5 text-emerald-500" />
+              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">
+                Identidade Visual da Escola Parceira (CETI Frei José Apicella)
+              </h2>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xl leading-relaxed">
+              Logomarcas oficiais fornecidas pela instituição parceira piloto. Acesse e faça o download dos ativos de imagem para materiais institucionais ou campanhas escolares de sustentabilidade.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+              {schoolAssets.map((asset) => {
+                const previewBg = bgPreviews[asset.id] || 'light';
+                const bgStyle = 
+                  previewBg === 'dark' 
+                    ? 'bg-slate-950 border-slate-900' 
+                    : previewBg === 'grid'
+                      ? 'bg-slate-100 dark:bg-slate-900 bg-[linear-gradient(45deg,#ccc_25%,transparent_25%),linear-gradient(-45deg,#ccc_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#ccc_75%),linear-gradient(-45deg,transparent_75%,#ccc_75%)] bg-[size:16px_16px] bg-[position:0_0,0_8px,8px_-8px,-8px_0px] dark:bg-[linear-gradient(45deg,#27272a_25%,transparent_25%),linear-gradient(-45deg,#27272a_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#27272a_75%),linear-gradient(-45deg,transparent_75%,#27272a_75%)]'
+                      : 'bg-white border-slate-100';
+
+                return (
+                  <div 
+                    key={asset.id} 
+                    className="flex flex-col rounded-[2rem] bg-gradient-to-br from-white to-slate-50/50 dark:from-slate-900 dark:to-slate-950/80 border border-slate-200/60 dark:border-slate-800/80 hover:border-emerald-500/25 dark:hover:border-emerald-500/20 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden"
+                  >
+                    {/* Visual Preview Box */}
+                    <div className={`relative h-48 flex items-center justify-center border-b border-slate-100 dark:border-slate-800/60 p-8 transition-colors duration-300 ${bgStyle}`}>
+                      
+                      {/* Interactive Background Toggles */}
+                      <div className="absolute top-3 right-3 flex items-center gap-1 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-2.5 py-1 rounded-full border border-slate-200/40 dark:border-slate-800/60 shadow-sm z-20">
+                        <button 
+                          onClick={() => togglePreviewBg(asset.id, 'light')} 
+                          className={`w-5 h-5 rounded-full bg-white border border-slate-300 shadow-sm flex items-center justify-center hover:scale-110 transition-transform ${previewBg === 'light' ? 'ring-2 ring-emerald-500 ring-offset-1' : ''}`}
+                          title="Fundo Claro"
+                        />
+                        <button 
+                          onClick={() => togglePreviewBg(asset.id, 'grid')} 
+                          className={`w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 shadow-sm flex items-center justify-center hover:scale-110 transition-transform ${previewBg === 'grid' ? 'ring-2 ring-emerald-500 ring-offset-1' : ''}`}
+                          title="Fundo Transparente (Grid)"
+                        >
+                          <Grid className="w-3 h-3 text-slate-500" />
+                        </button>
+                        <button 
+                          onClick={() => togglePreviewBg(asset.id, 'dark')} 
+                          className={`w-5 h-5 rounded-full bg-slate-950 border border-slate-800 shadow-sm flex items-center justify-center hover:scale-110 transition-transform ${previewBg === 'dark' ? 'ring-2 ring-emerald-500 ring-offset-1' : ''}`}
+                          title="Fundo Escuro"
+                        />
+                      </div>
+
+                      {/* Actual PNG Image Element */}
+                      <img 
+                        src={asset.path} 
+                        alt={asset.name} 
+                        className="max-h-36 max-w-full object-contain pointer-events-none drop-shadow-sm select-none transition-transform duration-300 h-28" 
+                      />
+                    </div>
+
+                    {/* Logo Information & Download Actions */}
+                    <div className="p-6 flex flex-col flex-1 justify-between bg-white/40 dark:bg-slate-900/20 backdrop-blur-sm">
+                      <div className="mb-4">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md tracking-wider border bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-200/30">
+                            Institucional
+                          </span>
+                          <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200/30">
+                            IMAGEM PNG
+                          </span>
+                        </div>
+                        <h3 className="text-lg font-black text-slate-800 dark:text-slate-100">
+                          {asset.name}
+                        </h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+                          {asset.description}
+                        </p>
+                      </div>
+
+                      {/* Single Action Button Row */}
+                      <div className="pt-2">
+                        <Button 
+                          onClick={() => handleDownloadSVG(asset.path, asset.path.split('/').pop() || 'logo-apicella.png')}
+                          className="w-full flex items-center justify-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/50 hover:border-emerald-300 font-extrabold text-xs py-5 rounded-2xl transition-all duration-200 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/70 dark:text-emerald-400 dark:border-emerald-900/50"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Baixar Logomarca (PNG)</span>
                         </Button>
                       </div>
                     </div>

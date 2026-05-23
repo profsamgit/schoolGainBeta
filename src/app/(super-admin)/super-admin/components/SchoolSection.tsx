@@ -1,6 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { School, Terminal } from '@/types/ecosystem';
+import { EcosystemService } from '@/lib/ecosystem.service';
 import { 
   Card, 
   CardContent, 
@@ -20,7 +22,10 @@ import {
   Calendar, 
   Trash2,
   Power,
-  ShieldOff
+  ShieldOff,
+  Camera,
+  Loader2,
+  ZoomIn
 } from 'lucide-react';
 import { 
   Dialog, 
@@ -84,6 +89,8 @@ export function SchoolSection({
   schoolToDelete,
   setSchoolToDelete
 }: SchoolSectionProps) {
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
+
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 animate-in slide-in-from-bottom-4 duration-500">
       {schools.map((school) => (
@@ -91,8 +98,12 @@ export function SchoolSection({
           <div className="h-1.5 bg-indigo-500/20 group-hover:bg-gradient-to-r group-hover:from-indigo-500 group-hover:to-purple-600 transition-colors"></div>
           <CardHeader className="pb-4">
             <div className="flex justify-between items-start">
-              <div className="h-12 w-12 rounded-2xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200/60 dark:border-white/5 flex items-center justify-center text-slate-500 dark:text-slate-400 group-hover:bg-indigo-50 group-hover:dark:bg-indigo-500/10 group-hover:text-indigo-600 group-hover:dark:text-indigo-400 transition-colors">
-                <Building2 className="h-6 w-6" />
+              <div className="h-12 w-12 rounded-2xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200/60 dark:border-white/5 flex items-center justify-center text-slate-500 dark:text-slate-400 group-hover:bg-indigo-50 group-hover:dark:bg-indigo-500/10 group-hover:text-indigo-600 group-hover:dark:text-indigo-400 transition-colors overflow-hidden shrink-0">
+                {school.logo ? (
+                  <img src={school.logo} alt={school.name} className="h-full w-full object-contain p-1" />
+                ) : (
+                  <Building2 className="h-6 w-6" />
+                )}
               </div>
               <div className="flex gap-1 items-start">
                 <Button 
@@ -105,7 +116,8 @@ export function SchoolSection({
                       name: school.name,
                       city: school.city,
                       state: school.state,
-                      managerEmail: school.managerEmail || school.contactEmail || ''
+                      managerEmail: school.managerEmail || school.contactEmail || '',
+                      logo: school.logo || ''
                     });
                     setIsSchoolEditDialogOpen(true);
                   }}
@@ -270,6 +282,50 @@ export function SchoolSection({
                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">E-mail Administrativo</Label>
                 <Input type="email" required value={schoolEditData.managerEmail || ""} onChange={e => setSchoolEditData({...schoolEditData, managerEmail: e.target.value})} className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 h-11" />
               </div>
+
+                <div className="space-y-1.5">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Logomarca da Escola</Label>
+                <div className="flex items-center gap-4">
+                  <div className="relative group/logoprev h-14 w-14 rounded-xl border border-slate-200/60 dark:border-white/10 flex items-center justify-center overflow-hidden shrink-0"
+                    style={{ background: 'repeating-conic-gradient(#e2e8f0 0% 25%, #f8fafc 0% 50%) 0 0 / 8px 8px' }}>
+                    {schoolEditData.logo ? (
+                      <img src={schoolEditData.logo} alt="Preview" className="h-full w-full object-contain p-1" />
+                    ) : (
+                      <Building2 className="h-6 w-6 text-slate-400" />
+                    )}
+                    {schoolEditData.logo && (
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/logoprev:opacity-100 transition-opacity flex items-center justify-center z-10">
+                        <button
+                          type="button"
+                          onClick={() => setLogoPreviewUrl(schoolEditData.logo)}
+                          className="p-1.5 rounded hover:bg-white/20 transition-colors"
+                          title="Visualizar em tamanho maior"
+                        >
+                          <ZoomIn className="h-4 w-4 text-white" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <Input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          try {
+                            const base64 = await EcosystemService.compressImageToBase64(file, 500, 500, 0.75);
+                            setSchoolEditData({ ...schoolEditData, logo: base64 });
+                          } catch (err) {
+                            console.error("Erro ao processar imagem da escola:", err);
+                          }
+                        }
+                      }} 
+                      className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 h-11 text-xs py-2"
+                    />
+                  </div>
+                </div>
+              </div>
               
               <div className="space-y-1.5 p-4 bg-amber-500/5 rounded-2xl border border-amber-500/20">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 block mb-1">Confirmação de Identidade</Label>
@@ -299,6 +355,22 @@ export function SchoolSection({
           <Button variant="outline" className="border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-xl" onClick={() => setActiveTab('overview')}>Ver Solicitações</Button>
         </div>
       )}
+
+      {/* Modal de visualização da logomarca */}
+      <Dialog open={!!logoPreviewUrl} onOpenChange={(open) => !open && setLogoPreviewUrl(null)}>
+        <DialogContent className="max-w-sm bg-white/95 dark:bg-slate-900/95 backdrop-blur-3xl border border-slate-200/60 dark:border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col items-center gap-4">
+          <DialogHeader className="w-full">
+            <DialogTitle className="text-sm font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 text-center">Logomarca da Escola</DialogTitle>
+          </DialogHeader>
+          <div className="rounded-2xl overflow-hidden border border-slate-200/60 dark:border-white/10 shadow-lg p-4 flex items-center justify-center"
+            style={{ background: 'repeating-conic-gradient(#e2e8f0 0% 25%, #f8fafc 0% 50%) 0 0 / 16px 16px', minHeight: 200, minWidth: 200 }}>
+            {logoPreviewUrl && <img src={logoPreviewUrl} alt="Logomarca" className="max-h-48 max-w-xs object-contain" />}
+          </div>
+          <Button variant="outline" className="w-full rounded-xl border-slate-200/60 dark:border-white/10 text-slate-600 dark:text-slate-300 font-bold uppercase text-xs tracking-widest" onClick={() => setLogoPreviewUrl(null)}>
+            Fechar
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
