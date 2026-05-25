@@ -143,7 +143,7 @@ export default function BrandAssetsPage() {
   };
 
   // Dinamicamente baixa o SVG como um arquivo PNG renderizado no canvas
-  const handleDownloadPNG = async (path: string, fileName: string) => {
+  const handleDownloadPNG = async (path: string, fileName: string, type: 'icon' | 'logo-horizontal' | 'logo-vertical') => {
     try {
       const response = await fetch(path);
       const svgText = await response.text();
@@ -159,10 +159,10 @@ export default function BrandAssetsPage() {
         let width = 1000;
         let height = 1000;
         
-        if (fileName.includes('horizontal')) {
+        if (type === 'logo-horizontal') {
           width = 2600;
           height = 600;
-        } else if (fileName.includes('vertical')) {
+        } else if (type === 'logo-vertical') {
           width = 1600;
           height = 1300;
         } else {
@@ -330,7 +330,7 @@ export default function BrandAssetsPage() {
                           <span>Vetor SVG</span>
                         </Button>
                         <Button 
-                          onClick={() => handleDownloadPNG(asset.path, `${asset.id}-schoolgain.svg`)}
+                          onClick={() => handleDownloadPNG(asset.path, `${asset.id}-schoolgain.svg`, asset.type)}
                           className="w-full flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200/50 dark:border-slate-700/50 font-extrabold text-xs py-5 rounded-2xl transition-all duration-200"
                         >
                           <Download className="w-3.5 h-3.5 text-emerald-500" />
