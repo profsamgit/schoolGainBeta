@@ -10,7 +10,7 @@ export class WasteService {
   /**
    * Registra o processamento de resíduos e atribui créditos ao usuário.
    */
-  registerWaste(ra: string, type: WasteType, weightKg: number, terminalSchoolId?: string): boolean {
+  registerWaste(ra: string, type: WasteType, weightKg: number, terminalSchoolId?: string, customDate?: string): boolean {
     const cleanRa = ra.toUpperCase().trim();
     const student = (this.service.data?.users || []).find((u: User) => u.ra?.toUpperCase() === cleanRa);
     if (!student) {
@@ -24,7 +24,7 @@ export class WasteService {
 
     const newEntry: WasteEntry = {
       id: EcosystemService.generateStandardId('wst', student.schoolId),
-      date: new Date().toISOString(),
+      date: customDate || new Date().toISOString(),
       type: type,
       collected: weightKg,
       studentId: student.id,

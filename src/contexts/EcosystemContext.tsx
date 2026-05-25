@@ -6,6 +6,10 @@ import { useSearchParams } from 'next/navigation';
 import { EcosystemService } from '@/lib/ecosystem.service';
 import { User, Reward, EducationArticle, Participant, AuditLogEntry, Terminal, TerminalStatus, School, WasteEntry, WasteType, CycleSnapshot, Turma, Curso, Cargo, SetorEscolar, EcosystemItem, QuizTopic, RegistrationRequest, EcosystemLegend, UserLevel, EcosystemUserState } from '@/types/ecosystem';
 
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { OfflineDB } from '@/lib/services/offline-db';
+import { identifyWasteAction } from '@/app/(app)/waste/actions';
+
 /**
  * ============================================================================
  * ECOSYSTEM CONTEXT: DISTRIBUIÇÃO DE ESTADO
@@ -94,7 +98,7 @@ interface EcosystemContextType {
   deleteUser: (userId: string) => Promise<boolean>;
   updateUserStatus: (userId: string, status: 'active' | 'inactive') => Promise<boolean>;
   wasteEntries: WasteEntry[];
-  registerWaste: (ra: string, type: WasteType, weightKg: number, terminalSchoolId?: string) => boolean;
+  registerWaste: (ra: string, type: WasteType, weightKg: number, terminalSchoolId?: string, customDate?: string) => boolean;
   identifyKioskUser: (ra: string | null) => void;
   resetHistory: CycleSnapshot[];
   performCycleReset: (password: string, schoolId?: string) => Promise<boolean>;
@@ -111,6 +115,8 @@ interface EcosystemContextType {
   service: EcosystemService;
   setTargetSchoolId: (id: string | null) => void;
   legends: EcosystemLegend[];
+  isOnline: boolean;
+  isSyncingOffline: boolean;
 }
 
 
@@ -306,6 +312,85 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
     };
   }, [service]);
 
+  const isOnline = useNetworkStatus();
+  const [isSyncingOffline, setIsSyncingOffline] = useState(false);
+
+  useEffect(() => {
+    if (!isOnline || isInitializing) return;
+
+    let isCancelled = false;
+
+    const performSync = async () => {
+      try {
+        const pending = await OfflineDB.getPendingDiscards();
+        if (pending.length === 0) return;
+
+        setIsSyncingOffline(true);
+        // Pequeno atraso intencional para garantir que a rede estabilizou completamente
+        await new Promise(r => setTimeout(r, 4000));
+        if (isCancelled) return;
+
+        for (const item of pending) {
+          if (isCancelled) break;
+
+          const cleanInput = item.studentInput.toUpperCase().trim();
+          const student = service.data?.users?.find((u: any) => 
+            u.ra?.toUpperCase() === cleanInput || u.rfid?.toUpperCase() === cleanInput
+          );
+
+          if (!student || student.status === 'inactive') {
+            await OfflineDB.saveFailedDiscard({
+              ...item,
+              reason: !student ? 'RA ou RFID inválido no banco de dados' : 'Estudante com registro inativo',
+              failedAt: new Date().toISOString()
+            });
+            await OfflineDB.deletePendingDiscard(item.id);
+            continue;
+          }
+
+          try {
+            // Processa a imagem na nuvem com a IA de verdade
+            const result = await identifyWasteAction({ photoDataUri: item.capturedPhotoUri });
+            
+            if (result && (result.isWaste || result.wasteType === 'Não reciclável')) {
+              // Registra descarte e credita os pontos retroativamente com o timestamp original da coleta física
+              service.registerWaste(
+                student.ra || cleanInput,
+                result.wasteType as any,
+                result.estimatedWeightKg || item.weightKg || 0.05,
+                item.terminalId,
+                item.timestamp
+              );
+            } else {
+              // Se a IA classificar como imagem inválida ou sem resíduo, rejeita
+              await OfflineDB.saveFailedDiscard({
+                ...item,
+                reason: 'A imagem enviada foi classificada como inválida/sem resíduo',
+                failedAt: new Date().toISOString()
+              });
+            }
+          } catch (e: any) {
+            // Erro temporário de conexão ou rede na rota de IA, mantém na fila para a próxima tentativa
+            console.warn('[OFFLINE-SYNC] Erro temporário ao sincronizar, manterá na fila:', e);
+            continue;
+          }
+
+          await OfflineDB.deletePendingDiscard(item.id);
+        }
+      } catch (err) {
+        console.error('[OFFLINE-SYNC] Erro crítico no loop de sincronização:', err);
+      } finally {
+        setIsSyncingOffline(false);
+      }
+    };
+
+    performSync();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isOnline, isInitializing, service, users]);
+
   const currentUser = useMemo(() => {
     if (!currentUserRa) return null;
     return users.find((u: User) => u.ra === currentUserRa) || null;
@@ -408,7 +493,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const deleteSchool = async (id: string, password?: string) => {
     return await service.deleteSchool(id, password);
   };
-  const registerWaste = (ra: string, type: WasteType, weightKg: number, tSId?: string) => service.registerWaste(ra, type, weightKg, tSId);
+  const registerWaste = (ra: string, type: WasteType, weightKg: number, tSId?: string, customDate?: string) => service.registerWaste(ra, type, weightKg, tSId, customDate);
   const identifyKioskUser = service.identifyKioskUser.bind(service);
   const performCycleReset = (pass: string, sId?: string) => service.performCycleReset(pass, sId);
   const verifyPassword = (pass: string) => service.verifyPassword(pass);
@@ -523,7 +608,9 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
       displayUser,
       service,
       setTargetSchoolId: setManualSchoolId,
-      legends
+      legends,
+      isOnline,
+      isSyncingOffline
     }}>
       {children}
     </EcosystemContext.Provider>

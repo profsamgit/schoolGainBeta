@@ -7,6 +7,7 @@ import { ArrowRight, ArrowLeft, Keyboard, ShieldCheck, QrCode, Cpu, Loader2, Vol
 import { useToast } from '@/hooks/use-toast';
 import { VirtualKeyboard } from '@/components/ui/virtual-keyboard';
 import { useEcosystem } from '@/contexts/EcosystemContext';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { EcosystemService } from '@/lib/ecosystem.service';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import dynamic from 'next/dynamic';
@@ -20,6 +21,7 @@ export default function AdminLoginPage() {
   const router = useRouter();
   const { login, systemSettings, users, getLockoutStatus, hardwareId, terminals } = useEcosystem();
   const { toast } = useToast();
+  const isOnline = useNetworkStatus();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -39,6 +41,14 @@ export default function AdminLoginPage() {
   const sanitize = (val: string) => val.replace(/[<>]/g, '').trim();
 
   const handleManualLogin = async () => {
+    if (!isOnline) {
+      toast({
+        variant: 'destructive',
+        title: 'Sem Conexão',
+        description: 'Não é possível acessar o painel de gestão offline.',
+      });
+      return;
+    }
     const cleanUser = sanitize(username);
     const cleanPass = sanitize(password);
     
@@ -96,6 +106,14 @@ export default function AdminLoginPage() {
   };
 
   const handleHybridLogin = useCallback((targetId: string) => {
+    if (!isOnline) {
+      toast({
+        variant: 'destructive',
+        title: 'Sem Conexão',
+        description: 'Não é possível acessar o painel de gestão offline.',
+      });
+      return;
+    }
     if (!targetId.trim() || isProcessing) return;
     setIsProcessing(true);
     
@@ -120,7 +138,7 @@ export default function AdminLoginPage() {
       toast({ variant: 'destructive', title: 'Acesso Negado', description: 'Este cartão/QR não tem permissões administrativas.' });
       setIsProcessing(false);
     }
-  }, [login, router, toast, isProcessing, users]);
+  }, [login, router, toast, isProcessing, users, isOnline]);
 
   useEffect(() => {
     if (lockoutSecs > 0) {
@@ -193,6 +211,11 @@ export default function AdminLoginPage() {
             <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs">
               Autenticação administrativa do ecossistema
             </p>
+            {!isOnline && (
+              <div className="mt-4 bg-amber-500/10 border border-amber-500/20 p-3.5 rounded-2xl text-amber-600 dark:text-amber-400 text-xs text-center font-semibold">
+                ⚠️ Sem Conexão: O painel de gestão não está disponível em modo offline.
+              </div>
+            )}
           </div>
 
           {/* Abas de Formulário & Navegação */}

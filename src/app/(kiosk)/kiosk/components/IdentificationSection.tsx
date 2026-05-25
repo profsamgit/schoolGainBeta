@@ -31,6 +31,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 const QRScanner = dynamic(() => import('@/components/ui/qr-scanner'), { ssr: false });
 import { useEcosystem } from '@/contexts/EcosystemContext';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
 interface IdentificationSectionProps {
   currentSchool: School | undefined;
@@ -76,9 +77,10 @@ export function IdentificationSection({
   isProcessing
 }: IdentificationSectionProps) {
   const { systemSettings, users } = useEcosystem();
+  const isOnline = useNetworkStatus();
   const streamImgRef = useRef<HTMLImageElement | null>(null);
   const [isLocked, setIsLocked] = useState(false);
-
+  
   // States para o Dialog de autenticação administrativo
   const [showLockAuth, setShowLockAuth] = useState(false);
   const [authUsername, setAuthUsername] = useState('');
@@ -87,7 +89,7 @@ export function IdentificationSection({
   const [authLoading, setAuthLoading] = useState(false);
   const [showAuthKeyboard, setShowAuthKeyboard] = useState(false);
   const [activeAuthInput, setActiveAuthInput] = useState<'username' | 'password'>('username');
-
+  
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('kiosk_locked');
@@ -324,8 +326,16 @@ export function IdentificationSection({
 
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center p-6 w-full max-w-md">
         
+        {!isOnline && (
+          <div className="w-full mb-5 bg-amber-500/10 border border-amber-500/20 p-3.5 rounded-2xl text-amber-600 dark:text-amber-400 text-xs text-center font-bold flex items-center justify-center gap-2 animate-pulse shadow-lg">
+            <AlertTriangle className="h-4.5 w-4.5 shrink-0" />
+            <span>Modo Offline Ativo: Coletas seguras salvas localmente!</span>
+          </div>
+        )}
+
         {/* 📟 Glassmorphic Unified Console Container */}
         <div className="w-full backdrop-blur-3xl bg-white/90 dark:bg-slate-950/40 border border-slate-200 dark:border-white/10 rounded-[2.5rem] shadow-[0_25px_60px_rgba(0,0,0,0.15)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.8)] p-8 sm:p-10 transition-all duration-500 hover:border-emerald-500/20 ring-1 ring-slate-200/60 dark:ring-white/5">
+
           
           {/* Header Section */}
           <div className="mb-8 text-center flex flex-col items-center">
@@ -412,7 +422,7 @@ export function IdentificationSection({
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label htmlFor="ra-input" className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1.5">
-                    Identificação Digital (RA ou ID Temporário)
+                    {isOnline ? "Identificação Digital (RA ou ID Temporário)" : "Digite seu RA (Validação pós-conexão)"}
                   </label>
                   <Input 
                     id="ra-input"

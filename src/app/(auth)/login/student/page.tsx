@@ -20,6 +20,7 @@ import {
 import { playBeep, cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { VirtualKeyboard } from '@/components/ui/virtual-keyboard';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useEcosystem } from '@/contexts/EcosystemContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import dynamic from 'next/dynamic';
@@ -32,6 +33,7 @@ export default function StudentLoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { login, users, systemSettings, getLockoutStatus, hardwareId, terminals } = useEcosystem();
+  const isOnline = useNetworkStatus();
 
   const [ra, setRa] = useState('');
   const [showKeyboard, setShowKeyboard] = useState(false);
@@ -52,6 +54,15 @@ export default function StudentLoginPage() {
    * Função central de Login
    */
   const handleLogin = useCallback(async (targetRa: string) => {
+    if (!isOnline) {
+      toast({
+        variant: 'destructive',
+        title: 'Sem Conexão',
+        description: 'O login no painel de estudantes só é permitido com conexão ativa.',
+      });
+      return;
+    }
+
     const cleanRa = sanitize(targetRa);
     if (!cleanRa || isProcessing) return;
     
@@ -116,7 +127,7 @@ export default function StudentLoginPage() {
       // Reinicia o scanner após erro para permitir nova tentativa
       setTimeout(() => setScannerKey(prev => prev + 1), 1000);
     }
-  }, [login, users, router, toast, isProcessing, getLockoutStatus]);
+  }, [login, users, router, toast, isProcessing, getLockoutStatus, isOnline]);
 
   useEffect(() => {
     if (lockoutSecs > 0) {
@@ -229,6 +240,11 @@ export default function StudentLoginPage() {
             <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs">
               Escolha seu método de autenticação hoje
             </p>
+            {!isOnline && (
+              <div className="mt-4 bg-amber-500/10 border border-amber-500/20 p-3.5 rounded-2xl text-amber-600 dark:text-amber-400 text-xs text-center font-semibold">
+                ⚠️ Sem Conexão: O login no painel de estudantes não está disponível em modo offline.
+              </div>
+            )}
           </div>
 
           {/* Abas de Formulário & Navegação */}

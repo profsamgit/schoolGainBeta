@@ -1230,8 +1230,8 @@ export class EcosystemService {
   }
 
   // 6. Reciclagem e Resíduos (WasteService)
-  registerWaste(ra: string, type: WasteType, weightKg: number, terminalSchoolId?: string) {
-    return this.wasteService.registerWaste(ra, type, weightKg, terminalSchoolId);
+  registerWaste(ra: string, type: WasteType, weightKg: number, terminalSchoolId?: string, customDate?: string) {
+    return this.wasteService.registerWaste(ra, type, weightKg, terminalSchoolId, customDate);
   }
   async performCycleReset(password: string, schoolId?: string) {
     return this.wasteService.performCycleReset(password, schoolId);
@@ -1379,6 +1379,22 @@ export class EcosystemService {
             securityState: parsed.securityState || {},
             systemSettings: parsed.systemSettings || this.data.systemSettings
           };
+
+          // Notifica os Subjects com os dados carregados do cache do LocalStorage para suportar modo offline imediato
+          this.terminalsSubject.next(this.data.terminals || []);
+          this.schoolsSubject.next(this.data.schools || []);
+          this.usersSubject.next(this.data.users || [ADMIN_MOCK]);
+          this.systemSettingsSubject.next(this.data.systemSettings);
+          this.wasteEntriesSubject.next(this.data.wasteEntries || []);
+          this.userStatesSubject.next(this.data.userStates || {});
+          this.resetHistorySubject.next(this.data.resetHistory || []);
+
+          // Notifica sub-arrays de usuários mapeados
+          this.studentsSubject.next(this.data.users.filter(u => u.role === 'student'));
+          this.adminsSubject.next(this.data.users.filter(u => u.role === 'admin'));
+          this.staffSubject.next(this.data.users.filter(u => u.role === 'staff'));
+          this.superAdminsSubject.next(this.data.users.filter(u => u.role === 'super_admin'));
+          this.visitorsSubject.next(this.data.users.filter(u => u.role === 'visitor'));
         }
       }
     } catch (e) {
@@ -1390,25 +1406,29 @@ export class EcosystemService {
    * Realiza a limpeza de dados (Sanitization).
    */
   async sanitizeData() {
-    try {
-      const globalSettingsSnap = await getDoc(doc(db, "settings", "global"));
-      if (globalSettingsSnap.exists()) {
-        const globalData = globalSettingsSnap.data();
-        const schools = this.data.schools;
-        await Promise.all(schools.map(async (school) => {
-          const schoolSettingsRef = doc(db, "settings", school.id);
-          const schoolSettingsSnap = await getDoc(schoolSettingsRef);
-          
-          if (schoolSettingsSnap.exists()) {
-            await setDoc(schoolSettingsRef, { ...globalData, ...schoolSettingsSnap.data() }, { merge: true });
-          } else {
-            await setDoc(schoolSettingsRef, globalData);
-          }
-        }));
-        await deleteDoc(doc(db, "settings", "global"));
+    const isOnline = typeof window !== 'undefined' ? navigator.onLine : true;
+
+    if (isOnline) {
+      try {
+        const globalSettingsSnap = await getDoc(doc(db, "settings", "global"));
+        if (globalSettingsSnap.exists()) {
+          const globalData = globalSettingsSnap.data();
+          const schools = this.data.schools;
+          await Promise.all(schools.map(async (school) => {
+            const schoolSettingsRef = doc(db, "settings", school.id);
+            const schoolSettingsSnap = await getDoc(schoolSettingsRef);
+            
+            if (schoolSettingsSnap.exists()) {
+              await setDoc(schoolSettingsRef, { ...globalData, ...schoolSettingsSnap.data() }, { merge: true });
+            } else {
+              await setDoc(schoolSettingsRef, globalData);
+            }
+          }));
+          await deleteDoc(doc(db, "settings", "global"));
+        }
+      } catch (err) {
+        console.error("[MIGRAÇÃO] Erro ao unificar configurações:", err);
       }
-    } catch (err) {
-      console.error("[MIGRAÇÃO] Erro ao unificar configurações:", err);
     }
 
     this.data.turmas = this.deduplicateByName(this.data.turmas || []);

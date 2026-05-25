@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 
@@ -16,8 +16,15 @@ const firebaseConfig = {
 // Inicializa o Firebase apenas se ainda não tiver sido inicializado
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-// Exporta as instâncias dos serviços
-export const db = getFirestore(app);
+// Exporta as instâncias dos serviços com persistência local habilitada no cliente
+export const db = typeof window !== 'undefined'
+  ? initializeFirestore(app, {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager()
+      })
+    })
+  : getFirestore(app);
+
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 

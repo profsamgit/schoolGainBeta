@@ -28,6 +28,9 @@ import { IdentificationSection } from './components/IdentificationSection';
 import { ScanningSection } from './components/ScanningSection';
 import { SuccessSection } from './components/SuccessSection';
 
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { OfflineDB } from '@/lib/services/offline-db';
+
 const wasteIcons: { [key: string]: React.ElementType } = {
   'Plástico': Recycle,
   'Papel': Paperclip,
@@ -50,6 +53,7 @@ const wasteIcons: { [key: string]: React.ElementType } = {
  * 3. Comunicação com o barramento de serviços para persistência e premiação.
  */
 export default function KioskPage() {
+  const isOnline = useNetworkStatus();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const raInputRef = useRef<HTMLInputElement>(null);
@@ -247,6 +251,25 @@ export default function KioskPage() {
     const cleanRa = targetRa.replace(/[<>]/g, '').trim().toUpperCase();
     if (!cleanRa) return;
 
+    if (!isOnline) {
+      // Modo offline: busca no cache local ou aceita qualquer RA formatado para evitar travar o fluxo físico
+      const student = users.find((user: any) => user.ra === cleanRa || user.rfid === cleanRa);
+      const fallbackStudent = student || {
+        id: `temp-${Date.now()}`,
+        name: 'Estudante',
+        ra: cleanRa,
+        role: 'student',
+        status: 'active'
+      };
+      
+      identifyKioskUser(cleanRa);
+      setIdentifiedStudent(fallbackStudent);
+      setStudentRa(cleanRa);
+      setStep('scanning');
+      playBeep('success');
+      return;
+    }
+
     const lockout = getLockoutStatus(cleanRa);
     if (lockout.isLocked) {
         setLockoutSecs(lockout.remainingSeconds);
@@ -275,7 +298,7 @@ export default function KioskPage() {
         setIdentifiedStudent(null);
         setStudentRa('');
     }
-  }, [identifyKioskUser, users, toast, getLockoutStatus, initUserSpecificSync]);
+  }, [isOnline, identifyKioskUser, users, toast, getLockoutStatus, initUserSpecificSync]);
 
   // Polling e Hardware
   useEffect(() => {
@@ -439,8 +462,9 @@ export default function KioskPage() {
         originalHeight = img.naturalHeight || 720;
       }
 
-      // Limita a largura ou altura máxima a 1024px mantendo a proporção (Aspect Ratio)
-      const MAX_DIMENSION = 1024;
+      // Limita a largura ou altura máxima mantendo a proporção (Aspect Ratio)
+      // Usamos resolução menor (800px) no modo offline para economizar dados no IndexedDB
+      const MAX_DIMENSION = isOnline ? 1024 : 800;
       let targetWidth = originalWidth;
       let targetHeight = originalHeight;
 
@@ -477,8 +501,8 @@ export default function KioskPage() {
       // Reseta o filtro para evitar qualquer efeito colateral em desenhos futuros no Totem
       context.filter = 'none';
       
-      // Exporta em JPEG com compressão de 85% para reduzir drasticamente o tamanho do payload
-      const dataUri = canvas.toDataURL('image/jpeg', 0.85);
+      // Exporta em JPEG com compressão (75% no modo offline para economizar espaço do IndexedDB)
+      const dataUri = canvas.toDataURL('image/jpeg', isOnline ? 0.85 : 0.75);
       setCapturedPhotoUri(dataUri); // Guarda a imagem congelada localmente
 
       // 4. Liberação síncrona de socket da ESP32: Limpar a imagem 'src' força o navegador a encerrar 
@@ -491,9 +515,23 @@ export default function KioskPage() {
         }
       }
 
-      // 5. Envia para o modelo de Inteligência Artificial processar e classificar o resíduo
-      const result = await identifyWasteAction({ photoDataUri: dataUri });
-      setIdentificationResult(result);
+      // 5. Envia para o modelo de Inteligência Artificial processar e classificar o resíduo (ou simula local offline)
+      if (!isOnline) {
+        const offlineResult: IdentifyWasteOutput = {
+          material: 'Resíduo (Offline)',
+          wasteType: 'Orgânico', // Padrão temporário a ser validado
+          estimatedWeightKg: 0.1,
+          isWaste: true,
+          recyclable: true,
+          recyclingInstructions: 'Coloque o resíduo no compartimento adequado. A validação e os pontos finais serão processados ao reconectar.',
+          justification: 'Processamento de imagem postergado devido à falta de conexão.',
+          points: 10
+        };
+        setIdentificationResult(offlineResult);
+      } else {
+        const result = await identifyWasteAction({ photoDataUri: dataUri });
+        setIdentificationResult(result);
+      }
 
     } catch (error: any) {
       toast({ 
@@ -506,8 +544,36 @@ export default function KioskPage() {
     }
   };
   
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if(!identificationResult) return;
+
+    if (!isOnline) {
+      // Modo offline: Salva o descarte no IndexedDB local para sincronização futura
+      try {
+        await OfflineDB.savePendingDiscard({
+          id: `off-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          studentInput: studentRa || identifiedStudent?.ra || '',
+          capturedPhotoUri: capturedPhotoUri || '',
+          timestamp: new Date().toISOString(),
+          terminalId: currentTerminal?.id || 'HW-UNKNOWN',
+          wasteType: identificationResult.wasteType,
+          weightKg: identificationResult.estimatedWeightKg || 0.05
+        });
+
+        playBeep('success');
+        setSuccessMessage('Coleta armazenada localmente com sucesso! Seus pontos serão creditados assim que a conexão retornar.');
+      } catch (err: any) {
+        toast({ 
+          variant: 'destructive', 
+          title: 'Erro ao Salvar Localmente', 
+          description: 'Houve uma falha ao acessar o armazenamento interno do totem.' 
+        });
+      }
+      setIdentificationResult(null);
+      setCapturedPhotoUri(null);
+      return;
+    }
+
     if (!identificationResult.isWaste && identificationResult.wasteType !== 'Não reciclável') {
         toast({ title: 'Ação Bloqueada', description: 'Não parece ser um resíduo.', variant: 'destructive' });
         return;
