@@ -106,8 +106,26 @@ export default function KioskPage() {
   useEffect(() => {
     document.title = "Terminal Kiosk • SchoolGain";
     const checkMobile = () => {
+      if (typeof window === 'undefined') return false;
+      
       const ua = navigator.userAgent.toLowerCase();
-      return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua);
+      const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua);
+      
+      if (isMobileUA) return true;
+      
+      // Fallback para smartphones com "Solicitar site para computador" ativado.
+      // 1. O dispositivo precisa possuir suporte a toque (touchscreen)
+      const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      
+      // 2. O ponteiro padrão deve ser "coarse" (característico de telas sensíveis ao toque)
+      const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
+      
+      // 3. A largura ou altura lógica da tela deve ser menor que 600px (smartphones).
+      // Isso impede que computadores desktop com telas touch screen sejam bloqueados,
+      // já que a menor dimensão de suas telas lógicas sempre excede 600px.
+      const isSmallScreen = Math.min(window.screen.width, window.screen.height) < 600;
+      
+      return (hasTouch || isCoarsePointer) && isSmallScreen;
     };
     setIsMobileDevice(checkMobile());
   }, []);
