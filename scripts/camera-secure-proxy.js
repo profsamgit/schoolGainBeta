@@ -109,6 +109,20 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (parsedUrl.pathname === '/shutdown') {
+    res.writeHead(200, { 
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Private-Network': 'true'
+    });
+    res.end(JSON.stringify({ success: true, message: 'Encerrando proxy local...' }));
+    console.log('[PROXY] Recebida solicitação de encerramento via navegador. Fechando o serviço...');
+    setTimeout(() => {
+      process.exit(0);
+    }, 500);
+    return;
+  }
+
   if (parsedUrl.pathname === '/hardware-id') {
     const hwid = getPersistentHardwareId();
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -126,6 +140,30 @@ const server = http.createServer((req, res) => {
 
   // Sanitiza o IP/Host de destino
   let cleanHost = targetIp.split('?')[0].replace(/\/stream\/?$/i, '').trim();
+
+  // Se a rota for /resolution, retransmite a chamada de alteração de resolução para a ESP32-CAM localmente
+  if (parsedUrl.pathname === '/resolution') {
+    const val = parsedUrl.query.val || 'vga';
+    const espUrl = `http://${cleanHost}/resolution?val=${val}`;
+    console.log(`[PROXY] Alterando resolução local da ESP32-CAM para: ${espUrl}`);
+    
+    const connector = http.get(espUrl, (espRes) => {
+      res.writeHead(espRes.statusCode, {
+        ...espRes.headers,
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Private-Network': 'true'
+      });
+      espRes.pipe(res);
+    });
+    
+    connector.on('error', (err) => {
+      console.error(`[PROXY ERRO] Falha ao enviar resolução para ESP32-CAM em ${espUrl}:`, err.message);
+      res.writeHead(502, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Erro ao conectar à ESP32-CAM localmente' }));
+    });
+    return;
+  }
+
   const espUrl = `http://${cleanHost}/stream`;
 
   console.log(`[PROXY] Canalizando stream de: ${espUrl}`);

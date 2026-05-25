@@ -223,9 +223,15 @@ export default function KioskPage() {
               ? activeScanningUrl.split('target=')[1].split('&')[0] 
               : activeScanningUrl;
 
-            // Log removido para ambiente de produção
-            // Aguarda a resolução ser fisicamente atualizada na placa antes de iniciar a nova transmissão
-            await fetch(`/api/hardware/camera?ip=${encodeURIComponent(espIp)}&resolution=${targetResolution}`).catch(() => {});
+            const changeResolution = async (ip: string, source: string, resolution: string) => {
+              if (source === 'esp32_https') {
+                await fetch(`http://localhost:9005/resolution?target=${encodeURIComponent(ip)}&val=${resolution}`).catch(() => {});
+              } else {
+                await fetch(`/api/hardware/camera?ip=${encodeURIComponent(ip)}&resolution=${resolution}`).catch(() => {});
+              }
+            };
+
+            await changeResolution(espIp, activeScanningCameraSource, targetResolution);
           }
         } else if (step === 'identification') {
           if (activeLoginUrl && (activeLoginCameraSource === 'esp32' || activeLoginCameraSource === 'esp32_https')) {
@@ -238,9 +244,15 @@ export default function KioskPage() {
               ? activeLoginUrl.split('target=')[1].split('&')[0] 
               : activeLoginUrl;
 
-            // Log removido para ambiente de produção
-            // Aguarda a resolução ser fisicamente atualizada na placa antes de iniciar a nova transmissão
-            await fetch(`/api/hardware/camera?ip=${encodeURIComponent(espIp)}&resolution=${targetResolution}`).catch(() => {});
+            const changeResolution = async (ip: string, source: string, resolution: string) => {
+              if (source === 'esp32_https') {
+                await fetch(`http://localhost:9005/resolution?target=${encodeURIComponent(ip)}&val=${resolution}`).catch(() => {});
+              } else {
+                await fetch(`/api/hardware/camera?ip=${encodeURIComponent(ip)}&resolution=${resolution}`).catch(() => {});
+              }
+            };
+
+            await changeResolution(espIp, activeLoginCameraSource, targetResolution);
           }
         }
       } catch (err) {

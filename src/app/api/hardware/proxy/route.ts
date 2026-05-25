@@ -76,3 +76,50 @@ export async function POST() {
     }, { status: 500 });
   }
 }
+
+export async function DELETE() {
+  try {
+    const cp = eval("require('child_process')");
+    const isWindows = process.platform === 'win32';
+    
+    if (isWindows) {
+      cp.exec('netstat -aon', (err: any, stdout: string) => {
+        if (stdout) {
+          const lines = stdout.trim().split('\n');
+          for (const line of lines) {
+            if (line.includes(':9005') && line.includes('LISTENING')) {
+              const parts = line.trim().split(/\s+/);
+              const pid = parts[parts.length - 1];
+              if (pid && pid !== '0') {
+                cp.exec(`taskkill /f /pid ${pid}`);
+              }
+            }
+          }
+        }
+      });
+    } else {
+      cp.exec('lsof -t -i:9005', (err: any, stdout: string) => {
+        if (stdout) {
+          const pids = stdout.trim().split('\n');
+          for (const pid of pids) {
+            cp.exec(`kill -9 ${pid}`);
+          }
+        }
+      });
+    }
+
+    // Pequeno delay para garantir o encerramento da porta
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Proxy local desativado com sucesso!',
+      active: false
+    });
+  } catch (error: any) {
+    return NextResponse.json({ 
+      success: false, 
+      message: `Erro ao parar o proxy: ${error.message}` 
+    }, { status: 500 });
+  }
+}

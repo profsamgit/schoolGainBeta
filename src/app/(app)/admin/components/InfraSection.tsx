@@ -69,15 +69,38 @@ export function InfraSection({
   useEffect(() => {
     const checkProxy = async () => {
       try {
-        const res = await fetch('/api/hardware/proxy', { cache: 'no-store' });
+        // Tenta verificar diretamente no navegador se o proxy local na porta 9005 está ativo na máquina do Totem
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 1000);
+        
+        const res = await fetch('http://localhost:9005/status', {
+          signal: controller.signal,
+          cache: 'no-store'
+        });
+        clearTimeout(timeoutId);
+        
         if (res.ok) {
           const data = await res.json();
-          setProxyActive(data.active);
+          setProxyActive(data.status === 'ok');
         } else {
           setProxyActive(false);
         }
       } catch (err) {
-        setProxyActive(false);
+        // Fallback: Tenta a rota de API local (útil para desenvolvimento local completo)
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 800);
+          const res = await fetch('/api/hardware/proxy', { signal: controller.signal, cache: 'no-store' });
+          clearTimeout(timeoutId);
+          if (res.ok) {
+            const data = await res.json();
+            setProxyActive(data.active);
+          } else {
+            setProxyActive(false);
+          }
+        } catch (e) {
+          setProxyActive(false);
+        }
       }
     };
     checkProxy();
@@ -102,6 +125,35 @@ export function InfraSection({
       toast({
         title: "Erro ao Iniciar",
         description: "Não foi possível iniciar o proxy local automaticamente. Verifique se o Node.js está instalado.",
+        variant: "destructive"
+      });
+    } finally {
+      setProxyLoading(false);
+    }
+  };
+
+  const handleStopProxy = async () => {
+    setProxyLoading(true);
+    try {
+      // Envia o comando de desligamento diretamente para a porta local 9005 na máquina física do Totem
+      await fetch('http://localhost:9005/shutdown', { method: 'GET' }).catch(() => null);
+      
+      // Envia também para a API do Next.js como garantia no ambiente de dev local
+      await fetch('/api/hardware/proxy', { method: 'DELETE' }).catch(() => null);
+      
+      // Aguarda o encerramento do processo e atualiza o estado
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      setProxyActive(false);
+      
+      toast({
+        title: "Proxy Local Desativado",
+        description: "O canalizador de vídeo na porta 9005 foi encerrado com sucesso.",
+        variant: "success"
+      });
+    } catch (err) {
+      toast({
+        title: "Erro ao Parar",
+        description: "Não foi possível desativar o proxy local.",
         variant: "destructive"
       });
     } finally {
@@ -135,7 +187,16 @@ export function InfraSection({
         </div>
         
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
-          {!proxyActive && (
+          {proxyActive ? (
+            <Button
+              onClick={handleStopProxy}
+              disabled={proxyLoading || proxyActive === null}
+              variant="destructive"
+              className="font-bold text-xs uppercase tracking-wider h-10 px-5 rounded-xl disabled:opacity-50 transition-all duration-300"
+            >
+              {proxyLoading ? 'Parando...' : 'Parar Proxy Local'}
+            </Button>
+          ) : (
             <Button
               onClick={handleStartProxy}
               disabled={proxyLoading || proxyActive === null}
@@ -145,8 +206,8 @@ export function InfraSection({
             </Button>
           )}
           <div className="px-3 py-2 bg-slate-100/60 dark:bg-slate-950 border border-slate-200/50 dark:border-white/5 rounded-xl text-center min-w-[130px]">
-            <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 block">Atalho do Totem</span>
-            <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400 font-bold block mt-0.5">Iniciar-Proxy-Local.bat</span>
+            <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 block">Atalhos do Totem</span>
+            <span className="text-[10px] font-mono text-indigo-650 dark:text-indigo-400 font-bold block mt-0.5">Iniciar / Parar Proxy</span>
           </div>
         </div>
       </div>
