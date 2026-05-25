@@ -346,7 +346,7 @@ export function AcademicSection({
                 </div>
               </TableCell>
               <TableCell className="text-right px-6 py-4">
-                <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex justify-end gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                   {user.role === 'student' && (
                     <Button 
                       variant="ghost" 
@@ -761,20 +761,20 @@ export function AcademicSection({
             className="w-full space-y-6"
           >
           <div className="w-full overflow-x-auto no-scrollbar pb-1">
-            <TabsList className="!inline-flex w-max min-w-full justify-start md:justify-center h-14 bg-slate-100/80 dark:bg-slate-950/80 p-1 rounded-2xl border border-slate-200/60 dark:border-white/5 shadow-2xl backdrop-blur-xl">
-              <TabsTrigger value="student" className="shrink-0 min-w-max gap-2 uppercase font-black text-[10px] tracking-widest text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-xl data-[state=active]:bg-indigo-600 dark:data-[state=active]:bg-indigo-500 data-[state=active]:text-white dark:data-[state=active]:text-slate-950 transition-all duration-300">
+            <TabsList className="!inline-flex w-max min-w-full justify-start h-14 bg-slate-100/80 dark:bg-slate-950/80 p-1 rounded-2xl border border-slate-200/60 dark:border-white/5 shadow-2xl backdrop-blur-xl">
+              <TabsTrigger value="student" className="flex-1 shrink-0 min-w-max gap-2 uppercase font-black text-[10px] tracking-widest text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-xl data-[state=active]:bg-indigo-600 dark:data-[state=active]:bg-indigo-500 data-[state=active]:text-white dark:data-[state=active]:text-slate-950 transition-all duration-300">
                 Alunos ({filteredUsersForAdmin.filter(u => u.role === 'student').length})
               </TabsTrigger>
-              <TabsTrigger value="staff" className="shrink-0 min-w-max gap-2 uppercase font-black text-[10px] tracking-widest text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-xl data-[state=active]:bg-indigo-600 dark:data-[state=active]:bg-indigo-500 data-[state=active]:text-white dark:data-[state=active]:text-slate-950 transition-all duration-300">
+              <TabsTrigger value="staff" className="flex-1 shrink-0 min-w-max gap-2 uppercase font-black text-[10px] tracking-widest text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-xl data-[state=active]:bg-indigo-600 dark:data-[state=active]:bg-indigo-500 data-[state=active]:text-white dark:data-[state=active]:text-slate-950 transition-all duration-300">
                 Funcionários ({filteredUsersForAdmin.filter(u => u.role === 'staff').length})
               </TabsTrigger>
-              <TabsTrigger value="admin" className="shrink-0 min-w-max gap-2 uppercase font-black text-[10px] tracking-widest text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-xl data-[state=active]:bg-indigo-600 dark:data-[state=active]:bg-indigo-500 data-[state=active]:text-white dark:data-[state=active]:text-slate-950 transition-all duration-300">
+              <TabsTrigger value="admin" className="flex-1 shrink-0 min-w-max gap-2 uppercase font-black text-[10px] tracking-widest text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-xl data-[state=active]:bg-indigo-600 dark:data-[state=active]:bg-indigo-500 data-[state=active]:text-white dark:data-[state=active]:text-slate-950 transition-all duration-300">
                 Gestores ({filteredUsersForAdmin.filter(u => u.role === 'admin' || u.role === 'super_admin').length})
               </TabsTrigger>
-              <TabsTrigger value="visitor" className="shrink-0 min-w-max gap-2 uppercase font-black text-[10px] tracking-widest text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-xl data-[state=active]:bg-indigo-600 dark:data-[state=active]:bg-indigo-500 data-[state=active]:text-white dark:data-[state=active]:text-slate-950 transition-all duration-300">
+              <TabsTrigger value="visitor" className="flex-1 shrink-0 min-w-max gap-2 uppercase font-black text-[10px] tracking-widest text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-xl data-[state=active]:bg-indigo-600 dark:data-[state=active]:bg-indigo-500 data-[state=active]:text-white dark:data-[state=active]:text-slate-950 transition-all duration-300">
                 Visitantes ({filteredUsersForAdmin.filter(u => u.role === 'visitor').length})
               </TabsTrigger>
-              <TabsTrigger value="requests" className="shrink-0 min-w-max gap-2 uppercase font-black text-[10px] tracking-widest text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-xl data-[state=active]:bg-indigo-600 dark:data-[state=active]:bg-indigo-500 data-[state=active]:text-white dark:data-[state=active]:text-slate-950 transition-all duration-300">
+              <TabsTrigger value="requests" className="flex-1 shrink-0 min-w-max gap-2 uppercase font-black text-[10px] tracking-widest text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-xl data-[state=active]:bg-indigo-600 dark:data-[state=active]:bg-indigo-500 data-[state=active]:text-white dark:data-[state=active]:text-slate-950 transition-all duration-300">
                 Solicitações 
                 {filteredRequests.length > 0 && (
                   <Badge className="h-4 w-4 p-0 flex items-center justify-center text-[8px] bg-rose-600 border border-rose-500/20 text-white animate-pulse ml-1 rounded-full">

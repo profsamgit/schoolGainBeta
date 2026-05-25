@@ -256,7 +256,7 @@ export function SecuritySection({
                         <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[9px] font-black uppercase tracking-widest py-0.5 px-2 rounded-lg">Ativo</Badge>
                       </TableCell>
                       <TableCell className="text-right px-8">
-                        <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                        <div className="flex justify-end gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all">
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 rounded-lg" title="Reset de Senha" onClick={() => {
                               setUserToReset(user);
                               setResetGeneratedPass(null);
@@ -439,7 +439,7 @@ export function SecuritySection({
                       <Badge className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 text-[9px] font-black uppercase tracking-widest py-0.5 px-2 rounded-lg">Local</Badge>
                     </TableCell>
                     <TableCell className="text-right px-8">
-                      <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                      <div className="flex justify-end gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all">
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 rounded-lg" title="Reset de Senha" onClick={() => {
                             setUserToReset(user);
                             setResetGeneratedPass(null);

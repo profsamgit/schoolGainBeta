@@ -280,7 +280,7 @@ export function TeamSection({
                 </div>
                 <p className="mt-4 text-xs text-slate-600 dark:text-slate-400 line-clamp-3 leading-relaxed font-medium flex-1">{dev.description}</p>
                 
-                <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute top-3 right-3 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                   <Button 
                     variant="outline" 
                     size="icon" 
@@ -498,7 +498,7 @@ export function TeamSection({
                   </div>
                   <p className="mt-4 text-xs text-slate-600 dark:text-slate-400 line-clamp-3 leading-relaxed font-medium flex-1">{beta.description}</p>
 
-                  <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute top-3 right-3 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                     <Button
                       variant="outline"
                       size="icon"

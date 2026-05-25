@@ -198,7 +198,7 @@ export function PovoamentoSection({
                     <span className={`h-1.5 w-1.5 rounded-full ${turma.status === 'active' ? 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]' : 'bg-slate-400 dark:bg-slate-650'}`}></span>
                     <span className={`text-xs font-bold ${turma.status === 'inactive' ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-700 dark:text-indigo-200'}`}>{turma.name}</span>
                   </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 dark:text-slate-400 hover:text-indigo-650 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg"
                       onClick={() => {
                         setEditingTurma(turma);
@@ -243,7 +243,7 @@ export function PovoamentoSection({
                     <span className={`h-1.5 w-1.5 rounded-full ${curso.status === 'active' ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-slate-400 dark:bg-slate-650'}`}></span>
                     <span className={`text-xs font-bold ${curso.status === 'inactive' ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-700 dark:text-amber-200'}`}>{curso.name}</span>
                   </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 dark:text-slate-400 hover:text-indigo-650 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg"
                       onClick={() => {
                         setEditingCurso(curso);
@@ -288,7 +288,7 @@ export function PovoamentoSection({
                     <span className={`h-1.5 w-1.5 rounded-full ${cargo.status === 'active' ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]' : 'bg-slate-400 dark:bg-slate-650'}`}></span>
                     <span className={`text-xs font-bold ${cargo.status === 'inactive' ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-700 dark:text-rose-200'}`}>{cargo.name}</span>
                   </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 dark:text-slate-400 hover:text-indigo-650 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg"
                       onClick={() => {
                         setEditingCargo(cargo);
@@ -333,7 +333,7 @@ export function PovoamentoSection({
                     <span className={`h-1.5 w-1.5 rounded-full ${setor.status === 'active' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-slate-400 dark:bg-slate-650'}`}></span>
                     <span className={`text-xs font-bold ${setor.status === 'inactive' ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-700 dark:text-emerald-200'}`}>{setor.name}</span>
                   </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 dark:text-slate-400 hover:text-indigo-650 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg"
                       onClick={() => {
                         setEditingSetor(setor);
