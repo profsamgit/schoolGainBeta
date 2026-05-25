@@ -12,9 +12,9 @@ O sistema já está totalmente preparado para suportar a ESP32-CAM de duas forma
 
 Para realizar a configuração e gravação, você precisará de:
 * **Placa ESP32-CAM** (Modelo recomendado: *AI-Thinker* com sensor de imagem *OV2640*).
-* **Módulo Conversor USB-para-TTL/Serial** (Ex: FTDI FT232RL, CP2102, ou CH340) para transferir o código do computador para a placa.
-* **Cabos Jumper** (Fêmea-Fêmea).
-* **Fonte de Alimentação Estável de 5V** (Recomendado alimentar a placa com 5V no pino próprio para evitar instabilidade na transmissão).
+* **Shield/Motherboard USB (ESP32-CAM-MB)**: Placa de expansão acoplável que já vem com porta micro-USB integrada e botões físicos de **Reset** e **IO0** para gravação direta sem necessidade de jumpers ou gravadores FTDI externos.
+* **Cabo Micro-USB** de boa qualidade (com vias de dados).
+* **Fonte de Alimentação Estável de 5V** (Recomendado alimentar a placa com 5V via porta USB do shield conectada a um carregador/porta USB com boa corrente para evitar instabilidade na transmissão).
 
 ---
 
@@ -28,8 +28,11 @@ Para realizar a configuração e gravação, você precisará de:
    ```
 4. Clique em **OK**.
 5. Acesse **Ferramentas > Placa > Gerenciador de Placas** (Tools > Board > Boards Manager).
-6. Pesquise por `esp32` (da *Espressif Systems*) e clique em **Instalar**.
-7. Após a instalação, selecione a placa correta em: **Ferramentas > Placa > esp32 > AI Thinker ESP32-CAM**.
+6. Pesquise por `esp32` (da *Espressif Systems*) e clique em **Instalar** (Recomenda-se a versão mais recente).
+7. Após a instalação, configure as opções da placa em **Ferramentas > Placa > esp32**:
+   * **Placa (Board)**: Selecione **ESP32 dev module**.
+   * **PSRAM**: Altere para **Enabled** (Habilitado). *Esta configuração é mandatória para habilitar a alocação de buffers de imagem de maior resolução e performance.*
+   * **Partition Scheme**: Altere para **Huge APP (3MB No OTA/1MB LittleFS)**. *O sistema de arquivos foi atualizado para utilizar o moderno LittleFS para melhor integridade e eficiência de dados.*
 
 > [!IMPORTANT]
 > **CONFIGURAÇÃO CRÍTICA DE PARTICIONAMENTO:**
@@ -38,22 +41,17 @@ Para realizar a configuração e gravação, você precisará de:
 
 ---
 
-## 🔌 2. Esquema de Ligação para Gravação
+## 🔌 2. Conectando e Colocando em Modo de Gravação (ESP32-CAM-MB)
 
-Como a ESP32-CAM não tem porta USB embutida, você deve conectá-la ao conversor USB-Serial seguindo este esquema:
+O uso do shield **ESP32-CAM-MB** elimina a necessidade de fios e adaptadores FTDI complexos. Basta encaixar a ESP32-CAM no shield e conectá-la ao computador via cabo USB.
 
-| Conversor USB-TTL (FTDI) | ESP32-CAM | Notas |
-| :--- | :--- | :--- |
-| **VCC (5V)** | **5V** | Certifique-se de que o jumper de tensão do FTDI está em 5V |
-| **GND** | **GND** | Terra comum |
-| **TXD (Transmissão)** | **U0R (Recepção/RX)** | Cruzamento de sinal de comunicação |
-| **RXD (Recepção)** | **U0T (Transmissão/TX)**| Cruzamento de sinal de comunicação |
-| *Nenhum* | **GPIO 0 conectado ao GND** | **OBRIGATÓRIO:** Jumper entre GPIO 0 e GND para entrar em modo de gravação |
-
-### Passos para entrar no modo de gravação:
-1. Conecte o **GPIO 0 ao GND** da ESP32-CAM com um jumper.
-2. Conecte o conversor FTDI na porta USB do seu computador.
-3. Pressione o botão **RESET (RST)** na parte traseira da ESP32-CAM uma vez. Isso colocará o chip no modo de gravação ("bootloader").
+### Procedimento para Gravação (Entrar em Bootloader):
+1. Encaixe a placa **ESP32-CAM** sobre o shield **ESP32-CAM-MB** firmemente, alinhando a antena e a câmera com o conector USB.
+2. Conecte o cabo micro-USB à porta do shield e ao computador.
+3. Pressione e **mantenha pressionado** o botão **IO0** (ou BOOT) localizado no shield.
+4. Enquanto segura o botão **IO0**, pressione e solte o botão **RESET (RST)** uma vez (localizado no shield ou na traseira da ESP32-CAM).
+5. **Solte** o botão **IO0**.
+6. A placa está agora em modo de gravação (Bootloader) aguardando o upload do firmware do Arduino IDE.
 
 ---
 
@@ -84,7 +82,7 @@ Abra esse arquivo no Arduino IDE e faça os seguintes ajustes:
 1. No Arduino IDE, selecione a porta serial correspondente à sua placa em **Ferramentas > Porta** (Tools > Port).
 2. Clique no botão de **Carregar (Upload)** (seta para a direita).
 3. Aguarde até aparecer a mensagem `Done uploading` (Gravação concluída).
-4. **IMPORTANTE:** Retire o cabo USB do computador, **remova o jumper que conecta o GPIO 0 ao GND**, e conecte o USB novamente para reiniciar a placa em modo de execução normal.
+4. Após o término da gravação, simplesmente pressione o botão **RESET (RST)** uma vez para que a placa inicie em modo de execução normal (não é necessário desconectar jumpers ou cabos).
 
 ---
 
@@ -94,6 +92,7 @@ Abra esse arquivo no Arduino IDE e faça os seguintes ajustes:
 2. Pressione o botão **RESET** da placa.
 3. Você verá mensagens indicando a conexão Wi-Fi. Quando concluído com sucesso, ela exibirá:
    ```text
+   [SYSTEM] PSRAM detectada com sucesso!
    [WIFI] Conectado com sucesso!
    [WIFI] IP Local da ESP32-CAM: 192.168.1.50
    [SERVER] Servidor de Stream HTTP iniciado!
@@ -143,7 +142,7 @@ Para simular um cartão físico sendo lido:
 ### ❌ Falha de Conexão com o Servidor (HTTP Code -1 ou 404)
 * **Causa**: A ESP32 não consegue encontrar o servidor ou o computador está bloqueando a conexão.
 * **Soluções**:
-  * Certifique-se de que a ESP32 e o computador do servidor estão conectados na **mesma rede Wi-Fi**. redes 5G e 2.4G de alguns roteadores são isoladas (a ESP32-CAM só suporta redes Wi-Fi de **2.4 GHz**).
+  * Certifique-se de que a ESP32 e o computador do servidor estão conectados na **mesma rede Wi-Fi** (a ESP32-CAM só suporta redes Wi-Fi de **2.4 GHz**).
   * Certifique-se de que digitou o IP correto do seu computador e **não** usou `localhost` ou `127.0.0.1`.
   * Verifique se o Firewall do Windows não está bloqueando conexões de rede local na porta `3000`. Desative-o temporariamente para testar.
 
@@ -151,11 +150,12 @@ Para simular um cartão físico sendo lido:
 * **Causa**: Tensão de entrada instável ou cabo flexível da câmera mal encaixado.
 * **Soluções**:
   * Verifique se o cabo da câmera preta de lente pequena está perfeitamente inserido no conector FPC da placa.
-  * Alimente a ESP32 com uma fonte dedicada estável de 5V ligada diretamente aos pinos `5V` e `GND` (a porta USB do conversor FTDI às vezes não fornece corrente suficiente, gerando ruído na imagem).
+  * Certifique-se de que a porta USB que está fornecendo energia tem pelo menos 1A a 2A. Algumas portas USB antigas de computadores não fornecem corrente suficiente para o pico de transmissão da ESP32-CAM com flash.
 
 ### ❌ Erro "frame buffer malloc failed" ou "Camera config failed with error 0xffffffff"
 * **Causa**: O chip da ESP32-CAM não tem memória interna (SRAM) suficiente para alocar imagens de alta resolução sem usar a memória externa PSRAM. Isso ocorre se você estiver usando uma placa genérica sem PSRAM ou se a **PSRAM não foi habilitada nas opções da placa no Arduino IDE**.
 * **Soluções**:
-  * No **Arduino IDE**, vá em **Ferramentas > Placa** e confirme se selecionou exatamente **AI Thinker ESP32-CAM** (e não "ESP32 Dev Module").
-  * Vá no menu **Ferramentas (Tools)**, localize a opção **PSRAM** e altere de *Disabled* para **Enabled** (Habilitada). Depois, compile e grave o código novamente.
-  * *Observação*: Atualizei o código do SchoolGain para detectar a ausência de PSRAM em tempo de execução e aplicar um **fallback automático de segurança** (resolução reduzida para **QVGA - 320x240**). Isso impede o travamento físico da placa, mas para ter a melhor qualidade na identificação por Inteligência Artificial do Totem, recomendamos fortemente ativar a PSRAM no IDE.
+  * Vá no menu **Ferramentas (Tools)**, localize a opção **PSRAM** e altere de *Disabled* para **Enabled** (Habilitada).
+  * Verifique se selecionou exatamente **ESP** em **Ferramentas > Placa > esp32**.
+  * Certifique-se de ter escolhido a partição adequada (como `Huge APP 3MB / 1MB LittleFS`) no gerenciador de partições para compatibilidade com o sistema de arquivos adotado.
+

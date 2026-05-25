@@ -317,6 +317,8 @@ export class EcosystemService {
   public currentUserRaSubject = new BehaviorSubject<string | null>(null);
   public currentUserIdSubject = new BehaviorSubject<string | null>(null);
   private activeSyncIds = new Set<string>();
+  private auditLogsUnsubscribe: (() => void) | null = null;
+  private resetHistoryUnsubscribe: (() => void) | null = null;
 
   public usersSubject = new BehaviorSubject<User[]>([ADMIN_MOCK]);
   public studentsSubject = new BehaviorSubject<User[]>([]);
@@ -646,24 +648,14 @@ export class EcosystemService {
       this.data.wasteEntries = entries;
       this.wasteEntriesSubject.next(entries);
     });
-    onSnapshot(query(collection(db, "auditLogs"), orderBy("timestamp", "desc"), limit(200)), (snapshot) => {
-      const logs: AuditLogEntry[] = [];
-      snapshot.forEach(doc => logs.push(doc.data() as AuditLogEntry));
-      this.data.auditLogs = logs;
-      this.auditLogsSubject.next(logs);
-    });
-    onSnapshot(query(collection(db, "resetHistory"), orderBy("endDate", "desc"), limit(50)), (snapshot) => {
-      const history: CycleSnapshot[] = [];
-      snapshot.forEach(doc => history.push(doc.data() as CycleSnapshot));
-      this.data.resetHistory = history;
-      this.resetHistorySubject.next(history);
-    });
-
     if (this.data.currentUserId) {
       this.initUserSpecificSync(this.data.currentUserId);
       const user = this.data.users.find(u => u.id === this.data.currentUserId);
-      if (user && (user.role === 'admin' || user.role === 'super_admin') && user.schoolId) {
-         this.initAdminSync(user.schoolId);
+      if (user && (user.role === 'admin' || user.role === 'super_admin')) {
+         this.initAdminOnlySyncs();
+         if (user.schoolId) {
+            this.initAdminSync(user.schoolId);
+         }
       }
     }
 
@@ -747,6 +739,29 @@ export class EcosystemService {
         this.data.userStates = currentStates;
         this.userStatesSubject.next({ ...currentStates });
       }
+    });
+  }
+
+  /**
+   * initAdminOnlySyncs: Sincroniza dados exclusivos de administrador
+   */
+  private initAdminOnlySyncs() {
+    if (typeof window === 'undefined') return;
+    if (this.activeSyncIds.has('admin-only-syncs')) return;
+    this.activeSyncIds.add('admin-only-syncs');
+
+    this.auditLogsUnsubscribe = onSnapshot(query(collection(db, "auditLogs"), orderBy("timestamp", "desc"), limit(50)), (snapshot) => {
+      const logs: AuditLogEntry[] = [];
+      snapshot.forEach(doc => logs.push(doc.data() as AuditLogEntry));
+      this.data.auditLogs = logs;
+      this.auditLogsSubject.next(logs);
+    });
+
+    this.resetHistoryUnsubscribe = onSnapshot(query(collection(db, "resetHistory"), orderBy("endDate", "desc"), limit(30)), (snapshot) => {
+      const history: CycleSnapshot[] = [];
+      snapshot.forEach(doc => history.push(doc.data() as CycleSnapshot));
+      this.data.resetHistory = history;
+      this.resetHistorySubject.next(history);
     });
   }
 
@@ -887,6 +902,14 @@ export class EcosystemService {
       this.purchasedItemsSubject.next(userState.purchasedItems);
       this.lastMissionDateSubject.next(userState.lastMissionDate);
       this.levelSubject.next(userState.level || 'Semente');
+      
+      // Se for admin/super_admin, inicia sincronização específica de admin
+      if (user && (user.role === 'admin' || user.role === 'super_admin')) {
+        this.initAdminOnlySyncs();
+        if (user.schoolId) {
+          this.initAdminSync(user.schoolId);
+        }
+      }
     }
 
     return { ...userState, level: userState.level || 'Semente' };
@@ -964,6 +987,15 @@ export class EcosystemService {
     return this.authService.login(id, password, terminalSchoolId);
   }
   logout() {
+    if (this.auditLogsUnsubscribe) {
+      this.auditLogsUnsubscribe();
+      this.auditLogsUnsubscribe = null;
+    }
+    if (this.resetHistoryUnsubscribe) {
+      this.resetHistoryUnsubscribe();
+      this.resetHistoryUnsubscribe = null;
+    }
+    this.activeSyncIds.delete('admin-only-syncs');
     this.authService.logout();
   }
   async verifyPassword(password: string) {
@@ -1280,6 +1312,20 @@ export class EcosystemService {
    */
   async logTelemetry(entry: Omit<BehaviorTelemetryEntry, 'id' | 'timestamp'>) {
     if (typeof window === 'undefined') return;
+
+    // Otimização de quota: ignora gravação de eventos de alta frequência (login/logout) para usuários comuns (alunos)
+    if (entry.action && (entry.action.includes('LOGIN') || entry.action.includes('LOGOUT'))) {
+      const currentUserId = this.data.currentUserId || 'system';
+      const currentUser = this.data.users.find(u => u.id === currentUserId);
+      const isActorAdmin = entry.actorId
+        ? this.data.users.find(u => u.id === entry.actorId)?.role?.includes('admin')
+        : currentUser?.role?.includes('admin');
+
+      if (!isActorAdmin) {
+        console.log(`[TELEMETRY-OPTIMIZED] Ignorando gravação de log de ${entry.action} no Firestore para usuário comum.`);
+        return;
+      }
+    }
 
     const currentUserId = this.data.currentUserId || 'system';
     const currentUser = this.data.users.find(u => u.id === currentUserId);
