@@ -1480,6 +1480,18 @@ export class EcosystemService {
     return `${prefix}-${cleanSchoolId}-${random}`;
   }
 
+  /**
+   * Gera um RA aleatório padronizado de 12 caracteres contendo letras maiúsculas e números.
+   */
+  public static generateRandomRA(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 12; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  }
+
   // Points & Vitality Facades (PointsService)
   completeDailyMission(points: number, difficulty: 'easy' | 'medium' | 'hard' = 'medium') {
     return this.pointsService.completeDailyMission(points, difficulty);

@@ -14,6 +14,7 @@ import dynamic from 'next/dynamic';
 import { QRCodeSVG } from 'qrcode.react';
 import { useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { EcosystemService } from '@/lib/ecosystem.service';
 
 const QRScanner = dynamic(() => import('@/components/ui/qr-scanner'), { ssr: false });
 
@@ -48,7 +49,7 @@ export default function RegisterStudentPage() {
   };
 
   const generateRA = () => {
-    const randomRA = Math.random().toString(36).substring(2, 10).toUpperCase();
+    const randomRA = EcosystemService.generateRandomRA();
     setFormData(prev => ({ ...prev, ra: randomRA }));
     toast({ title: "RA Gerado", description: `Código: ${randomRA}` });
   };

@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useId } from 'react';
+import { useEffect, useRef, useId, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { Card } from '@/components/ui/card';
+import { SwitchCamera } from 'lucide-react';
 
 interface QRScannerProps {
   onScan: (decodedText: string) => void;
@@ -21,6 +22,9 @@ export default function QRScanner({ onScan, onError, deviceId }: QRScannerProps)
   const hasScannedRef = useRef(false);
   const uniqueId = useId().replace(/:/g, '-');
   const elementId = `qr-reader-${uniqueId}`;
+  
+  // Default to environment (rear) camera on mobile, but allow toggling
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
 
   useEffect(() => {
     let isMounted = true;
@@ -45,7 +49,7 @@ export default function QRScanner({ onScan, onError, deviceId }: QRScannerProps)
 
             const cameraConfig = deviceId && deviceId !== 'default' 
                 ? { deviceId: { exact: deviceId } } 
-                : { facingMode: "user" };
+                : { facingMode: facingMode };
 
             await html5QrCode.start(
                 cameraConfig,
@@ -118,7 +122,11 @@ export default function QRScanner({ onScan, onError, deviceId }: QRScannerProps)
       };
       cleanup();
     };
-  }, [onScan, onError, elementId, deviceId]);
+  }, [onScan, onError, elementId, deviceId, facingMode]);
+
+  const toggleCamera = () => {
+    setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
+  };
 
   return (
     <Card className="overflow-hidden border-2 border-primary/20 bg-black relative aspect-square">
@@ -128,9 +136,24 @@ export default function QRScanner({ onScan, onError, deviceId }: QRScannerProps)
         ref={containerRef}
         className="w-full h-full"
       ></div>
+      
+      {/* Camera switch button */}
+      <button
+        type="button"
+        onClick={toggleCamera}
+        className="absolute top-3 right-3 z-30 p-2.5 bg-slate-900/80 hover:bg-slate-900 text-white border border-slate-700/50 rounded-xl hover:scale-105 active:scale-95 transition-all shadow-lg flex items-center gap-1.5 backdrop-blur-md"
+        title="Alternar Câmera (Frontal / Traseira)"
+      >
+        <SwitchCamera className="h-4 w-4 text-emerald-400" />
+        <span className="text-[10px] font-black uppercase tracking-wider">
+          {facingMode === 'user' ? 'Frontal' : 'Traseira'}
+        </span>
+      </button>
+
       <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/60 text-white text-center text-[10px] uppercase font-bold tracking-widest z-10">
         Scanner Ativo
       </div>
     </Card>
   );
 }
+

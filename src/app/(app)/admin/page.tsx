@@ -473,7 +473,7 @@ function AdminContent() {
 
       let payload = { 
         ...sanitizedValues, 
-        ra: (values.ra || Math.random().toString(36).substring(2, 14).toUpperCase().padEnd(12, '0')).toUpperCase().trim(), 
+        ra: (values.ra || EcosystemService.generateRandomRA()).toUpperCase().trim(), 
         schoolId: targetSchoolId || values.schoolId || currentUser?.schoolId 
       };
       if (!isNew && itemType === 'user' && !values.password) {

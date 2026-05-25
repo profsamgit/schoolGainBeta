@@ -345,7 +345,7 @@ export default function SuperAdminPage() {
           id: `${prefix}-${Date.now()}`,
           name: userFormData.name.toUpperCase().trim(),
           email: emailLower,
-          ra: userFormData.ra?.toUpperCase().trim() || Math.random().toString(36).substring(2, 14).toUpperCase().padEnd(12, '0'),
+          ra: userFormData.ra?.toUpperCase().trim() || EcosystemService.generateRandomRA(),
           role: userFormData.role,
           password: userFormData.password || 'mudar123',
           schoolId: userFormData.role === 'super_admin' ? 'global' : userFormData.schoolId,

@@ -23,6 +23,7 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { RegistrationRequest, User, Turma, Curso, Cargo, SetorEscolar } from '@/types/ecosystem';
+import { EcosystemService } from '@/lib/ecosystem.service';
 import { Power, Shield, UserX, UserCheck, User as UserIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { UseFormReturn } from 'react-hook-form';
@@ -211,11 +212,7 @@ export function AcademicSection({
   }, [filteredUsersForAdmin]);
 
   const generateRandomRA = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
-    for (let i = 0; i < 12; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
+    const result = EcosystemService.generateRandomRA();
     userForm.setValue('ra', result, { shouldValidate: true });
   };
 
@@ -588,7 +585,7 @@ export function AcademicSection({
                         )} />
                       )}
 
-                      {(userForm.watch('role') === 'student' || userForm.watch('role') === 'staff') && (
+                      {(userForm.watch('role') === 'student' || userForm.watch('role') === 'staff' || userForm.watch('role') === 'admin' || userForm.watch('role') === 'super_admin') && (
                         <FormField control={userForm.control} name="turma" render={({ field }) => (
                             <FormItem>
                                 <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">{currentRole === 'student' ? 'Turma' : 'Setor / Departamento'}</FormLabel>
