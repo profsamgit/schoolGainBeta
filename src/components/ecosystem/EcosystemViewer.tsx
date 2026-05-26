@@ -268,11 +268,8 @@ const AuroraBoreal = () => (
 /**
  * MountainRange: Desenha as montanhas ao fundo.
  */
-const MountainRange = ({ className, isLegendary, isNight }: { className?: string, isLegendary?: boolean, isNight: boolean }) => (
+const MountainRange = ({ className, isNight }: { className?: string, isNight: boolean }) => (
   <div className={cn("w-full h-full relative", className)}>
-    {/* Só mostra a Aurora se o aluno for Lendário */}
-    {isLegendary && <AuroraBoreal />}
-
     <svg viewBox="0 0 1000 600" preserveAspectRatio="none" className="w-full h-full relative z-10 overflow-visible">
       {/* Camada 1: Montanhas de Fundo (Nevadas) */}
       <path
@@ -1780,6 +1777,9 @@ export function EcosystemViewer({
         {/* CÉU */}
         <div className={cn("absolute inset-0 bg-gradient-to-b transition-colors transition-duration-[3000ms]", getSkyGradient)} />
 
+        {/* Só mostra a Aurora se o aluno for Lendário */}
+        {isLegendary && <AuroraBoreal />}
+
         {/* EFEITOS ATMOSFÉRICOS */}
         {!isEcosystemNight && airClean && <SunBeams />}
         {isEcosystemNight && <Fireflies />}
@@ -1792,7 +1792,7 @@ export function EcosystemViewer({
 
         {/* MONTANHAS */}
         <div className="absolute inset-x-0 bottom-[30%] h-[40%] z-10 opacity-90 blur-[1px]">
-          <MountainRange isLegendary={isLegendary} isNight={isEcosystemNight} />
+          <MountainRange isNight={isEcosystemNight} />
         </div>
 
         {/* RIO E TERRA (DESENHO DINÂMICO MULTICAMADAS) */}

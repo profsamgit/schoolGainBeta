@@ -319,9 +319,24 @@ export class PointsService {
       if (currentUserId) {
         const state = this.service.data.userStates[currentUserId];
         if (state) {
-          state.vitality = Math.max(0, state.vitality - 20);
-          this.service.vitalitySubject.next(state.vitality);
-          setDoc(doc(db, "userStates", currentUserId), { vitality: state.vitality }, { merge: true });
+          // Verifica se o usuário é Lenda e está no período de 30 dias de benefício (vitalidade protegida)
+          let isLegendActive = false;
+          if (state.nessiePurchaseDate) {
+            const purchaseDate = new Date(state.nessiePurchaseDate);
+            const diffTime = Math.abs(new Date().getTime() - purchaseDate.getTime());
+            const diffDays = diffTime / (1000 * 60 * 60 * 24);
+            if (diffDays <= 30) {
+              isLegendActive = true;
+            }
+          }
+
+          if (!isLegendActive) {
+            state.vitality = Math.max(0, state.vitality - 20);
+            this.service.vitalitySubject.next(state.vitality);
+            setDoc(doc(db, "userStates", currentUserId), { vitality: state.vitality }, { merge: true });
+          } else {
+            console.log("[ECOSYSTEM] Vitalidade não diminuiu pois o usuário é Guardião da Lenda nos últimos 30 dias.");
+          }
         }
       }
       this.service.saveToStorage();

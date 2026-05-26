@@ -51,19 +51,73 @@ export default function MeuEcossistemaPage() {
 
   useEffect(() => {
     const handleFsChange = () => {
-      setIsFullScreen(!!document.fullscreenElement);
+      const isFs = !!(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement ||
+        (document as any).msFullscreenElement
+      );
+      setIsFullScreen(isFs);
     };
     document.addEventListener('fullscreenchange', handleFsChange);
-    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+    document.addEventListener('webkitfullscreenchange', handleFsChange);
+    document.addEventListener('mozfullscreenchange', handleFsChange);
+    document.addEventListener('MSFullscreenChange', handleFsChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFsChange);
+      document.removeEventListener('webkitfullscreenchange', handleFsChange);
+      document.removeEventListener('mozfullscreenchange', handleFsChange);
+      document.removeEventListener('MSFullscreenChange', handleFsChange);
+    };
   }, []);
 
   const toggleFullScreen = () => {
-    if (!document.fullscreenElement) {
-      containerRef.current?.requestFullscreen().catch(err => {
-        console.error(`Error attempting to enable full-screen mode: ${err.message}`);
-      });
+    const doc = document as any;
+    const isFs = !!(
+      doc.fullscreenElement ||
+      doc.webkitFullscreenElement ||
+      doc.mozFullScreenElement ||
+      doc.msFullscreenElement
+    );
+
+    if (!isFs) {
+      const element = containerRef.current as any;
+      if (element) {
+        const requestMethod =
+          element.requestFullscreen ||
+          element.webkitRequestFullscreen ||
+          element.mozRequestFullScreen ||
+          element.msRequestFullscreen;
+
+        if (requestMethod) {
+          try {
+            const promise = requestMethod.call(element);
+            if (promise && typeof promise.catch === 'function') {
+              promise.catch((err: any) => {
+                console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+              });
+            }
+          } catch (err: any) {
+            console.error(`Error invoking requestFullscreen: ${err.message}`);
+          }
+        } else {
+          console.warn("Fullscreen API is not supported on this browser/device.");
+        }
+      }
     } else {
-      document.exitFullscreen();
+      const exitMethod =
+        doc.exitFullscreen ||
+        doc.webkitExitFullscreen ||
+        doc.mozCancelFullScreen ||
+        doc.msExitFullscreen;
+
+      if (exitMethod) {
+        try {
+          exitMethod.call(doc);
+        } catch (err: any) {
+          console.error(`Error invoking exitFullscreen: ${err.message}`);
+        }
+      }
     }
   };
 
