@@ -296,7 +296,17 @@ export class PedagogicalService {
     let balanceAdjust = -upgrade.price;
     let pointsAdjust = 0;
 
-    if (item === 'casa') {
+    const allShopItems: EcosystemItem[] = [
+      'filtro_ar', 'limpar_rio', 'reparar_grama', 
+      'arvore_1', 'arvore_2', 'arvore_3', 
+      'passaro_1', 'passaro_2', 'passaro_3',
+      'peixe_1', 'peixe_2', 'peixe_3', 
+      'cachorro', 'gato', 'borboletas', 'borboletas_2', 'borboletas_3', 'borboletas_4',
+      'casa', 'barco_1', 'barco_2', 'monstro_lago', 'mae_human', 'criancas'
+    ];
+    const boughtAll = allShopItems.every(id => newItems.includes(id));
+
+    if (boughtAll && !state.nessiePurchaseDate) {
       pointsAdjust = 5000;
       balanceAdjust += 5000;
       

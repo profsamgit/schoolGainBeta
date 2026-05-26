@@ -13,7 +13,16 @@ export class PointsService {
     const items = purchasedItems || this.service.purchasedItems;
 
     // Conquistas especiais por itens
-    if (items.includes('casa')) return 'Guardião da Lenda';
+    const allShopItems: EcosystemItem[] = [
+      'filtro_ar', 'limpar_rio', 'reparar_grama', 
+      'arvore_1', 'arvore_2', 'arvore_3', 
+      'passaro_1', 'passaro_2', 'passaro_3',
+      'peixe_1', 'peixe_2', 'peixe_3', 
+      'cachorro', 'gato', 'borboletas', 'borboletas_2', 'borboletas_3', 'borboletas_4',
+      'casa', 'barco_1', 'barco_2', 'monstro_lago', 'mae_human', 'criancas'
+    ];
+    const boughtAll = allShopItems.every(id => items.includes(id));
+    if (boughtAll) return 'Guardião da Lenda';
 
     // Progressão por pontuação total
     if (score >= 20000) return 'Guardião da Biosfera';
