@@ -40,7 +40,7 @@ export default function RewardsPage() {
   };
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="p-3 sm:p-6 space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-7xl mx-auto relative z-10 text-slate-800 dark:text-white">
       {/* Banner Superior Responsivo */}
       <div className="relative overflow-hidden rounded-2xl sm:rounded-[2rem] border border-slate-200 dark:border-white/5 bg-white/85 dark:bg-slate-900/40 backdrop-blur-xl p-4 sm:p-8 text-slate-800 dark:text-white shadow-lg dark:shadow-2xl transition-all duration-300">
         <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 blur-[100px] rounded-full" />

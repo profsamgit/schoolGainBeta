@@ -1,5 +1,6 @@
 @echo off
 title Parar Proxy Seguro ESP32-CAM - SchoolGain
+cd /d "%~dp0"
 echo =============================================================
 echo 📡 PARANDO O PROXY SEGURO DA ESP32-CAM (PORTA 9005)
 echo =============================================================

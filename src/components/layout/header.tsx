@@ -197,10 +197,15 @@ export function Header() {
         <span className="text-xs font-black tracking-[0.3em] uppercase bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-400 text-transparent bg-clip-text">
           SchoolGain
         </span>
-        {isAdminView && currentUser && (
+        {currentUser && (
           <>
             <span className="text-white/20 font-extralight text-xs select-none">|</span>
-            <span className="text-[9px] font-black uppercase tracking-wider text-indigo-400 bg-indigo-500/10 border border-indigo-500/25 px-2 py-0.5 rounded-lg shadow-[0_0_15px_rgba(99,102,241,0.08)] backdrop-blur-md">
+            <span className={cn(
+              "text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg backdrop-blur-md border shadow-sm",
+              isAdminView 
+                ? "text-indigo-400 bg-indigo-500/10 border-indigo-500/25 shadow-[0_0_15px_rgba(99,102,241,0.08)]" 
+                : "text-emerald-600 dark:text-emerald-450 bg-emerald-500/10 dark:bg-emerald-500/5 border-emerald-500/20 dark:border-emerald-500/15"
+            )}>
               {currentUser.role === 'super_admin'
                 ? (schools.find(s => s.id === searchParams.get('schoolId'))?.name || 'Central Global')
                 : (schools.find(s => s.id === currentUser.schoolId)?.name || 'Unidade')

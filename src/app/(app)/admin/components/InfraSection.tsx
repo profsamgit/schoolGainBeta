@@ -515,7 +515,7 @@ export function InfraSection({
                               value={terminalLocation} 
                               onChange={(e) => setTerminalLocation(e.target.value)} 
                               placeholder="Ex: Entrada Principal, Biblioteca..."
-                              className="bg-white dark:bg-slate-905 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold h-10"
+                              className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold h-10"
                             />
                           </div>
 

@@ -1,5 +1,6 @@
 @echo off
 title Proxy Seguro ESP32-CAM - SchoolGain
+cd /d "%~dp0"
 echo =============================================================
 echo 📡 INICIANDO O PROXY SEGURO DA ESP32-CAM (PORTA 9005)
 echo =============================================================

@@ -47,140 +47,6 @@ const Fireflies = () => (
 );
 
 /**
- * StarField: Campo de estrelas cintilantes para a noite.
- */
-const StarField = () => (
-  <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-    {[...Array(40)].map((_, i) => (
-      <div 
-        key={i}
-        className="absolute bg-white rounded-full"
-        style={{
-          top: `${Math.random() * 45}%`,
-          left: `${Math.random() * 100}%`,
-          width: `${1.2 + Math.random() * 2}px`,
-          height: `${1.2 + Math.random() * 2}px`,
-          animation: `star-twinkle ${2 + Math.random() * 4}s infinite ease-in-out`,
-          animationDelay: `${Math.random() * 5}s`,
-          opacity: 0.3 + Math.random() * 0.7,
-          boxShadow: '0 0 6px rgba(255,255,255,0.9)'
-        }}
-      />
-    ))}
-  </div>
-);
-
-/**
- * CloudField: Nuvens flutuantes que cruzam a tela de dia.
- */
-const CloudField = () => (
-  <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-30">
-    {[...Array(3)].map((_, i) => (
-      <svg 
-        key={i}
-        viewBox="0 0 100 60"
-        className="absolute fill-white/80"
-        style={{
-          top: `${4 + i * 8}%`,
-          width: `${10 + i * 5}%`,
-          minWidth: `${60 + i * 30}px`,
-          maxWidth: `${120 + i * 60}px`,
-          height: 'auto',
-          animation: `cloud-drift ${35 + i * 15}s linear infinite`,
-          animationDelay: `${-i * 12}s`,
-        }}
-      >
-        <path d="M 20 40 a 15 15 0 0 1 20 -10 a 22 22 0 0 1 40 0 a 15 15 0 0 1 20 10 a 15 15 0 0 1 -80 0 z" />
-      </svg>
-    ))}
-  </div>
-);
-
-/**
- * SunOrMoon: Astro dinâmico renderizado de forma vetorizada com glow.
- */
-const SunOrMoon = ({ isNight }: { isNight: boolean }) => {
-  if (isNight) {
-    return (
-      <div 
-        className="absolute top-[8%] left-[70%] z-0 transition-all duration-[3000ms]"
-        style={{ filter: 'drop-shadow(0 0 25px rgba(186, 230, 253, 0.45))' }}
-      >
-        <svg viewBox="0 0 100 100" width="80" height="80" className="overflow-visible">
-          <circle cx="50" cy="50" r="45" fill="url(#moon-glow)" className="animate-pulse" style={{ animationDuration: '4s' }} />
-          <circle cx="50" cy="50" r="35" fill="url(#moon-surface)" />
-          <circle cx="35" cy="40" r="5" fill="#94a3b8" opacity="0.3" />
-          <circle cx="45" cy="65" r="8" fill="#94a3b8" opacity="0.25" />
-          <circle cx="65" cy="45" r="4" fill="#94a3b8" opacity="0.3" />
-          <circle cx="55" cy="30" r="3" fill="#94a3b8" opacity="0.2" />
-        </svg>
-      </div>
-    );
-  } else {
-    return (
-      <div 
-        className="absolute top-[8%] left-[6%] sm:left-[12%] z-0 transition-all duration-[3000ms] overflow-visible"
-        style={{ filter: 'drop-shadow(0 0 35px rgba(251, 191, 36, 0.55))' }}
-      >
-        <svg viewBox="0 0 100 100" width="80" height="80" className="overflow-visible">
-          <circle cx="50" cy="50" r="48" fill="url(#sun-flare)" className="animate-pulse" style={{ animationDuration: '3s' }} />
-          <circle cx="50" cy="50" r="35" fill="url(#sun-gradient)" />
-        </svg>
-      </div>
-    );
-  }
-};
-
-/**
- * WaterShimmers: Linhas de reflexo cintilantes na superfície da água.
- */
-const WaterShimmers = ({ isNight }: { isNight: boolean }) => (
-  <div className="absolute bottom-[2%] right-[5%] w-[45%] h-[20%] z-20 pointer-events-none overflow-hidden">
-    {[...Array(6)].map((_, i) => (
-      <div 
-        key={i}
-        className={cn(
-          "absolute h-[1.5px] rounded-full", 
-          isNight ? "bg-blue-300/40" : "bg-white/60"
-        )}
-        style={{
-          top: `${15 + i * 15}%`,
-          left: `${10 + Math.random() * 40}%`,
-          width: `${30 + Math.random() * 60}px`,
-          animation: `water-shimmer ${2.5 + Math.random() * 2}s infinite ease-in-out`,
-          animationDelay: `${Math.random() * 3}s`
-        }}
-      />
-    ))}
-  </div>
-);
-
-/**
- * GrassAndFlowers: Detalhes estéticos de vegetação no solo.
- */
-const GrassAndFlowers = ({ isNight, isHealthy }: { isNight: boolean, isHealthy: boolean }) => {
-  if (!isHealthy) return null;
-  return (
-    <div className="absolute inset-0 z-30 pointer-events-none">
-      {[
-        { left: '8%', bottom: '25%', color: '#f43f5e' },
-        { left: '15%', bottom: '15%', color: '#fda4af' },
-        { left: '5%', bottom: '45%', color: '#fbbf24' },
-        { left: '22%', bottom: '8%', color: '#38bdf8' }
-      ].map((item, i) => (
-        <div key={i} className="absolute" style={{ left: item.left, bottom: item.bottom }}>
-          <svg viewBox="0 0 20 20" width="16" height="16" className="overflow-visible opacity-75">
-            <path d="M5 20 Q3 10 0 8 M10 20 Q10 8 8 5 M15 20 Q17 12 20 10" fill="none" stroke={isNight ? "#064e3b" : "#22c55e"} strokeWidth="1.5" strokeLinecap="round" />
-            <circle cx="8" cy="4" r="2" fill={item.color} />
-            <circle cx="8" cy="4" r="0.7" fill="#ffffff" />
-          </svg>
-        </div>
-      ))}
-    </div>
-  );
-};
-
-/**
  * SunBeams: Raios de sol suaves que cruzam a tela.
  */
 const SunBeams = () => (
@@ -268,172 +134,25 @@ const AuroraBoreal = () => (
 /**
  * MountainRange: Desenha as montanhas ao fundo.
  */
-const MountainRange = ({ className, isLegendary, isNight }: { className?: string, isLegendary?: boolean, isNight: boolean }) => (
+const MountainRange = ({ className, isLegendary }: { className?: string, isLegendary?: boolean }) => (
   <div className={cn("w-full h-full relative", className)}>
     {/* Só mostra a Aurora se o aluno for Lendário */}
     {isLegendary && <AuroraBoreal />}
 
-    <svg viewBox="0 0 1000 600" preserveAspectRatio="none" className="w-full h-full relative z-10 overflow-visible">
-      {/* Camada 1: Montanhas de Fundo (Nevadas) */}
-      <path 
-        d="M0 380 L180 180 L320 280 L520 100 L680 250 L850 150 L1000 380 Z" 
-        fill={isNight ? "url(#mountain-back-night)" : "url(#mountain-back-day)"} 
-        opacity="0.9"
-      />
-      
-      {/* Camada 2: Montanhas do Meio */}
-      <path 
-        d="M50 380 L280 200 L450 320 L650 140 L820 280 L1000 380 L0 380 Z" 
-        fill={isNight ? "url(#mountain-mid-night)" : "url(#mountain-mid-day)"} 
-        opacity="0.9"
-      />
-
-      {/* Camada 3: Montanhas da Frente */}
-      <path 
-        d="M0 380 L120 260 L240 340 L380 220 L560 350 L750 200 L880 290 L1000 380 Z" 
-        fill={isNight ? "url(#mountain-front-night)" : "url(#mountain-front-day)"} 
-      />
+    <svg viewBox="0 0 1000 600" preserveAspectRatio="none" className="w-full h-full relative z-10">
+      <path d="M0 300 L150 100 L250 180 L400 50 L550 160 L750 80 L1000 300 Z" fill="#5d4037" />
+      <path d="M50 300 L250 120 L400 200 L550 80 L750 180 L1000 300 Z" fill="#3e2723" />
     </svg>
   </div>
 );
 
 /**
- * SVGFilters: Contém filtros especiais e gradientes de cores da paisagem.
+ * SVGFilters: Contém filtros especiais como "água em movimento" ou "sombra suave".
+ * Estes filtros são referenciados no código via ID (ex: url(#water-ripple)).
  */
 const SVGFilters = () => (
   <svg style={{ position: 'absolute', width: 0, height: 0 }}>
     <defs>
-      {/* Sun & Moon gradients */}
-      <linearGradient id="sun-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#fef08a" />
-        <stop offset="40%" stopColor="#f59e0b" />
-        <stop offset="100%" stopColor="#ea580c" />
-      </linearGradient>
-      <radialGradient id="sun-flare" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stopColor="#fef08a" stopOpacity="0.8" />
-        <stop offset="50%" stopColor="#facc15" stopOpacity="0.2" />
-        <stop offset="100%" stopColor="#eab308" stopOpacity="0" />
-      </radialGradient>
-      <radialGradient id="moon-glow" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stopColor="#e0f2fe" stopOpacity="0.6" />
-        <stop offset="60%" stopColor="#bae6fd" stopOpacity="0.2" />
-        <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
-      </radialGradient>
-      <linearGradient id="moon-surface" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#f1f5f9" />
-        <stop offset="50%" stopColor="#e2e8f0" />
-        <stop offset="100%" stopColor="#cbd5e1" />
-      </linearGradient>
-
-      {/* Mountain gradients (Day) */}
-      <linearGradient id="mountain-back-day" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#ffffff" />
-        <stop offset="25%" stopColor="#e2e8f0" />
-        <stop offset="100%" stopColor="#94a3b8" />
-      </linearGradient>
-      <linearGradient id="mountain-mid-day" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#5d4037" />
-        <stop offset="100%" stopColor="#3e2723" />
-      </linearGradient>
-      <linearGradient id="mountain-front-day" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#4e342e" />
-        <stop offset="100%" stopColor="#2d1a13" />
-      </linearGradient>
-
-      {/* Mountain gradients (Night) */}
-      <linearGradient id="mountain-back-night" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#cbd5e1" />
-        <stop offset="35%" stopColor="#334155" />
-        <stop offset="100%" stopColor="#0f172a" />
-      </linearGradient>
-      <linearGradient id="mountain-mid-night" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#18181b" />
-        <stop offset="100%" stopColor="#09090b" />
-      </linearGradient>
-      <linearGradient id="mountain-front-night" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#111827" />
-        <stop offset="100%" stopColor="#030712" />
-      </linearGradient>
-
-      {/* Sand gradients */}
-      <linearGradient id="sand-clean-day" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#fef08a" />
-        <stop offset="50%" stopColor="#fde047" />
-        <stop offset="100%" stopColor="#fed7aa" />
-      </linearGradient>
-      <linearGradient id="sand-clean-night" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#92400e" />
-        <stop offset="100%" stopColor="#451a03" />
-      </linearGradient>
-      <linearGradient id="sand-dirty-day" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#5d4037" />
-        <stop offset="100%" stopColor="#271a13" />
-      </linearGradient>
-      <linearGradient id="sand-dirty-night" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#1c0a00" />
-        <stop offset="100%" stopColor="#090500" />
-      </linearGradient>
-
-      {/* Ground gradients (Clean / Green) */}
-      <linearGradient id="ground-back-day" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#22c55e" />
-        <stop offset="100%" stopColor="#15803d" />
-      </linearGradient>
-      <linearGradient id="ground-front-day" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#4ade80" />
-        <stop offset="100%" stopColor="#166534" />
-      </linearGradient>
-      <linearGradient id="ground-back-night" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#064e3b" />
-        <stop offset="100%" stopColor="#022c22" />
-      </linearGradient>
-      <linearGradient id="ground-front-night" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#065f46" />
-        <stop offset="100%" stopColor="#022c22" />
-      </linearGradient>
-
-      {/* Ground gradients (Dirty / Brown) */}
-      <linearGradient id="ground-back-dirty-day" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#5d4037" />
-        <stop offset="100%" stopColor="#3e2723" />
-      </linearGradient>
-      <linearGradient id="ground-front-dirty-day" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#78350f" />
-        <stop offset="100%" stopColor="#451a03" />
-      </linearGradient>
-      <linearGradient id="ground-back-dirty-night" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#271a13" />
-        <stop offset="100%" stopColor="#100a06" />
-      </linearGradient>
-      <linearGradient id="ground-front-dirty-night" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#2d1a13" />
-        <stop offset="100%" stopColor="#100a06" />
-      </linearGradient>
-
-      {/* River gradients (Clean) */}
-      <linearGradient id="river-clean-day" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#2563eb" />
-        <stop offset="50%" stopColor="#3b82f6" />
-        <stop offset="100%" stopColor="#06b6d4" />
-      </linearGradient>
-      <linearGradient id="river-clean-night" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#1e3a8a" />
-        <stop offset="50%" stopColor="#1d4ed8" />
-        <stop offset="100%" stopColor="#0f172a" />
-      </linearGradient>
-
-      {/* River gradients (Dirty) */}
-      <linearGradient id="river-dirty-day" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#451a03" />
-        <stop offset="50%" stopColor="#5d4037" />
-        <stop offset="100%" stopColor="#271a13" />
-      </linearGradient>
-      <linearGradient id="river-dirty-night" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#1c0a00" />
-        <stop offset="50%" stopColor="#271a13" />
-        <stop offset="100%" stopColor="#090500" />
-      </linearGradient>
-
       <filter id="organic-edge">
         <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" result="noise" />
         <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" xChannelSelector="R" yChannelSelector="G" />
@@ -453,91 +172,35 @@ const SVGFilters = () => (
           <feMergeNode in="SourceGraphic" />
         </feMerge>
       </filter>
-      <filter id="bloom">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
-        <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1.5 -0.2" result="glow" />
-        <feMerge>
-          <feMergeNode in="glow" />
-          <feMergeNode in="SourceGraphic" />
-        </feMerge>
-      </filter>
-    </defs>
-  </svg>
+        <filter id="bloom">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
+          <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1.5 -0.2" result="glow" />
+          <feMerge>
+            <feMergeNode in="glow" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+    </svg>
 );
 
 /**
  * PainterlyTree: Desenha uma árvore que balança levemente com o vento.
  */
-const PainterlyTree = ({ 
-  color, 
-  className, 
-  delay, 
-  style, 
-  reflection = false,
-  type = 'carvalho'
-}: { 
-  color: string, 
-  className?: string, 
-  delay?: string, 
-  style?: any, 
-  reflection?: boolean,
-  type?: 'carvalho' | 'sumit' | 'salgueiro'
-}) => {
-  if (type === 'sumit') {
-    // Sumit Central (Cone/Pinheiro/Cipreste)
-    return (
-      <svg 
-        viewBox="0 0 120 180" 
-        className={cn(reflection ? "opacity-20 blur-[2px]" : "animate-tree-sway origin-bottom h-auto", className)}
-        style={{ ...style, animationDelay: delay, filter: reflection ? 'none' : 'url(#soft-shadow)' }}
-      >
-        <path d="M55 180 L65 180 L63 100 L57 100 Z" fill="#2b1a13" />
-        <path d="M60 20 L25 80 L95 80 Z" fill={color} filter="brightness(1.15)" />
-        <path d="M60 50 L15 115 L105 115 Z" fill={color} />
-        <path d="M60 80 L5 145 L115 145 Z" fill={color} filter="brightness(0.85)" opacity="0.9" />
-      </svg>
-    );
-  }
-
-  if (type === 'salgueiro') {
-    // Salgueiro Sul (Chorão/Folhas pendentes)
-    return (
-      <svg 
-        viewBox="0 0 120 180" 
-        className={cn(reflection ? "opacity-20 blur-[2px]" : "animate-tree-sway origin-bottom h-auto", className)}
-        style={{ ...style, animationDelay: delay, filter: reflection ? 'none' : 'url(#soft-shadow)' }}
-      >
-        <path d="M50 180 L70 180 C65 140 85 110 75 90 C70 80 50 85 45 75 Z" fill="#2b1a13" />
-        <g transform="translate(60, 80)">
-          <ellipse cx="0" cy="-10" rx="45" ry="35" fill={color} opacity="0.95" />
-          <path d="M-40 -10 C-45 20 -35 50 -30 65 C-25 50 -20 20 -25 -10 Z" fill={color} filter="brightness(0.9)" />
-          <path d="M-20 -15 C-25 15 -15 45 -10 60 C-5 45 0 15 -5 -15 Z" fill={color} filter="brightness(1.05)" />
-          <path d="M40 -10 C45 20 35 50 30 65 C25 50 20 20 25 -10 Z" fill={color} filter="brightness(0.8)" />
-          <path d="M20 -15 C25 15 15 45 10 60 C5 45 0 15 5 -15 Z" fill={color} filter="brightness(0.95)" />
-          <circle cx="0" cy="-25" r="30" fill={color} filter="brightness(1.1)" />
-        </g>
-      </svg>
-    );
-  }
-
-  // Carvalho Norte (Robusto/Arredondado clássico)
-  return (
-    <svg 
-      viewBox="0 0 120 180" 
-      className={cn(reflection ? "opacity-20 blur-[2px]" : "animate-tree-sway origin-bottom h-auto", className)}
-      style={{ ...style, animationDelay: delay, filter: reflection ? 'none' : 'url(#soft-shadow)' }}
-    >
-      <path d="M50 180 L70 180 L65 105 L55 105 Z" fill="#2b1a13" />
-      <g transform="translate(60, 75)">
-          <circle r="45" fill={color} />
-          <circle cx="-20" cy="-15" r="32" fill={color} filter="brightness(1.1)" opacity="0.9" />
-          <circle cx="20" cy="-10" r="32" fill={color} filter="brightness(0.9)" opacity="0.85" />
-          <circle cx="-10" cy="15" r="30" fill={color} filter="brightness(1.05)" opacity="0.9" />
-          <circle cx="15" cy="15" r="28" fill={color} filter="brightness(0.95)" opacity="0.8" />
-      </g>
-    </svg>
-  );
-};
+const PainterlyTree = ({ color, className, delay, style, reflection = false }: { color: string, className?: string, delay?: string, style?: any, reflection?: boolean }) => (
+  <svg 
+    viewBox="0 0 120 180" 
+    className={cn(reflection ? "opacity-20 blur-[2px]" : "animate-tree-sway origin-bottom h-auto", className)}
+    style={{ ...style, animationDelay: delay, filter: reflection ? 'none' : 'url(#soft-shadow)' }}
+  >
+    <path d="M50 180 L70 180 L65 110 L55 110 Z" fill="#2b1a13" />
+    <g transform="translate(60, 80)">
+        <circle r="50" fill={color} />
+        <circle cx="-15" cy="-20" r="35" fill={color} filter="brightness(1.1)" opacity="0.9" />
+        <circle cx="20" cy="10" r="30" fill={color} filter="brightness(0.9)" opacity="0.8" />
+    </g>
+  </svg>
+);
 
 /**
  * PainterlyDog: Desenha um cachorro que balança o rabo.
@@ -631,139 +294,6 @@ const PainterlyCat = ({ className }: { className?: string }) => {
       {isPurring && (
         <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-md px-3 py-1 rounded-2xl text-[10px] font-black text-slate-800 shadow-2xl border border-slate-200 animate-in zoom-in fade-in duration-300 whitespace-nowrap z-50">
           🐾 MIAU!
-        </div>
-      )}
-    </div>
-  );
-};
-
-/**
- * PainterlyChildren: Desenha crianças brincando e acenando no cenário saudável.
- */
-const PainterlyChildren = ({ className }: { className?: string }) => {
-  const [waving, setWaving] = useState(false);
-
-  return (
-    <div 
-      className={cn("relative group cursor-pointer pointer-events-auto select-none", className)}
-      onClick={() => setWaving(prev => !prev)}
-    >
-      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-[90%] h-2 bg-black/10 blur-md rounded-full" />
-      <svg viewBox="0 0 80 60" className="w-full h-auto drop-shadow-lg overflow-visible transition-transform duration-500 group-hover:scale-110">
-        {/* Criança 1: Sentada e acenando */}
-        <g transform="translate(15, 10)">
-          {/* Pernas */}
-          <path d="M10 40 L18 45 M15 40 L24 43" stroke="#1e3a8a" strokeWidth="4" strokeLinecap="round" />
-          {/* Corpo */}
-          <rect x="5" y="20" width="12" height="20" fill="#f43f5e" rx="4" />
-          {/* Cabeça */}
-          <circle cx="11" cy="12" r="7" fill="#fbcfe8" />
-          {/* Cabelo */}
-          <path d="M5 12 Q11 2 17 12 Q11 7 5 12" fill="#7c2d12" />
-          {/* Braço acenando */}
-          <path d="M17 22 Q25 15 28 8" fill="none" stroke="#fbcfe8" strokeWidth="3" strokeLinecap="round">
-            {waving && (
-              <animateTransform 
-                attributeName="transform" 
-                type="rotate" 
-                values="0 17 22; -25 17 22; 25 17 22; 0 17 22" 
-                dur="1s" 
-                repeatCount="indefinite" 
-              />
-            )}
-          </path>
-        </g>
-        
-        {/* Criança 2: Correndo alegremente */}
-        <g transform="translate(45, 5)">
-          {/* Pernas (Correndo) */}
-          <path d="M10 38 L6 48 M12 38 L18 48" stroke="#065f46" strokeWidth="4.5" strokeLinecap="round">
-            <animateTransform 
-              attributeName="transform" 
-              type="rotate" 
-              values="-10 11 38; 15 11 38; -10 11 38" 
-              dur="0.8s" 
-              repeatCount="indefinite" 
-            />
-          </path>
-          {/* Corpo */}
-          <rect x="5" y="18" width="13" height="20" fill="#fbbf24" rx="4" />
-          {/* Cabeça */}
-          <circle cx="11" cy="11" r="7" fill="#fed7aa" />
-          {/* Cabelo */}
-          <circle cx="11" cy="7" r="8" fill="#1e293b" />
-          {/* Braços */}
-          <path d="M4 22 L-2 28 M18 22 L24 26" stroke="#fed7aa" strokeWidth="3.5" strokeLinecap="round" />
-        </g>
-      </svg>
-      
-      {waving && (
-        <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-md px-3 py-1 rounded-2xl text-[10px] font-black text-rose-950 shadow-2xl border border-rose-200 animate-in zoom-in fade-in duration-300 whitespace-nowrap z-50">
-          👋 Olá!
-        </div>
-      )}
-    </div>
-  );
-};
-
-/**
- * PainterlyMother: Desenha a mãe da família.
- */
-const PainterlyMother = ({ 
-  className, 
-  onClick,
-  areChildrenSummoned
-}: { 
-  className?: string, 
-  onClick?: () => void,
-  areChildrenSummoned: boolean
-}) => {
-  const [talking, setTalking] = useState(false);
-
-  return (
-    <div 
-      className={cn("relative group cursor-pointer pointer-events-auto select-none", className)}
-      onClick={() => {
-        setTalking(true);
-        if (onClick) onClick();
-        setTimeout(() => setTalking(false), 3000);
-      }}
-    >
-      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-[80%] h-2.5 bg-black/10 blur-md rounded-full" />
-      <svg viewBox="0 0 60 70" className="w-full h-auto drop-shadow-lg overflow-visible transition-transform duration-500 group-hover:scale-110">
-        {/* Pernas */}
-        <path d="M22 45 L22 65 M30 45 L30 65" stroke="#475569" strokeWidth="4" strokeLinecap="round" />
-        
-        {/* Vestido */}
-        <path d="M15 25 L37 25 L42 50 L10 50 Z" fill="#ec4899" />
-        
-        {/* Cabeça */}
-        <circle cx="26" cy="14" r="9" fill="#fbcfe8" />
-        
-        {/* Cabelo (Coque/Bun moderno e elegante) */}
-        {/* Cabelo base cobrindo a cabeça */}
-        <path d="M17 12 C17 4, 35 4, 35 12 C35 18, 17 18, 17 12 Z" fill="#3e2723" />
-        {/* Coque no topo */}
-        <circle cx="26" cy="2" r="5.5" fill="#3e2723" />
-        
-        {/* Braço acenando */}
-        <path d="M37 28 Q44 32 46 24" fill="none" stroke="#fbcfe8" strokeWidth="3" strokeLinecap="round">
-          {talking && (
-            <animateTransform 
-              attributeName="transform" 
-              type="rotate" 
-              values="0 37 28; -15 37 28; 15 37 28; 0 37 28" 
-              dur="0.8s" 
-              repeatCount="indefinite" 
-              className="origin-[37px_28px]"
-            />
-          )}
-        </path>
-      </svg>
-
-      {talking && (
-        <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-2xl text-[10px] font-black text-pink-950 shadow-2xl border border-pink-200 animate-in zoom-in fade-in duration-300 whitespace-nowrap z-50">
-          {areChildrenSummoned ? "💬 Venham cá, crianças!" : "💬 Vão brincar, crianças!"}
         </div>
       )}
     </div>
@@ -1064,19 +594,16 @@ const PainterlyButterflies = ({ color, className, initialDelay = 0 }: { color: s
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const [opacity, setOpacity] = useState(0);
 
-  const flutterToRandom = () => {
-    setPos({
-      x: Math.random() * 260 - 130,
-      y: Math.random() * 100 - 50
-    });
-  };
-
   useEffect(() => {
     const flutter = () => {
       setOpacity(0);
       
       setTimeout(() => {
-        flutterToRandom();
+        // Borboletas se movem mais na vertical e horizontal
+        setPos({
+          x: Math.random() * 200 - 100,
+          y: Math.random() * 60 - 30
+        });
         setOpacity(0.8);
       }, 1500);
     };
@@ -1092,18 +619,10 @@ const PainterlyButterflies = ({ color, className, initialDelay = 0 }: { color: s
 
   return (
     <div 
-      className={cn("absolute transition-all duration-[1500ms] ease-in-out pointer-events-auto cursor-pointer select-none", className)}
+      className={cn("absolute transition-all duration-[1500ms] ease-in-out pointer-events-none", className)}
       style={{ 
           transform: `translate(${pos.x}px, ${pos.y}px)`,
           opacity: opacity
-      }}
-      onClick={(e) => {
-        e.stopPropagation();
-        setOpacity(0.3);
-        setTimeout(() => {
-          flutterToRandom();
-          setOpacity(0.8);
-        }, 150);
       }}
     >
       {[...Array(3)].map((_, i) => (
@@ -1157,7 +676,6 @@ export function EcosystemViewer({
   const forceTime = externalForceTime !== undefined ? externalForceTime : internalForceTime;
   const setForceTime = onForceTimeChange !== undefined ? onForceTimeChange : setInternalForceTime;
   const [isClient, setIsClient] = useState(false);
-  const [areChildrenSummoned, setAreChildrenSummoned] = useState(false);
 
   // Efeito para lidar com o ciclo de dia e noite real
   useEffect(() => {
@@ -1217,25 +735,6 @@ export function EcosystemViewer({
 
   return (
     <div className={cn("relative w-full h-full overflow-hidden bg-slate-950 rounded-3xl", className)}>
-      <style>{`
-        @keyframes star-twinkle {
-          0%, 100% { opacity: 0.3; transform: scale(0.8); }
-          50% { opacity: 1; transform: scale(1.2); }
-        }
-        @keyframes cloud-drift {
-          0% { transform: translateX(-200px); }
-          100% { transform: translateX(100vw); }
-        }
-        @keyframes water-shimmer {
-          0%, 100% { opacity: 0.3; transform: scaleX(0.9); }
-          50% { opacity: 0.9; transform: scaleX(1.1); }
-        }
-        @keyframes shore-wave {
-          0% { stroke-dashoffset: 0; opacity: 0.4; }
-          50% { opacity: 0.8; }
-          100% { stroke-dashoffset: -50; opacity: 0.4; }
-        }
-      `}</style>
       <SVGFilters />
       
       {/* Camada de ruído visual para dar textura premium */}
@@ -1270,74 +769,42 @@ export function EcosystemViewer({
         {!isEcosystemNight && airClean && <SunBeams />}
         {isEcosystemNight && <Fireflies />}
         {isHealthy && <WindLeaves />}
-        {isEcosystemNight && <StarField />}
-        {!isEcosystemNight && <CloudField />}
 
-        {/* SOL OU LUA VETORIAL */}
-        <SunOrMoon isNight={isEcosystemNight} />
+        {/* SOL OU LUA */}
+        <div className={cn(
+          "absolute top-[10%] transition-all transition-duration-[3000ms] w-32 h-32 rounded-full blur-[2px]",
+          isEcosystemNight ? "left-[70%] bg-slate-200 shadow-[0_0_80px_rgba(255,255,255,0.3)]" : "left-[15%] bg-yellow-100 shadow-[0_0_100px_rgba(251,191,36,0.4)]"
+        )} />
 
         {/* MONTANHAS */}
         <div className="absolute inset-x-0 bottom-[30%] h-[40%] z-10 opacity-90 blur-[1px]">
-            <MountainRange isLegendary={isLegendary} isNight={isEcosystemNight} />
+            <MountainRange isLegendary={isLegendary} />
         </div>
         
-        {/* RIO E TERRA (DESENHO DINÂMICO MULTICAMADAS) */}
-        <div className="absolute bottom-0 inset-x-0 w-full h-[45%] z-20">
-            <svg viewBox="0 0 1000 450" preserveAspectRatio="none" className="w-full h-full">
-                {/* Rio com gradientes de profundidade */}
-                <path 
-                    d="M440 0 L1000 0 L1000 450 L0 450 Q530 250 440 0 Z" 
-                    fill={riverClean ? (isEcosystemNight ? "url(#river-clean-night)" : "url(#river-clean-day)") : (isEcosystemNight ? "url(#river-dirty-night)" : "url(#river-dirty-day)")} 
-                    className="transition-all duration-[3000ms]"
-                    style={{ filter: riverClean ? 'url(#water-ripple)' : 'none' }}
-                />
-
-                {/* Terra - Camada de Fundo (Back Hill) */}
-                <path 
-                    d="M0 0 L490 0 Q580 230 0 450 Z" 
-                    fill={groundClean ? (isEcosystemNight ? "url(#ground-back-night)" : "url(#ground-back-day)") : (isEcosystemNight ? "url(#ground-back-dirty-night)" : "url(#ground-back-dirty-day)")}
-                    className="transition-all duration-[3000ms] opacity-90"
-                />
-
-                {/* Terra - Faixa de Areia / Praia (Beach Layer) */}
-                <path 
-                    d="M0 0 L495 0 Q585 245 0 450 Z" 
-                    fill={groundClean ? (isEcosystemNight ? "url(#sand-clean-night)" : "url(#sand-clean-day)") : (isEcosystemNight ? "url(#sand-dirty-night)" : "url(#sand-dirty-day)")}
-                    className="transition-all duration-[3000ms]"
-                />
-
-                {/* Terra - Camada da Frente (Front Hill) */}
-                <path 
-                    d="M0 0 L440 0 Q530 250 0 450 Z" 
-                    fill={groundClean ? (isEcosystemNight ? "url(#ground-front-night)" : "url(#ground-front-day)") : (isEcosystemNight ? "url(#ground-front-dirty-night)" : "url(#ground-front-dirty-day)")}
-                    className="transition-all duration-[3000ms]"
-                />
-
-                {/* Espuma de Onda Animada (Shore Wave - posicionada na borda da água) */}
-                {riverClean && (
-                    <path 
-                        d="M497 0 Q587 245 0 452" 
-                        fill="none" 
-                        stroke="#ffffff" 
-                        strokeWidth="2" 
-                        strokeDasharray="10, 15" 
-                        style={{ animation: 'shore-wave 6s linear infinite' }}
-                    />
-                )}
-            </svg>
-            
-            {/* Shimmers e Vegetação */}
-            <WaterShimmers isNight={isEcosystemNight} />
-            <GrassAndFlowers isNight={isEcosystemNight} isHealthy={groundClean} />
-        </div>
+        {/* RIO E TERRA (DESENHO DINÂMICO) */}
+        <svg viewBox="0 0 1000 450" preserveAspectRatio="none" className="absolute bottom-0 inset-x-0 w-full h-[45%] z-20">
+            {/* Rio */}
+            <path 
+                d="M450 0 L1000 0 L1000 450 L0 450 Q550 250 450 0 Z" 
+                fill={riverColor} 
+                className="transition-colors transition-duration-[3000ms]"
+                style={{ filter: riverClean ? 'url(#water-ripple)' : 'none' }}
+            />
+            {/* Terra */}
+            <path 
+                d="M0 0 L450 0 Q550 250 0 450 Z" 
+                fill={groundColor}
+                className="transition-colors transition-duration-[3000ms]"
+            />
+        </svg>
 
         {/* ELEMENTOS COMPRADOS (SÓ APARECEM SE ESTIVEREM NA LISTA) */}
         <div className="absolute inset-0 z-50 pointer-events-none">
             <div className="relative w-full h-full">
-                {/* Árvores (Mudam de col se a vitalidade for baixa) */}
-                {purchasedItems.includes('arvore_3') && <PainterlyTree type="salgueiro" color={vitality < 30 ? (isEcosystemNight ? "#2d1a13" : "#451a03") : (isEcosystemNight ? "#0d9488" : "#10b981")} className="absolute bottom-[42%] left-[0%] z-30 w-[11%] min-w-[50px] max-w-[110px]" delay="0.5s" />}
-                {purchasedItems.includes('arvore_2') && <PainterlyTree type="sumit" color={vitality < 30 ? (isEcosystemNight ? "#2d1a13" : "#451a03") : (isEcosystemNight ? "#065f46" : "#16a34a")} className="absolute bottom-[30%] left-[12%] z-20 w-[16%] min-w-[70px] max-w-[160px]" delay="1.2s" />}
-                {purchasedItems.includes('arvore_1') && <PainterlyTree type="carvalho" color={vitality < 30 ? (isEcosystemNight ? "#2d1a13" : "#451a03") : (isEcosystemNight ? "#064e3b" : "#15803d")} className="absolute bottom-[12%] left-[4%] z-20 w-[19%] min-w-[85px] max-w-[190px]" delay="0s" />}
+                {/* Árvores (Mudam de cor se a vitalidade for baixa) */}
+                {purchasedItems.includes('arvore_3') && <PainterlyTree color={vitality < 30 ? (isEcosystemNight ? "#2d1a13" : "#451a03") : (isEcosystemNight ? "#022c22" : "#064e3b")} className="absolute bottom-[42%] left-[38%] z-30 w-[11%] min-w-[50px] max-w-[110px]" delay="0.5s" />}
+                {purchasedItems.includes('arvore_2') && <PainterlyTree color={vitality < 30 ? (isEcosystemNight ? "#2d1a13" : "#451a03") : (isEcosystemNight ? "#064e3b" : "#15803d")} className="absolute bottom-[30%] left-[12%] z-20 w-[16%] min-w-[70px] max-w-[160px]" delay="1.2s" />}
+                {purchasedItems.includes('arvore_1') && <PainterlyTree color={vitality < 30 ? (isEcosystemNight ? "#2d1a13" : "#451a03") : (isEcosystemNight ? "#064e3b" : "#14532d")} className="absolute bottom-[12%] left-[4%] z-20 w-[19%] min-w-[85px] max-w-[190px]" delay="0s" />}
 
                 {/* Casa */}
                 {purchasedItems.includes('casa') && <PainterlyHouse isNight={isEcosystemNight} className="absolute bottom-[35%] left-[25%] z-20 w-[18%] min-w-[100px] max-w-[225px]" />}
@@ -1345,27 +812,6 @@ export function EcosystemViewer({
                 {/* Animais Terrestres (Só aparecem se Vitalidade >= 70) */}
                 {vitality >= 70 && purchasedItems.includes('cachorro') && <PainterlyDog className="absolute bottom-[12%] left-[22%] z-30 w-[6%] min-w-[30px] max-w-[60px]" />}
                 {vitality >= 70 && purchasedItems.includes('gato') && <PainterlyCat className="absolute bottom-[22%] left-[32%] z-30 w-[4.5%] min-w-[22px] max-w-[45px]" />}
-                
-                {/* Mãe (Só aparece se for comprada) */}
-                {vitality >= 70 && purchasedItems.includes('mae_human') && (
-                  <PainterlyMother 
-                    areChildrenSummoned={areChildrenSummoned}
-                    onClick={() => setAreChildrenSummoned(prev => !prev)} 
-                    className="absolute bottom-[32%] left-[23%] z-30 w-[6%] min-w-[32px] max-w-[65px]" 
-                  />
-                )}
-
-                {/* Crianças brincando (Aparecem quando compradas e o ecossistema está muito saudável >= 75%) */}
-                {vitality >= 75 && purchasedItems.includes('criancas') && (
-                  <PainterlyChildren 
-                    className={cn(
-                      "absolute z-30 w-[8%] min-w-[40px] max-w-[80px] transition-all duration-[2000ms] ease-in-out",
-                      areChildrenSummoned 
-                        ? "bottom-[28%] left-[20%]" 
-                        : "bottom-[13%] left-[16%]"
-                    )} 
-                  />
-                )}
                 
                 {/* Borboletas (Só aparecem se Vitalidade >= 50) */}
                 {vitality >= 50 && purchasedItems.includes('borboletas') && <PainterlyButterflies color="#fbbf24" className="absolute bottom-[25%] left-[15%] z-40 w-[6%] min-w-[30px]" initialDelay={0} />}
@@ -1379,9 +825,9 @@ export function EcosystemViewer({
                 {vitality >= 50 && purchasedItems.includes('passaro_3') && <PainterlyBird color="#3b82f6" className="absolute bottom-[55%] left-[60%] z-10 w-[4.5%] min-w-[22px] max-w-[45px]" initialDelay={5} />}
 
                 {/* Vida Aquática (Só aparecem se Vitalidade >= 50) */}
-                {vitality >= 50 && purchasedItems.includes('peixe_1') && <PainterlyFish color="#fbbf24" className="absolute bottom-[24%] left-[65%] z-30 w-[4%] min-w-[20px] max-w-[40px]" initialDelay={0} />}
-                {vitality >= 50 && purchasedItems.includes('peixe_2') && <PainterlyFish color="#22d3ee" className="absolute bottom-[17%] left-[75%] z-30 w-[4%] min-w-[20px] max-w-[40px]" initialDelay={4} />}
-                {vitality >= 50 && purchasedItems.includes('peixe_3') && <PainterlyFish color="#f8fafc" className="absolute bottom-[29%] left-[70%] z-30 w-[4%] min-w-[20px] max-w-[40px]" initialDelay={8} />}
+                {vitality >= 50 && purchasedItems.includes('peixe_1') && <PainterlyFish color="#fbbf24" className="absolute bottom-[18%] left-[65%] z-30 w-[4%] min-w-[20px] max-w-[40px]" initialDelay={0} />}
+                {vitality >= 50 && purchasedItems.includes('peixe_2') && <PainterlyFish color="#22d3ee" className="absolute bottom-[10%] left-[75%] z-30 w-[4%] min-w-[20px] max-w-[40px]" initialDelay={4} />}
+                {vitality >= 50 && purchasedItems.includes('peixe_3') && <PainterlyFish color="#f8fafc" className="absolute bottom-[25%] left-[70%] z-30 w-[4%] min-w-[20px] max-w-[40px]" initialDelay={8} />}
 
                 {/* Barcos */}
                 {purchasedItems.includes('barco_1') && <PainterlyBoat type="patrol" className="absolute bottom-[28%] left-[55%] z-30 w-[10%] min-w-[50px] max-w-[110px]" />}

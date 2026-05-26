@@ -11,9 +11,7 @@ import {
   Dog,
   Cat as CatIcon,
   Sparkles,
-  Waves,
-  User,
-  Users
+  Waves 
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { EcosystemItem } from '@/types/ecosystem';
@@ -124,8 +122,6 @@ export default function MeuEcossistemaPage() {
     {id: 'barco_1', name: 'Barco de Patrulha', icon: <Waves className="text-cyan-400" />, price: 500, req: 'Rio Limpo', reqId: 'limpar_rio', category: 'Lendário', desc: 'Pequena embarcação sustentável para patrulha do rio.' },
     {id: 'barco_2', name: 'Iate Solar', icon: <Waves className="text-indigo-400" />, price: 600, req: 'Barco 1', reqId: 'barco_1', category: 'Lendário', desc: 'Barco avançado com painéis solares para longas viagens.' },
     {id: 'casa', name: 'Casa Sustentável', icon: <Sparkles className="text-amber-400 animate-pulse" />, price: 1500, req: 'Ecossistema Completo', minVitality: 100, category: 'Lendário', desc: 'O ápice da sustentabilidade. Uma moradia que gera energia e vida.' },
-    {id: 'mae_human', name: 'Mãe', icon: <User className="text-pink-400" />, price: 600, req: 'Casa Sustentável', reqId: 'casa', category: 'Lendário', desc: 'A mãe da família, promovendo a integração e harmonia.' },
-    {id: 'criancas', name: 'Crianças', icon: <Users className="text-sky-400" />, price: 400, req: 'Mãe Presente', reqId: 'mae_human', category: 'Lendário', desc: 'As crianças que trazem diversão e alegria ao ambiente.' },
     {id: 'monstro_lago', name: 'Nessie (Lendário)', icon: <Waves className="text-emerald-400 animate-bounce" />, price: 5000, req: 'Casa Sustentável', reqId: 'casa', category: 'Lendário', desc: 'A lenda se torna realidade. Protege o lago de qualquer mal.' },
   ];
 

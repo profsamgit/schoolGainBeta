@@ -4,12 +4,23 @@ import { QRCodeSVG } from 'qrcode.react';
 import { User } from '@/types/ecosystem';
 import { Shield, Leaf, User as UserIcon, Sparkles } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { useEcosystem } from '@/contexts/EcosystemContext';
 
 interface PrintableBadgeProps {
   user: User;
 }
 
 export default function PrintableBadge({ user }: PrintableBadgeProps) {
+  let schools: any[] = [];
+  try {
+    const ctx = useEcosystem();
+    schools = ctx?.schools || [];
+  } catch (e) {
+    // context not available
+  }
+
+  const schoolLogo = schools.find(s => s.id === user.schoolId)?.logo || "/brand/logo_apicella_menor.png";
+
   const roleConfig = {
     student: { color: 'text-emerald-600', bg: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700', hex: '#10b981' },
     staff: { color: 'text-violet-600', bg: 'bg-violet-600', badge: 'bg-violet-100 text-violet-700', hex: '#7c3aed' },
@@ -56,8 +67,8 @@ export default function PrintableBadge({ user }: PrintableBadgeProps) {
               </span>
             </div>
           </div>
-          <div className={`${roleConfig.badge} px-2.5 py-1 rounded-full border border-current/10 flex items-center gap-1 shadow-sm`}>
-            <Leaf className="h-2.5 w-2.5" />
+          <div className={`${roleConfig.badge} px-2 py-0.5 rounded-full border border-current/10 flex items-center gap-1.5 shadow-sm`}>
+            <img src={schoolLogo} alt="Logo" className="h-3 w-auto max-w-[20px] object-contain rounded-sm" />
             <span className="text-[8px] font-black uppercase tracking-widest">Sustentabilidade</span>
           </div>
         </div>

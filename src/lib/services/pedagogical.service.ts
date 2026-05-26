@@ -241,6 +241,8 @@ export class PedagogicalService {
       'barco_1': { price: 500, required: 'limpar_rio' },
       'barco_2': { price: 600, required: 'barco_1' },
       'monstro_lago': { price: 5000, required: 'casa' },
+      'mae_human': { price: 600, required: 'casa' },
+      'criancas': { price: 400, required: 'mae_human' },
     };
 
     const upgrade = catalog[item];

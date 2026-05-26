@@ -443,6 +443,7 @@ export default function LeaderboardPage() {
                   isLegendary={state.level === 'Guardião da Lenda'}
                   className="w-full h-full"
                   interactive={true}
+                  showControls={false}
                 />
                 <div className="absolute top-8 left-8 z-50">
                   <div className="px-8 py-4 bg-white/10 backdrop-blur-2xl rounded-[2rem] border border-white/20 shadow-2xl">
