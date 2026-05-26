@@ -240,7 +240,7 @@ export type EcosystemItem =
   'passaro_1' | 'passaro_2' | 'passaro_3' |
   'peixe_1' | 'peixe_2' | 'peixe_3' | 
   'cachorro' | 'gato' | 'borboletas' | 'borboletas_2' | 'borboletas_3' | 'borboletas_4' |
-  'casa' | 'barco_1' | 'barco_2' | 'monstro_lago' | 'mae_human' | 'criancas';
+  'casa' | 'barco_1' | 'barco_2' | 'monstro_lago' | 'mae_human' | 'criancas' | 'placas_solares' | 'lixeiras';
 
 /**
  * Interface que define o estado individual de cada usuário.

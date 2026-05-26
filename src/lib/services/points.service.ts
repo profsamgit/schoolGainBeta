@@ -19,7 +19,7 @@ export class PointsService {
       'passaro_1', 'passaro_2', 'passaro_3',
       'peixe_1', 'peixe_2', 'peixe_3', 
       'cachorro', 'gato', 'borboletas', 'borboletas_2', 'borboletas_3', 'borboletas_4',
-      'casa', 'barco_1', 'barco_2', 'monstro_lago', 'mae_human', 'criancas'
+      'casa', 'barco_1', 'barco_2', 'monstro_lago', 'mae_human', 'criancas', 'placas_solares', 'lixeiras'
     ];
     const boughtAll = allShopItems.every(id => items.includes(id));
     if (boughtAll) return 'Guardião da Lenda';

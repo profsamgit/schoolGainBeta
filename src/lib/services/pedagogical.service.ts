@@ -243,6 +243,8 @@ export class PedagogicalService {
       'monstro_lago': { price: 5000, required: 'casa' },
       'mae_human': { price: 600, required: 'casa' },
       'criancas': { price: 400, required: 'mae_human' },
+      'placas_solares': { price: 400, required: 'casa' },
+      'lixeiras': { price: 200, required: 'criancas' },
     };
 
     const upgrade = catalog[item];
@@ -302,7 +304,7 @@ export class PedagogicalService {
       'passaro_1', 'passaro_2', 'passaro_3',
       'peixe_1', 'peixe_2', 'peixe_3', 
       'cachorro', 'gato', 'borboletas', 'borboletas_2', 'borboletas_3', 'borboletas_4',
-      'casa', 'barco_1', 'barco_2', 'monstro_lago', 'mae_human', 'criancas'
+      'casa', 'barco_1', 'barco_2', 'monstro_lago', 'mae_human', 'criancas', 'placas_solares', 'lixeiras'
     ];
     const boughtAll = allShopItems.every(id => newItems.includes(id));
 
@@ -327,6 +329,93 @@ export class PedagogicalService {
     }
 
     this.service.syncUserPoints(targetUser.id, balanceAdjust, pointsAdjust, `Compra de Item: ${item}`);
+    return { success: true };
+  }
+
+  refundUpgrade(item: EcosystemItem, targetUserId?: string): { success: boolean; error?: string } {
+    const catalog: Record<EcosystemItem, { price: number; minVitality?: number; required?: string }> = {
+      'limpar_rio': { price: 300, minVitality: 70 },
+      'filtro_ar': { price: 200, minVitality: 70 },
+      'reparar_grama': { price: 150, minVitality: 70 },
+      'arvore_1': { price: 200, minVitality: 70, required: 'reparar_grama' },
+      'arvore_2': { price: 200, minVitality: 70, required: 'reparar_grama' },
+      'arvore_3': { price: 200, minVitality: 70, required: 'reparar_grama' },
+      'passaro_1': { price: 150, required: 'arvore_1' },
+      'passaro_2': { price: 150, required: 'arvore_2' },
+      'passaro_3': { price: 150, required: 'arvore_3' },
+      'peixe_1': { price: 100, required: 'limpar_rio' },
+      'peixe_2': { price: 100, required: 'limpar_rio' },
+      'peixe_3': { price: 100, required: 'limpar_rio' },
+      'cachorro': { price: 400, required: 'reparar_grama' },
+      'gato': { price: 400, required: 'reparar_grama' },
+      'borboletas': { price: 150, required: 'reparar_grama' },
+      'borboletas_2': { price: 200, required: 'borboletas' },
+      'borboletas_3': { price: 250, required: 'borboletas_2' },
+      'borboletas_4': { price: 300, required: 'borboletas_3' },
+      'casa': { price: 1500, minVitality: 100, required: 'arvore_1' },
+      'barco_1': { price: 500, required: 'limpar_rio' },
+      'barco_2': { price: 600, required: 'barco_1' },
+      'monstro_lago': { price: 5000, required: 'casa' },
+      'mae_human': { price: 600, required: 'casa' },
+      'criancas': { price: 400, required: 'mae_human' },
+      'placas_solares': { price: 400, required: 'casa' },
+      'lixeiras': { price: 200, required: 'criancas' },
+    };
+
+    const upgrade = catalog[item];
+    if (!upgrade) return { success: false, error: "Item não encontrado no catálogo." };
+
+    const targetUser = targetUserId 
+      ? this.service.data.users.find((u: User) => u.id === targetUserId || u.ra === targetUserId)
+      : this.service.data.users.find((u: User) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
+
+    if (!targetUser) return { success: false, error: "Usuário não identificado para reembolso." };
+
+    const state = this.service.data.userStates[targetUser.id] || this.service.getDefaultState(targetUser);
+
+    if (!state.purchasedItems.includes(item)) {
+      return { success: false, error: "Você ainda não possui este item!" };
+    }
+
+    // Se o usuário possui o Nessie (monstro_lago), ele não pode reembolsar nenhum outro item
+    // pois o Nessie exige que todos os outros itens estejam adquiridos.
+    if (item !== 'monstro_lago' && state.purchasedItems.includes('monstro_lago')) {
+      return { success: false, error: "Não é possível remover! Reembolse a Lenda do Lago (Nessie) primeiro." };
+    }
+
+    // Verificar se outros itens dependem deste item
+    const dependentItems = Object.keys(catalog).filter(
+      id => catalog[id as EcosystemItem].required === item && state.purchasedItems.includes(id as EcosystemItem)
+    );
+    if (dependentItems.length > 0) {
+      const depNames = dependentItems.map(d => d.replace(/_/g, ' ')).join(', ');
+      return { success: false, error: `Não é possível remover! Outros itens dependem deste: ${depNames}.` };
+    }
+
+    // Remover item
+    const newItems = state.purchasedItems.filter((i: EcosystemItem) => i !== item);
+    state.purchasedItems = newItems;
+    this.service.data.userStates[targetUser.id] = state;
+
+    if (targetUser.id === this.service.data.currentUserId || targetUser.ra === this.service.currentUserRa) {
+      this.service.purchasedItemsSubject.next(newItems);
+    }
+
+    let balanceAdjust = upgrade.price; // Devolve o valor gasto
+    let pointsAdjust = 0;
+
+    // Se ele tinha a conquista de Guardião da Lenda (comprou tudo) e removeu um item, perde o status
+    if (state.nessiePurchaseDate) {
+      pointsAdjust = -5000;
+      balanceAdjust -= 5000; // Remove o bônus de moedas concedido
+      state.nessiePurchaseDate = null;
+      
+      const today = new Date();
+      const legendId = `${targetUser.id}-${today.getMonth() + 1}-${today.getFullYear()}`;
+      deleteDoc(doc(db, "ecosystemLegends", legendId)).catch(console.error);
+    }
+
+    this.service.syncUserPoints(targetUser.id, balanceAdjust, pointsAdjust, `Reembolso de Item: ${item}`);
     return { success: true };
   }
 

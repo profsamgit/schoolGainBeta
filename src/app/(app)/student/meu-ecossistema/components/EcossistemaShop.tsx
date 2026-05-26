@@ -20,6 +20,7 @@ interface EcossistemaShopProps {
   balance: number;
   isNessieAvailable: () => boolean;
   handleBuy: (id: EcosystemItem) => void;
+  handleRefund: (id: EcosystemItem) => void;
   setHoveredIdx: (idx: number | null) => void;
 }
 
@@ -32,24 +33,11 @@ export function EcossistemaShop({
   balance,
   isNessieAvailable,
   handleBuy,
+  handleRefund,
   setHoveredIdx
 }: EcossistemaShopProps) {
   return (
     <>
-      {/* GATILHO DA LOJA */}
-      <div className={cn(
-          "absolute bottom-20 md:bottom-10 right-4 md:right-10 z-[70] transition-all duration-1000",
-          isShopVisible ? "opacity-0 scale-50 pointer-events-none translate-y-20" : "opacity-100 scale-100"
-      )}>
-          <button 
-            onClick={() => setIsShopVisible(true)}
-            className="w-16 h-16 md:w-24 md:h-24 rounded-full flex flex-col items-center justify-center transition-all duration-700 shadow-[0_20px_40px_rgba(0,0,0,0.5)] bg-slate-900 border border-white/20 hover:scale-110 hover:border-indigo-500/50 group relative overflow-hidden"
-          >
-              <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 to-blue-600/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-              <Leaf className="w-6 h-6 md:w-9 md:h-9 text-indigo-400 group-hover:text-white transition-colors animate-pulse" />
-              <span className="text-[7px] md:text-[9px] font-black text-white/40 group-hover:text-white uppercase tracking-widest mt-0.5 md:mt-1">BIO SHOP</span>
-          </button>
-      </div>
 
       {/* NOVO DOCK DE COMPRAS - REDESIGN PREMIUM */}
       <div className={cn(
@@ -200,12 +188,12 @@ export function EcossistemaShop({
 
                                                 {/* BOTÃO DE AÇÃO */}
                                                 <button 
-                                                    disabled={isLocked || isPurchased || !canAfford}
-                                                    onClick={() => handleBuy(item.id as EcosystemItem)}
+                                                    disabled={isLocked || (!isPurchased && !canAfford)}
+                                                    onClick={() => isPurchased ? handleRefund(item.id as EcosystemItem) : handleBuy(item.id as EcosystemItem)}
                                                     className={cn(
                                                         "w-full py-2 md:py-2.5 rounded-xl font-black text-[8px] md:text-[9px] uppercase tracking-[0.15em] md:tracking-[0.2em] transition-all duration-500 border relative overflow-hidden group/btn",
                                                         isPurchased 
-                                                            ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 cursor-default" 
+                                                            ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-rose-500/10 hover:text-rose-500 hover:border-rose-500/30 cursor-pointer" 
                                                             : isLocked 
                                                                 ? "hidden"
                                                                 : canAfford
@@ -216,8 +204,9 @@ export function EcossistemaShop({
                                                     <span className="relative z-10 flex items-center justify-center gap-1 md:gap-2">
                                                         {isPurchased ? (
                                                             <>
-                                                                <ShieldCheck size={12} className="md:w-3.5 md:h-3.5" />
-                                                                <span>Adquirido</span>
+                                                                <ShieldCheck size={12} className="md:w-3.5 md:h-3.5 group-hover/btn:hidden" />
+                                                                <span className="group-hover/btn:hidden">Adquirido</span>
+                                                                <span className="hidden group-hover/btn:inline">Reembolsar</span>
                                                             </>
                                                         ) : (
                                                             <span>{canAfford ? 'Comprar' : 'Saldo'}</span>

@@ -33,6 +33,7 @@ export default function MeuEcossistemaPage() {
     vitality = 0, 
     purchasedItems = [], 
     buyUpgrade,
+    refundUpgrade,
     healVitality,
     isNessieAvailable
   } = useEcosystem();
@@ -84,6 +85,22 @@ export default function MeuEcossistemaPage() {
     }
   };
 
+  const handleRefund = (id: EcosystemItem) => {
+    const res = refundUpgrade(id);
+    if (res.success) {
+      toast({
+        title: "Item Reembolsado! 💸",
+        description: "O item foi removido e os bio-coins foram devolvidos à sua conta.",
+      });
+    } else {
+      toast({
+        title: "Erro no Reembolso ❌",
+        description: res.error || "Não foi possível reembolsar o item.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleHealAction = (amount: number) => {
     const res = healVitality(amount);
     if (res.success) {
@@ -123,10 +140,12 @@ export default function MeuEcossistemaPage() {
     {id: 'borboletas_4', name: 'Borboletas Reais', icon: <Sparkles className="text-orange-500" />, price: 300, req: 'Borboletas 3', reqId: 'borboletas_3', category: 'Fauna', desc: 'Borboletas monarca que migram de muito longe.' },
     {id: 'barco_1', name: 'Barco de Patrulha', icon: <Waves className="text-cyan-400" />, price: 500, req: 'Rio Limpo', reqId: 'limpar_rio', category: 'Lendário', desc: 'Pequena embarcação sustentável para patrulha do rio.' },
     {id: 'barco_2', name: 'Iate Solar', icon: <Waves className="text-indigo-400" />, price: 600, req: 'Barco 1', reqId: 'barco_1', category: 'Lendário', desc: 'Barco avançado com painéis solares para longas viagens.' },
-    {id: 'casa', name: 'Casa Sustentável', icon: <Sparkles className="text-amber-400 animate-pulse" />, price: 1500, req: 'Ecossistema Completo', minVitality: 100, category: 'Lendário', desc: 'O ápice da sustentabilidade. Uma moradia que gera energia e vida.' },
+    {id: 'casa', name: 'Casa Sustentável', icon: <Sparkles className="text-amber-400 animate-pulse" />, price: 1500, req: 'Carvalho Norte', reqId: 'arvore_1', minVitality: 100, category: 'Lendário', desc: 'O ápice da sustentabilidade. Uma moradia que gera energia e vida.' },
     {id: 'mae_human', name: 'Mãe', icon: <User className="text-pink-400" />, price: 600, req: 'Casa Sustentável', reqId: 'casa', category: 'Lendário', desc: 'A mãe da família, promovendo a integração e harmonia.' },
     {id: 'criancas', name: 'Crianças', icon: <Users className="text-sky-400" />, price: 400, req: 'Mãe Presente', reqId: 'mae_human', category: 'Lendário', desc: 'As crianças que trazem diversão e alegria ao ambiente.' },
-    {id: 'monstro_lago', name: 'Nessie (Lendário)', icon: <Waves className="text-emerald-400 animate-bounce" />, price: 5000, req: 'Casa Sustentável', reqId: 'casa', category: 'Lendário', desc: 'A lenda se torna realidade. Protege o lago de qualquer mal.' },
+    {id: 'placas_solares', name: 'Placas Solares (Chão)', icon: <Sparkles className="text-blue-400" />, price: 400, req: 'Casa Sustentável', reqId: 'casa', category: 'Lendário', desc: 'Estação de geração solar terrestre para fornecer energia limpa.' },
+    {id: 'lixeiras', name: 'Coleta Seletiva', icon: <Leaf className="text-emerald-400" />, price: 200, req: 'Crianças Presentes', reqId: 'criancas', category: 'Base', desc: 'Lixeiras coloridas para triagem e descarte ecologicamente correto.' },
+    {id: 'monstro_lago', name: 'Nessie (Lendário)', icon: <Waves className="text-emerald-400 animate-bounce" />, price: 5000, req: 'Casa Sustentável', reqId: 'casa', category: 'Lendário', desc: 'A lenda se torna reality. Protege o lago de qualquer mal.' },
   ];
 
   return (
@@ -154,6 +173,8 @@ export default function MeuEcossistemaPage() {
         isFullScreen={isFullScreen}
         forceTime={forceTime}
         setForceTime={setForceTime}
+        onOpenShop={() => setIsShopVisible(true)}
+        isShopVisible={isShopVisible}
       />
 
       {vitality < 70 && showVitalityWarning && (
@@ -173,6 +194,7 @@ export default function MeuEcossistemaPage() {
         balance={balance}
         isNessieAvailable={isNessieAvailable}
         handleBuy={handleBuy}
+        handleRefund={handleRefund}
         setHoveredIdx={setHoveredIdx}
       />
 

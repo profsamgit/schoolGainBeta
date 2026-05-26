@@ -32,6 +32,7 @@ interface EcosystemContextType {
   deductPoints: (points: number) => boolean;         // Função para gastar pontos
   registerAttendance: (status: 'presente' | 'falta') => void; // Registra presença/falta
   buyUpgrade: (item: EcosystemItem) => { success: boolean; error?: string };      // Compra um item para o mundo virtual
+  refundUpgrade: (item: EcosystemItem) => { success: boolean; error?: string };   // Reembolsa um item do mundo virtual
   healVitality: (points: number) => { success: boolean; error?: string };         // Recupera saúde do mundo gastando pontos
   allParticipants: Participant[]; // Lista da equipe do projeto
   updateParticipants: (newParticipants: Participant[]) => Promise<boolean>;
@@ -455,6 +456,9 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const buyUpgrade = (item: EcosystemItem) => {
     return service.buyUpgrade(item, isPreviewMode && displayUser?.id ? displayUser.id : undefined);
   };
+  const refundUpgrade = (item: EcosystemItem) => {
+    return service.refundUpgrade(item, isPreviewMode && displayUser?.id ? displayUser.id : undefined);
+  };
   const healVitality = (points: number) => {
     return service.healVitality(points, isPreviewMode && displayUser?.id ? displayUser.id : undefined);
   };
@@ -527,6 +531,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
       deductPoints,
       registerAttendance,
       buyUpgrade,
+      refundUpgrade,
       healVitality,
       allParticipants: participants,
       updateParticipants,

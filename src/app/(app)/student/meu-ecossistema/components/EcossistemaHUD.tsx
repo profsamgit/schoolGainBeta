@@ -25,6 +25,8 @@ interface EcossistemaHUDProps {
   isFullScreen: boolean;
   forceTime: 'real' | 'day' | 'night';
   setForceTime: (time: 'real' | 'day' | 'night') => void;
+  onOpenShop: () => void;
+  isShopVisible: boolean;
 }
 
 export function EcossistemaHUD({
@@ -34,7 +36,9 @@ export function EcossistemaHUD({
   toggleFullScreen,
   isFullScreen,
   forceTime,
-  setForceTime
+  setForceTime,
+  onOpenShop,
+  isShopVisible
 }: EcossistemaHUDProps) {
   const { level, purchasedItems, userStates, currentUserId } = useEcosystem();
 
@@ -51,10 +55,10 @@ export function EcossistemaHUD({
   })();
 
   return (
-    <div className="absolute bottom-4 md:bottom-6 inset-x-0 z-50 flex justify-center px-2 md:px-6 pointer-events-none animate-in slide-in-from-bottom duration-1000 ease-in-out">
+    <div className="absolute bottom-4 md:bottom-6 inset-x-0 z-50 flex justify-center px-4 md:px-8 pointer-events-none animate-in slide-in-from-bottom duration-1000 ease-in-out">
       <div className={cn(
-          "flex items-center gap-1 xs:gap-1.5 md:gap-3 p-1 bg-black/60 backdrop-blur-[40px] md:bg-black/10 md:backdrop-blur-[3px] md:opacity-40 md:hover:opacity-100 md:hover:bg-black/60 md:hover:backdrop-blur-[45px] rounded-[2rem] md:rounded-[2.2rem] border shadow-[0_25px_60px_rgba(0,0,0,0.5)] pointer-events-auto group transition-all duration-500 ring-1 ring-white/5",
-          hasLegendaryShield ? "border-amber-400/30 shadow-amber-500/10" : "border-white/10"
+          "flex items-center gap-2 md:gap-3 p-1.5 bg-black/80 backdrop-blur-[35px] rounded-[2rem] md:rounded-[2.5rem] border shadow-[0_25px_60px_rgba(0,0,0,0.6)] pointer-events-auto transition-all duration-500 ring-1 ring-white/10 max-w-[95%] overflow-x-auto scrollbar-hide",
+          hasLegendaryShield ? "border-amber-400/40 shadow-amber-500/10" : "border-white/10"
       )}>
           {/* VOLTAR */}
           <Link href="/student/dashboard">
@@ -122,7 +126,7 @@ export function EcossistemaHUD({
                   </div>
               </div>
               
-              <div className="hidden xs:block flex-1 h-1.5 md:h-2 bg-white/5 rounded-full overflow-hidden border border-white/5 relative">
+              <div className="flex-1 h-1.5 md:h-2 bg-white/5 rounded-full overflow-hidden border border-white/5 relative min-w-[50px]">
                   <div 
                       className={cn(
                           "h-full transition-all transition-duration-[2000ms] rounded-full",
@@ -152,6 +156,21 @@ export function EcossistemaHUD({
                   </div>
               )}
           </div>
+
+          <div className="h-5 md:h-8 w-px bg-white/10 mx-0.5 md:mx-1" />
+
+          {/* BOTÃO INTEGRADO BIO SHOP */}
+          {!isShopVisible && (
+              <button 
+                onClick={onOpenShop}
+                className="h-8 md:h-10 px-3 md:px-5 rounded-full flex items-center gap-1.5 md:gap-2 bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/35 text-white transition-all hover:scale-105 active:scale-95 group/shop relative overflow-hidden flex-shrink-0"
+                title="Abrir Bio-Shop"
+              >
+                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-blue-500 opacity-0 group-hover/shop:opacity-100 transition-opacity" />
+                  <Sparkles size={13} className="text-indigo-200 group-hover/shop:text-white animate-pulse relative z-10" />
+                  <span className="text-[10px] md:text-xs font-black tracking-widest leading-none relative z-10">LOJA</span>
+              </button>
+          )}
       </div>
     </div>
   );

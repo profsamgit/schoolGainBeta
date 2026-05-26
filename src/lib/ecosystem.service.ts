@@ -1701,6 +1701,9 @@ export class EcosystemService {
   buyUpgrade(item: EcosystemItem, targetUserId?: string) {
     return this.pedagogicalService.buyUpgrade(item, targetUserId);
   }
+  refundUpgrade(item: EcosystemItem, targetUserId?: string) {
+    return this.pedagogicalService.refundUpgrade(item, targetUserId);
+  }
 
   // School, Turmas, Cursos (SchoolService)
   updateTurmas(newTurmas: Turma[], sid?: string) {
