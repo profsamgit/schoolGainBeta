@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { User as UserData } from '@/types/ecosystem';
 import { type IdentifyWasteOutput } from '@/ai/flows/identify-waste';
 import { 
@@ -72,6 +72,7 @@ export function ScanningSection({
   const [retryKey, setRetryKey] = useState(0);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [loaderText, setLoaderText] = useState('Sincronizando com o Hub...');
+  const streamImgRef = useRef<HTMLImageElement | null>(null);
 
   // Obter o estado real do ecossistema do aluno
   const studentState = identifiedStudent?.id ? userStates[identifiedStudent.id] : null;
@@ -107,10 +108,9 @@ export function ScanningSection({
     return () => {
       // FORÇA A LIBERAÇÃO FÍSICA E IMEDIATA DO SOCKET DA ESP32 AO SAIR DA TELA DE SCANNER!
       try {
-        const img = document.querySelector('img[alt="External Camera Stream"]') as HTMLImageElement | null;
-        if (img) {
-          img.src = "";
-          img.removeAttribute('src');
+        if (streamImgRef.current) {
+          streamImgRef.current.src = "";
+          streamImgRef.current.removeAttribute('src');
         }
       } catch (e) {}
     };
@@ -329,6 +329,7 @@ export function ScanningSection({
                       </div>
 
                       <img 
+                        ref={streamImgRef}
                         src={streamUrlWithRetry} 
                         className="w-full h-full object-cover" 
                         alt="External Camera Stream"

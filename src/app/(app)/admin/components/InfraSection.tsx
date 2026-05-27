@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
-  User as UserIcon, ShieldCheck, Monitor, ShieldAlert, Settings2, Trash2, Cpu 
+  User as UserIcon, ShieldCheck, Monitor, ShieldAlert, Settings2, Trash2, Cpu, Download 
 } from 'lucide-react';
 import { 
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
@@ -161,6 +161,25 @@ export function InfraSection({
     }
   };
 
+  const handleDownloadScripts = () => {
+    const files = ['start', 'stop', 'script'];
+    files.forEach((file, index) => {
+      setTimeout(() => {
+        const link = document.createElement('a');
+        link.href = `/api/hardware/download?file=${file}`;
+        link.setAttribute('download', '');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }, index * 400); // 400ms delay to prevent browser download restrictions
+    });
+    toast({
+      title: "Downloads Iniciados",
+      description: "Os arquivos de configuração do Totem (Proxy e Lote .bat) estão sendo baixados para o seu computador.",
+      variant: "success"
+    });
+  };
+
   const sortedVideoDevices = useMemo(() => {
     return [...videoDevices].sort((a, b) => a.label.localeCompare(b.label));
   }, [videoDevices]);
@@ -187,27 +206,15 @@ export function InfraSection({
         </div>
         
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
-          {proxyActive ? (
-            <Button
-              onClick={handleStopProxy}
-              disabled={proxyLoading || proxyActive === null}
-              variant="destructive"
-              className="font-bold text-xs uppercase tracking-wider h-10 px-5 rounded-xl disabled:opacity-50 transition-all duration-300"
-            >
-              {proxyLoading ? 'Parando...' : 'Parar Proxy Local'}
-            </Button>
-          ) : (
-            <Button
-              onClick={handleStartProxy}
-              disabled={proxyLoading || proxyActive === null}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-wider h-10 px-5 rounded-xl shadow-lg shadow-indigo-600/15 disabled:opacity-50 transition-all duration-300"
-            >
-              {proxyLoading ? 'Iniciando...' : 'Iniciar Proxy Local'}
-            </Button>
-          )}
+          <Button
+            onClick={handleDownloadScripts}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white dark:bg-indigo-500 dark:hover:bg-indigo-400 dark:text-slate-950 font-bold text-xs uppercase tracking-wider h-10 px-5 rounded-xl shadow-lg shadow-indigo-600/15 dark:shadow-indigo-500/10 transition-all duration-300 flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" /> Baixar Configurações (Scripts)
+          </Button>
           <div className="px-3 py-2 bg-slate-100/60 dark:bg-slate-950 border border-slate-200/50 dark:border-white/5 rounded-xl text-center min-w-[130px]">
-            <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 block">Atalhos do Totem</span>
-            <span className="text-[10px] font-mono text-indigo-650 dark:text-indigo-400 font-bold block mt-0.5">Iniciar / Parar Proxy</span>
+            <span className="text-[9px] font-black uppercase tracking-wider text-slate-555 block">Uso do Totem</span>
+            <span className="text-[10px] font-mono text-indigo-650 dark:text-indigo-400 font-bold block mt-0.5">Executar Localmente</span>
           </div>
         </div>
       </div>
@@ -633,9 +640,9 @@ export function InfraSection({
                                     <Select value={terminalLoginCameraFramerate || "fluid"} onValueChange={(v: any) => setTerminalLoginCameraFramerate(v)}>
                                       <SelectTrigger className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl h-10"><SelectValue /></SelectTrigger>
                                       <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white">
-                                        <SelectItem value="fluid" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">⚡ Alta Velocidade / QR (CIF)</SelectItem>
-                                        <SelectItem value="balanced" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">⚖️ Equilibrado (VGA)</SelectItem>
-                                        <SelectItem value="high_res" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">📸 Alta Resolução (SVGA)</SelectItem>
+                                        <SelectItem value="fluid" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">⚡ Alta Velocidade / QR (VGA)</SelectItem>
+                                        <SelectItem value="balanced" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">⚖️ Equilibrado (SVGA)</SelectItem>
+                                        <SelectItem value="high_res" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">📸 Alta Resolução (HD)</SelectItem>
                                       </SelectContent>
                                     </Select>
                                   </div>
@@ -756,6 +763,76 @@ export function InfraSection({
                                   </div>
                                 </div>
                               )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* BLOCO E: STATUS DAS LIXEIRAS (ESP32 TELEMETRIA) */}
+                        <div className="space-y-4 p-5 bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/5 rounded-2xl shadow-md md:col-span-2">
+                          <div className="flex items-center justify-between pb-2 border-b border-slate-250 dark:border-white/5">
+                            <div className="flex items-center gap-2">
+                              <Trash2 className="h-4 w-4 text-rose-600 dark:text-rose-450" />
+                              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-555 dark:text-slate-400">5. Status das Lixeiras em Tempo Real</h4>
+                            </div>
+                            {selectedTerminal?.lastBinUpdate && (
+                              <span className="text-[9px] text-slate-500 font-mono">
+                                Última atualização: {new Date(selectedTerminal.lastBinUpdate).toLocaleTimeString('pt-BR')}
+                              </span>
+                            )}
+                          </div>
+
+                          {selectedTerminal?.binLevels ? (
+                            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                              {(['plastico', 'papel', 'vidro', 'metal'] as const).map((material) => {
+                                const level = selectedTerminal.binLevels?.[material] ?? 0;
+                                const isFull = level >= 85;
+                                return (
+                                  <div 
+                                    key={material} 
+                                    className={`p-4 border rounded-xl flex flex-col justify-between gap-3 bg-slate-50/50 dark:bg-slate-900/20 ${
+                                      isFull 
+                                        ? 'border-rose-500/30 bg-rose-500/5 dark:border-rose-500/20 dark:bg-rose-950/20 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.05)]' 
+                                        : 'border-slate-100 dark:border-white/5'
+                                    }`}
+                                  >
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-350">
+                                        {material === 'plastico' ? 'Plástico' : material === 'papel' ? 'Papel' : material === 'vidro' ? 'Vidro' : 'Metal'}
+                                      </span>
+                                      <Badge 
+                                        variant="outline" 
+                                        className={`text-[9px] font-mono h-5 px-1.5 font-bold uppercase rounded-md ${
+                                          isFull 
+                                            ? 'bg-rose-500/10 text-rose-600 dark:text-rose-450 border-rose-500/20' 
+                                            : 'bg-indigo-500/5 text-indigo-650 dark:text-indigo-400 border-indigo-500/10'
+                                        }`}
+                                      >
+                                        {level}%
+                                      </Badge>
+                                    </div>
+                                    
+                                    <div className="w-full bg-slate-200 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                                      <div 
+                                        className={`h-full rounded-full transition-all duration-500 ${
+                                          isFull ? 'bg-gradient-to-r from-rose-500 to-red-650' : 'bg-gradient-to-r from-indigo-500 to-indigo-600'
+                                        }`}
+                                        style={{ width: `${level}%` }}
+                                      ></div>
+                                    </div>
+
+                                    {isFull && (
+                                      <p className="text-[9px] font-black uppercase tracking-wide text-rose-600 dark:text-rose-450 animate-pulse flex items-center gap-1">
+                                        ⚠️ Lixeira Cheia!
+                                      </p>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className="p-6 text-center border border-dashed border-slate-200 dark:border-white/5 rounded-2xl bg-slate-50/50 dark:bg-slate-900/10">
+                              <Cpu className="h-6 w-6 text-slate-400 dark:text-slate-500 mx-auto mb-2 animate-pulse" />
+                              <p className="text-[10px] text-slate-500 dark:text-slate-450 italic uppercase tracking-wider">Aguardando telemetria inicial da ESP32...</p>
                             </div>
                           )}
                         </div>

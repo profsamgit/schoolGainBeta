@@ -136,6 +136,19 @@ export default function StudentLoginPage() {
     }
   }, [lockoutSecs]);
 
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      // Request initial permission to expose device IDs and get cameras ready
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then((stream) => {
+          stream.getTracks().forEach(track => track.stop());
+        })
+        .catch((err) => {
+          console.warn("Initial camera permission denied or error on login page:", err);
+        });
+    }
+  }, []);
+
   /**
    * POLING DE HARDWARE:
    * Verifica se há um login vindo do servidor (ESP32 via Wi-Fi)

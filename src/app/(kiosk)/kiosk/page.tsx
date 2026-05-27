@@ -92,6 +92,7 @@ export default function KioskPage() {
   const [generatedTerminalId, setGeneratedTerminalId] = useState('');
   const [isMobileDevice, setIsMobileDevice] = useState(false);
   const [isHardwareReady, setIsHardwareReady] = useState(false);
+  const [isIdle, setIsIdle] = useState(false);
 
   const currentTerminal = terminals.find(t => t.hardwareId === hardwareId);
   const currentSchool = schools.find(s => s.id === currentTerminal?.schoolId);
@@ -115,20 +116,77 @@ export default function KioskPage() {
       
       // Fallback para smartphones com "Solicitar site para computador" ativado.
       // 1. O dispositivo precisa possuir suporte a toque (touchscreen)
-      const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      
       // 2. O ponteiro padrão deve ser "coarse" (característico de telas sensíveis ao toque)
-      const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
-      
       // 3. A largura ou altura lógica da tela deve ser menor que 600px (smartphones).
-      // Isso impede que computadores desktop com telas touch screen sejam bloqueados,
-      // já que a menor dimensão de suas telas lógicas sempre excede 600px.
+      const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
       const isSmallScreen = Math.min(window.screen.width, window.screen.height) < 600;
       
       return (hasTouch || isCoarsePointer) && isSmallScreen;
     };
     setIsMobileDevice(checkMobile());
+
+    const handleNavigationCleanup = () => {
+      try {
+        const activeStreamImg = document.querySelector('img[alt="External Camera Stream"]') as HTMLImageElement | null;
+        if (activeStreamImg) {
+          activeStreamImg.src = "";
+          activeStreamImg.removeAttribute('src');
+        }
+      } catch (e) {}
+    };
+    window.addEventListener('popstate', handleNavigationCleanup);
+    window.addEventListener('beforeunload', handleNavigationCleanup);
+
+    return () => {
+      window.removeEventListener('popstate', handleNavigationCleanup);
+      window.removeEventListener('beforeunload', handleNavigationCleanup);
+    };
   }, []);
+
+  useEffect(() => {
+    if (isAuthorized && typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      // Request initial permission to expose device IDs and get cameras ready
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then((stream) => {
+          stream.getTracks().forEach(track => track.stop());
+          setHasCameraPermission(true);
+        })
+        .catch((err) => {
+          console.warn("Initial camera permission denied or error:", err);
+          setHasCameraPermission(false);
+        });
+    }
+  }, [isAuthorized]);
+
+  useEffect(() => {
+    if (!isAuthorized) return;
+
+    let timeoutId: NodeJS.Timeout;
+
+    const resetTimer = () => {
+      setIsIdle(false);
+      clearTimeout(timeoutId);
+      // Entra em modo de economia após 60 segundos de inatividade
+      timeoutId = setTimeout(() => {
+        setIsIdle(true);
+      }, 60000);
+    };
+
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    events.forEach((name) => {
+      window.addEventListener(name, resetTimer);
+    });
+
+    resetTimer();
+
+    return () => {
+      clearTimeout(timeoutId);
+      events.forEach((name) => {
+        window.removeEventListener(name, resetTimer);
+      });
+    };
+  }, [isAuthorized]);
 
   const getCameraUrl = (source?: string, url?: string, purpose?: 'login' | 'scan') => {
     if (!url) return '';
@@ -166,13 +224,13 @@ export default function KioskPage() {
     return url;
   };
 
-  const activeLoginUrl = getCameraUrl(
+  const activeLoginUrl = isIdle ? '' : getCameraUrl(
     currentTerminal?.settings?.loginCameraSource || systemSettings.studentCaptureSource,
     currentTerminal?.settings?.loginCameraUrl || currentTerminal?.settings?.cameraUrl || systemSettings.studentCaptureUrl,
     'login'
   );
 
-  const activeScanningUrl = getCameraUrl(
+  const activeScanningUrl = isIdle ? '' : getCameraUrl(
     currentTerminal?.settings?.scanningCameraSource || systemSettings.studentCaptureSource, 
     currentTerminal?.settings?.scanningCameraUrl || currentTerminal?.settings?.cameraUrl || systemSettings.studentCaptureUrl,
     'scan'
@@ -236,9 +294,9 @@ export default function KioskPage() {
         } else if (step === 'identification') {
           if (activeLoginUrl && (activeLoginCameraSource === 'esp32' || activeLoginCameraSource === 'esp32_https')) {
             const loginFramerate = currentTerminal?.settings?.loginCameraFramerate || 'fluid';
-            let targetResolution = 'cif';
-            if (loginFramerate === 'balanced') targetResolution = 'vga';
-            else if (loginFramerate === 'high_res') targetResolution = 'svga';
+            let targetResolution = 'vga';
+            if (loginFramerate === 'balanced') targetResolution = 'svga';
+            else if (loginFramerate === 'high_res') targetResolution = 'hd';
 
             const espIp = activeLoginUrl.includes('target=') 
               ? activeLoginUrl.split('target=')[1].split('&')[0] 
@@ -387,7 +445,7 @@ export default function KioskPage() {
       }
     };
 
-    if (step !== 'scanning' || identificationResult || activeScanningCameraSource !== 'browser') {
+    if (step !== 'scanning' || identificationResult || activeScanningCameraSource !== 'browser' || isIdle) {
       stopCamera();
       return;
     }
@@ -428,7 +486,7 @@ export default function KioskPage() {
     }
     getCameraPermission();
     return () => { isCancelled = true; stopCamera(); };
-  }, [step, identificationResult, activeScanningCameraSource, toast, currentTerminal?.settings?.preferredCamera, currentTerminal?.settings?.scanningCameraDevice]);
+  }, [step, identificationResult, activeScanningCameraSource, toast, currentTerminal?.settings?.preferredCamera, currentTerminal?.settings?.scanningCameraDevice, isIdle]);
 
   const handleKeyboardInput = (key: string) => { setStudentRa((prev) => (prev + key).toUpperCase()); raInputRef.current?.focus(); };
   const handleKeyboardBackspace = () => { setStudentRa((prev) => prev.slice(0, -1)); raInputRef.current?.focus(); };
@@ -624,6 +682,15 @@ export default function KioskPage() {
   }
   
   const handleExit = () => {
+    if (activeScanningCameraSource !== 'browser') {
+      try {
+        const activeStreamImg = document.querySelector('img[alt="External Camera Stream"]') as HTMLImageElement | null;
+        if (activeStreamImg) {
+          activeStreamImg.src = "";
+          activeStreamImg.removeAttribute('src');
+        }
+      } catch (e) {}
+    }
     setStudentRa(''); setIdentifiedStudent(null); setStep('identification'); setIdentificationResult(null); setShowKeyboard(false); setSuccessMessage(null);
     setCapturedPhotoUri(null); // Reseta foto
   };
@@ -684,6 +751,45 @@ export default function KioskPage() {
     );
   }
 
+  if (isIdle) {
+    return (
+      <div 
+        onClick={() => setIsIdle(false)}
+        className="relative flex min-h-screen flex-col bg-slate-900/90 dark:bg-[#070913]/90 items-center justify-center p-6 text-white cursor-pointer select-none overflow-hidden animate-in fade-in duration-500"
+      >
+        <style>{`
+          .cyber-grid {
+            background-size: 30px 30px;
+            background-image: 
+              linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+          }
+        `}</style>
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-emerald-500/5 blur-[120px] animate-pulse" />
+          <div className="absolute inset-0 cyber-grid [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_80%,transparent_100%)]" />
+        </div>
+        
+        <div className="relative z-10 text-center space-y-6 max-w-sm p-8 border border-white/5 bg-slate-950/40 rounded-[2.5rem] backdrop-blur-xl shadow-2xl hover:border-emerald-500/20 transition-all duration-500">
+          <div className="mx-auto w-20 h-20 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.1)] animate-pulse">
+            <Leaf className="h-9 w-9" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-xl font-black uppercase tracking-wider text-slate-100">Modo de Espera Ativo</h2>
+            <p className="text-xs text-slate-400 font-semibold leading-relaxed">
+              O totem entrou em modo de economia de energia. Câmeras e sensores externos estão pausados.
+            </p>
+          </div>
+          <div className="pt-2 animate-bounce">
+            <span className="inline-flex items-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-full shadow-sm">
+              Toque na tela para iniciar
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (successMessage) {
     return <SuccessSection successMessage={successMessage} handleExit={handleExit} />;
   }
@@ -691,6 +797,7 @@ export default function KioskPage() {
   if (step === 'identification') {
     return (
       <IdentificationSection 
+        key={isIdle ? 'idle' : 'active'}
         currentSchool={currentSchool} activeTab={activeTab} setActiveTab={setActiveTab}
         activeLoginMethod={currentTerminal?.settings?.loginMethod || systemSettings.studentLoginMethod || 'all'}
         lockoutSecs={lockoutSecs} studentRa={studentRa} setStudentRa={setStudentRa}
@@ -707,6 +814,7 @@ export default function KioskPage() {
 
   return (
     <ScanningSection 
+      key={isIdle ? 'idle' : 'active'}
       identifiedStudent={identifiedStudent} handleExit={handleExit}
       activeScanningCameraSource={activeScanningCameraSource} activeScanningUrl={isHardwareReady ? activeScanningUrl : ''}
       videoRef={videoRef} canvasRef={canvasRef} hasCameraPermission={hasCameraPermission}

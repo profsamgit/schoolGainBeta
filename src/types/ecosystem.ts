@@ -136,6 +136,13 @@ export type Terminal = {
     schoolgainServer?: string;
     hardwareToken?: string;
   };
+  binLevels?: {
+    plastico: number;
+    papel: number;
+    vidro: number;
+    metal: number;
+  };
+  lastBinUpdate?: string;
 };
 
 export type School = {

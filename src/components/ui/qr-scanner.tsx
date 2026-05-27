@@ -28,7 +28,7 @@ export default function QRScanner({ onScan, onError, deviceId }: QRScannerProps)
 
   useEffect(() => {
     let isMounted = true;
-    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+    const config = { fps: 30, qrbox: { width: 250, height: 250 } };
 
     const startScanner = async () => {
         // Atraso para garantir que transições de UI terminaram
@@ -51,29 +51,45 @@ export default function QRScanner({ onScan, onError, deviceId }: QRScannerProps)
                 ? { deviceId: { exact: deviceId } } 
                 : { facingMode: facingMode };
 
-            await html5QrCode.start(
-                cameraConfig,
-                config,
-                (decodedText) => {
-                    if (!isMounted || hasScannedRef.current) return;
-                    hasScannedRef.current = true;
+            const onScanSuccess = (decodedText: string) => {
+                if (!isMounted || hasScannedRef.current) return;
+                hasScannedRef.current = true;
 
-                    if (html5QrCode.isScanning) {
-                        html5QrCode.stop().then(() => {
-                            html5QrCode.clear();
-                            setTimeout(() => { if (isMounted) onScan(decodedText); }, 100);
-                        }).catch(() => {
-                            if (isMounted) onScan(decodedText);
-                        });
-                    } else {
+                if (html5QrCode.isScanning) {
+                    html5QrCode.stop().then(() => {
+                        html5QrCode.clear();
+                        setTimeout(() => { if (isMounted) onScan(decodedText); }, 100);
+                    }).catch(() => {
                         if (isMounted) onScan(decodedText);
-                    }
-                },
-                () => {} 
-            );
+                    });
+                } else {
+                    if (isMounted) onScan(decodedText);
+                }
+            };
+
+            try {
+                await html5QrCode.start(
+                    cameraConfig,
+                    config,
+                    onScanSuccess,
+                    () => {} 
+                );
+            } catch (startErr) {
+                if (deviceId && deviceId !== 'default' && isMounted) {
+                    console.warn("[QRScanner] Falha ao iniciar câmera específica, tentando fallback padrão...", startErr);
+                    await html5QrCode.start(
+                        { facingMode: facingMode },
+                        config,
+                        onScanSuccess,
+                        () => {}
+                    );
+                } else {
+                    throw startErr;
+                }
+            }
         } catch (err: any) {
             // Silencia erros esperados de concorrência ou hardware
-            // Aviso de inicialização do scanner silenciado em produção
+            if (onError) onError(err);
         } finally {
             isStartingRef.current = false;
         }

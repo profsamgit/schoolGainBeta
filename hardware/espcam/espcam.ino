@@ -63,6 +63,10 @@ const char *hardware_token =
 // Inicializa o Servidor Web na porta 80
 WebServer server(80);
 
+// Controle de tempo para telemetria das lixeiras
+unsigned long lastTelemetryTime = 0;
+bool terminalActive = true; // Controla se o terminal está ativo/autorizado no servidor
+
 // Cabeçalhos para o Stream MJPEG
 #define PART_BOUNDARY "123456789000000000000987654321"
 static const char *_STREAM_CONTENT_TYPE =
@@ -78,6 +82,12 @@ void handle_stream() {
   char *part_buf[64];
 
   WiFiClient client = server.client();
+
+  if (!terminalActive) {
+    client.printf("HTTP/1.1 403 Forbidden\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\nTotem inativo no sistema.");
+    Serial.println("[CAMERA] Conexão de stream rejeitada: Este Totem está inativo no painel de controle.");
+    return;
+  }
 
   // Envia cabeçalho HTTP padrão de Stream
   client.printf("HTTP/1.1 200 OK\r\nContent-Type: "
@@ -197,6 +207,68 @@ bool send_student_login(String ra) {
     return true;
   } else {
     Serial.print("[HTTP] Erro ao enviar POST: ");
+    Serial.println(httpResponseCode);
+    http.end();
+    return false;
+  }
+}
+
+// ============================================================================
+// FUNÇÃO PARA ENVIAR TELEMETRIA DAS LIXEIRAS (SENSORES ULTRASSÔNICOS)
+// ============================================================================
+bool send_bin_status(int plastico, int papel, int vidro, int metal) {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("[HTTP] Não conectado ao Wi-Fi!");
+    return false;
+  }
+
+  HTTPClient http;
+  String url = String(schoolgain_server);
+  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    url = "http://" + url;
+  }
+  url += "/api/hardware/bin-status";
+
+  Serial.print("[HTTP] Enviando status das lixeiras para: ");
+  Serial.println(url);
+
+  http.begin(url);
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("Authorization", "Bearer " + String(hardware_token));
+
+  // Monta o JSON Payload
+  String jsonPayload = "{\"terminalId\":\"" + String(terminal_id) + "\",\"levels\":{" +
+                       "\"plastico\":" + String(plastico) + "," +
+                       "\"papel\":" + String(papel) + "," +
+                       "\"vidro\":" + String(vidro) + "," +
+                       "\"metal\":" + String(metal) + "}}";
+
+  int httpResponseCode = http.POST(jsonPayload);
+
+  if (httpResponseCode > 0) {
+    String response = http.getString();
+    Serial.print("[HTTP] Resposta Telemetria HTTP: ");
+    Serial.println(httpResponseCode);
+    Serial.print("[HTTP] Conteúdo: ");
+    Serial.println(response);
+
+    // Verifica se o terminal está inativo/suspenso no sistema
+    if (response.indexOf("\"active\":false") != -1) {
+      if (terminalActive) {
+        Serial.println("[SYSTEM] AVISO: Este totem foi desativado/suspenso na plataforma!");
+        terminalActive = false;
+      }
+    } else if (response.indexOf("\"active\":true") != -1) {
+      if (!terminalActive) {
+        Serial.println("[SYSTEM] INFO: Este totem foi reativado com sucesso!");
+        terminalActive = true;
+      }
+    }
+
+    http.end();
+    return true;
+  } else {
+    Serial.print("[HTTP] Erro ao enviar POST de Telemetria: ");
     Serial.println(httpResponseCode);
     http.end();
     return false;
@@ -420,21 +492,54 @@ void loop() {
   // Lida com conexões HTTP recebidas (Stream)
   server.handleClient();
 
+  // Se o totem estiver inativo, reduz a frequência de telemetria para 5 minutos (economizar banda/processamento)
+  unsigned long telemetryInterval = terminalActive ? 30000 : 300000;
+
+  // Envia telemetria de lixeiras a cada intervalo definido
+  if (millis() - lastTelemetryTime >= telemetryInterval) {
+    lastTelemetryTime = millis();
+    if (!terminalActive) {
+      Serial.println("[TELEMETRIA] Totem suspenso. Tentando contato de validação em segundo plano...");
+    } else {
+      Serial.println("[TELEMETRIA] Lendo sensores físicos e reportando...");
+    }
+    // Simula níveis de lixeiras de 0 a 100%
+    int plastico = random(10, 95);
+    int papel = random(5, 80);
+    int vidro = random(2, 60);
+    int metal = random(15, 90);
+    send_bin_status(plastico, papel, vidro, metal);
+  }
+
   // --------------------------------------------------------------------------
-  // EXEMPLO DE INTEGRAÇÃO COM DISPOSITIVOS DE LOGIN (OPCIONAL):
-  // Se você acoplar um sensor RFID (como MFRC522) ou um leitor serial de QR
-  // codes, basta ler o valor e chamar a função send_student_login(ra_lido).
-  //
-  // Exemplo de Simulação via Console Serial:
-  // Se você digitar "ALUNO12345" no Monitor Serial, ele simulará um login
+  // EXEMPLO DE INTEGRAÇÃO COM DISPOSITIVOS DE LOGIN OU LEITURAS MANUAIS
+  // Se você digitar "ALUNO12345" no Monitor Serial, ele simulará um login.
+  // Se digitar "STATUS:10,20,30,40" ele simulará telemetria manual.
   // --------------------------------------------------------------------------
   if (Serial.available() > 0) {
-    String inputRa = Serial.readStringUntil('\n');
-    inputRa.trim();
-    if (inputRa.length() > 0) {
-      Serial.print("[HARDWARE] Simulação de leitura de RA pelo sensor: ");
-      Serial.println(inputRa);
-      send_student_login(inputRa);
+    String input = Serial.readStringUntil('\n');
+    input.trim();
+    if (input.length() > 0) {
+      if (input.startsWith("STATUS:")) {
+        String levelsStr = input.substring(7);
+        int comma1 = levelsStr.indexOf(',');
+        int comma2 = levelsStr.indexOf(',', comma1 + 1);
+        int comma3 = levelsStr.indexOf(',', comma2 + 1);
+        if (comma1 != -1 && comma2 != -1 && comma3 != -1) {
+          int plastico = levelsStr.substring(0, comma1).toInt();
+          int papel = levelsStr.substring(comma1 + 1, comma2).toInt();
+          int vidro = levelsStr.substring(comma2 + 1, comma3).toInt();
+          int metal = levelsStr.substring(comma3 + 1).toInt();
+          Serial.println("[HARDWARE] Simulação de telemetria manual recebida!");
+          send_bin_status(plastico, papel, vidro, metal);
+        } else {
+          Serial.println("[HARDWARE] Formato de telemetria inválido. Use STATUS:plastico,papel,vidro,metal");
+        }
+      } else {
+        Serial.print("[HARDWARE] Simulação de leitura de RA pelo sensor: ");
+        Serial.println(input);
+        send_student_login(input);
+      }
     }
   }
 }
