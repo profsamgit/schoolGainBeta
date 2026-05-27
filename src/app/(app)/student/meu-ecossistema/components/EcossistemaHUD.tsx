@@ -55,7 +55,10 @@ export function EcossistemaHUD({
   })();
 
   return (
-    <div className="absolute bottom-4 md:bottom-6 inset-x-0 z-50 flex justify-center px-4 md:px-8 pointer-events-none animate-in slide-in-from-bottom duration-1000 ease-in-out">
+    <div className={cn(
+      "absolute inset-x-0 z-50 flex justify-center px-4 md:px-8 pointer-events-none animate-in slide-in-from-bottom duration-1000 ease-in-out",
+      isFullScreen ? "bottom-[calc(4rem+env(safe-area-inset-bottom))] sm:bottom-[calc(2rem+env(safe-area-inset-bottom))]" : "bottom-4 md:bottom-6"
+    )}>
       <div className={cn(
           "flex items-center gap-2 md:gap-3 p-1.5 bg-black/80 backdrop-blur-[35px] rounded-[2rem] md:rounded-[2.5rem] border shadow-[0_25px_60px_rgba(0,0,0,0.6)] pointer-events-auto transition-all duration-500 ring-1 ring-white/10 max-w-[95%] overflow-x-auto scrollbar-hide",
           hasLegendaryShield ? "border-amber-400/40 shadow-amber-500/10" : "border-white/10"

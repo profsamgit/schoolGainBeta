@@ -13,7 +13,8 @@ import {
   Sparkles,
   Waves,
   User,
-  Users
+  Users,
+  Minimize
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { EcosystemItem } from '@/types/ecosystem';
@@ -80,44 +81,47 @@ export default function MeuEcossistemaPage() {
       doc.msFullscreenElement
     );
 
-    if (!isFs) {
-      const element = containerRef.current as any;
-      if (element) {
-        const requestMethod =
-          element.requestFullscreen ||
-          element.webkitRequestFullscreen ||
-          element.mozRequestFullScreen ||
-          element.msRequestFullscreen;
+    const element = containerRef.current as any;
+    const requestMethod = element ? (
+      element.requestFullscreen ||
+      element.webkitRequestFullscreen ||
+      element.mozRequestFullScreen ||
+      element.msRequestFullscreen
+    ) : null;
 
-        if (requestMethod) {
-          try {
-            const promise = requestMethod.call(element);
-            if (promise && typeof promise.catch === 'function') {
-              promise.catch((err: any) => {
-                console.error(`Error attempting to enable full-screen mode: ${err.message}`);
-              });
-            }
-          } catch (err: any) {
-            console.error(`Error invoking requestFullscreen: ${err.message}`);
+    if (requestMethod) {
+      if (!isFs) {
+        try {
+          const promise = requestMethod.call(element);
+          if (promise && typeof promise.catch === 'function') {
+            promise.catch((err: any) => {
+              console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+              setIsFullScreen(true);
+            });
           }
-        } else {
-          console.warn("Fullscreen API is not supported on this browser/device.");
+        } catch (err: any) {
+          console.error(`Error invoking requestFullscreen: ${err.message}`);
+          setIsFullScreen(true);
+        }
+      } else {
+        const exitMethod =
+          doc.exitFullscreen ||
+          doc.webkitExitFullscreen ||
+          doc.mozCancelFullScreen ||
+          doc.msExitFullscreen;
+
+        if (exitMethod) {
+          try {
+            exitMethod.call(doc);
+          } catch (err: any) {
+            console.error(`Error invoking exitFullscreen: ${err.message}`);
+            setIsFullScreen(false);
+          }
         }
       }
     } else {
-      const exitMethod =
-        doc.exitFullscreen ||
-        doc.webkitExitFullscreen ||
-        doc.mozCancelFullScreen ||
-        doc.msExitFullscreen;
-
-      if (exitMethod) {
-        try {
-          exitMethod.call(doc);
-        } catch (err: any) {
-          console.error(`Error invoking exitFullscreen: ${err.message}`);
-        }
-      }
+      // Fallback para smartphones/navegadores que não suportam Fullscreen API nativo (iOS Safari)
+      setIsFullScreen(prev => !prev);
     }
   };
 
@@ -206,10 +210,22 @@ export default function MeuEcossistemaPage() {
     <div 
       ref={containerRef}
       className={cn(
-        "relative flex-1 w-full overflow-hidden font-sans select-none bg-slate-950 shadow-2xl animate-in fade-in zoom-in duration-700",
-        isFullScreen ? "h-screen rounded-0" : "h-[500px] xs:h-[580px] md:h-[650px] lg:h-[750px] rounded-2xl"
+        "relative flex-1 w-full overflow-hidden font-sans select-none bg-slate-950 shadow-2xl animate-in fade-in zoom-in duration-700 transition-all",
+        isFullScreen 
+          ? "fixed inset-0 z-50 w-screen h-[100dvh] rounded-none" 
+          : "h-[500px] xs:h-[580px] md:h-[650px] lg:h-[750px] rounded-2xl"
       )}
     >
+      {isFullScreen && (
+        <button 
+          onClick={toggleFullScreen}
+          className="absolute top-[calc(1rem+env(safe-area-inset-top))] right-4 z-50 p-3 bg-black/80 hover:bg-black/90 text-white border border-white/10 rounded-full hover:scale-105 active:scale-95 transition-all shadow-xl pointer-events-auto flex items-center justify-center cursor-pointer"
+          title="Sair da Tela Cheia"
+        >
+          <Minimize className="w-5 h-5 text-emerald-400" />
+        </button>
+      )}
+
       <EcosystemViewer 
         vitality={vitality} 
         purchasedItems={purchasedItems as any} 

@@ -4,7 +4,7 @@ import { useEcosystem } from '@/contexts/EcosystemContext';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
-import { useState } from 'react';
+import { useState, use } from 'react';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Sparkles, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -13,11 +13,12 @@ import { cn } from '@/lib/utils';
 export default function EducationArticlePage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
+  const unwrappedParams = use(params);
   const { allArticles, recordArticleRead, userStates, currentUser } = useEcosystem();
   const { toast } = useToast();
-  const article = allArticles.find((a) => a.slug === params.slug);
+  const article = allArticles.find((a) => a.slug === unwrappedParams.slug);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const hasAlreadyRead = currentUser && userStates[currentUser.id]?.readArticles?.includes(article?.id || '');
