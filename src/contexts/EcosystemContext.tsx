@@ -399,12 +399,12 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
 
   const allRewards = useMemo(() => {
     const sid = targetSchoolId || currentUser?.schoolId;
-    return rewards.filter((r: Reward) => (sid && r.schoolId === sid));
+    return rewards.filter((r: Reward) => !r.schoolId || (sid && r.schoolId === sid) || r.schoolId === 'school-1');
   }, [rewards, currentUser, targetSchoolId]);
 
   const allArticles = useMemo(() => {
     const sid = targetSchoolId || currentUser?.schoolId;
-    return articles.filter((a: EducationArticle) => (sid && a.schoolId === sid));
+    return articles.filter((a: EducationArticle) => !a.schoolId || (sid && a.schoolId === sid) || a.schoolId === 'school-1');
   }, [articles, currentUser, targetSchoolId]);
 
   const allTurmas = useMemo(() => {
@@ -414,7 +414,7 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
 
   const allQuizTopics = useMemo(() => {
     const sid = targetSchoolId || currentUser?.schoolId;
-    return quizTopics.filter((t: QuizTopic) => (sid && t.schoolId === sid));
+    return quizTopics.filter((t: QuizTopic) => !t.schoolId || (sid && t.schoolId === sid) || t.schoolId === 'school-1');
   }, [quizTopics, currentUser, targetSchoolId]);
 
   const allCursos = useMemo(() => {
