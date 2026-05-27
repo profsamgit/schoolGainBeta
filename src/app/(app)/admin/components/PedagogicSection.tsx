@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
-  BookOpen, Plus, Trash2, Edit, MoreHorizontal, ArrowLeft, Camera, Loader2, Lock, Eye
+  BookOpen, Plus, Trash2, Edit, MoreHorizontal, ArrowLeft, Camera, Loader2, Lock, Eye, Sparkles
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
@@ -24,6 +24,9 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { EducationArticle, QuizTopic } from '@/types/ecosystem';
+import { useEcosystem } from '@/contexts/EcosystemContext';
+import { useToast } from '@/hooks/use-toast';
+import { generateNewAIArticle } from '@/app/(app)/student/education/actions';
 
 interface PedagogicSectionProps {
   articles: EducationArticle[];
@@ -86,6 +89,46 @@ export function PedagogicSection({
 }: PedagogicSectionProps) {
 
   const [previewAvatar, setPreviewAvatar] = useState<string | null>(null);
+  const { currentUser } = useEcosystem();
+  const { toast } = useToast();
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleGenerateAI = async () => {
+    const targetSchoolId = currentUser?.schoolId;
+    if (!targetSchoolId) {
+      toast({
+        variant: 'destructive',
+        title: 'Unidade não identificada',
+        description: 'Não foi possível detectar a unidade escolar logada.',
+      });
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const article = await generateNewAIArticle(targetSchoolId);
+      if (article) {
+        toast({
+          title: 'Artigo Gerado!',
+          description: `O artigo "${article.title}" foi criado pela IA do Gemini.`,
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Erro de Geração',
+          description: 'A IA do Gemini não conseguiu responder no momento.',
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      toast({
+        variant: 'destructive',
+        title: 'Erro Inesperado',
+        description: 'Falha ao contatar a API de IA.',
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const filteredArticles = useMemo(() => {
     return articles
@@ -327,9 +370,22 @@ export function PedagogicSection({
             <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">Biblioteca de Conteúdo</CardTitle>
             <CardDescription className="text-slate-500 dark:text-slate-400 text-xs mt-1">Artigos pedagógicos e links de apoio em vídeo.</CardDescription>
           </div>
-          <Button onClick={() => handleNew('article')} className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white border border-indigo-400/20 font-black uppercase text-[10px] tracking-widest gap-2 h-11 px-6 rounded-xl hover:scale-105 transition-transform shadow-lg shadow-indigo-500/10">
-            <BookOpen className="h-4 w-4" /> Novo Artigo
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={handleGenerateAI} 
+              disabled={isGenerating}
+              className="bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white border border-emerald-400/20 font-black uppercase text-[10px] tracking-widest gap-2 h-11 px-6 rounded-xl hover:scale-105 transition-transform shadow-lg shadow-emerald-500/10 shadow-emerald-500/5"
+            >
+              {isGenerating ? (
+                <><Loader2 className="h-4 w-4 animate-spin" /> Gerando...</>
+              ) : (
+                <><Sparkles className="h-4 w-4 text-amber-300" /> Gerar com IA</>
+              )}
+            </Button>
+            <Button onClick={() => handleNew('article')} className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white border border-indigo-400/20 font-black uppercase text-[10px] tracking-widest gap-2 h-11 px-6 rounded-xl hover:scale-105 transition-transform shadow-lg shadow-indigo-500/10">
+              <BookOpen className="h-4 w-4" /> Novo Artigo
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
           <div className="p-4 bg-slate-50/50 dark:bg-slate-950 border border-slate-200/60 dark:border-white/5 rounded-2xl shadow-md">

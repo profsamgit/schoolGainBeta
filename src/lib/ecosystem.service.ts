@@ -1282,7 +1282,8 @@ export class EcosystemService {
       pointTransactions: [],
       curso: user?.curso || null,
       lastMissionDate: null,
-      readArticles: []
+      readArticles: [],
+      dailyArticleReads: {}
     };
   }
 

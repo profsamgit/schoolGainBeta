@@ -18,13 +18,23 @@ export class PedagogicalService {
 
     const state = this.service.data.userStates[userId] || this.service.getDefaultState(student);
     if (!state.readArticles) state.readArticles = [];
+    if (!state.dailyArticleReads) state.dailyArticleReads = {};
+
+    const today = new Date().toISOString().split('T')[0];
+    if (!state.dailyArticleReads[today]) state.dailyArticleReads[today] = [];
     
     // Verifica se já leu para não ganhar pontos repetidos
     if (state.readArticles.includes(articleId)) return true;
 
+    // Limite de 3 artigos lidos por dia
+    if (state.dailyArticleReads[today].length >= 3) {
+      return false;
+    }
+
     // Concede 20 pontos por leitura
     const points = 20;
     state.readArticles.push(articleId);
+    state.dailyArticleReads[today].push(articleId);
     this.service.data.userStates[userId] = state;
     
     this.service.syncUserPoints(userId, points, points, `Leitura de Artigo: ${article.title}`);

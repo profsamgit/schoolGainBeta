@@ -58,6 +58,7 @@ export type EducationArticle = {
   imageHint: string;
   videoUrl?: string;
   schoolId: string;
+  createdAt?: string;
 };
 
 export type Participant = {
@@ -268,6 +269,7 @@ export interface EcosystemUserState {
   curso?: string | null;            // Curso do aluno
   level: UserLevel;             // Título do aluno
   readArticles: string[];      // IDs dos artigos lidos
+  dailyArticleReads?: Record<string, string[]>; // Artigos lidos por data (para limite de 3/dia)
   pointTransactions?: PointTransaction[]; // Histórico de transações de pontos
 }
 

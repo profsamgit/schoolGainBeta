@@ -399,22 +399,22 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
 
   const allRewards = useMemo(() => {
     const sid = targetSchoolId || currentUser?.schoolId;
-    return rewards.filter((r: Reward) => !r.schoolId || (sid && r.schoolId === sid) || r.schoolId === 'school-1');
+    return rewards.filter((r: Reward) => !!(sid && r.schoolId === sid));
   }, [rewards, currentUser, targetSchoolId]);
 
   const allArticles = useMemo(() => {
     const sid = targetSchoolId || currentUser?.schoolId;
-    return articles.filter((a: EducationArticle) => !a.schoolId || (sid && a.schoolId === sid) || a.schoolId === 'school-1');
+    return articles.filter((a: EducationArticle) => !!(sid && a.schoolId === sid));
   }, [articles, currentUser, targetSchoolId]);
 
   const allTurmas = useMemo(() => {
     const sid = targetSchoolId || currentUser?.schoolId;
-    return turmas.filter((t: Turma) => (sid && t.schoolId === sid));
+    return turmas.filter((t: Turma) => !!(sid && t.schoolId === sid));
   }, [turmas, currentUser, targetSchoolId]);
 
   const allQuizTopics = useMemo(() => {
     const sid = targetSchoolId || currentUser?.schoolId;
-    return quizTopics.filter((t: QuizTopic) => !t.schoolId || (sid && t.schoolId === sid) || t.schoolId === 'school-1');
+    return quizTopics.filter((t: QuizTopic) => !!(sid && t.schoolId === sid));
   }, [quizTopics, currentUser, targetSchoolId]);
 
   const allCursos = useMemo(() => {

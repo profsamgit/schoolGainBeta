@@ -18,9 +18,7 @@ export default function RewardsPage() {
   const { toast } = useToast();
   const { balance, deductPoints, allRewards, currentUser, recordRewardRedemption } = useEcosystem();
 
-  const schoolRewards = allRewards.filter(reward => 
-    !reward.schoolId || reward.schoolId === currentUser?.schoolId || reward.schoolId === 'school-1'
-  );
+  const schoolRewards = allRewards;
 
   const handleRedeem = (rewardId: string, rewardName: string, cost: number) => {
     const success = deductPoints(cost);
