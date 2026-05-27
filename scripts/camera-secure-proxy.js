@@ -22,8 +22,58 @@ const url = require('url');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const dgram = require('dgram');
 
 const PORT = 9005;
+const UDP_PORT = 9006;
+
+// Buffer de logs na memória indexado por IP da ESP
+const logsByIp = {};
+let logClients = [];
+
+// Função utilitária para adicionar log
+function addLog(ip, message) {
+  if (!logsByIp[ip]) {
+    logsByIp[ip] = [];
+  }
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    message: message
+  };
+  logsByIp[ip].push(logEntry);
+  
+  // Limita o buffer em 100 linhas por IP
+  if (logsByIp[ip].length > 100) {
+    logsByIp[ip].shift();
+  }
+
+  // Notifica os clientes SSE conectados
+  const data = JSON.stringify({ ip, ...logEntry });
+  logClients.forEach(client => {
+    try {
+      client.res.write(`data: ${data}\n\n`);
+    } catch (err) {
+      // Ignora conexões fechadas
+    }
+  });
+}
+
+// Inicia o Servidor UDP de Logs na porta 9006
+const udpServer = dgram.createSocket('udp4');
+
+udpServer.on('message', (msg, rinfo) => {
+  const ip = rinfo.address;
+  const message = msg.toString().trim();
+  addLog(ip, message);
+});
+
+udpServer.on('error', (err) => {
+  console.error(`[PROXY UDP ERRO] Falha no servidor de logs UDP:`, err.message);
+});
+
+udpServer.bind(UDP_PORT, () => {
+  console.log(`📡 Coletor de Logs UDP ouvindo na porta: ${UDP_PORT}`);
+});
 
 /**
  * Obtém ou gera um Hardware ID persistente para a máquina do Totem.
@@ -118,6 +168,7 @@ const server = http.createServer((req, res) => {
     res.end(JSON.stringify({ success: true, message: 'Encerrando proxy local...' }));
     console.log('[PROXY] Recebida solicitação de encerramento via navegador. Fechando o serviço...');
     setTimeout(() => {
+      try { udpServer.close(); } catch(e) {}
       process.exit(0);
     }, 500);
     return;
@@ -127,6 +178,42 @@ const server = http.createServer((req, res) => {
     const hwid = getPersistentHardwareId();
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ hardwareId: hwid }));
+    return;
+  }
+
+  // Endpoint HTTP para recuperar histórico de logs de um IP
+  if (parsedUrl.pathname === '/logs') {
+    const ip = parsedUrl.query.target;
+    res.writeHead(200, { 
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Private-Network': 'true'
+    });
+    if (ip) {
+      res.end(JSON.stringify(logsByIp[ip] || []));
+    } else {
+      res.end(JSON.stringify(logsByIp));
+    }
+    return;
+  }
+
+  // Endpoint SSE para streaming de logs em tempo real
+  if (parsedUrl.pathname === '/logs/stream') {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Private-Network': 'true'
+    });
+    res.write('\n');
+
+    const client = { res };
+    logClients.push(client);
+
+    req.on('close', () => {
+      logClients = logClients.filter(c => c !== client);
+    });
     return;
   }
 
@@ -193,9 +280,10 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log(`\n=============================================================`);
-  console.log(`📡 PROXY SEGURO DA ESP32-CAM ATIVO COM SUCESSO!`);
+  console.log(`📡 PROXY SEGURO DA ESP32-CAM E RECEPTOR DE LOGS ATIVO!`);
   console.log(`=============================================================`);
-  console.log(`- Ouvindo localmente na porta: ${PORT}`);
+  console.log(`- Ouvindo vídeo localmente na porta: ${PORT}`);
+  console.log(`- Ouvindo logs UDP localmente na porta: ${UDP_PORT}`);
   console.log(`- Para usar com o Totem online, configure a URL da câmera como:`);
   console.log(`  http://localhost:${PORT}/stream?target=<IP_DA_ESP32>`);
   console.log(`=============================================================\n`);

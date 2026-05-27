@@ -62,6 +62,7 @@ import { AcademicSection } from './components/AcademicSection';
 import { PedagogicSection } from './components/PedagogicSection';
 import { EconomicSection } from './components/EconomicSection';
 import { InfraSection } from './components/InfraSection';
+import { IoTSection } from './components/IoTSection';
 
 // Schemas
 const userSchema = z.object({
@@ -940,7 +941,7 @@ function AdminContent() {
             />
           </TabsContent>
 
-          <TabsContent value="infra">
+          <TabsContent value="infra" className="space-y-6">
             <InfraSection
               systemSettings={systemSettings}
               updateSystemSettings={updateSystemSettings}
@@ -956,6 +957,7 @@ function AdminContent() {
               toast={toast}
               schools={schools}
             />
+            <IoTSection />
           </TabsContent>
 
         </Tabs>
