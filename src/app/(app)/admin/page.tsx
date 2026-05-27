@@ -907,6 +907,7 @@ function AdminContent() {
               uploadUserAvatar={uploadUserAvatar}
               uploadingUserId={uploadingUserId}
               setUploadingUserId={setUploadingUserId}
+              auditLogs={auditLogs}
             />
           </TabsContent>
 

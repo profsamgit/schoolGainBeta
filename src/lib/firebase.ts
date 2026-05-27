@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, setLogLevel } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 
@@ -16,12 +16,18 @@ const firebaseConfig = {
 // Inicializa o Firebase apenas se ainda não tiver sido inicializado
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
+// Silencia avisos e spams de erro de conexão interna do gRPC
+if (typeof window !== 'undefined') {
+  setLogLevel('error');
+}
+
 // Exporta as instâncias dos serviços com persistência local habilitada no cliente
 export const db = typeof window !== 'undefined'
   ? initializeFirestore(app, {
       localCache: persistentLocalCache({
         tabManager: persistentMultipleTabManager()
-      })
+      }),
+      experimentalForceLongPolling: true
     })
   : getFirestore(app);
 

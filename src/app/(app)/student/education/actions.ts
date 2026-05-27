@@ -2,7 +2,7 @@
 
 import { generateArticle } from '@/ai/flows/generate-article';
 import { db } from '@/lib/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDocs, collection, query, where } from 'firebase/firestore';
 import type { EducationArticle } from '@/types/ecosystem';
 
 const TOPICS = [
@@ -20,9 +20,32 @@ const TOPICS = [
 
 export async function generateNewAIArticle(schoolId: string): Promise<EducationArticle | null> {
   try {
-    // Pick a random topic
-    const randomTopic = TOPICS[Math.floor(Math.random() * TOPICS.length)];
-    const result = await generateArticle({ topic: randomTopic });
+    // Busca tópicos customizados criados pela escola no Firestore
+    const topicsRef = collection(db, "quizTopics");
+    const q = query(topicsRef, where("schoolId", "==", schoolId));
+    const querySnapshot = await getDocs(q);
+
+    let selectedTopic = "";
+
+    if (!querySnapshot.empty) {
+      const dbTopics: string[] = [];
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.name) {
+          dbTopics.push(data.name);
+        }
+      });
+      if (dbTopics.length > 0) {
+        selectedTopic = dbTopics[Math.floor(Math.random() * dbTopics.length)];
+      }
+    }
+
+    // Fallback caso a escola não possua temas cadastrados
+    if (!selectedTopic) {
+      selectedTopic = TOPICS[Math.floor(Math.random() * TOPICS.length)];
+    }
+
+    const result = await generateArticle({ topic: selectedTopic });
 
     const id = `ai-art-${Math.random().toString(36).substring(2, 11)}-${Date.now()}`;
     const slug = result.title
@@ -68,9 +91,7 @@ export async function generateNewAIArticle(schoolId: string): Promise<EducationA
       createdAt: new Date().toISOString()
     };
 
-    // Write directly to Firestore
-    await setDoc(doc(db, "articles", id), newArticle);
-
+    // Return generated article object to the client to write with user authentication
     return newArticle;
   } catch (error) {
     console.error("[AI ARTICLE GENERATION ERROR]:", error);

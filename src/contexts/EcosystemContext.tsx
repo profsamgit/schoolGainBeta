@@ -425,8 +425,8 @@ export function EcosystemProvider({ children }: { children: React.ReactNode }) {
   const auditLogs = useMemo(() => {
     const sid = targetSchoolId || currentUser?.schoolId;
     
-    // Super Admin sem targetSchoolId vê tudo (opcional, dependendo da preferência)
-    if (currentUser?.role === 'super_admin' && !targetSchoolId) return rawAuditLogs;
+    // Super Admin sem targetSchoolId manual selecionado vê tudo
+    if (currentUser?.role === 'super_admin' && (!manualSchoolId || manualSchoolId === 'global')) return rawAuditLogs;
 
     // Se não houver unidade identificada, não mostra nada por segurança
     if (!sid && !isPreviewMode) return [];

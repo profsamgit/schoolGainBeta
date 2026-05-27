@@ -23,10 +23,12 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { EducationArticle, QuizTopic } from '@/types/ecosystem';
+import { EducationArticle, QuizTopic, AuditLogEntry } from '@/types/ecosystem';
 import { useEcosystem } from '@/contexts/EcosystemContext';
 import { useToast } from '@/hooks/use-toast';
 import { generateNewAIArticle } from '@/app/(app)/student/education/actions';
+import { db } from '@/lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
 interface PedagogicSectionProps {
   articles: EducationArticle[];
@@ -56,6 +58,7 @@ interface PedagogicSectionProps {
   setUploadingUserId: (id: string | null) => void;
   securityPassword: string;
   setSecurityPassword: (val: string) => void;
+  auditLogs: AuditLogEntry[];
 }
 
 export function PedagogicSection({
@@ -85,13 +88,18 @@ export function PedagogicSection({
   uploadingUserId,
   setUploadingUserId,
   securityPassword,
-  setSecurityPassword
+  setSecurityPassword,
+  auditLogs
 }: PedagogicSectionProps) {
 
   const [previewAvatar, setPreviewAvatar] = useState<string | null>(null);
   const { currentUser } = useEcosystem();
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const pedagogicHistory = useMemo(() => {
+    return auditLogs.filter(log => log.action === 'ARTICLE_READ' || log.action === 'QUIZ_COMPLETED');
+  }, [auditLogs]);
 
   const handleGenerateAI = async () => {
     const targetSchoolId = currentUser?.schoolId;
@@ -107,9 +115,11 @@ export function PedagogicSection({
     try {
       const article = await generateNewAIArticle(targetSchoolId);
       if (article) {
+        // Salva o artigo no Firestore usando as credenciais do cliente autenticado
+        await setDoc(doc(db, "articles", article.id), article);
         toast({
           title: 'Artigo Gerado!',
-          description: `O artigo "${article.title}" foi criado pela IA do Gemini.`,
+          description: `O artigo "${article.title}" foi criado pela IA do Gemini e salvo com sucesso.`,
         });
       } else {
         toast({
@@ -123,7 +133,7 @@ export function PedagogicSection({
       toast({
         variant: 'destructive',
         title: 'Erro Inesperado',
-        description: 'Falha ao contatar a API de IA.',
+        description: 'Falha ao processar ou salvar o artigo gerado pela IA.',
       });
     } finally {
       setIsGenerating(false);
@@ -302,6 +312,27 @@ export function PedagogicSection({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
+      
+      {/* Guia Informativo de Integração Pedagógica */}
+      <div className="relative overflow-hidden rounded-[2rem] border border-emerald-500/25 bg-emerald-500/5 dark:bg-emerald-500/10 p-6 text-slate-800 dark:text-white backdrop-blur-xl shadow-lg">
+        <div className="flex gap-4 items-start">
+          <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 shrink-0">
+            <Sparkles className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-xs font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Guia de Integração Pedagógica (IA + Conteúdo)</h3>
+            <p className="text-[11px] text-slate-600 dark:text-slate-350 leading-relaxed font-semibold">
+              O ecossistema pedagógico da escola é 100% dinâmico e gira em torno dos seus <strong>Tópicos</strong> cadastrados abaixo:
+            </p>
+            <ul className="text-[11px] text-slate-650 dark:text-slate-350 space-y-1.5 list-disc pl-4 mt-2 font-semibold">
+              <li><strong className="text-slate-800 dark:text-white">Tópicos</strong>: Representam os temas de sustentabilidade (ex: <i>"Reciclagem"</i>). Cadastre-os para guiar a IA.</li>
+              <li><strong className="text-slate-800 dark:text-white">Quizzes</strong>: Gerados de forma autônoma pela IA do Gemini sob demanda para os alunos, baseando-se estritamente nos Tópicos ativos da sua escola.</li>
+              <li><strong className="text-slate-800 dark:text-white">Artigos de IA</strong>: Ao clicar em <i>"Gerar com IA"</i>, o sistema gera instantaneamente um artigo estruturado no tema de um dos tópicos ativos cadastrados pela escola.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
       <div className="grid gap-6 md:grid-cols-3">
         <Card className="overflow-hidden relative bg-indigo-50/50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-500/20 text-indigo-900 dark:text-white rounded-[2rem] shadow-2xl p-6 backdrop-blur-xl">
           <CardHeader className="pb-2 p-0">
@@ -343,8 +374,8 @@ export function PedagogicSection({
 
       <Card className="border border-slate-200/60 dark:border-white/10 shadow-2xl overflow-hidden bg-white/80 dark:bg-slate-900/40 rounded-[2rem] backdrop-blur-xl hover:border-indigo-500/10 transition-all duration-300 text-slate-800 dark:text-white">
         <CardHeader className="border-b border-slate-200/60 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20 px-6 py-5">
-          <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">Tópicos de Quiz</CardTitle>
-          <CardDescription className="text-slate-500 dark:text-slate-400 text-xs mt-1">Geração automática de desafios para os alunos no ecossistema.</CardDescription>
+          <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">Tópicos Ambientais</CardTitle>
+          <CardDescription className="text-slate-500 dark:text-slate-400 text-xs mt-1">Temas que a IA utilizará como base para criar Quizzes e Artigos automaticamente para os alunos.</CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-4">
           <div className="flex gap-2">
@@ -367,8 +398,8 @@ export function PedagogicSection({
       <Card className="border border-slate-200/60 dark:border-white/10 shadow-2xl overflow-hidden bg-white/80 dark:bg-slate-900/40 rounded-[2rem] backdrop-blur-xl hover:border-indigo-500/10 transition-all duration-300 text-slate-800 dark:text-white">
         <CardHeader className="flex flex-row items-center justify-between border-b border-slate-200/60 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20 px-6 py-5">
           <div>
-            <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">Biblioteca de Conteúdo</CardTitle>
-            <CardDescription className="text-slate-500 dark:text-slate-400 text-xs mt-1">Artigos pedagógicos e links de apoio em vídeo.</CardDescription>
+            <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">Biblioteca de Artigos</CardTitle>
+            <CardDescription className="text-slate-500 dark:text-slate-400 text-xs mt-1">Artigos criados manualmente ou gerados via IA com base nos Tópicos.</CardDescription>
           </div>
           <div className="flex gap-2">
             <Button 
@@ -442,6 +473,56 @@ export function PedagogicSection({
                 )) : (
                   <TableRow>
                     <TableCell colSpan={2} className="text-center py-12 text-slate-400 uppercase text-[10px] font-black tracking-widest italic">Nenhum artigo encontrado.</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* HISTÓRICO PEDAGÓGICO DE LEITURAS E QUIZZES */}
+      <Card className="border border-slate-200/60 dark:border-white/10 shadow-2xl overflow-hidden bg-white/80 dark:bg-slate-900/40 rounded-[2rem] backdrop-blur-xl hover:border-indigo-500/10 transition-all duration-300 text-slate-800 dark:text-white">
+        <CardHeader className="flex flex-row items-center justify-between border-b border-slate-200/60 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20 px-6 py-5">
+          <div>
+            <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">Histórico de Atividades dos Alunos</CardTitle>
+            <CardDescription className="text-slate-500 dark:text-slate-400 text-xs mt-1">
+              Registro em tempo real de leituras de artigos e conclusões de quizzes efetuados pelos alunos.
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="rounded-2xl border border-slate-200/60 dark:border-white/10 bg-white/40 dark:bg-slate-950/50 overflow-hidden shadow-2xl">
+            <Table>
+              <TableHeader className="bg-slate-100/80 dark:bg-slate-950 border-b border-slate-200/60 dark:border-white/10">
+                <TableRow>
+                  <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-500 dark:text-slate-400 px-6 h-12">Data / Hora</TableHead>
+                  <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-500 dark:text-slate-400 h-12">Aluno</TableHead>
+                  <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-500 dark:text-slate-400 h-12">Atividade</TableHead>
+                  <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-500 dark:text-slate-400 h-12 text-right px-6">Tipo</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pedagogicHistory.length > 0 ? (
+                  pedagogicHistory.map((log) => (
+                    <TableRow key={log.id} className="hover:bg-indigo-50/40 dark:hover:bg-indigo-500/5 border-b border-slate-200/60 dark:border-white/5 transition-colors">
+                      <TableCell className="text-[11px] text-slate-500 px-6 py-4">{new Date(log.timestamp).toLocaleString('pt-BR')}</TableCell>
+                      <TableCell className="font-bold text-slate-700 dark:text-slate-200">{log.studentName || 'Aluno'}</TableCell>
+                      <TableCell className="text-xs text-slate-650 dark:text-slate-350 font-medium">{log.details}</TableCell>
+                      <TableCell className="text-right px-6">
+                        <Badge className={`uppercase text-[8px] font-black tracking-widest px-2.5 py-1 rounded-xl border ${
+                          log.action === 'ARTICLE_READ'
+                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                            : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20'
+                        }`}>
+                          {log.action === 'ARTICLE_READ' ? 'Leitura' : 'Quiz'}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-12 text-slate-500 dark:text-slate-400 uppercase text-[10px] font-black tracking-widest italic">Nenhuma atividade pedagógica registrada recentemente.</TableCell>
                   </TableRow>
                 )}
               </TableBody>

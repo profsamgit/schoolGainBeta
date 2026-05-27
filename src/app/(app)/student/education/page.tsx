@@ -17,6 +17,8 @@ import { useState } from 'react';
 import { generateNewAIArticle } from './actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { db } from '@/lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
 export default function EducationPage() {
   const { allArticles, currentUser, userStates } = useEcosystem();
@@ -45,6 +47,8 @@ export default function EducationPage() {
     try {
       const article = await generateNewAIArticle(currentUser.schoolId);
       if (article) {
+        // Salva o artigo no Firestore usando as credenciais do cliente autenticado
+        await setDoc(doc(db, "articles", article.id), article);
         toast({
           title: 'Artigo Gerado!',
           description: `Novo artigo "${article.title}" gerado com sucesso por IA!`,

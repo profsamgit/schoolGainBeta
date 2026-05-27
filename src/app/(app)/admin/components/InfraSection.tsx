@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
-  User as UserIcon, ShieldCheck, Monitor, ShieldAlert, Settings2, Trash2, Cpu, Download 
+  User as UserIcon, ShieldCheck, Monitor, ShieldAlert, Settings2, Trash2, Cpu, Download, Sparkles
 } from 'lucide-react';
 import { 
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
@@ -186,6 +186,27 @@ export function InfraSection({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300 text-slate-800 dark:text-white">
+      
+      {/* Guia Informativo de Infraestrutura */}
+      <div className="relative overflow-hidden rounded-[2rem] border border-emerald-500/25 bg-emerald-500/5 dark:bg-emerald-500/10 p-6 text-slate-800 dark:text-white backdrop-blur-xl shadow-lg">
+        <div className="flex gap-4 items-start">
+          <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 shrink-0">
+            <Settings2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-xs font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Guia de Configuração de Hardware e Totens</h3>
+            <p className="text-[11px] text-slate-600 dark:text-slate-350 leading-relaxed font-semibold">
+              Gerencie a integração física da escola (câmeras, totens físicos de pesagem/coleta e métodos de autenticação):
+            </p>
+            <ul className="text-[11px] text-slate-650 dark:text-slate-350 space-y-1.5 list-disc pl-4 mt-2 font-semibold">
+              <li><strong className="text-slate-800 dark:text-white">Transmissão ESP32-CAM</strong>: Configure a origem de vídeo dos totens (Webcam local, ESP32 via IP, ou o Proxy HTTPS Seguro na porta 9005 para contornar restrições de segurança do navegador).</li>
+              <li><strong className="text-slate-800 dark:text-white">Métodos de Acesso</strong>: Configure quais formas de autenticação estão habilitadas para Alunos (RA e/ou QRCode) e Administradores (Senha, QRCode e/ou crachá RFID).</li>
+              <li><strong className="text-slate-800 dark:text-white">Gestão de Totens</strong>: Aprove terminais novos solicitando acesso, copie os IDs e chaves criptográficas para colar no código do Arduino, e configure resoluções ou taxas de quadros.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
       {/* 📡 DIAGNÓSTICO DO PROXY SEGURO */}
       <div className="p-6 bg-white/80 dark:bg-slate-900/40 border border-slate-200/60 dark:border-white/10 rounded-[2rem] backdrop-blur-xl text-slate-800 dark:text-white shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">

@@ -296,6 +296,27 @@ export function EconomicSection({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
+      
+      {/* Guia Informativo Econômico */}
+      <div className="relative overflow-hidden rounded-[2rem] border border-emerald-500/25 bg-emerald-500/5 dark:bg-emerald-500/10 p-6 text-slate-800 dark:text-white backdrop-blur-xl shadow-lg">
+        <div className="flex gap-4 items-start">
+          <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 shrink-0">
+            <Leaf className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-xs font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Guia Econômico e Reconhecimento de Mérito</h3>
+            <p className="text-[11px] text-slate-600 dark:text-slate-350 leading-relaxed font-semibold">
+              Gerencie a economia de Bio-Coins, conceda pontuações de incentivo e administre o catálogo de recompensas:
+            </p>
+            <ul className="text-[11px] text-slate-650 dark:text-slate-350 space-y-1.5 list-disc pl-4 mt-2 font-semibold">
+              <li><strong className="text-slate-800 dark:text-white">Reconhecimento de Mérito</strong>: Permite a atribuição manual de Bio-Coins/pontos para alunos engajados. Para efetivar o bônus, informe a justificativa e sua senha de gestor.</li>
+              <li><strong className="text-slate-800 dark:text-white">Recompensas (Shop)</strong>: Cadastre ou edite prêmios e defina seus custos em Bio-Coins. Eles aparecerão no app do aluno para troca/resgate.</li>
+              <li><strong className="text-slate-800 dark:text-white">Histórico de Transações</strong>: Auditoria completa e cronológica de todas as moedas emitidas ou debitadas na escola.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
       <div className="grid gap-6 md:grid-cols-3">
           <Card className="overflow-hidden relative bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-500/20 text-slate-900 dark:text-white rounded-[2rem] shadow-2xl p-6 backdrop-blur-xl">
               <CardHeader className="pb-2 p-0">

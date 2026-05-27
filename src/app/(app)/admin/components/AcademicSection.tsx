@@ -689,6 +689,27 @@ export function AcademicSection({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
+      
+      {/* Guia Informativo do Corpo Acadêmico */}
+      <div className="relative overflow-hidden rounded-[2rem] border border-emerald-500/25 bg-emerald-500/5 dark:bg-emerald-500/10 p-6 text-slate-800 dark:text-white backdrop-blur-xl shadow-lg">
+        <div className="flex gap-4 items-start">
+          <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 shrink-0">
+            <Users className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-xs font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Guia do Corpo Acadêmico (Alunos + Equipe)</h3>
+            <p className="text-[11px] text-slate-600 dark:text-slate-350 leading-relaxed font-semibold">
+              Gerencie os perfis, cartões de identificação e status de acesso dos membros da escola:
+            </p>
+            <ul className="text-[11px] text-slate-650 dark:text-slate-350 space-y-1.5 list-disc pl-4 mt-2 font-semibold">
+              <li><strong className="text-slate-800 dark:text-white">Filtros de Funções</strong>: Selecione a função desejada (Aluno, Gestor, Funcionário ou Visitante) para gerenciar o grupo específico.</li>
+              <li><strong className="text-slate-800 dark:text-white">Identificação RFID / QRCode</strong>: Vincule cartões RFID e visualize ou imprima crachás físicos com QRCodes para acesso rápido nos totens.</li>
+              <li><strong className="text-slate-800 dark:text-white">Controle de Status</strong>: Use o interruptor Ativo/Inativo para revogar ou conceder acesso aos portais e totens escolares instantaneamente.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
       <Card className="border border-slate-200/60 dark:border-white/10 shadow-2xl overflow-hidden bg-white/80 dark:bg-slate-900/40 rounded-[2rem] backdrop-blur-xl hover:border-indigo-500/10 dark:hover:border-indigo-500/10 transition-all duration-300 text-slate-800 dark:text-white">
         <CardHeader className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-slate-200/60 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20 px-6 py-5">
           <div className="flex items-center gap-4">

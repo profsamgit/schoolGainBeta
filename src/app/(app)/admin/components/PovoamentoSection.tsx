@@ -172,7 +172,29 @@ export function PovoamentoSection({
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+    <div className="space-y-6 animate-in fade-in duration-300">
+      
+      {/* Guia Informativo de Povoamento e Estrutura */}
+      <div className="relative overflow-hidden rounded-[2rem] border border-emerald-500/25 bg-emerald-500/5 dark:bg-emerald-500/10 p-6 text-slate-800 dark:text-white backdrop-blur-xl shadow-lg">
+        <div className="flex gap-4 items-start">
+          <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 shrink-0">
+            <Building2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-xs font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Guia de Povoamento e Estrutura Escolar</h3>
+            <p className="text-[11px] text-slate-600 dark:text-slate-350 leading-relaxed font-semibold">
+              Defina a estrutura organizacional e acadêmica da escola antes de realizar novos cadastros:
+            </p>
+            <ul className="text-[11px] text-slate-650 dark:text-slate-350 space-y-1.5 list-disc pl-4 mt-2 font-semibold">
+              <li><strong className="text-slate-800 dark:text-white">Séries e Turmas / Cursos</strong>: Necessários para organizar os alunos matriculados e permitir o filtro correto nos rankings e relatórios acadêmicos.</li>
+              <li><strong className="text-slate-800 dark:text-white">Cargos e Setores</strong>: Utilizados para organizar o corpo corporativo (funcionários e voluntários) e registrar suas participações.</li>
+              <li><strong className="text-slate-800 dark:text-white">Ordem Recomendada</strong>: Cadastre a estrutura de Povoamento nesta aba antes de adicionar novos usuários na aba do Corpo Acadêmico.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
       
         {/* SÉRIES E TURMAS (Indigo Theme) */}
         <Card className="border border-slate-200/60 dark:border-indigo-500/20 shadow-2xl overflow-hidden bg-white/80 dark:bg-slate-950/40 rounded-[2rem] backdrop-blur-xl hover:border-indigo-500/30 dark:hover:border-indigo-500/40 transition-all duration-300 text-slate-800 dark:text-white">
@@ -475,6 +497,7 @@ export function PovoamentoSection({
         </DialogContent>
       </Dialog>
     </div>
+  </div>
   );
 }
 
