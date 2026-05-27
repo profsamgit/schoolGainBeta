@@ -25,6 +25,16 @@ O **SchoolGain** é um sistema de engajamento escolar voltado para a sustentabil
 
 ---
 
+## Últimas Atualizações (Maio 2026)
+
+- **Modo de Economia Inteligente (Standby Ativo):** O Totem Kiosk monitora 60 segundos de inatividade e entra em repouso automaticamente. O estado interrompe a webcam local e fecha síncronamente os sockets das câmeras de vídeo externas (ESP32-CAM) via limpeza de `src` na desmontagem e em eventos globais de histórico/popstate, apagando os LEDs Flash físicos automaticamente. Acorda instantaneamente ao toque.
+- **Permissão de Câmera Proativa:** O Kiosk e o portal solicitam permissão de mídia ao carregar a página. Isso faz com que os navegadores desbloqueiem e exponham os `deviceIds` persistentes antes que o código busque um ID específico, resolvendo falhas de conexão de primeira inicialização.
+- **Resolução Nativa e Desempenho (OV2640 & OV3660):** Mapeamos a câmera de login (OV2640) para utilizar resoluções nativas otimizadas em hardware (VGA de 30 FPS no modo fluido em vez de CIF processado via software), equiparando a velocidade da OV2640 com a OV3660 do scanner.
+- **Acessibilidade do Ecossistema Virtual em Smartphones:** Implementamos tela cheia virtual via CSS no "Meu Ecossistema" para contornar limitações da Fullscreen API do iOS Safari. Adicionamos suporte ao `env(safe-area-inset-bottom)` com folga de `4rem` para flutuar acima dos gestos do sistema e incluímos um botão de emergência superior (`Minimize`) contra bloqueios de interface.
+- **Compatibilidade Next.js 16 / React 19:** Atualizamos as páginas dinâmicas para suportar `params` como Promises assíncronas, utilizando o hook `use` do React 19 para desembrulhá-los com segurança e corrigir erros na abertura de artigos educativos.
+
+---
+
 ## Papéis do Sistema
 
 ### Aluno (`student`)
