@@ -2,6 +2,7 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
+  serverExternalPackages: ['firebase', '@firebase/firestore'],
   allowedDevOrigins: ['172.16.0.118', '192.168.98.100'],
   typescript: {
     ignoreBuildErrors: true,

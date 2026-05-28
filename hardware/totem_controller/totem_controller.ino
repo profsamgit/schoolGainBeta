@@ -22,6 +22,9 @@ String portal_password = "schoolgain"; // Senha padrão para o portal
 String rfidUrl = "";
 String binUrl = "";
 
+float LIXEIRA_VAZIA_DIST_CM = 80.0;
+float LIXEIRA_CHEIA_DIST_CM = 10.0;
+
 #include <WiFiUdp.h>
 WiFiUDP udpClient;
 
@@ -136,6 +139,14 @@ const char* PORTAL_HTML = R"rawliteral(
         <input name='token' type='text' required value='%TOKEN%'>
       </div>
       <div class='group'>
+        <label>Distancia Lixeira Vazia (cm)</label>
+        <input name='vaziaDist' type='number' step='0.1' required value='%VAZIADIST%'>
+      </div>
+      <div class='group'>
+        <label>Distancia Lixeira Cheia (cm)</label>
+        <input name='cheiaDist' type='number' step='0.1' required value='%CHEIADIST%'>
+      </div>
+      <div class='group'>
         <label>Nova Senha do Portal</label>
         <input name='newPortalPass' type='password' placeholder='Deixe em branco para nao alterar'>
       </div>
@@ -231,6 +242,8 @@ void startConfigPortal() {
     html.replace("%SERVER%", schoolgain_server);
     html.replace("%TERMID%", terminalId);
     html.replace("%TOKEN%", hardwareToken);
+    html.replace("%VAZIADIST%", String(LIXEIRA_VAZIA_DIST_CM, 1));
+    html.replace("%CHEIADIST%", String(LIXEIRA_CHEIA_DIST_CM, 1));
     server.send(200, "text/html", html);
   });
 
@@ -250,6 +263,9 @@ void startConfigPortal() {
       hardwareToken = server.arg("token");
       
       String newPass = server.arg("newPortalPass");
+      
+      if (server.hasArg("vaziaDist")) LIXEIRA_VAZIA_DIST_CM = server.arg("vaziaDist").toFloat();
+      if (server.hasArg("cheiaDist")) LIXEIRA_CHEIA_DIST_CM = server.arg("cheiaDist").toFloat();
 
       preferences.begin("schoolgain", false);
       preferences.putString("ssid", wifi_ssid);
@@ -257,6 +273,8 @@ void startConfigPortal() {
       preferences.putString("server", schoolgain_server);
       preferences.putString("termId", terminalId);
       preferences.putString("token", hardwareToken);
+      preferences.putFloat("vaziaDist", LIXEIRA_VAZIA_DIST_CM);
+      preferences.putFloat("cheiaDist", LIXEIRA_CHEIA_DIST_CM);
       if (newPass.length() > 0) {
         portal_password = newPass;
         preferences.putString("portalPass", portal_password);
@@ -314,8 +332,6 @@ const char* categorias[] = {"plastico", "papel", "vidro", "metal"};
 const int trigPinEsquerda = 25;
 const int trigPinDireita = 2;
 const int echoPins[] = {32, 33, 17, 16}; // Sonares 1 & 2 (Esquerda: D32, D33), Sonares 3 & 4 (Direita: TX2/D17, RX2/D16)
-const float LIXEIRA_VAZIA_DIST_CM = 80.0;
-const float LIXEIRA_CHEIA_DIST_CM = 10.0;
 
 // Filtro de Média Móvel (5 amostras por sensor)
 const int AMOSTRAS = 5;
@@ -368,6 +384,8 @@ void setup() {
   terminalId = preferences.getString("termId", "");
   hardwareToken = preferences.getString("token", "");
   portal_password = preferences.getString("portalPass", "schoolgain");
+  LIXEIRA_VAZIA_DIST_CM = preferences.getFloat("vaziaDist", 80.0);
+  LIXEIRA_CHEIA_DIST_CM = preferences.getFloat("cheiaDist", 10.0);
   preferences.end();
 
   const char* DEFAULT_SSID = "SchoolGain_Config_Net";
@@ -460,6 +478,8 @@ void setup() {
     html.replace("%SERVER%", schoolgain_server);
     html.replace("%TERMID%", terminalId);
     html.replace("%TOKEN%", hardwareToken);
+    html.replace("%VAZIADIST%", String(LIXEIRA_VAZIA_DIST_CM, 1));
+    html.replace("%CHEIADIST%", String(LIXEIRA_CHEIA_DIST_CM, 1));
     server.send(200, "text/html", html);
   });
 
@@ -479,6 +499,9 @@ void setup() {
       hardwareToken = server.arg("token");
       
       String newPass = server.arg("newPortalPass");
+      
+      if (server.hasArg("vaziaDist")) LIXEIRA_VAZIA_DIST_CM = server.arg("vaziaDist").toFloat();
+      if (server.hasArg("cheiaDist")) LIXEIRA_CHEIA_DIST_CM = server.arg("cheiaDist").toFloat();
 
       preferences.begin("schoolgain", false);
       preferences.putString("ssid", wifi_ssid);
@@ -486,6 +509,8 @@ void setup() {
       preferences.putString("server", schoolgain_server);
       preferences.putString("termId", terminalId);
       preferences.putString("token", hardwareToken);
+      preferences.putFloat("vaziaDist", LIXEIRA_VAZIA_DIST_CM);
+      preferences.putFloat("cheiaDist", LIXEIRA_CHEIA_DIST_CM);
       if (newPass.length() > 0) {
         portal_password = newPass;
         preferences.putString("portalPass", portal_password);
@@ -710,10 +735,12 @@ void loop() {
   // 3. Leitura e Envio de status de preenchimento das Lixeiras
   if (millis() - ultimaLeituraSonares >= intervaloSonares) {
     int pctCheio[numSensores];
+    float distancias[numSensores];
     bool algumCheio = false;
 
     for (int i = 0; i < numSensores; i++) {
       float distFiltrada = obterDistanciaSonar(i);
+      distancias[i] = distFiltrada;
       pctCheio[i] = calcularPorcentagem(distFiltrada);
       if (pctCheio[i] >= 85) {
         algumCheio = true;
@@ -732,6 +759,11 @@ void loop() {
       String payload = "{\"terminalId\":\"" + String(terminalId) + "\",\"levels\":{";
       for (int i = 0; i < numSensores; i++) {
         payload += "\"" + String(categorias[i]) + "\":" + String(pctCheio[i]);
+        if (i < numSensores - 1) payload += ",";
+      }
+      payload += "},\"distances\":{";
+      for (int i = 0; i < numSensores; i++) {
+        payload += "\"" + String(categorias[i]) + "\":" + String(distancias[i], 1);
         if (i < numSensores - 1) payload += ",";
       }
       payload += "}}";

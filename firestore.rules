@@ -65,7 +65,12 @@ service cloud.firestore {
 
     match /terminals/{terminalId} {
       allow read: if true; // Terminais precisam ser lidos para autorização
-      allow write: if true; // Permite que o hardware (API de telemetria e RFID) atualize o terminal
+      allow create: if isAdmin();
+      allow delete: if isAdmin();
+      allow update: if isAdmin() || (
+        resource != null &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['id', 'hardwareId', 'location', 'status', 'schoolId', 'requestDate'])
+      );
     }
 
     match /wasteEntries/{entryId} {

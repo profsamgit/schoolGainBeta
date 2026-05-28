@@ -151,6 +151,12 @@ export type Terminal = {
     vidro: number;
     metal: number;
   };
+  binDistances?: {
+    plastico: number;
+    papel: number;
+    vidro: number;
+    metal: number;
+  };
   lastBinUpdate?: string;
 };
 

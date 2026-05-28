@@ -20,16 +20,23 @@ const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 setLogLevel('silent');
 
 // Exporta as instâncias dos serviços com persistência local habilitada no cliente
-export const db = typeof window !== 'undefined'
-  ? initializeFirestore(app, {
+let firestoreInstance;
+if (typeof window !== 'undefined') {
+  try {
+    firestoreInstance = initializeFirestore(app, {
       localCache: persistentLocalCache({
         tabManager: persistentMultipleTabManager()
       }),
       experimentalForceLongPolling: true
-    })
-  : initializeFirestore(app, {
-      experimentalForceLongPolling: true
     });
+  } catch (e) {
+    firestoreInstance = getFirestore(app);
+  }
+} else {
+  firestoreInstance = getFirestore(app);
+}
+
+export const db = firestoreInstance;
 
 export const auth = getAuth(app);
 export const storage = getStorage(app);

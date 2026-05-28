@@ -66,8 +66,6 @@ export default function AdminDashboardPage() {
     const filteredTerminals = terminals.filter(t => isSuperAdmin ? true : t.schoolId === schoolId);
     const pendingRequests = registrationRequests.filter(r => (isSuperAdmin ? true : r.schoolId === schoolId) && r.status === 'pending');
 
-    const [refreshInterval, setRefreshInterval] = useState<string>('0');
-    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [currentTime, setCurrentTime] = useState<Date | null>(null);
 
@@ -79,15 +77,6 @@ export default function AdminDashboardPage() {
         const timerId = setInterval(() => setCurrentTime(new Date()), 1000);
         return () => clearInterval(timerId);
     }, []);
-
-    useEffect(() => {
-        setLastUpdated(new Date());
-        const interval = parseInt(refreshInterval, 10);
-        if (interval > 0) {
-            const timer = setInterval(() => setLastUpdated(new Date()), interval * 1000);
-            return () => clearInterval(timer);
-        }
-    }, [refreshInterval]);
 
     const toggleFullscreen = () => {
         if (!document.fullscreenElement) {
@@ -151,25 +140,6 @@ export default function AdminDashboardPage() {
                                 {currentTime ? currentTime.toLocaleTimeString('pt-BR') : '--:--:--'}
                             </span>
                         </div>
-
-                        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-900/30 rounded-xl border border-slate-250 dark:border-white/5">
-                            <RefreshCw className={cn("h-3 w-3 text-indigo-500 dark:text-indigo-400", refreshInterval !== '0' && "animate-spin-slow")} />
-                            <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
-                                {lastUpdated ? `Sincronizado ${lastUpdated.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : 'Sincronizando...'}
-                            </span>
-                        </div>
-
-                        <Select value={refreshInterval} onValueChange={setRefreshInterval}>
-                            <SelectTrigger className="w-[120px] border-none bg-transparent hover:bg-black/5 dark:hover:bg-white/5 transition-colors h-9 text-slate-705 dark:text-slate-300 font-bold uppercase text-[9px] tracking-wider">
-                                <SelectValue placeholder="Atualização" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white">
-                                <SelectItem value="0">Manual</SelectItem>
-                                <SelectItem value="5">5s</SelectItem>
-                                <SelectItem value="15">15s</SelectItem>
-                                <SelectItem value="60">1 min</SelectItem>
-                            </SelectContent>
-                        </Select>
 
                         <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="rounded-xl h-9 w-9 text-slate-600 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white">
                             {isFullscreen ? <Minimize className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
@@ -340,9 +310,6 @@ export default function AdminDashboardPage() {
                                        containerBorderClass = 'border-amber-500/30 bg-amber-500/5 dark:border-amber-500/10';
                                      }
 
-                                     const maxDistance = terminal.settings?.sonarDistance || 15;
-                                     const currentDistance = Math.max(0, maxDistance * (1 - level / 100));
-
                                      return (
                                        <div key={material} className={cn("p-3 border rounded-2xl flex flex-col items-center justify-between space-y-3 transition-all duration-300", containerBorderClass)}>
                                          
@@ -375,15 +342,17 @@ export default function AdminDashboardPage() {
                                            </div>
                                          </div>
 
-                                         {/* Rodapé: Status do sensor e do Sonar */}
-                                         <div className="w-full text-center space-y-1">
-                                           <div className={`text-[9px] font-black uppercase tracking-wider ${statusColorClass}`}>
-                                             {statusText}
-                                           </div>
-                                           <div className="text-[9px] text-slate-450 dark:text-slate-500 font-mono flex items-center justify-center gap-0.5 border-t border-slate-150/40 dark:border-white/5 pt-1 mt-1">
-                                             <span>📡 {currentDistance.toFixed(1)} cm</span>
-                                           </div>
-                                         </div>
+                                          {/* Rodapé: Status do sensor */}
+                                          <div className="w-full text-center space-y-1">
+                                            <div className={`text-[9px] font-black uppercase tracking-wider ${statusColorClass}`}>
+                                              {statusText}
+                                            </div>
+                                            {terminal.binDistances?.[material] !== undefined && (
+                                              <div className="text-[9px] text-slate-450 dark:text-slate-500 font-mono flex items-center justify-center gap-0.5 border-t border-slate-150/40 dark:border-white/5 pt-1 mt-1">
+                                                <span>📡 {terminal.binDistances[material].toFixed(1)} cm</span>
+                                              </div>
+                                            )}
+                                          </div>
 
                                        </div>
                                      );

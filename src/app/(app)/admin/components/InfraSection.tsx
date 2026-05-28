@@ -64,7 +64,6 @@ export function InfraSection({
   const [terminalHardwareToken, setTerminalHardwareToken] = useState('sg_hardware_secret_2026');
   const [terminalDiscardEspIp, setTerminalDiscardEspIp] = useState('');
   const [terminalDiscardEspSource, setTerminalDiscardEspSource] = useState<'esp32' | 'esp32_https'>('esp32');
-  const [terminalSonarDistance, setTerminalSonarDistance] = useState<number>(15);
   const [terminalRfidReaderEnabled, setTerminalRfidReaderEnabled] = useState(true);
   const [espsStatus, setEspsStatus] = useState<Record<string, 'online' | 'offline' | 'checking'>>({});
 
@@ -927,31 +926,18 @@ export function InfraSection({
                             </p>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-455 ml-1">Distância do Sonar (cm)</Label>
-                              <Input 
-                                type="number"
-                                value={terminalSonarDistance} 
-                                onChange={(e) => setTerminalSonarDistance(Number(e.target.value))} 
-                                placeholder="Ex: 15"
-                                className="font-mono text-xs h-10 bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50"
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-455 ml-1">Leitor RFID Físico (ESP)</Label>
-                              <Select 
-                                value={terminalRfidReaderEnabled ? "enabled" : "disabled"} 
-                                onValueChange={(v) => setTerminalRfidReaderEnabled(v === "enabled")}
-                              >
-                                <SelectTrigger className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl h-10"><SelectValue /></SelectTrigger>
-                                <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white">
-                                  <SelectItem value="enabled" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Ativado (RFID na ESP)</SelectItem>
-                                  <SelectItem value="disabled" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Desativado</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
+                          <div className="space-y-2">
+                            <Label className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-455 ml-1">Leitor RFID Físico (ESP)</Label>
+                            <Select 
+                              value={terminalRfidReaderEnabled ? "enabled" : "disabled"} 
+                              onValueChange={(v) => setTerminalRfidReaderEnabled(v === "enabled")}
+                            >
+                              <SelectTrigger className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl h-10"><SelectValue /></SelectTrigger>
+                              <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white">
+                                <SelectItem value="enabled" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Ativado (RFID na ESP)</SelectItem>
+                                <SelectItem value="disabled" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Desativado</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
 
@@ -1095,7 +1081,6 @@ export function InfraSection({
                                   hardwareToken: terminalHardwareToken,
                                   discardEspIp: terminalDiscardEspIp,
                                   discardEspSource: terminalDiscardEspSource,
-                                  sonarDistance: Number(terminalSonarDistance) || 15,
                                   rfidReaderEnabled: terminalRfidReaderEnabled
                                 }
                               });
@@ -1146,7 +1131,6 @@ export function InfraSection({
                               setTerminalHardwareToken(terminal.settings?.hardwareToken || 'sg_hardware_secret_2026');
                               setTerminalDiscardEspIp(terminal.settings?.discardEspIp || '');
                               setTerminalDiscardEspSource(terminal.settings?.discardEspSource || 'esp32');
-                              setTerminalSonarDistance(terminal.settings?.sonarDistance || 15);
                               setTerminalRfidReaderEnabled(terminal.settings?.rfidReaderEnabled ?? true);
                             }}
                           >

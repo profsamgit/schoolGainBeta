@@ -4,7 +4,7 @@ import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'fireb
 
 export async function POST(request: Request) {
   try {
-    const { terminalId, levels } = await request.json();
+    const { terminalId, levels, distances } = await request.json();
     const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
     fetch(`http://localhost:9005/register-ip?ip=${clientIp}`).catch(() => null);
 
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       if (snap.exists()) {
         terminalSnap = snap;
       }
-    } catch (e) {
+    } catch (e: any) {
       // Ignora e tenta por hardwareId
     }
 
@@ -41,8 +41,8 @@ export async function POST(request: Request) {
           terminalSnap = querySnapshot.docs[0];
           terminalRef = terminalSnap.ref;
         }
-      } catch (err) {
-        console.error('[HARDWARE API ERROR] Falha ao buscar terminal por hardwareId:', err);
+      } catch (err: any) {
+        console.error('[HARDWARE API ERROR] Falha ao buscar terminal por hardwareId:', err.message || err);
       }
     }
 
@@ -62,6 +62,7 @@ export async function POST(request: Request) {
     // Atualiza o documento do terminal correspondente no Firestore
     await updateDoc(terminalRef, {
       binLevels: levels,
+      binDistances: distances || null,
       lastBinUpdate: new Date().toISOString()
     });
 

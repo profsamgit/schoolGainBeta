@@ -51,6 +51,8 @@ Ao acessar o IP do dispositivo na rede ou `http://192.168.4.1` no modo Hotspot:
     *   **Servidor**: Endereço IP e porta da máquina local do totem (ex: `192.168.1.100:3000`) ou o domínio de produção (ex: `schoolgain.cetiapicella.com.br`).
     *   **ID do Terminal**: Identificador gerado para o totem na área administrativa do SchoolGain.
     *   **Token de Hardware**: Chave secreta de autenticação do hardware (`sg_hardware_secret_2026`).
+    *   **Distância Lixeira Vazia (cm)**: Limite físico de distância calibrado para a lixeira vazia (Padrão: `80.0` cm).
+    *   **Distância Lixeira Cheia (cm)**: Limite físico de distância calibrado para a lixeira cheia (Padrão: `10.0` cm).
     *   **Nova Senha do Portal**: Permite alterar a senha padrão de acesso à interface Web.
 3.  **Ações Remotas via Rede**:
     *   **Reiniciar**: Envia comando para reinicialização de hardware (`ESP.restart()`).
