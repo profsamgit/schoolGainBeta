@@ -252,52 +252,151 @@ export default function AdminDashboardPage() {
                     </CardHeader>
                     <CardContent className="px-6 pb-6">
                       <div className="grid gap-6 md:grid-cols-2">
-                        {filteredTerminals.map((terminal) => (
-                          <div key={terminal.id} className="p-4 rounded-2xl border border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20 space-y-3">
-                            <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-white/5">
-                              <span className="text-xs font-black uppercase tracking-tight text-slate-700 dark:text-slate-200">
-                                📍 {terminal.location}
-                              </span>
-                              {terminal.lastBinUpdate && (
-                                <span className="text-[9px] text-slate-400 dark:text-slate-500 font-mono">
-                                  Atualizado: {new Date(terminal.lastBinUpdate).toLocaleTimeString('pt-BR')}
-                                </span>
-                              )}
-                            </div>
-                            
-                            {terminal.binLevels ? (
-                              <div className="grid gap-3 grid-cols-2">
-                                {(['plastico', 'papel', 'vidro', 'metal'] as const).map((material) => {
-                                  const level = terminal.binLevels?.[material] ?? 0;
-                                  const isFull = level >= 85;
-                                  return (
-                                    <div key={material} className={cn("p-2 border rounded-xl space-y-1.5 transition-all duration-300", isFull ? "border-rose-500/30 bg-rose-500/5 dark:border-rose-500/20" : "border-slate-100/80 dark:border-white/5 bg-white/40 dark:bg-slate-900/10")}>
-                                      <div className="flex justify-between items-center text-[10px] font-black uppercase">
-                                        <span className="text-slate-600 dark:text-slate-400">
-                                          {material === 'plastico' ? 'Plástico' : material === 'papel' ? 'Papel' : material === 'vidro' ? 'Vidro' : 'Metal'}
-                                        </span>
-                                        <span className={cn("font-mono font-bold", isFull ? "text-rose-600 dark:text-rose-450" : "text-indigo-600 dark:text-indigo-400")}>
-                                          {level}%
-                                        </span>
-                                      </div>
-                                      
-                                      <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                                        <div 
-                                          className={cn("h-full rounded-full transition-all duration-500", isFull ? "bg-rose-550" : "bg-indigo-500")}
-                                          style={{ width: `${level}%` }}
-                                        ></div>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            ) : (
-                              <div className="py-6 text-center">
-                                <span className="text-[10px] text-slate-400 dark:text-slate-500 italic uppercase tracking-wider">Aguardando telemetria inicial...</span>
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                         {filteredTerminals.map((terminal) => {
+                           const hasFullBin = terminal.binLevels && Object.values(terminal.binLevels).some(lvl => lvl >= 85);
+                           return (
+                             <div key={terminal.id} className="p-4 rounded-2xl border border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20 space-y-3">
+                               <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-white/5">
+                                 <span className="text-xs font-black uppercase tracking-tight text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                                   📍 {terminal.location}
+                                   {hasFullBin && (
+                                     <span className="bg-rose-500 text-white text-[8px] px-1.5 py-0.5 rounded-md font-black uppercase animate-pulse">
+                                       ⚠️ Cheia
+                                     </span>
+                                   )}
+                                 </span>
+                                 {terminal.lastBinUpdate && (
+                                   <span className="text-[9px] text-slate-450 dark:text-slate-500 font-mono">
+                                     Atualizado: {new Date(terminal.lastBinUpdate).toLocaleTimeString('pt-BR')}
+                                   </span>
+                                 )}
+                               </div>
+
+                               {/* Informações da ESP de Descarte */}
+                               <div className="space-y-1.5 p-3 rounded-xl border border-slate-100/50 dark:border-white/5 bg-white/40 dark:bg-slate-900/10 text-[10px]">
+                                 <div className="flex items-center justify-between font-bold text-slate-550 dark:text-slate-400">
+                                   <span className="flex items-center gap-1.5 uppercase tracking-wide">
+                                     <span className={cn("h-1.5 w-1.5 rounded-full", terminal.settings?.discardEspIp ? "bg-emerald-500 animate-pulse" : "bg-slate-400")} />
+                                     ♻️ ESP Descarte
+                                   </span>
+                                   <span className="font-mono text-slate-700 dark:text-slate-350">
+                                     {terminal.settings?.discardEspIp ? (
+                                       `${terminal.settings.discardEspIp} (${terminal.settings.discardEspSource === 'esp32_https' ? 'HTTPS' : 'HTTP'})`
+                                     ) : (
+                                       'Não configurada'
+                                     )}
+                                   </span>
+                                 </div>
+                                 <div className="flex items-center justify-between font-bold text-slate-550 dark:text-slate-400 border-t border-slate-100/30 dark:border-white/5 pt-1.5">
+                                   <span className="flex items-center gap-1.5 uppercase tracking-wide">
+                                     💳 Leitor RFID
+                                   </span>
+                                   <span className="font-mono text-slate-700 dark:text-slate-350">
+                                     {terminal.settings?.lastRfidRead ? (
+                                       <span className="text-emerald-600 dark:text-emerald-450 font-black">
+                                         Ativo (Lido: {terminal.settings.lastRfidRead.uid} às {new Date(terminal.settings.lastRfidRead.timestamp).toLocaleTimeString('pt-BR')})
+                                       </span>
+                                     ) : (
+                                       'Aguardando aproximação...'
+                                     )}
+                                   </span>
+                                 </div>
+                               </div>
+                               
+                               {terminal.binLevels ? (
+                                 <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
+                                   {(['plastico', 'papel', 'vidro', 'metal'] as const).map((material) => {
+                                     const level = terminal.binLevels?.[material] ?? 0;
+                                     
+                                     // Determina as cores e gradientes de preenchimento específicos por material
+                                     let fillGradientClass = 'from-emerald-500 to-teal-600';
+                                     let materialLabel = '';
+                                     
+                                     if (material === 'plastico') {
+                                       fillGradientClass = 'from-rose-500 to-red-600 shadow-[0_4px_15px_rgba(239,68,68,0.25)]';
+                                       materialLabel = '🧴 Plástico';
+                                     } else if (material === 'papel') {
+                                       fillGradientClass = 'from-blue-500 to-indigo-600 shadow-[0_4px_15px_rgba(59,130,246,0.25)]';
+                                       materialLabel = '📄 Papel';
+                                     } else if (material === 'vidro') {
+                                       fillGradientClass = 'from-emerald-500 to-green-600 shadow-[0_4px_15px_rgba(16,185,129,0.25)]';
+                                       materialLabel = '🍾 Vidro';
+                                     } else if (material === 'metal') {
+                                       fillGradientClass = 'from-amber-400 to-amber-600 shadow-[0_4px_15px_rgba(245,158,11,0.25)]';
+                                       materialLabel = '⚙️ Metal';
+                                     }
+
+                                     let statusText = 'Disponível';
+                                     let statusColorClass = 'text-emerald-600 dark:text-emerald-450';
+                                     let containerBorderClass = 'border-slate-100/85 dark:border-white/5 bg-white/40 dark:bg-slate-900/10';
+
+                                     if (level >= 85) {
+                                       statusText = 'Cheia!';
+                                       statusColorClass = 'text-rose-600 dark:text-rose-400 font-extrabold animate-pulse';
+                                       containerBorderClass = 'border-rose-500/40 bg-rose-500/5 dark:border-rose-500/20 animate-pulse';
+                                     } else if (level >= 50) {
+                                       statusText = 'Nível Médio';
+                                       statusColorClass = 'text-amber-600 dark:text-amber-400';
+                                       containerBorderClass = 'border-amber-500/30 bg-amber-500/5 dark:border-amber-500/10';
+                                     }
+
+                                     const maxDistance = terminal.settings?.sonarDistance || 15;
+                                     const currentDistance = Math.max(0, maxDistance * (1 - level / 100));
+
+                                     return (
+                                       <div key={material} className={cn("p-3 border rounded-2xl flex flex-col items-center justify-between space-y-3 transition-all duration-300", containerBorderClass)}>
+                                         
+                                         {/* Rótulo da Lixeira */}
+                                         <span className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400 text-center">
+                                           {materialLabel}
+                                         </span>
+
+                                         {/* Barra Vertical (Simulando uma Lixeira Física) */}
+                                         <div className="relative w-full max-w-[55px] h-36 bg-slate-100 dark:bg-slate-950 border border-slate-200/60 dark:border-white/5 rounded-2xl overflow-hidden shadow-inner flex flex-col justify-end">
+                                           {/* Nível do resíduo subindo de baixo para cima */}
+                                           <div 
+                                             className={cn("w-full rounded-b-[15px] transition-all duration-1000 bg-gradient-to-t", fillGradientClass)}
+                                             style={{ height: `${level}%` }}
+                                           >
+                                             {/* Efeito visual da borda de preenchimento */}
+                                             {level > 0 && (
+                                               <div className="w-full h-1 bg-white/20 blur-[1px] absolute" style={{ bottom: `calc(${level}% - 2px)` }} />
+                                             )}
+                                           </div>
+                                           
+                                           {/* Porcentagem flutuando sobre a barra */}
+                                           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                             <span className={cn(
+                                               "font-mono font-black text-xs px-1 rounded-md backdrop-blur-[2px]",
+                                               level > 40 ? "text-white bg-black/10" : "text-slate-800 dark:text-white"
+                                             )}>
+                                               {level}%
+                                             </span>
+                                           </div>
+                                         </div>
+
+                                         {/* Rodapé: Status do sensor e do Sonar */}
+                                         <div className="w-full text-center space-y-1">
+                                           <div className={`text-[9px] font-black uppercase tracking-wider ${statusColorClass}`}>
+                                             {statusText}
+                                           </div>
+                                           <div className="text-[9px] text-slate-450 dark:text-slate-500 font-mono flex items-center justify-center gap-0.5 border-t border-slate-150/40 dark:border-white/5 pt-1 mt-1">
+                                             <span>📡 {currentDistance.toFixed(1)} cm</span>
+                                           </div>
+                                         </div>
+
+                                       </div>
+                                     );
+                                   })}
+                                 </div>
+                               ) : (
+                                 <div className="py-6 text-center">
+                                   <span className="text-[10px] text-slate-450 dark:text-slate-500 italic uppercase tracking-wider">Aguardando telemetria inicial...</span>
+                                 </div>
+                               )}
+                             </div>
+                           );
+                         })}
                       </div>
                     </CardContent>
                   </Card>

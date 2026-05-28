@@ -96,6 +96,39 @@ export default function RegisterStudentPage() {
     return () => window.removeEventListener('keydown', handleGlobalKey);
   }, [isRFIDCapturing]);
 
+  // Captura de RFID por polling da ESP de descarte (Hardware Input API)
+  useEffect(() => {
+    if (!isRFIDCapturing) return;
+
+    // Filter active terminals for the selected school
+    const activeSchoolTerminals = terminals.filter(
+      t => t.schoolId === formData.schoolId && t.status === 'active'
+    );
+
+    if (activeSchoolTerminals.length === 0) return;
+
+    const pollRFID = async () => {
+      try {
+        for (const terminal of activeSchoolTerminals) {
+          const tId = terminal.hardwareId || terminal.id;
+          const res = await fetch(`/api/hardware/input?terminalId=${tId}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.ra) {
+              handleRFIDDetected(data.ra.toUpperCase());
+              break;
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao ler RFID dos terminais:", error);
+      }
+    };
+
+    const interval = setInterval(pollRFID, 2000);
+    return () => clearInterval(interval);
+  }, [isRFIDCapturing, formData.schoolId, terminals]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     

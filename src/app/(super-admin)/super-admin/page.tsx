@@ -116,6 +116,42 @@ export default function SuperAdminPage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isRFIDCapturing, toast]);
+
+  // Captura de RFID por polling da ESP de descarte (Hardware Input API)
+  useEffect(() => {
+    if (!isRFIDCapturing) return;
+
+    // Se schoolId for 'global' ou vazio, pegamos todos os terminais ativos.
+    // Caso contrário, filtramos pelo schoolId do formulário.
+    const activeSchoolTerminals = terminals.filter(
+      t => (userFormData.schoolId === 'global' || !userFormData.schoolId || t.schoolId === userFormData.schoolId) && t.status === 'active'
+    );
+
+    if (activeSchoolTerminals.length === 0) return;
+
+    const pollRFID = async () => {
+      try {
+        for (const terminal of activeSchoolTerminals) {
+          const tId = terminal.hardwareId || terminal.id;
+          const res = await fetch(`/api/hardware/input?terminalId=${tId}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.ra) {
+              setUserFormData((prev: any) => ({ ...prev, rfid: data.ra.toUpperCase() }));
+              setIsRFIDCapturing(false);
+              toast({ title: "Cartão Capturado (ESP32)", description: `ID: ${data.ra.toUpperCase()}` });
+              break;
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao ler RFID dos terminais:", error);
+      }
+    };
+
+    const interval = setInterval(pollRFID, 2000);
+    return () => clearInterval(interval);
+  }, [isRFIDCapturing, userFormData.schoolId, terminals, toast]);
   const [newSchool, setNewSchool] = useState({
     name: '', city: '', state: '', contactEmail: '', managerEmail: '', initialManagerPassword: '',
   });

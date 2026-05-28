@@ -81,6 +81,17 @@ export default function AboutPage() {
                           {person.initials}
                         </AvatarFallback>
                       </Avatar>
+                      {/* Botão ZoomIn ao hover */}
+                      {person.avatar && (
+                        <button
+                          type="button"
+                          onClick={() => setPreviewPhoto({ src: person.avatar, name: person.name })}
+                          className="absolute inset-1.5 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Ampliar foto"
+                        >
+                          <ZoomIn className="h-6 w-6 text-white" />
+                        </button>
+                      )}
                     </div>
 
                     {/* Member Details */}
@@ -206,20 +217,20 @@ export default function AboutPage() {
 
       </main>
 
-      {/* Modal de visualização da foto do beta tester */}
+      {/* Modal de visualização da foto */}
       <Dialog open={!!previewPhoto} onOpenChange={(open) => !open && setPreviewPhoto(null)}>
-        <DialogContent className="max-w-sm bg-white/95 dark:bg-slate-900/95 backdrop-blur-3xl border border-amber-200/60 dark:border-amber-500/20 rounded-3xl p-6 shadow-2xl flex flex-col items-center gap-4">
+        <DialogContent className="max-w-sm bg-white/95 dark:bg-slate-900/95 backdrop-blur-3xl border border-slate-200/60 dark:border-slate-800/50 rounded-3xl p-6 shadow-2xl flex flex-col items-center gap-4">
           <DialogHeader className="w-full">
-            <DialogTitle className="text-sm font-black uppercase tracking-widest text-amber-700 dark:text-amber-400 text-center">
+            <DialogTitle className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-slate-200 text-center">
               {previewPhoto?.name}
             </DialogTitle>
           </DialogHeader>
-          <div className="rounded-2xl overflow-hidden border border-amber-200/60 dark:border-amber-500/20 shadow-lg flex items-center justify-center bg-slate-50 dark:bg-slate-950" style={{ minHeight: 240, minWidth: 240 }}>
+          <div className="rounded-2xl overflow-hidden border border-slate-200/60 dark:border-slate-800/50 shadow-lg flex items-center justify-center bg-slate-50 dark:bg-slate-950" style={{ minHeight: 240, minWidth: 240 }}>
             {previewPhoto && (
               <img src={previewPhoto.src} alt={previewPhoto.name} className="max-h-60 max-w-xs object-cover rounded-2xl" />
             )}
           </div>
-          <Button variant="outline" className="w-full rounded-xl border-amber-200/60 dark:border-amber-500/20 text-amber-700 dark:text-amber-400 font-bold uppercase text-xs tracking-widest" onClick={() => setPreviewPhoto(null)}>
+          <Button variant="outline" className="w-full rounded-xl border-slate-200/60 dark:border-slate-800/50 text-slate-700 dark:text-slate-300 font-bold uppercase text-xs tracking-widest hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => setPreviewPhoto(null)}>
             Fechar
           </Button>
         </DialogContent>

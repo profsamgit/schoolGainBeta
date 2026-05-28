@@ -335,8 +335,10 @@ bool terminalActive = true; // Controla se o totem está ativo/autorizado no ser
 
 void setup() {
   Serial.begin(115200);
+  delay(2000); // Aguarda o monitor serial da IDE se conectar para não perder os logs de boot
   SPI.begin();
   mfrc522.PCD_Init();
+  mfrc522.PCD_DumpVersionToSerial(); // Mostra no Monitor Serial se a comunicação com o leitor RFID foi estabelecida
 
   // Configuração da Esteira (Ponte H) e Buzzer
   pinMode(motorPin1, OUTPUT);
@@ -537,11 +539,11 @@ void pararEsteira() {
 }
 
 void ativarBuzzer() {
-  digitalWrite(buzzerPin, HIGH);
+  tone(buzzerPin, 2700); // Emite som usando frequência de 2.7kHz (compatível com buzzer ativo e passivo)
 }
 
 void desativarBuzzer() {
-  digitalWrite(buzzerPin, LOW);
+  noTone(buzzerPin);
 }
 
 void emitirBeepSucesso() {
@@ -698,8 +700,6 @@ void loop() {
           http.POST(payload);
           http.end();
         }
-        
-        acionarTriagem("plastico");
       }
     }
 

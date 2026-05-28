@@ -226,7 +226,7 @@ export default function AdminLoginPage() {
 
     const pollHardware = async () => {
       try {
-        const pollId = currentTerminal?.id || hardwareId;
+        const pollId = currentTerminal?.hardwareId || currentTerminal?.id || hardwareId;
         const res = await fetch(`/api/hardware/input?terminalId=${pollId}`);
         const data = await res.json();
         if (data.ra) handleHybridLogin(data.ra);

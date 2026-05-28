@@ -1,8 +1,8 @@
-import type {NextConfig} from 'next';
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
-  allowedDevOrigins: ['172.16.0.118'],
+  allowedDevOrigins: ['172.16.0.118', '192.168.98.100'],
   typescript: {
     ignoreBuildErrors: true,
   },

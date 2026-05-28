@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 export async function POST(request: Request) {
   try {
@@ -22,10 +22,31 @@ export async function POST(request: Request) {
     }
 
     // Busca o terminal no banco para validar se ele está ativo
-    const terminalRef = doc(db, 'terminals', terminalId);
-    const terminalSnap = await getDoc(terminalRef);
+    let terminalRef = doc(db, 'terminals', terminalId);
+    let terminalSnap = null;
+    try {
+      const snap = await getDoc(terminalRef);
+      if (snap.exists()) {
+        terminalSnap = snap;
+      }
+    } catch (e) {
+      // Ignora e tenta por hardwareId
+    }
 
-    if (!terminalSnap.exists()) {
+    if (!terminalSnap) {
+      try {
+        const q = query(collection(db, 'terminals'), where('hardwareId', '==', terminalId));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          terminalSnap = querySnapshot.docs[0];
+          terminalRef = terminalSnap.ref;
+        }
+      } catch (err) {
+        console.error('[HARDWARE API ERROR] Falha ao buscar terminal por hardwareId:', err);
+      }
+    }
+
+    if (!terminalSnap) {
       return NextResponse.json({ success: false, active: false, error: 'Terminal não encontrado' }, { status: 404 });
     }
 

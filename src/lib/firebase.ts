@@ -17,9 +17,7 @@ const firebaseConfig = {
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
 // Silencia avisos e spams de erro de conexão interna do gRPC
-if (typeof window !== 'undefined') {
-  setLogLevel('error');
-}
+setLogLevel('silent');
 
 // Exporta as instâncias dos serviços com persistência local habilitada no cliente
 export const db = typeof window !== 'undefined'
@@ -29,7 +27,9 @@ export const db = typeof window !== 'undefined'
       }),
       experimentalForceLongPolling: true
     })
-  : getFirestore(app);
+  : initializeFirestore(app, {
+      experimentalForceLongPolling: true
+    });
 
 export const auth = getAuth(app);
 export const storage = getStorage(app);

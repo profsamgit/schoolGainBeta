@@ -140,6 +140,10 @@ export type Terminal = {
     discardEspSource?: 'esp32' | 'esp32_https';
     sonarDistance?: number;
     rfidReaderEnabled?: boolean;
+    lastRfidRead?: {
+      uid: string;
+      timestamp: number;
+    };
   };
   binLevels?: {
     plastico: number;
