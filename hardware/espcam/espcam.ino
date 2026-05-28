@@ -20,21 +20,287 @@
 #include <WiFiClient.h>
 
 // ============================================================================
-// 1. CONFIGURAÇÃO DE REDE WI-FI
+// 1. CONFIGURAÇÃO DINÂMICA VIA PREFERENCES (EEPROM EM FLASH)
 // ============================================================================
-const char *ssid = "SEU-WIFI";
-const char *password = "SUA SENHA";
+#include <Preferences.h>
+Preferences preferences;
+WebServer server(80);
 
-// ============================================================================
-// 2. CONFIGURAÇÃO DO SERVIDOR SCHOOLGAIN
-// ============================================================================
-// IMPORTANTE: Use o IP local do computador rodando o servidor (ex:
-// 192.168.1.10). Não use "localhost", pois a ESP32 é um dispositivo físico
-// independente na rede.
-const char *schoolgain_server = "172.16.0.118:3000";
-const char *terminal_id = "HW-C001863B4D7A"; // ID gerado no painel Admin
-const char *hardware_token =
-    "sg_hardware_secret_2026"; // Token padrão do SchoolGain
+String wifi_ssid = "";
+String wifi_password = "";
+String schoolgain_server = "";
+String terminal_id = "";
+String hardware_token = "";
+String portal_password = "schoolgain"; // Senha padrão para acessar as configurações
+String rfidUrl = "";
+String binUrl = "";
+
+#include <WiFiUdp.h>
+WiFiUDP udpClient;
+
+void logInfo(String msg) {
+  Serial.println(msg);
+  if (WiFi.status() == WL_CONNECTED && schoolgain_server.length() > 0) {
+    String host = schoolgain_server;
+    int startIdx = 0;
+    if (host.startsWith("http://")) startIdx = 7;
+    else if (host.startsWith("https://")) startIdx = 8;
+    int endIdx = host.indexOf(":", startIdx);
+    if (endIdx == -1) endIdx = host.indexOf("/", startIdx);
+    String ipStr = (endIdx == -1) ? host.substring(startIdx) : host.substring(startIdx, endIdx);
+    
+    if (ipStr.length() > 0) {
+      String mac = WiFi.macAddress();
+      String formattedMsg = "[" + mac + "] " + msg;
+      udpClient.beginPacket(ipStr.c_str(), 9006);
+      udpClient.print(formattedMsg);
+      udpClient.endPacket();
+    }
+  }
+}
+
+const char* LOGIN_HTML = R"rawliteral(
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='utf-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>Login - SchoolGain CAM</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; background: #0f172a; color: #f8fafc; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+    .card { background: #1e293b; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); border: 1px solid #334155; width: 100%; max-width: 320px; }
+    h2 { margin-top: 0; color: #6366f1; text-align: center; text-transform: uppercase; font-size: 1.1rem; letter-spacing: 1px; font-weight: 800; }
+    p { font-size: 0.8rem; color: #94a3b8; text-align: center; margin-bottom: 20px; }
+    .group { margin-bottom: 15px; }
+    label { display: block; font-size: 0.7rem; text-transform: uppercase; font-weight: 700; color: #94a3b8; margin-bottom: 5px; }
+    input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #fff; box-sizing: border-box; font-size: 0.9rem; }
+    input:focus { outline: none; border-color: #6366f1; }
+    button { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #6366f1; color: #fff; font-weight: 700; text-transform: uppercase; cursor: pointer; transition: background 0.2s; margin-top: 10px; }
+    button:hover { background: #4f46e5; }
+    .error { color: #f87171; font-size: 0.75rem; text-align: center; margin-bottom: 12px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class='card'>
+    <h2>Acesso Restrito</h2>
+    <p>ESP32-CAM SchoolGain</p>
+    %ERROR%
+    <form method='POST' action='/login'>
+      <div class='group'>
+        <label>Senha do Dispositivo</label>
+        <input name='password' type='password' placeholder='Senha' required autofocus>
+      </div>
+      <button type='submit'>Entrar</button>
+    </form>
+  </div>
+</body>
+</html>
+)rawliteral";
+
+const char* PORTAL_HTML = R"rawliteral(
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='utf-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>Configuracao SchoolGain CAM</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; background: #0f172a; color: #f8fafc; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+    .card { background: #1e293b; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); border: 1px solid #334155; width: 100%; max-width: 400px; }
+    h2 { margin-top: 0; color: #6366f1; text-align: center; text-transform: uppercase; font-size: 1.2rem; letter-spacing: 1px; font-weight: 800; margin-bottom: 5px; }
+    p { font-size: 0.8rem; color: #94a3b8; text-align: center; margin-bottom: 20px; }
+    .group { margin-bottom: 12px; }
+    label { display: block; font-size: 0.7rem; text-transform: uppercase; font-weight: 700; color: #94a3b8; margin-bottom: 4px; }
+    input { width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #fff; box-sizing: border-box; font-size: 0.85rem; }
+    input:focus { outline: none; border-color: #6366f1; }
+    button { width: 100%; padding: 10px; border: none; border-radius: 8px; background: #6366f1; color: #fff; font-weight: 700; text-transform: uppercase; cursor: pointer; transition: background 0.2s; margin-top: 8px; font-size: 0.8rem; }
+    button:hover { background: #4f46e5; }
+    .actions { display: flex; gap: 10px; margin-top: 15px; border-top: 1px solid #334155; padding-top: 15px; }
+    .btn-action { background: #334155; font-size: 0.75rem; padding: 8px; margin-top: 0; }
+    .btn-action:hover { background: #475569; }
+    .btn-reset { background: #ef4444; }
+    .btn-reset:hover { background: #dc2626; }
+    .footer { text-align: center; font-size: 0.65rem; color: #475569; margin-top: 15px; text-transform: uppercase; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class='card'>
+    <h2>SchoolGain CAM</h2>
+    <p>Gerenciamento do Dispositivo</p>
+    <form method='POST' action='/save'>
+      <div class='group'>
+        <label>Wi-Fi SSID</label>
+        <input name='ssid' type='text' required value='%SSID%'>
+      </div>
+      <div class='group'>
+        <label>Senha do Wi-Fi</label>
+        <input name='pass' type='password' value='%PASS%'>
+      </div>
+      <div class='group'>
+        <label>Servidor (Ex: 192.168.1.100:3000)</label>
+        <input name='server' type='text' required value='%SERVER%'>
+      </div>
+      <div class='group'>
+        <label>ID do Terminal</label>
+        <input name='termId' type='text' required value='%TERMID%'>
+      </div>
+      <div class='group'>
+        <label>Token de Hardware</label>
+        <input name='token' type='text' required value='%TOKEN%'>
+      </div>
+      <div class='group'>
+        <label>Nova Senha do Portal</label>
+        <input name='newPortalPass' type='password' placeholder='Deixe em branco para nao alterar'>
+      </div>
+      <button type='submit'>Salvar e Aplicar</button>
+    </form>
+    
+    <div class='actions'>
+      <button class='btn-action' onclick='location.href="/reboot"'>Reiniciar</button>
+      <button class='btn-action btn-reset' onclick='if(confirm("Deseja apagar os dados do Wi-Fi e reconfigurar?")) location.href="/reconfig"'>Limpar Wi-Fi</button>
+      <button class='btn-action' onclick='location.href="/logout"' style='background: #475569;'>Sair</button>
+    </div>
+    
+    <div class='footer'>Ecossistema IoT SchoolGain</div>
+  </div>
+</body>
+</html>
+)rawliteral";
+
+bool isAuthenticated() {
+  if (server.hasHeader("Cookie")) {
+    String cookie = server.header("Cookie");
+    if (cookie.indexOf("pwd=" + portal_password) != -1) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void handleLogin() {
+  if (server.hasArg("password")) {
+    String passInput = server.arg("password");
+    if (passInput == portal_password) {
+      server.sendHeader("Set-Cookie", "pwd=" + portal_password + "; Path=/; Max-Age=3600");
+      server.sendHeader("Location", "/config");
+      server.send(302, "text/plain", "");
+      return;
+    }
+  }
+  server.sendHeader("Location", "/login?error=1");
+  server.send(302, "text/plain", "");
+}
+
+void handleLogout() {
+  server.sendHeader("Set-Cookie", "pwd=; Path=/; Max-Age=0");
+  server.sendHeader("Location", "/");
+  server.send(302, "text/plain", "");
+}
+
+void showLogin(bool hasError) {
+  String html = String(LOGIN_HTML);
+  if (hasError) {
+    html.replace("%ERROR%", "<div class='error'>Senha incorreta! Tente novamente.</div>");
+  } else {
+    html.replace("%ERROR%", "");
+  }
+  server.send(200, "text/html", html);
+}
+
+void startConfigPortal() {
+  WiFi.mode(WIFI_AP);
+  
+  uint8_t mac[6];
+  WiFi.macAddress(mac);
+  char apName[32];
+  sprintf(apName, "SchoolGain_Cam_%02X%02X%02X", mac[3], mac[4], mac[5]);
+  
+  WiFi.softAP(apName);
+  Serial.print("\n[PORTAL] AP Iniciado. SSID: ");
+  Serial.println(apName);
+  Serial.print("[PORTAL] Acesse o portal em: http://");
+  Serial.println(WiFi.softAPIP());
+
+  // Registra Cookie headers para o portal temporário também
+  const char *headerkeys[] = {"Cookie"};
+  server.collectHeaders(headerkeys, 1);
+
+  server.on("/", HTTP_GET, []() {
+    if (!isAuthenticated()) {
+      showLogin(server.hasArg("error"));
+      return;
+    }
+    server.sendHeader("Location", "/config");
+    server.send(302, "text/plain", "");
+  });
+
+  server.on("/login", HTTP_POST, handleLogin);
+  server.on("/logout", HTTP_GET, handleLogout);
+
+  server.on("/config", HTTP_GET, []() {
+    if (!isAuthenticated()) {
+      showLogin(false);
+      return;
+    }
+    String activeSsid = wifi_ssid;
+    String activePass = wifi_password;
+    if (activeSsid.length() == 0 && WiFi.status() == WL_CONNECTED) {
+      activeSsid = WiFi.SSID();
+      if (activeSsid == "SchoolGain_Config_Net") {
+        activePass = "schoolgain_config_wpa2";
+      }
+    }
+    String html = String(PORTAL_HTML);
+    html.replace("%SSID%", activeSsid);
+    html.replace("%PASS%", activePass);
+    html.replace("%SERVER%", schoolgain_server);
+    html.replace("%TERMID%", terminal_id);
+    html.replace("%TOKEN%", hardware_token);
+    server.send(200, "text/html", html);
+  });
+
+  server.on("/save", HTTP_POST, []() {
+    if (!isAuthenticated()) {
+      server.send(401, "text/plain", "Nao autorizado");
+      return;
+    }
+    if (server.hasArg("ssid") && server.hasArg("server")) {
+      wifi_ssid = server.arg("ssid");
+      wifi_password = server.arg("pass");
+      schoolgain_server = server.arg("server");
+      terminal_id = server.arg("termId");
+      hardware_token = server.arg("token");
+      
+      String newPass = server.arg("newPortalPass");
+
+      preferences.begin("schoolgain", false);
+      preferences.putString("ssid", wifi_ssid);
+      preferences.putString("pass", wifi_password);
+      preferences.putString("server", schoolgain_server);
+      preferences.putString("termId", terminal_id);
+      preferences.putString("token", hardware_token);
+      if (newPass.length() > 0) {
+        portal_password = newPass;
+        preferences.putString("portalPass", portal_password);
+      }
+      preferences.end();
+
+      String response = "<html><body><h2>Configuracao salva com sucesso!</h2><p>O dispositivo esta reiniciando...</p></body></html>";
+      server.send(200, "text/html", response);
+      delay(2000);
+      ESP.restart();
+    } else {
+      server.send(400, "text/plain", "Campos obrigatorios faltando");
+    }
+  });
+
+  server.begin();
+  
+  while (true) {
+    server.handleClient();
+    delay(10);
+  }
+}
 
 // ============================================================================
 // 3. MAPEAMENTO DE PINOS (MODELO AI-THINKER ESP32-CAM)
@@ -60,8 +326,7 @@ const char *hardware_token =
 #define LED_FLASH_PIN 4 // Pino do LED Flash traseiro (opcional)
 #define LED_RED_PIN 33 // Led vermelho interno para indicar status (ativo baixo)
 
-// Inicializa o Servidor Web na porta 80
-WebServer server(80);
+// Inicializa o Servidor Web na porta 80 (Declarado no topo do arquivo)
 
 // Controle de tempo para telemetria das lixeiras
 unsigned long lastTelemetryTime = 0;
@@ -94,7 +359,7 @@ void handle_stream() {
                 "%s\r\nAccess-Control-Allow-Origin: *\r\n\r\n",
                 _STREAM_CONTENT_TYPE);
 
-  Serial.println("[CAMERA] Kiosk conectado ao Stream!");
+  logInfo("[CAMERA] Kiosk conectado ao Stream!");
   digitalWrite(LED_RED_PIN, LOW); // Liga o LED interno indicando atividade
 
   // ACENDE O LED FLASH AUTOMATICAMENTE APENAS SE O PARÂMETRO ?flash=on ESTIVER
@@ -160,7 +425,7 @@ void handle_stream() {
   }
 
   digitalWrite(LED_RED_PIN, HIGH); // Apaga o LED interno (ativo baixo)
-  Serial.println("[CAMERA] Kiosk desconectado do Stream.");
+  logInfo("[CAMERA] Kiosk desconectado do Stream.");
 }
 
 // ============================================================================
@@ -169,17 +434,18 @@ void handle_stream() {
 // Pode ser acionada via Sensor RFID ou Leitor de Código de Barras serial.
 bool send_student_login(String ra) {
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("[HTTP] Não conectado ao Wi-Fi!");
+    logInfo("[HTTP] Não conectado ao Wi-Fi!");
+    return false;
+  }
+  if (rfidUrl.length() == 0) {
+    logInfo("[HTTP] Servidor SchoolGain não configurado!");
     return false;
   }
 
   HTTPClient http;
-  String url = String(schoolgain_server) + "/api/hardware/input";
+  logInfo("[HTTP] Enviando login para: " + rfidUrl + " | RA: " + ra);
 
-  Serial.print("[HTTP] Enviando login para: ");
-  Serial.println(url);
-
-  http.begin(url);
+  http.begin(rfidUrl);
   http.addHeader("Content-Type", "application/json");
 
   // Monta o JSON Payload
@@ -191,10 +457,7 @@ bool send_student_login(String ra) {
 
   if (httpResponseCode > 0) {
     String response = http.getString();
-    Serial.print("[HTTP] Resposta HTTP: ");
-    Serial.println(httpResponseCode);
-    Serial.print("[HTTP] Conteúdo: ");
-    Serial.println(response);
+    logInfo("[HTTP] Resposta HTTP de Login: " + String(httpResponseCode) + " | Conteúdo: " + response);
     http.end();
 
     // Pisca o LED interno indicando envio bem-sucedido
@@ -206,8 +469,7 @@ bool send_student_login(String ra) {
     }
     return true;
   } else {
-    Serial.print("[HTTP] Erro ao enviar POST: ");
-    Serial.println(httpResponseCode);
+    logInfo("[HTTP] Erro ao enviar POST de Login: " + String(httpResponseCode));
     http.end();
     return false;
   }
@@ -218,21 +480,18 @@ bool send_student_login(String ra) {
 // ============================================================================
 bool send_bin_status(int plastico, int papel, int vidro, int metal) {
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("[HTTP] Não conectado ao Wi-Fi!");
+    logInfo("[HTTP] Não conectado ao Wi-Fi!");
+    return false;
+  }
+  if (binUrl.length() == 0) {
+    logInfo("[HTTP] Servidor SchoolGain não configurado!");
     return false;
   }
 
   HTTPClient http;
-  String url = String(schoolgain_server);
-  if (!url.startsWith("http://") && !url.startsWith("https://")) {
-    url = "http://" + url;
-  }
-  url += "/api/hardware/bin-status";
+  logInfo("[HTTP] Enviando status das lixeiras para: " + binUrl + " | Status: " + String(plastico) + "," + String(papel) + "," + String(vidro) + "," + String(metal));
 
-  Serial.print("[HTTP] Enviando status das lixeiras para: ");
-  Serial.println(url);
-
-  http.begin(url);
+  http.begin(binUrl);
   http.addHeader("Content-Type", "application/json");
   http.addHeader("Authorization", "Bearer " + String(hardware_token));
 
@@ -247,15 +506,12 @@ bool send_bin_status(int plastico, int papel, int vidro, int metal) {
 
   if (httpResponseCode > 0) {
     String response = http.getString();
-    Serial.print("[HTTP] Resposta Telemetria HTTP: ");
-    Serial.println(httpResponseCode);
-    Serial.print("[HTTP] Conteúdo: ");
-    Serial.println(response);
+    logInfo("[HTTP] Resposta Telemetria HTTP: " + String(httpResponseCode) + " | Conteúdo: " + response);
 
     // Verifica se o terminal está inativo/suspenso no sistema
     if (response.indexOf("\"active\":false") != -1) {
       if (terminalActive) {
-        Serial.println("[SYSTEM] AVISO: Este totem foi desativado/suspenso na plataforma!");
+        logInfo("[SYSTEM] AVISO: Este totem foi desativado/suspenso na plataforma!");
         terminalActive = false;
       }
     } else if (response.indexOf("\"active\":true") != -1) {
@@ -395,16 +651,82 @@ void setup() {
   Serial.println(
       "[CAMERA] Sensor otimizado com sucesso para ambientes internos!");
 
-  // Conexão Wi-Fi
-  WiFi.begin(ssid, password);
-  Serial.print("[WIFI] Conectando a ");
-  Serial.println(ssid);
+  // Carrega configurações persistidas do NVS Preferences
+  preferences.begin("schoolgain", true);
+  wifi_ssid = preferences.getString("ssid", "");
+  wifi_password = preferences.getString("pass", "");
+  schoolgain_server = preferences.getString("server", "");
+  terminal_id = preferences.getString("termId", "");
+  hardware_token = preferences.getString("token", "");
+  portal_password = preferences.getString("portalPass", "schoolgain");
+  preferences.end();
 
-  while (WiFi.status() != WL_CONNECTED) {
+  // Constrói as URLs de API dinamicamente
+  String serverBase = schoolgain_server;
+  if (serverBase.length() > 0) {
+    if (!serverBase.startsWith("http://") && !serverBase.startsWith("https://")) {
+      if (serverBase.indexOf(":") != -1 || serverBase.startsWith("192.168.") || serverBase.startsWith("172.16.") || serverBase.startsWith("10.")) {
+        serverBase = "http://" + serverBase;
+      } else {
+        serverBase = "https://" + serverBase;
+      }
+    }
+    rfidUrl = serverBase + "/api/hardware/input";
+    binUrl = serverBase + "/api/hardware/bin-status";
+  }
+
+  const char* DEFAULT_SSID = "SchoolGain_Config_Net";
+  const char* DEFAULT_PASS = "schoolgain_config_wpa2";
+  bool connected = false;
+
+  // 1. Tenta conectar ao Wi-Fi configurado nas preferências
+  if (wifi_ssid.length() > 0) {
+    WiFi.begin(wifi_ssid.c_str(), wifi_password.c_str());
+    Serial.print("[WIFI] Conectando ao Wi-Fi gravado: ");
+    Serial.println(wifi_ssid);
+
+    unsigned long startAttemptTime = millis();
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(500);
+      Serial.print(".");
+      digitalWrite(LED_RED_PIN, !digitalRead(LED_RED_PIN)); // Pisca o led durante conexão
+      if (millis() - startAttemptTime > 15000) {
+        Serial.println("\n[WIFI] Falha ao conectar ao Wi-Fi gravado.");
+        break;
+      }
+    }
+    if (WiFi.status() == WL_CONNECTED) {
+      connected = true;
+    }
+  }
+
+  // 2. Se falhar ou não houver Wi-Fi gravado, tenta a rede de configuração padrão (Portable AP)
+  if (!connected) {
+    WiFi.disconnect();
     delay(500);
-    Serial.print(".");
-    digitalWrite(LED_RED_PIN,
-                 !digitalRead(LED_RED_PIN)); // Pisca o led durante conexão
+    WiFi.begin(DEFAULT_SSID, DEFAULT_PASS);
+    Serial.print("[WIFI] Tentando rede de configuracao padrao: ");
+    Serial.println(DEFAULT_SSID);
+
+    unsigned long startAttemptTime = millis();
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(500);
+      Serial.print(".");
+      digitalWrite(LED_RED_PIN, !digitalRead(LED_RED_PIN));
+      if (millis() - startAttemptTime > 12000) {
+        Serial.println("\n[WIFI] Falha ao conectar a rede de configuracao padrao.");
+        break;
+      }
+    }
+    if (WiFi.status() == WL_CONNECTED) {
+      connected = true;
+      Serial.println("\n[WIFI] Conectado a rede de configuracao padrao!");
+    }
+  }
+
+  // 3. Se tudo falhar, inicia o hotspot local como último recurso
+  if (!connected) {
+    startConfigPortal();
   }
 
   digitalWrite(LED_RED_PIN,
@@ -413,6 +735,8 @@ void setup() {
   Serial.println("[WIFI] Conectado com sucesso!");
   Serial.print("[WIFI] IP Local da ESP32-CAM: ");
   Serial.println(WiFi.localIP());
+  Serial.print("[WIFI] Endereco MAC da ESP32-CAM: ");
+  Serial.println(WiFi.macAddress());
 
   // Define a Rota de Streaming
   server.on("/stream", HTTP_GET, handle_stream);
@@ -471,18 +795,109 @@ void setup() {
     }
   });
 
-  // Rota de Teste para conferir status
+  // Registra Cookie headers para autenticação no modo normal
+  const char *headerkeys[] = {"Cookie"};
+  server.collectHeaders(headerkeys, 1);
+
+  // Rota de Teste redireciona para o login ou config dependendo da autenticação
   server.on("/", HTTP_GET, []() {
-    server.send(
-        200, "text/plain",
-        "ESP32-CAM SchoolGain ativa! Acesse /stream para o feed de video.");
+    if (!isAuthenticated()) {
+      showLogin(server.hasArg("error"));
+      return;
+    }
+    server.sendHeader("Location", "/config");
+    server.send(302, "text/plain", "");
+  });
+
+  server.on("/login", HTTP_POST, handleLogin);
+  server.on("/logout", HTTP_GET, handleLogout);
+
+  // Rota para visualização do formulário de configuração no IP local (Autenticado)
+  server.on("/config", HTTP_GET, []() {
+    if (!isAuthenticated()) {
+      showLogin(server.hasArg("error"));
+      return;
+    }
+    String activeSsid = wifi_ssid;
+    String activePass = wifi_password;
+    if (activeSsid.length() == 0 && WiFi.status() == WL_CONNECTED) {
+      activeSsid = WiFi.SSID();
+      if (activeSsid == "SchoolGain_Config_Net") {
+        activePass = "schoolgain_config_wpa2";
+      }
+    }
+    String html = String(PORTAL_HTML);
+    html.replace("%SSID%", activeSsid);
+    html.replace("%PASS%", activePass);
+    html.replace("%SERVER%", schoolgain_server);
+    html.replace("%TERMID%", terminal_id);
+    html.replace("%TOKEN%", hardware_token);
+    server.send(200, "text/html", html);
+  });
+
+  // Rota para salvar configurações no IP local (Autenticado)
+  server.on("/save", HTTP_POST, []() {
+    if (!isAuthenticated()) {
+      server.send(401, "text/plain", "Nao autorizado");
+      return;
+    }
+    if (server.hasArg("ssid") && server.hasArg("server")) {
+      wifi_ssid = server.arg("ssid");
+      wifi_password = server.arg("pass");
+      schoolgain_server = server.arg("server");
+      terminal_id = server.arg("termId");
+      hardware_token = server.arg("token");
+      
+      String newPass = server.arg("newPortalPass");
+
+      preferences.begin("schoolgain", false);
+      preferences.putString("ssid", wifi_ssid);
+      preferences.putString("pass", wifi_password);
+      preferences.putString("server", schoolgain_server);
+      preferences.putString("termId", terminal_id);
+      preferences.putString("token", hardware_token);
+      if (newPass.length() > 0) {
+        portal_password = newPass;
+        preferences.putString("portalPass", portal_password);
+      }
+      preferences.end();
+
+      String response = "<html><body><h2>Configuracao salva com sucesso!</h2><p>O dispositivo esta reiniciando...</p></body></html>";
+      server.send(200, "text/html", response);
+      delay(2000);
+      ESP.restart();
+    } else {
+      server.send(400, "text/plain", "Campos obrigatorios faltando");
+    }
+  });
+
+  // Rota para reiniciar o dispositivo via rede
+  server.on("/reboot", HTTP_GET, []() {
+    if (!isAuthenticated()) {
+      server.send(401, "text/plain", "Nao autorizado");
+      return;
+    }
+    server.send(200, "text/html", "<html><body><h2>Reiniciando...</h2></body></html>");
+    delay(1500);
+    ESP.restart();
+  });
+
+  // Rota para limpar Wi-Fi e reconfigurar via rede
+  server.on("/reconfig", HTTP_GET, []() {
+    if (!isAuthenticated()) {
+      server.send(401, "text/plain", "Nao autorizado");
+      return;
+    }
+    server.send(200, "text/html", "<html><body><h2>Memoria apagada. Reiniciando em modo Config Portal AP...</h2></body></html>");
+    preferences.begin("schoolgain", false);
+    preferences.clear();
+    preferences.end();
+    delay(1500);
+    ESP.restart();
   });
 
   server.begin();
-  Serial.println("[SERVER] Servidor de Stream HTTP iniciado!");
-  Serial.print("[SERVER] Stream URL: http://");
-  Serial.print(WiFi.localIP());
-  Serial.println("/stream");
+  logInfo("[SERVER] Servidor HTTP de Stream e Configuracao iniciado! IP: " + WiFi.localIP().toString());
 }
 
 // ============================================================================
@@ -495,8 +910,8 @@ void loop() {
   // Se o totem estiver inativo, reduz a frequência de telemetria para 5 minutos (economizar banda/processamento)
   unsigned long telemetryInterval = terminalActive ? 30000 : 300000;
 
-  // Envia telemetria de lixeiras a cada intervalo definido
-  if (millis() - lastTelemetryTime >= telemetryInterval) {
+  // Envia telemetria de lixeiras a cada intervalo definido (Apenas se configurado)
+  if (binUrl.length() > 0 && millis() - lastTelemetryTime >= telemetryInterval) {
     lastTelemetryTime = millis();
     if (!terminalActive) {
       Serial.println("[TELEMETRIA] Totem suspenso. Tentando contato de validação em segundo plano...");
@@ -520,7 +935,14 @@ void loop() {
     String input = Serial.readStringUntil('\n');
     input.trim();
     if (input.length() > 0) {
-      if (input.startsWith("STATUS:")) {
+      if (input == "RESET" || input == "CONFIG") {
+        Serial.println("[SYSTEM] Comando RESET recebido. Apagando configuracoes e reiniciando...");
+        preferences.begin("schoolgain", false);
+        preferences.clear();
+        preferences.end();
+        delay(1000);
+        ESP.restart();
+      } else if (input.startsWith("STATUS:")) {
         String levelsStr = input.substring(7);
         int comma1 = levelsStr.indexOf(',');
         int comma2 = levelsStr.indexOf(',', comma1 + 1);

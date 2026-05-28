@@ -210,7 +210,7 @@ export default function StudentCard() {
 
         <div className="mt-6 flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-3">
-            <Button className="gap-2 shadow-lg bg-emerald-600 hover:bg-emerald-700 text-white border-none font-bold uppercase tracking-wider text-[10px] h-10 rounded-xl animate-in fade-in" onClick={handleDownloadImage}>
+            <Button className="gap-2 shadow-lg bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 dark:text-emerald-400 dark:border dark:border-emerald-500/30 font-bold uppercase tracking-wider text-[10px] h-10 rounded-xl animate-in fade-in" onClick={handleDownloadImage}>
               <ImageIcon className="h-4 w-4" />
               Salvar Imagem
             </Button>

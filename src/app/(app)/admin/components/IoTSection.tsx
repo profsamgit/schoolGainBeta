@@ -1,66 +1,166 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useEcosystem } from '@/contexts/EcosystemContext';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Cpu, 
-  Terminal, 
+  Terminal as TerminalIcon, 
   RefreshCw, 
   Wifi, 
   WifiOff, 
   Play, 
   Power,
   Camera,
-  Trash2,
-  Lock
+  Activity,
+  AlertTriangle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Terminal } from '@/types/ecosystem';
 
 interface LogLine {
   timestamp: string;
   message: string;
 }
 
-export function IoTSection() {
-  const { systemSettings, updateSystemSettings } = useEcosystem();
-  const { toast } = useToast();
+interface IoTSectionProps {
+  terminals?: Terminal[];
+}
 
-  // Configuração dos IPs locais
-  const [espLoginIp, setEspLoginIp] = useState(systemSettings?.espLoginIp || '');
-  const [espScannerIp, setEspScannerIp] = useState(systemSettings?.espScannerIp || '');
-  const [espWasteIp, setEspWasteIp] = useState(systemSettings?.espWasteIp || '');
-  const [isSaving, setIsSaving] = useState(false);
+export function IoTSection({ terminals = [] }: IoTSectionProps) {
+  const { toast } = useToast();
 
   // Status do Proxy Local
   const [proxyActive, setProxyActive] = useState(false);
   const [checkingProxy, setCheckingProxy] = useState(false);
-  const [startingProxy, setStartingProxy] = useState(false);
 
-  // Abas do terminal
-  const [activeTab, setActiveTab] = useState<'login' | 'scanner' | 'waste'>('login');
+  // Monitoramento sob demanda
+  const [selectedEspId, setSelectedEspId] = useState<string>('');
+  const [isMonitoring, setIsMonitoring] = useState(false);
+  const [logs, setLogs] = useState<LogLine[]>([]);
+  const [cameraError, setCameraError] = useState(false);
+  const [streamSrc, setStreamSrc] = useState<string>('');
 
-  // Logs recebidos
-  const [loginLogs, setLoginLogs] = useState<LogLine[]>([]);
-  const [scannerLogs, setScannerLogs] = useState<LogLine[]>([]);
-  const [wasteLogs, setWasteLogs] = useState<LogLine[]>([]);
-
-  // Refs de auto-scroll para os terminais
-  const loginEndRef = useRef<HTMLDivElement>(null);
-  const scannerEndRef = useRef<HTMLDivElement>(null);
-  const wasteEndRef = useRef<HTMLDivElement>(null);
-
-  // Efeito para scroll automático ao final do terminal
   useEffect(() => {
-    if (activeTab === 'login') loginEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    if (activeTab === 'scanner') scannerEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    if (activeTab === 'waste') wasteEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [loginLogs, scannerLogs, wasteLogs, activeTab]);
+    setCameraError(false);
+  }, [selectedEspId, isMonitoring]);
 
-  // Função para verificar status do Proxy
+  // Refs e conexões
+  const terminalContainerRef = useRef<HTMLDivElement>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
+
+  // Efeito para scroll automático ao final do terminal de logs
+  useEffect(() => {
+    if (terminalContainerRef.current) {
+      terminalContainerRef.current.scrollTop = terminalContainerRef.current.scrollHeight;
+    }
+  }, [logs]);
+
+  // Função auxiliar para extrair IP/Host de uma URL
+  const getIpFromUrl = (url?: string) => {
+    if (!url) return '';
+    const trimmed = url.trim().replace(/^(https?:\/\/)?/, '').split('/')[0];
+    if (/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/.test(trimmed)) {
+      return trimmed;
+    }
+    return trimmed.split(':')[0];
+  };
+
+  // Mapeamento dinâmico das ESPs configuradas nos totens ativos
+  const detectedEsps = useMemo(() => {
+    const esps: {
+      id: string;
+      name: string;
+      type: 'login' | 'scanner' | 'discard';
+      ip: string;
+      originalUrl: string;
+      totemName: string;
+      totemId: string;
+      source: string;
+    }[] = [];
+
+    terminals.forEach((t) => {
+      // 1. ESP da Câmera de Login (Qualquer fonte que possua URL)
+      if (t.settings?.loginCameraUrl || t.settings?.cameraUrl) {
+        const url = t.settings?.loginCameraUrl || t.settings?.cameraUrl;
+        const ip = getIpFromUrl(url);
+        if (ip) {
+          esps.push({
+            id: `${t.id}-login`,
+            name: `${t.location} - Câmera de Login`,
+            type: 'login',
+            ip,
+            originalUrl: url || '',
+            totemName: t.location,
+            totemId: t.id,
+            source: t.settings?.loginCameraSource || 'esp32'
+          });
+        }
+      }
+
+      // 2. ESP da Câmera do Scanner (Qualquer fonte que possua URL)
+      if (t.settings?.scanningCameraUrl || t.settings?.cameraUrl) {
+        const url = t.settings?.scanningCameraUrl || t.settings?.cameraUrl;
+        const ip = getIpFromUrl(url);
+        if (ip) {
+          esps.push({
+            id: `${t.id}-scanner`,
+            name: `${t.location} - Câmera de Scanner / Descarte`,
+            type: 'scanner',
+            ip,
+            originalUrl: url || '',
+            totemName: t.location,
+            totemId: t.id,
+            source: t.settings?.scanningCameraSource || 'esp32'
+          });
+        }
+      }
+
+      // 3. ESP de Descarte (Lixeiras / RFID / Sonar)
+      if (t.settings?.discardEspIp) {
+        const ip = getIpFromUrl(t.settings.discardEspIp);
+        if (ip) {
+          esps.push({
+            id: `${t.id}-discard`,
+            name: `${t.location} - Controlador de Descarte`,
+            type: 'discard',
+            ip,
+            originalUrl: t.settings.discardEspIp,
+            totemName: t.location,
+            totemId: t.id,
+            source: t.settings?.discardEspSource || 'esp32'
+          });
+        }
+      }
+    });
+
+    return esps;
+  }, [terminals]);
+
+  const activeEsp = useMemo(() => {
+    return detectedEsps.find(e => e.id === selectedEspId) || null;
+  }, [detectedEsps, selectedEspId]);
+
+  // Auto-seleciona a primeira ESP detectada se nenhuma estiver selecionada
+  useEffect(() => {
+    if (detectedEsps.length > 0 && !selectedEspId) {
+      setSelectedEspId(detectedEsps[0].id);
+    }
+  }, [detectedEsps, selectedEspId]);
+
+  // Efeito reativo para fechar/abrir stream sem travar conexões no navegador
+  useEffect(() => {
+    if (isMonitoring && activeEsp) {
+      setStreamSrc(`http://localhost:9005/stream?target=${activeEsp.ip}&_ts=${Date.now()}`);
+    } else {
+      setStreamSrc('data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==');
+    }
+  }, [isMonitoring, activeEsp?.ip]);
+
+  // Função para verificar status do Proxy local
   const checkProxyStatus = async () => {
     setCheckingProxy(true);
     try {
@@ -78,93 +178,45 @@ export function IoTSection() {
     }
   };
 
-  // Função para iniciar o Proxy
-  const handleStartProxy = async () => {
-    setStartingProxy(true);
+  // Carregar histórico de logs da ESP ativa
+  const loadLogsHistory = async (ip: string) => {
     try {
-      const res = await fetch('/api/hardware/proxy', { method: 'POST' });
-      const data = await res.json();
-      if (data.success) {
-        setProxyActive(true);
-        toast({ title: "Proxy Ativo", description: data.message });
-        // Pequena pausa antes de carregar o histórico de logs
-        setTimeout(loadLogsHistory, 1000);
-      } else {
-        toast({ title: "Erro no Proxy", description: data.message, variant: "destructive" });
-      }
-    } catch (e) {
-      toast({ title: "Erro de Conexão", description: "Não foi possível acionar a API local.", variant: "destructive" });
-    } finally {
-      setStartingProxy(false);
-    }
-  };
-
-  // Função para salvar os IPs
-  const handleSaveIPs = async () => {
-    setIsSaving(true);
-    try {
-      updateSystemSettings({
-        ...systemSettings,
-        espLoginIp,
-        espScannerIp,
-        espWasteIp
-      });
-      toast({ title: "Configurações Salvas", description: "Os IPs das ESPs foram salvos com sucesso!" });
-    } catch (error) {
-      toast({ title: "Erro ao Salvar", description: "Falha ao salvar preferências.", variant: "destructive" });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // Carregar histórico de logs do proxy
-  const loadLogsHistory = async () => {
-    if (!proxyActive) return;
-    try {
-      if (espLoginIp) {
-        const res = await fetch(`http://localhost:9005/logs?target=${espLoginIp}`);
-        if (res.ok) setLoginLogs(await res.json());
-      }
-      if (espScannerIp) {
-        const res = await fetch(`http://localhost:9005/logs?target=${espScannerIp}`);
-        if (res.ok) setScannerLogs(await res.json());
-      }
-      if (espWasteIp) {
-        const res = await fetch(`http://localhost:9005/logs?target=${espWasteIp}`);
-        if (res.ok) setWasteLogs(await res.json());
+      const res = await fetch(`http://localhost:9005/logs?target=${ip}`);
+      if (res.ok) {
+        setLogs(await res.json());
       }
     } catch (e) {
       console.warn("Erro ao buscar histórico de logs:", e);
     }
   };
 
-  // Inicializa conexões
+  // Gerencia a conexão com o fluxo de logs (SSE)
   useEffect(() => {
     checkProxyStatus();
   }, []);
 
-  // Monitora alterações de proxyActive para rodar conexões SSE
   useEffect(() => {
-    if (!proxyActive) return;
+    if (!proxyActive || !isMonitoring || !activeEsp) {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      return;
+    }
 
-    loadLogsHistory();
+    loadLogsHistory(activeEsp.ip);
 
-    // Conecta no EventSource para streaming de logs
     const eventSource = new EventSource('http://localhost:9005/logs/stream');
+    eventSourceRef.current = eventSource;
 
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
         const { ip, timestamp, message } = data;
 
-        const newLog: LogLine = { timestamp, message };
-
-        if (ip === espLoginIp) {
-          setLoginLogs(prev => [...prev.slice(-99), newLog]);
-        } else if (ip === espScannerIp) {
-          setScannerLogs(prev => [...prev.slice(-99), newLog]);
-        } else if (ip === espWasteIp) {
-          setWasteLogs(prev => [...prev.slice(-99), newLog]);
+        if (ip === activeEsp.ip) {
+          const newLog: LogLine = { timestamp, message };
+          setLogs(prev => [...prev.slice(-99), newLog]);
         }
       } catch (err) {
         console.error("Erro ao decodificar log SSE:", err);
@@ -172,183 +224,153 @@ export function IoTSection() {
     };
 
     eventSource.onerror = () => {
-      // Tenta restabelecer conexão mais tarde se cair
       eventSource.close();
+      eventSourceRef.current = null;
     };
 
     return () => {
       eventSource.close();
+      eventSourceRef.current = null;
     };
-  }, [proxyActive, espLoginIp, espScannerIp, espWasteIp]);
+  }, [proxyActive, isMonitoring, activeEsp]);
+
+  // Ações de ligar/desligar monitoramento
+  const startMonitoring = () => {
+    if (!activeEsp) {
+      toast({ 
+        title: "Nenhuma placa selecionada", 
+        description: "Configure os totens para registrar as ESPs da escola.",
+        variant: "destructive" 
+      });
+      return;
+    }
+    setLogs([]);
+    setIsMonitoring(true);
+    toast({ 
+      title: "Monitoramento Iniciado", 
+      description: `Buscando fluxo de dados e vídeo para a placa em ${activeEsp.ip}.` 
+    });
+  };
+
+  const stopMonitoring = () => {
+    setIsMonitoring(false);
+    toast({ 
+      title: "Monitoramento Pausado", 
+      description: "A conexão com a placa foi encerrada." 
+    });
+  };
 
   const clearTerminal = () => {
-    if (activeTab === 'login') setLoginLogs([]);
-    if (activeTab === 'scanner') setScannerLogs([]);
-    if (activeTab === 'waste') setWasteLogs([]);
+    setLogs([]);
   };
-
-  const getActiveLogs = () => {
-    if (activeTab === 'login') return { logs: loginLogs, ip: espLoginIp, name: "Login" };
-    if (activeTab === 'scanner') return { logs: scannerLogs, ip: espScannerIp, name: "Scanner" };
-    return { logs: wasteLogs, ip: espWasteIp, name: "Descarte" };
-  };
-
-  const currentTabInfo = getActiveLogs();
 
   return (
     <div className="space-y-6">
-      {/* HEADER & PROXY MANAGEMENT */}
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* CONFIGURAÇÃO DE IPS */}
-        <Card className="flex-1 border border-slate-200/60 dark:border-white/10 shadow-xl bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl rounded-[2rem]">
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                <Cpu className="h-5 w-5" />
-              </div>
-              <div>
-                <CardTitle className="text-lg font-black uppercase tracking-tight">IPs das Placas ESP</CardTitle>
-                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-slate-500">Configure os IPs das câmeras e sensores na rede local</CardDescription>
-              </div>
+      {/* SELEÇÃO DE PLACAS CADASTRADAS EM TOTENS */}
+      <Card className="w-full border border-slate-200/60 dark:border-white/10 shadow-xl bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl rounded-[2rem]">
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+              <Cpu className="h-5 w-5" />
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">ESP-CAM Login</label>
-                <Input 
-                  value={espLoginIp} 
-                  onChange={e => setEspLoginIp(e.target.value)} 
-                  placeholder="Ex: 192.168.1.101" 
-                  className="bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-xl h-11 text-sm font-bold"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">ESP-CAM Scanner</label>
-                <Input 
-                  value={espScannerIp} 
-                  onChange={e => setEspScannerIp(e.target.value)} 
-                  placeholder="Ex: 192.168.1.102" 
-                  className="bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-xl h-11 text-sm font-bold"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-550 ml-1">ESP-CAM Descarte</label>
-                <Input 
-                  value={espWasteIp} 
-                  onChange={e => setEspWasteIp(e.target.value)} 
-                  placeholder="Ex: 192.168.1.103" 
-                  className="bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-xl h-11 text-sm font-bold"
-                />
-              </div>
+            <div>
+              <CardTitle className="text-lg font-black uppercase tracking-tight">Painel de Dispositivos Totem IoT</CardTitle>
+              <CardDescription className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                Selecione as placas ativas configuradas no cadastro de totens escolares
+              </CardDescription>
             </div>
-            <div className="flex justify-end pt-2">
-              <Button 
-                onClick={handleSaveIPs} 
-                disabled={isSaving}
-                className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-black uppercase text-xs tracking-widest rounded-xl shadow-lg px-6 h-11"
-              >
-                {isSaving ? "Salvando..." : "Salvar Configurações"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* STATUS DO PROXY */}
-        <Card className="lg:w-80 border border-slate-200/60 dark:border-white/10 shadow-xl bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl rounded-[2rem] flex flex-col justify-between">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-sm font-black uppercase tracking-tight text-slate-800 dark:text-white">Status do Proxy IoT</CardTitle>
-            <CardDescription className="text-[9px] font-black uppercase tracking-widest text-slate-500">Serviço local de intermediação</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 flex-1 flex flex-col justify-between">
-            <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-150 dark:border-white/5">
-              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Conexão Local:</span>
-              <div className="flex items-center gap-1.5">
-                {proxyActive ? (
-                  <>
-                    <Wifi className="h-4 w-4 text-emerald-500" />
-                    <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-black text-[9px] py-0.5 px-2">ONLINE</Badge>
-                  </>
-                ) : (
-                  <>
-                    <WifiOff className="h-4 w-4 text-rose-500" />
-                    <Badge className="bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 font-black text-[9px] py-0.5 px-2">OFFLINE</Badge>
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div className="flex gap-2 w-full pt-3">
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={checkProxyStatus} 
-                disabled={checkingProxy}
-                className="h-11 w-11 rounded-xl border-slate-200 dark:border-white/10"
-                title="Recarregar status"
-              >
-                <RefreshCw className={`h-4 w-4 ${checkingProxy ? 'animate-spin' : ''}`} />
-              </Button>
-              {!proxyActive ? (
-                <Button 
-                  onClick={handleStartProxy} 
-                  disabled={startingProxy}
-                  className="flex-1 bg-indigo-650 hover:bg-indigo-600 text-white font-black uppercase text-[10px] tracking-wider rounded-xl h-11 gap-1.5"
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {detectedEsps.length > 0 ? (
+            <div className="space-y-3">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+                Selecione uma Placa ESP para Monitoramento
+              </label>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Select 
+                  value={selectedEspId} 
+                  onValueChange={(id) => {
+                    setSelectedEspId(id);
+                    setIsMonitoring(false);
+                    setLogs([]);
+                  }}
                 >
-                  <Play className="h-3.5 w-3.5" /> Iniciar Proxy
-                </Button>
-              ) : (
-                <div className="flex-1 flex items-center justify-center text-[10px] font-black uppercase tracking-wider text-slate-500">
-                  Pronto para uso
+                  <SelectTrigger className="w-full h-11 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold">
+                    <SelectValue placeholder="Selecione um totem detectado..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white">
+                    {detectedEsps.map(esp => {
+                      const protocolLabel = esp.source === 'esp32_https' ? 'HTTPS' : 'HTTP';
+                      return (
+                        <SelectItem key={esp.id} value={esp.id} className="font-bold hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">
+                          {esp.type === 'login' ? '🔑' : esp.type === 'scanner' ? '🔍' : '♻️'} {esp.name} ({esp.ip} - {protocolLabel})
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+
+                <div className="flex gap-2">
+                  {!isMonitoring ? (
+                    <Button 
+                      onClick={startMonitoring}
+                      disabled={!selectedEspId}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase text-[10px] tracking-wider rounded-xl h-11 px-5 gap-1.5 shadow-lg shadow-emerald-500/15 whitespace-nowrap"
+                    >
+                      <Play className="h-3.5 w-3.5" /> Testar ESP
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={stopMonitoring}
+                      variant="destructive"
+                      className="bg-rose-600 hover:bg-rose-500 text-white font-black uppercase text-[10px] tracking-wider rounded-xl h-11 px-5 gap-1.5 shadow-lg shadow-rose-500/15 animate-pulse whitespace-nowrap"
+                    >
+                      <Power className="h-3.5 w-3.5" /> Parar Teste
+                    </Button>
+                  )}
+                </div>
+              </div>
+              
+              {activeEsp && (
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-150 dark:border-white/5 rounded-2xl flex flex-wrap gap-x-6 gap-y-2 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                  <div>Totem de Origem: <strong className="text-slate-800 dark:text-white">{activeEsp.totemName}</strong></div>
+                  <div>IP da Placa: <strong className="text-slate-800 dark:text-white font-mono">{activeEsp.ip}</strong></div>
+                  <div>Função IoT: <strong className="text-slate-800 dark:text-white uppercase">{activeEsp.type === 'login' ? 'Identificação / Login' : activeEsp.type === 'scanner' ? 'Scanner de Pesagem' : 'Controlador de Triagem'}</strong></div>
+                  <div>Protocolo: <strong className="text-slate-800 dark:text-white uppercase font-mono">{activeEsp.source === 'esp32_https' ? 'HTTPS Proxy' : 'HTTP Direto'}</strong></div>
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          ) : (
+            <div className="p-6 text-center border border-dashed border-slate-200 dark:border-white/10 rounded-3xl space-y-2">
+              <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto animate-bounce" />
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
+                Nenhuma placa ESP32 configurada nos totens desta escola
+              </p>
+              <p className="text-[10px] text-slate-450 dark:text-slate-500 max-w-md mx-auto leading-relaxed">
+                Para realizar o monitoramento, acesse as configurações dos totens na aba "Infraestrutura" e informe o endereço IP ou MAC da câmera/controlador correspondente.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* MONITOR SERIAL VIRTUAL */}
       <Card className="border border-slate-200/60 dark:border-white/10 shadow-xl bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl rounded-[2rem] overflow-hidden">
         <CardHeader className="bg-slate-50/50 dark:bg-slate-950/40 border-b border-slate-100 dark:border-white/5 py-4 px-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-650 dark:text-indigo-400">
-              <Terminal className="h-4.5 w-4.5" />
+              <TerminalIcon className="h-4.5 w-4.5" />
             </div>
             <div>
               <CardTitle className="text-md font-black uppercase tracking-tight">Monitor Serial de Rede</CardTitle>
-              <CardDescription className="text-[9px] font-black uppercase tracking-widest text-slate-500">Transmissão de logs de console das ESP32-CAMs via UDP</CardDescription>
+              <CardDescription className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                Transmissão de logs de console em tempo real via UDP
+              </CardDescription>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Abas */}
-            <div className="bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-250 dark:border-white/5 flex gap-1">
-              <Button 
-                variant={activeTab === 'login' ? 'default' : 'ghost'} 
-                size="sm" 
-                onClick={() => setActiveTab('login')}
-                className={`h-8 rounded-lg text-[9px] font-black uppercase tracking-wider ${activeTab === 'login' ? 'bg-indigo-600 hover:bg-indigo-500 text-white' : ''}`}
-              >
-                ESP Login
-              </Button>
-              <Button 
-                variant={activeTab === 'scanner' ? 'default' : 'ghost'} 
-                size="sm" 
-                onClick={() => setActiveTab('scanner')}
-                className={`h-8 rounded-lg text-[9px] font-black uppercase tracking-wider ${activeTab === 'scanner' ? 'bg-indigo-600 hover:bg-indigo-500 text-white' : ''}`}
-              >
-                ESP Scanner
-              </Button>
-              <Button 
-                variant={activeTab === 'waste' ? 'default' : 'ghost'} 
-                size="sm" 
-                onClick={() => setActiveTab('waste')}
-                className={`h-8 rounded-lg text-[9px] font-black uppercase tracking-wider ${activeTab === 'waste' ? 'bg-indigo-600 hover:bg-indigo-500 text-white' : ''}`}
-              >
-                ESP Descarte
-              </Button>
-            </div>
-
             <Button 
               variant="outline" 
               size="sm" 
@@ -361,31 +383,43 @@ export function IoTSection() {
         </CardHeader>
         <CardContent className="p-6">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            
             {/* Terminal de Logs */}
             <div className="lg:col-span-3 flex flex-col">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-                  Console Serial - {currentTabInfo.name} ({currentTabInfo.ip || 'Sem IP'})
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-550">
+                  Console Serial - {activeEsp ? activeEsp.name : 'Nenhuma placa selecionada'}
                 </span>
-                {currentTabInfo.ip && proxyActive && (
-                  <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-black text-[9px]">
-                    CONECTADO
+                {isMonitoring && activeEsp && proxyActive && (
+                  <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-black text-[9px] flex gap-1 items-center">
+                    <Activity className="h-3 w-3 animate-pulse" />
+                    CONECTADO E TRANSMITINDO
                   </Badge>
                 )}
               </div>
-              <div className="bg-slate-950 rounded-2xl p-4 font-mono text-xs text-emerald-400 h-80 overflow-y-auto border border-slate-800 shadow-inner flex flex-col">
-                {currentTabInfo.logs.length === 0 ? (
+              <div ref={terminalContainerRef} className="bg-slate-950 rounded-2xl p-4 font-mono text-xs text-emerald-400 h-80 overflow-y-auto border border-slate-880 shadow-inner flex flex-col">
+                {!isMonitoring ? (
+                  <div className="flex-1 flex flex-col items-center justify-center text-slate-600 italic gap-2 text-center select-none">
+                    <TerminalIcon className="h-8 w-8 text-slate-800" />
+                    <span className="text-xs uppercase font-black text-slate-500">Monitoramento Inativo</span>
+                    <span className="text-[10px] text-slate-550 max-w-xs mt-1">
+                      {activeEsp 
+                        ? `Clique no botão "Testar ESP" acima para conectar e iniciar a escuta de logs de "${activeEsp.name}".`
+                        : 'Nenhuma placa selecionada para iniciar a escuta.'}
+                    </span>
+                  </div>
+                ) : logs.length === 0 ? (
                   <div className="flex-1 flex flex-col items-center justify-center text-slate-600 italic gap-2 text-center">
-                    <Terminal className="h-8 w-8 text-slate-700 animate-pulse" />
-                    <span>Aguardando transmissão de dados de {currentTabInfo.name}...</span>
-                    {(!proxyActive || !currentTabInfo.ip) && (
+                    <RefreshCw className="h-8 w-8 text-slate-750 animate-spin" />
+                    <span>Conectado. Aguardando transmissão de dados de {activeEsp?.name}...</span>
+                    {!proxyActive && (
                       <span className="text-[10px] text-rose-500 uppercase not-italic font-black mt-1">
-                        {!proxyActive ? "O PROXY LOCAL ESTÁ OFFLINE" : "CONFIGURE O IP DA ESP ACIMA"}
+                        O Proxy local está offline. Inicie-o para receber logs de rede.
                       </span>
                     )}
                   </div>
                 ) : (
-                  currentTabInfo.logs.map((log, index) => (
+                  logs.map((log, index) => (
                     <div key={index} className="flex gap-2 py-0.5 hover:bg-white/5 rounded px-1">
                       <span className="text-slate-600 shrink-0 select-none">
                         [{new Date(log.timestamp).toLocaleTimeString()}]
@@ -396,10 +430,6 @@ export function IoTSection() {
                     </div>
                   ))
                 )}
-                {/* Marcadores de scroll */}
-                {activeTab === 'login' && <div ref={loginEndRef} />}
-                {activeTab === 'scanner' && <div ref={scannerEndRef} />}
-                {activeTab === 'waste' && <div ref={wasteEndRef} />}
               </div>
             </div>
 
@@ -409,29 +439,33 @@ export function IoTSection() {
                 Visualização ao Vivo
               </span>
               <div className="aspect-video bg-slate-950 border border-slate-850 rounded-2xl overflow-hidden flex items-center justify-center relative text-slate-500 shadow-md">
-                {currentTabInfo.ip && proxyActive ? (
-                  // Retransmissão da ESP32-CAM via Proxy CORS local
-                  <img 
-                    src={`http://localhost:9005/stream?target=${currentTabInfo.ip}`} 
-                    alt={`Stream ${currentTabInfo.name}`}
-                    className="h-full w-full object-cover"
-                    onError={(e) => {
-                      // Se falhar o stream da câmera
-                      e.currentTarget.style.display = 'none';
-                      const parent = e.currentTarget.parentElement;
-                      if (parent) {
-                        const errorMsg = document.createElement('div');
-                        errorMsg.className = "flex flex-col items-center gap-1.5 text-[10px] font-bold text-rose-400";
-                        errorMsg.innerHTML = `<svg class="h-6 w-6 text-rose-500 animate-pulse" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg><span>CÂMERA INDISPONÍVEL</span>`;
-                        parent.appendChild(errorMsg);
-                      }
-                    }}
-                  />
+                {isMonitoring && activeEsp ? (
+                  cameraError ? (
+                    <div className="flex flex-col items-center gap-1.5 text-[10px] font-bold text-rose-400 text-center p-4">
+                      <svg className="h-6 w-6 text-rose-500 animate-pulse" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                      </svg>
+                      <span className="mt-1">CÂMERA INDISPONÍVEL</span>
+                      <span className="text-[9px] text-slate-500 font-normal">Verifique se o IP {activeEsp.ip} está correto e acessível.</span>
+                    </div>
+                  ) : (
+                    // Retransmissão da ESP32-CAM via Proxy CORS local
+                    <img 
+                      src={streamSrc} 
+                      alt={`Stream ${activeEsp.name}`}
+                      className="h-full w-full object-cover"
+                      onError={() => {
+                        if (streamSrc && !streamSrc.startsWith('data:')) {
+                          setCameraError(true);
+                        }
+                      }}
+                    />
+                  )
                 ) : (
                   <div className="flex flex-col items-center gap-2 text-center p-4">
                     <Camera className="h-7 w-7 text-slate-700" />
                     <span className="text-[10px] font-black uppercase tracking-wider text-slate-600 leading-snug">
-                      {!currentTabInfo.ip ? "IP Não Configurado" : "Proxy Offline"}
+                      {!isMonitoring ? "Vídeo Pausado" : "Aguardando Câmera"}
                     </span>
                   </div>
                 )}
@@ -442,10 +476,11 @@ export function IoTSection() {
                   1. Certifique-se de que a ESP e o Totem estão na **mesma rede Wi-Fi**.
                 </p>
                 <p className="text-[10.5px] leading-relaxed">
-                  2. O arquivo de logs deve direcionar para o IP do Totem na porta **9006 via UDP**.
+                  2. O firmware deve direcionar os logs para a porta **9006 via UDP**.
                 </p>
               </div>
             </div>
+
           </div>
         </CardContent>
       </Card>

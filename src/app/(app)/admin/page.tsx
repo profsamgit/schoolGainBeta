@@ -118,6 +118,12 @@ function AdminContent() {
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab') || 'povoamento';
   const [activeTab, setActiveTab] = useState(initialTab);
+  const handleTabChange = (newTab: string) => {
+    setActiveTab(newTab);
+    const params = new URLSearchParams(window.location.search);
+    params.set('tab', newTab);
+    router.push(`/admin?${params.toString()}`, { scroll: false });
+  };
   const { toast } = useToast();
 
   const {
@@ -807,7 +813,7 @@ function AdminContent() {
           )}
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6 w-full">
           <div className="w-full overflow-x-auto no-scrollbar pb-1">
             <TabsList className="!inline-flex w-max min-w-full justify-start h-16 bg-slate-100/80 dark:bg-slate-950/80 p-1.5 rounded-2xl border border-slate-200/60 dark:border-white/5 shadow-2xl backdrop-blur-xl">
               <TabsTrigger value="povoamento" className="flex-1 shrink-0 min-w-max !inline-flex rounded-xl data-[state=active]:bg-indigo-600 dark:data-[state=active]:bg-indigo-500 data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest transition-all duration-300 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"><Database className="mr-2 h-4 w-4" /> Povoamento</TabsTrigger>
@@ -957,7 +963,7 @@ function AdminContent() {
               toast={toast}
               schools={schools}
             />
-            <IoTSection />
+            <IoTSection terminals={filteredTerminalsForAdmin} />
           </TabsContent>
 
         </Tabs>

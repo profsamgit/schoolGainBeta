@@ -124,7 +124,7 @@ export type Terminal = {
   settings?: {
     preferredCamera?: string;
     scanningCameraDevice?: string;
-    loginMethod?: 'manual' | 'qr' | 'rfid' | 'all';
+    loginMethod?: 'manual' | 'qr' | 'rfid' | 'all' | 'manual_qr' | 'manual_rfid' | 'qr_rfid';
     loginCameraSource?: 'browser' | 'esp32' | 'esp32_https' | 'url';
     scanningCameraSource?: 'browser' | 'esp32' | 'esp32_https' | 'url';
     cameraUrl?: string;
@@ -136,6 +136,10 @@ export type Terminal = {
     scanningCameraFlash?: boolean;
     schoolgainServer?: string;
     hardwareToken?: string;
+    discardEspIp?: string;
+    discardEspSource?: 'esp32' | 'esp32_https';
+    sonarDistance?: number;
+    rfidReaderEnabled?: boolean;
   };
   binLevels?: {
     plastico: number;
@@ -293,14 +297,15 @@ export interface SecurityState {
  * Configurações globais do sistema, gerenciadas pelo gestor.
  */
 export interface SystemSettings {
-  studentLoginMethod: 'manual' | 'qr' | 'rfid' | 'all';
-  adminLoginMethod: 'manual' | 'qr' | 'rfid' | 'all';
+  studentLoginMethod: 'manual' | 'qr' | 'rfid' | 'all' | 'manual_qr' | 'manual_rfid' | 'qr_rfid';
+  adminLoginMethod: 'manual' | 'qr' | 'rfid' | 'all' | 'manual_qr' | 'manual_rfid' | 'qr_rfid';
   studentCaptureSource?: 'browser' | 'esp32' | 'esp32_https' | 'url';
   adminCaptureSource?: 'browser' | 'esp32' | 'esp32_https' | 'url';
   studentCaptureDevice?: string;
   adminCaptureDevice?: string;
   studentCaptureUrl?: string;
   adminCaptureUrl?: string;
+  studentAreaMaintenance?: boolean;
 }
 
 /**

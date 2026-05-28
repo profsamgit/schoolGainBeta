@@ -221,8 +221,8 @@ export function IdentificationSection({
 
       isScanningFrame = true;
 
-      // Otimização de Performance Extrema: Redimensiona o canvas para 320px de largura
-      const targetWidth = 320;
+      // Redimensiona o canvas para 640px de largura para manter nitidez do QR
+      const targetWidth = 640;
       const scale = targetWidth / img.naturalWidth;
       const targetHeight = img.naturalHeight * scale;
 
@@ -234,19 +234,20 @@ export function IdentificationSection({
         return;
       }
 
-      // Desenha com suavização para manter a legibilidade das bordas do QR
+      // Filtros Gráficos e Suavização: Maximiza contraste para facilitar leitura de QR
       ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'medium';
+      ctx.imageSmoothingQuality = 'high';
+      ctx.filter = 'contrast(1.20) brightness(0.95)';
       ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+      ctx.filter = 'none';
 
-      // Converte o canvas para Blob JPEG leve (60% qualidade) para agilizar o parse de memória do html5-qrcode
       canvas.toBlob(async (blob) => {
         if (!blob || !isMounted) {
           isScanningFrame = false;
           return;
         }
         try {
-          const file = new File([blob], "frame.jpg", { type: "image/jpeg" });
+          const file = new File([blob], 'qrcode.jpg', { type: 'image/jpeg' });
           const decodedText = await html5QrCode!.scanFile(file, false);
           
           if (decodedText && isMounted) {
@@ -258,11 +259,11 @@ export function IdentificationSection({
         } finally {
           isScanningFrame = false;
         }
-      }, 'image/jpeg', 0.60);
+      }, 'image/jpeg', 0.90);
     };
 
-    // Roda a decodificação a cada 350ms
-    intervalId = setInterval(scanFrame, 350);
+    // Roda a decodificação a cada 120ms
+    intervalId = setInterval(scanFrame, 120);
 
     return () => {
       isMounted = false;
@@ -481,101 +482,103 @@ export function IdentificationSection({
 
             {/* TAB: QR CODE LOGIN */}
             <TabsContent value="qr" className="space-y-4 animate-in fade-in-50 duration-300">
-              {activeLoginCameraSource === 'browser' ? (
-                <div className="space-y-4">
-                  <div className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl bg-slate-200/50 dark:bg-slate-950 aspect-video">
-                    {/* Futuristic Corner Scan Scope Brackets */}
-                    <div className="absolute inset-0 z-20 pointer-events-none rounded-2xl">
-                      <div className="absolute top-4 left-4 w-6 h-6 border-t-2 border-l-2 border-emerald-400 rounded-tl-md" />
-                      <div className="absolute top-4 right-4 w-6 h-6 border-t-2 border-r-2 border-emerald-400 rounded-tr-md" />
-                      <div className="absolute bottom-4 left-4 w-6 h-6 border-b-2 border-l-2 border-emerald-400 rounded-bl-md" />
-                      <div className="absolute bottom-4 right-4 w-6 h-6 border-b-2 border-r-2 border-emerald-400 rounded-br-md" />
-                      
-                      {/* Sweeping Laser Line */}
-                      <div className="absolute left-4 right-4 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_12px_rgba(52,211,153,0.8)] animate-[scan_2.5s_ease-in-out_infinite]" />
-                    </div>
-
-                    <QRScanner 
-                      key={scannerKey} 
-                      onScan={onIdentify} 
-                      deviceId={loginCameraDeviceId || systemSettings.studentCaptureDevice}
-                    />
-                  </div>
-                  <p className="text-[10px] text-center text-emerald-400 font-black uppercase tracking-[0.18em] bg-emerald-500/10 py-3 rounded-xl border border-emerald-500/20 shadow-sm">
-                    Aproxime sua Carteira da câmera
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {streamUrlWithRetry ? (
-                    <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 shadow-2xl bg-slate-200/50 dark:bg-slate-950 flex items-center justify-center">
-                      {!streamError ? (
-                        <>
-                          {/* Corner Brackets for Stream */}
-                          <div className="absolute inset-0 z-20 pointer-events-none rounded-2xl">
-                            <div className="absolute top-4 left-4 w-6 h-6 border-t-2 border-l-2 border-emerald-400 rounded-tl-md" />
-                            <div className="absolute top-4 right-4 w-6 h-6 border-t-2 border-r-2 border-emerald-400 rounded-tr-md" />
-                            <div className="absolute bottom-4 left-4 w-6 h-6 border-b-2 border-l-2 border-emerald-400 rounded-bl-md" />
-                            <div className="absolute bottom-4 right-4 w-6 h-6 border-b-2 border-r-2 border-emerald-400 rounded-br-md" />
-                            <div className="absolute left-4 right-4 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_12px_rgba(52,211,153,0.8)] animate-[scan_2.5s_ease-in-out_infinite]" />
-                          </div>
-
-                          <img 
-                            ref={streamImgRef}
-                            src={streamUrlWithRetry} 
-                            className="w-full h-full object-cover" 
-                            alt="Login ESP32 Camera Stream"
-                            crossOrigin="anonymous"
-                            onLoad={() => setImageLoaded(true)}
-                            onError={() => {
-                              setStreamError(true);
-                            }}
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex flex-col justify-end p-4 z-10">
-                            <p className="text-slate-900 dark:text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
-                              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                              Login ESP32-CAM Ao Vivo
-                            </p>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-200 dark:bg-slate-900 p-6 text-center animate-in fade-in duration-300">
-                          <div className="p-3 bg-amber-500/10 rounded-full border border-amber-500/20 text-amber-400 mb-2">
-                            <AlertTriangle className="h-6 w-6 animate-pulse" />
-                          </div>
-                          <h4 className="text-xs font-black uppercase tracking-tight text-slate-900 dark:text-white">Sinal de Login Instável</h4>
-                          <p className="text-[10px] text-slate-500 dark:text-slate-400 max-w-xs mt-0.5 mb-3 leading-snug">
-                            Não conseguimos conectar com a câmera de login externa.
-                          </p>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="h-8 border-slate-300 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-800 dark:text-white gap-2 font-bold uppercase tracking-wider text-[9px]"
-                            onClick={() => {
-                              setImageLoaded(false);
-                              setStreamError(false);
-                              setRetryKey(k => k + 1);
-                            }}
-                          >
-                            <RefreshCw className="h-2.5 w-2.5 animate-spin [animation-duration:3s]" />
-                            Reconectar
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center p-8 border border-slate-200/50 dark:border-white/10 rounded-2xl bg-slate-100/50 dark:bg-white/5 animate-pulse">
-                      <QrCode className="h-16 w-16 text-emerald-400 mb-4" />
-                      <div className="text-center space-y-1">
-                        <p className="font-bold text-slate-900 dark:text-white uppercase tracking-tight">Câmera Externa Ativa</p>
-                        <p className="text-xs text-slate-400">O terminal fará a leitura automática via hardware externo.</p>
+              {activeTab === 'qr' && (
+                activeLoginCameraSource === 'browser' ? (
+                  <div className="space-y-4">
+                    <div className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl bg-slate-200/50 dark:bg-slate-950 aspect-video">
+                      {/* Futuristic Corner Scan Scope Brackets */}
+                      <div className="absolute inset-0 z-20 pointer-events-none rounded-2xl">
+                        <div className="absolute top-4 left-4 w-6 h-6 border-t-2 border-l-2 border-emerald-400 rounded-tl-md" />
+                        <div className="absolute top-4 right-4 w-6 h-6 border-t-2 border-r-2 border-emerald-400 rounded-tr-md" />
+                        <div className="absolute bottom-4 left-4 w-6 h-6 border-b-2 border-l-2 border-emerald-400 rounded-bl-md" />
+                        <div className="absolute bottom-4 right-4 w-6 h-6 border-b-2 border-r-2 border-emerald-400 rounded-br-md" />
+                        
+                        {/* Sweeping Laser Line */}
+                        <div className="absolute left-4 right-4 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_12px_rgba(52,211,153,0.8)] animate-[scan_2.5s_ease-in-out_infinite]" />
                       </div>
+
+                      <QRScanner 
+                        key={scannerKey} 
+                        onScan={onIdentify} 
+                        deviceId={loginCameraDeviceId || systemSettings.studentCaptureDevice}
+                      />
                     </div>
-                  )}
-                  <p className="text-[10px] text-center text-emerald-400 font-black uppercase tracking-[0.18em] bg-emerald-500/10 py-3 rounded-xl border border-emerald-500/20 shadow-sm">
-                    Aproxime sua Carteira do Leitor da Câmera
-                  </p>
-                </div>
+                    <p className="text-[10px] text-center text-emerald-400 font-black uppercase tracking-[0.18em] bg-emerald-500/10 py-3 rounded-xl border border-emerald-500/20 shadow-sm">
+                      Aproxime sua Carteira da câmera
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {streamUrlWithRetry ? (
+                      <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 shadow-2xl bg-slate-200/50 dark:bg-slate-950 flex items-center justify-center">
+                        {!streamError ? (
+                          <>
+                            {/* Corner Brackets for Stream */}
+                            <div className="absolute inset-0 z-20 pointer-events-none rounded-2xl">
+                              <div className="absolute top-4 left-4 w-6 h-6 border-t-2 border-l-2 border-emerald-400 rounded-tl-md" />
+                              <div className="absolute top-4 right-4 w-6 h-6 border-t-2 border-r-2 border-emerald-400 rounded-tr-md" />
+                              <div className="absolute bottom-4 left-4 w-6 h-6 border-b-2 border-l-2 border-emerald-400 rounded-bl-md" />
+                              <div className="absolute bottom-4 right-4 w-6 h-6 border-b-2 border-r-2 border-emerald-400 rounded-br-md" />
+                              <div className="absolute left-4 right-4 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_12px_rgba(52,211,153,0.8)] animate-[scan_2.5s_ease-in-out_infinite]" />
+                            </div>
+
+                            <img 
+                              ref={streamImgRef}
+                              src={streamUrlWithRetry} 
+                              className="w-full h-full object-cover" 
+                              alt="Login ESP32 Camera Stream"
+                              crossOrigin="anonymous"
+                              onLoad={() => setImageLoaded(true)}
+                              onError={() => {
+                                setStreamError(true);
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex flex-col justify-end p-4 z-10">
+                              <p className="text-slate-900 dark:text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                                Login ESP32-CAM Ao Vivo
+                              </p>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-200 dark:bg-slate-900 p-6 text-center animate-in fade-in duration-300">
+                            <div className="p-3 bg-amber-500/10 rounded-full border border-amber-500/20 text-amber-400 mb-2">
+                              <AlertTriangle className="h-6 w-6 animate-pulse" />
+                            </div>
+                            <h4 className="text-xs font-black uppercase tracking-tight text-slate-900 dark:text-white">Sinal de Login Instável</h4>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 max-w-xs mt-0.5 mb-3 leading-snug">
+                              Não conseguimos conectar com a câmera de login externa.
+                            </p>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-8 border-slate-300 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-800 dark:text-white gap-2 font-bold uppercase tracking-wider text-[9px]"
+                              onClick={() => {
+                                setImageLoaded(false);
+                                setStreamError(false);
+                                setRetryKey(k => k + 1);
+                              }}
+                            >
+                              <RefreshCw className="h-2.5 w-2.5 animate-spin [animation-duration:3s]" />
+                              Reconectar
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center p-8 border border-slate-200/50 dark:border-white/10 rounded-2xl bg-slate-100/50 dark:bg-white/5 animate-pulse">
+                        <QrCode className="h-16 w-16 text-emerald-400 mb-4" />
+                        <div className="text-center space-y-1">
+                          <p className="font-bold text-slate-900 dark:text-white uppercase tracking-tight">Câmera Externa Ativa</p>
+                          <p className="text-xs text-slate-400">O terminal fará a leitura automática via hardware externo.</p>
+                        </div>
+                      </div>
+                    )}
+                    <p className="text-[10px] text-center text-emerald-400 font-black uppercase tracking-[0.18em] bg-emerald-500/10 py-3 rounded-xl border border-emerald-500/20 shadow-sm">
+                      Aproxime sua Carteira do Leitor da Câmera
+                    </p>
+                  </div>
+                )
               )}
             </TabsContent>
 

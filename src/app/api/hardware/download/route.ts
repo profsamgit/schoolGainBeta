@@ -23,8 +23,20 @@ export async function GET(request: Request) {
       filePath = path.join(process.cwd(), 'scripts', 'camera-secure-proxy.js');
       contentType = 'application/javascript';
       fileName = 'camera-secure-proxy.js';
+    } else if (file === 'espcam') {
+      filePath = path.join(process.cwd(), 'hardware', 'espcam', 'espcam.ino');
+      contentType = 'text/plain';
+      fileName = 'espcam.ino';
+    } else if (file === 'totem') {
+      filePath = path.join(process.cwd(), 'hardware', 'totem_controller', 'totem_controller.ino');
+      contentType = 'text/plain';
+      fileName = 'totem_controller.ino';
+    } else if (file === 'readme') {
+      filePath = path.join(process.cwd(), 'hardware', 'README.md');
+      contentType = 'text/markdown';
+      fileName = 'README.md';
     } else {
-      return NextResponse.json({ error: 'Arquivo de download inválido. Use ?file=start, stop ou script' }, { status: 400 });
+      return NextResponse.json({ error: 'Arquivo de download inválido. Use ?file=start, stop, script, espcam, totem ou readme' }, { status: 400 });
     }
 
     if (!fs.existsSync(filePath)) {

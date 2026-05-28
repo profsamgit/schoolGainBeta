@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { currentUser, isPreviewMode, displayUser, isInitializing, service } = useEcosystem();
+  const { currentUser, isPreviewMode, displayUser, isInitializing, service, systemSettings } = useEcosystem();
   const router = useRouter();
   const searchParams = useSearchParams();
   const schoolId = searchParams.get('schoolId');
@@ -76,6 +76,44 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // Intercepta e bloqueia o portal do aluno se estiver sob manutenção
+  if (currentUser?.role === 'student' && systemSettings?.studentAreaMaintenance) {
+    return (
+      <div className="flex min-h-screen flex-col bg-[#EFF7EF] dark:bg-[#070913] items-center justify-center p-6 text-slate-800 dark:text-white relative overflow-hidden font-sans">
+        {/* Background blobs */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-amber-500/10 rounded-full blur-[100px] pointer-events-none animate-pulse" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.015)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
+
+        <div className="relative z-10 w-full max-w-md p-8 border border-amber-500/20 bg-white/80 dark:bg-slate-900/40 rounded-[2.5rem] backdrop-blur-xl shadow-2xl text-center space-y-6">
+          <div className="mx-auto w-20 h-20 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.2)] animate-bounce">
+            <Shield className="h-10 w-10" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Portal em Manutenção</h2>
+            <p className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[10px] bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-full inline-block">
+              Acesso Web Suspenso Temporariamente
+            </p>
+          </div>
+          <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+            Desculpe o transtorno! O portal web do aluno está passando por atualizações e manutenção pela equipe de gestão escolar.
+          </p>
+          <div className="p-4 bg-slate-50 dark:bg-slate-950/50 border border-slate-150 dark:border-white/5 rounded-2xl">
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-550 mb-1">♻️ Totens Físicos</p>
+            <p className="text-[10.5px] text-slate-600 dark:text-slate-400 leading-relaxed font-semibold">
+              Os totens físicos de pesagem e descarte instalados na escola continuam funcionando <strong>normalmente</strong>.
+            </p>
+          </div>
+          <Button 
+            onClick={() => service.logout()}
+            className="w-full h-12 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-black uppercase text-xs tracking-widest rounded-xl shadow-lg transition-all"
+          >
+            Sair da Conta
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const pathname = usePathname();
   const previewId = searchParams.get('preview');
 
@@ -118,7 +156,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <AppSidebar>
-      <div className="flex flex-1 flex-col h-full min-w-0 overflow-hidden">
+      <div className="flex flex-1 flex-col h-screen max-h-screen min-w-0 overflow-hidden">
         <div className="flex-none sticky top-0 z-40 flex flex-col bg-background border-b shadow-sm">
           {/* Banner de Modo de Auditoria
                Exibido quando um gestor está visualizando a conta de um aluno

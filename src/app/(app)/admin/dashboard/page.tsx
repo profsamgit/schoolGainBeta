@@ -240,6 +240,69 @@ export default function AdminDashboardPage() {
                     </Card>
                 </div>
 
+                {/* ♻️ STATUS DAS LIXEIRAS IOT EM TEMPO REAL */}
+                {filteredTerminals.length > 0 && (
+                  <Card className="border-none bg-white/80 dark:bg-slate-900/40 border border-slate-200/60 dark:border-white/10 shadow-xl dark:shadow-2xl backdrop-blur-xl rounded-[2rem] text-slate-800 dark:text-white">
+                    <CardHeader className="p-6">
+                      <CardTitle className="text-lg font-black uppercase tracking-wider text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                        <LayoutDashboard className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                        Níveis das Lixeiras IoT (Tempo Real)
+                      </CardTitle>
+                      <CardDescription className="text-slate-500 dark:text-slate-400 text-xs">Acompanhe a capacidade de armazenamento de cada coletor da unidade.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="px-6 pb-6">
+                      <div className="grid gap-6 md:grid-cols-2">
+                        {filteredTerminals.map((terminal) => (
+                          <div key={terminal.id} className="p-4 rounded-2xl border border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20 space-y-3">
+                            <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-white/5">
+                              <span className="text-xs font-black uppercase tracking-tight text-slate-700 dark:text-slate-200">
+                                📍 {terminal.location}
+                              </span>
+                              {terminal.lastBinUpdate && (
+                                <span className="text-[9px] text-slate-400 dark:text-slate-500 font-mono">
+                                  Atualizado: {new Date(terminal.lastBinUpdate).toLocaleTimeString('pt-BR')}
+                                </span>
+                              )}
+                            </div>
+                            
+                            {terminal.binLevels ? (
+                              <div className="grid gap-3 grid-cols-2">
+                                {(['plastico', 'papel', 'vidro', 'metal'] as const).map((material) => {
+                                  const level = terminal.binLevels?.[material] ?? 0;
+                                  const isFull = level >= 85;
+                                  return (
+                                    <div key={material} className={cn("p-2 border rounded-xl space-y-1.5 transition-all duration-300", isFull ? "border-rose-500/30 bg-rose-500/5 dark:border-rose-500/20" : "border-slate-100/80 dark:border-white/5 bg-white/40 dark:bg-slate-900/10")}>
+                                      <div className="flex justify-between items-center text-[10px] font-black uppercase">
+                                        <span className="text-slate-600 dark:text-slate-400">
+                                          {material === 'plastico' ? 'Plástico' : material === 'papel' ? 'Papel' : material === 'vidro' ? 'Vidro' : 'Metal'}
+                                        </span>
+                                        <span className={cn("font-mono font-bold", isFull ? "text-rose-600 dark:text-rose-450" : "text-indigo-600 dark:text-indigo-400")}>
+                                          {level}%
+                                        </span>
+                                      </div>
+                                      
+                                      <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                                        <div 
+                                          className={cn("h-full rounded-full transition-all duration-500", isFull ? "bg-rose-550" : "bg-indigo-500")}
+                                          style={{ width: `${level}%` }}
+                                        ></div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <div className="py-6 text-center">
+                                <span className="text-[10px] text-slate-400 dark:text-slate-500 italic uppercase tracking-wider">Aguardando telemetria inicial...</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* Grid Principal: Analytics + Auditoria */}
                 <div className="grid gap-8 lg:grid-cols-3 items-stretch">
                     <div className="lg:col-span-2 space-y-8">

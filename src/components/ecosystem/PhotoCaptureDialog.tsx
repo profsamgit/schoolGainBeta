@@ -14,8 +14,8 @@ interface PhotoCaptureDialogProps {
 }
 
 export default function PhotoCaptureDialog({ isOpen, onClose, onCapture }: PhotoCaptureDialogProps) {
-  const { systemSettings } = useEcosystem();
   const { toast } = useToast();
+  const { systemSettings, hardwareId, terminals } = useEcosystem();
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -23,9 +23,20 @@ export default function PhotoCaptureDialog({ isOpen, onClose, onCapture }: Photo
   const imgRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const source = systemSettings.studentCaptureSource || 'browser';
-  const deviceId = systemSettings.studentCaptureDevice || 'default';
-  const rawUrl = systemSettings.studentCaptureUrl || '';
+  const currentTerminal = terminals.find(t => t.hardwareId === hardwareId);
+  const isTotem = !!currentTerminal && currentTerminal.status === 'active';
+
+  const source = isTotem 
+    ? (currentTerminal?.settings?.scanningCameraSource || systemSettings.studentCaptureSource || 'browser')
+    : (systemSettings.studentCaptureSource || 'browser');
+  
+  const deviceId = isTotem
+    ? (currentTerminal?.settings?.preferredCamera || systemSettings.studentCaptureDevice || 'default')
+    : (systemSettings.studentCaptureDevice || 'default');
+
+  const rawUrl = isTotem
+    ? (currentTerminal?.settings?.cameraUrl || systemSettings.studentCaptureUrl || '')
+    : (systemSettings.studentCaptureUrl || '');
 
   const getFullUrl = () => {
     if (!rawUrl) return '';

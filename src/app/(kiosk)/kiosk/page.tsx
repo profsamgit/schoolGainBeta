@@ -190,22 +190,7 @@ export default function KioskPage() {
 
   const getCameraUrl = (source?: string, url?: string, purpose?: 'login' | 'scan') => {
     if (!url) return '';
-    if (source === 'esp32') {
-      let base = url.startsWith('http') ? url : `http://${url}/stream`;
-      if (purpose === 'scan') {
-        const flashEnabled = currentTerminal?.settings?.scanningCameraFlash !== false;
-        if (flashEnabled) {
-          base = base.includes('?') ? `${base}&flash=on` : `${base}?flash=on`;
-        }
-      } else if (purpose === 'login') {
-        const flashEnabled = currentTerminal?.settings?.loginCameraFlash === true;
-        if (flashEnabled) {
-          base = base.includes('?') ? `${base}&flash=on` : `${base}?flash=on`;
-        }
-      }
-      return base;
-    }
-    if (source === 'esp32_https') {
+    if (source === 'esp32' || source === 'esp32_https') {
       let cleanUrl = url.split('?')[0].replace(/\/stream\/?$/i, '').replace(/^https?:\/\//i, '').trim();
       let base = `http://localhost:9005/stream?target=${cleanUrl}`;
       if (purpose === 'scan') {
@@ -224,15 +209,15 @@ export default function KioskPage() {
     return url;
   };
 
-  const activeLoginUrl = isIdle ? '' : getCameraUrl(
-    currentTerminal?.settings?.loginCameraSource || systemSettings.studentCaptureSource,
-    currentTerminal?.settings?.loginCameraUrl || currentTerminal?.settings?.cameraUrl || systemSettings.studentCaptureUrl,
+  const activeLoginUrl = (isIdle || activeTab !== 'qr') ? '' : getCameraUrl(
+    currentTerminal?.settings?.loginCameraSource || systemSettings.studentCaptureSource || 'browser',
+    currentTerminal?.settings?.loginCameraUrl || currentTerminal?.settings?.cameraUrl || systemSettings.studentCaptureUrl || '',
     'login'
   );
 
   const activeScanningUrl = isIdle ? '' : getCameraUrl(
-    currentTerminal?.settings?.scanningCameraSource || systemSettings.studentCaptureSource, 
-    currentTerminal?.settings?.scanningCameraUrl || currentTerminal?.settings?.cameraUrl || systemSettings.studentCaptureUrl,
+    currentTerminal?.settings?.scanningCameraSource || systemSettings.studentCaptureSource || 'browser', 
+    currentTerminal?.settings?.scanningCameraUrl || currentTerminal?.settings?.cameraUrl || systemSettings.studentCaptureUrl || '',
     'scan'
   );
 
@@ -273,9 +258,9 @@ export default function KioskPage() {
         if (step === 'scanning') {
           if (activeScanningUrl && (activeScanningCameraSource === 'esp32' || activeScanningCameraSource === 'esp32_https')) {
             const scannerFramerate = currentTerminal?.settings?.scannerFramerate || 'fluid';
-            let targetResolution = 'vga';
-            if (scannerFramerate === 'balanced') targetResolution = 'svga';
-            else if (scannerFramerate === 'high_res') targetResolution = 'hd';
+            let targetResolution = 'cif';
+            if (scannerFramerate === 'balanced') targetResolution = 'vga';
+            else if (scannerFramerate === 'high_res') targetResolution = 'svga';
 
             const espIp = activeScanningUrl.includes('target=') 
               ? activeScanningUrl.split('target=')[1].split('&')[0] 
@@ -294,9 +279,8 @@ export default function KioskPage() {
         } else if (step === 'identification') {
           if (activeLoginUrl && (activeLoginCameraSource === 'esp32' || activeLoginCameraSource === 'esp32_https')) {
             const loginFramerate = currentTerminal?.settings?.loginCameraFramerate || 'fluid';
-            let targetResolution = 'vga';
-            if (loginFramerate === 'balanced') targetResolution = 'svga';
-            else if (loginFramerate === 'high_res') targetResolution = 'hd';
+            let targetResolution = 'vga'; // Minimum resolution for login QR scanning
+            if (loginFramerate === 'high_res') targetResolution = 'svga';
 
             const espIp = activeLoginUrl.includes('target=') 
               ? activeLoginUrl.split('target=')[1].split('&')[0] 
@@ -459,7 +443,7 @@ export default function KioskPage() {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         try {
           const videoConstraints: any = { width: { ideal: 1280 }, height: { ideal: 720 } };
-          const scanningCameraDevice = currentTerminal?.settings?.scanningCameraDevice || currentTerminal?.settings?.preferredCamera;
+          const scanningCameraDevice = currentTerminal?.settings?.scanningCameraDevice || currentTerminal?.settings?.preferredCamera || systemSettings.studentCaptureDevice;
           if (scanningCameraDevice && scanningCameraDevice !== 'default') {
             videoConstraints.deviceId = { exact: scanningCameraDevice };
           } else {
@@ -804,8 +788,8 @@ export default function KioskPage() {
         raInputRef={raInputRef} handleLogin={handleLogin} showKeyboard={showKeyboard}
         setShowKeyboard={setShowKeyboard} handleKeyboardInput={handleKeyboardInput}
         handleKeyboardBackspace={handleKeyboardBackspace} activeLoginCameraSource={activeLoginCameraSource}
-        activeLoginUrl={isHardwareReady ? activeLoginUrl : undefined}
-        scannerKey={scannerKey} loginCameraDeviceId={currentTerminal?.settings?.preferredCamera}
+        activeLoginUrl={activeLoginUrl}
+        scannerKey={scannerKey} loginCameraDeviceId={currentTerminal?.settings?.scanningCameraDevice || currentTerminal?.settings?.preferredCamera || systemSettings.studentCaptureDevice || 'default'}
         onIdentify={handleLogin}
         isProcessing={isLoading}
       />
@@ -816,7 +800,7 @@ export default function KioskPage() {
     <ScanningSection 
       key={isIdle ? 'idle' : 'active'}
       identifiedStudent={identifiedStudent} handleExit={handleExit}
-      activeScanningCameraSource={activeScanningCameraSource} activeScanningUrl={isHardwareReady ? activeScanningUrl : ''}
+      activeScanningCameraSource={activeScanningCameraSource} activeScanningUrl={activeScanningUrl}
       videoRef={videoRef} canvasRef={canvasRef} hasCameraPermission={hasCameraPermission}
       isLoading={isLoading} capturedPhotoUri={capturedPhotoUri} identificationResult={identificationResult}
       WasteIcon={identificationResult ? wasteIcons[identificationResult.wasteType] : null}

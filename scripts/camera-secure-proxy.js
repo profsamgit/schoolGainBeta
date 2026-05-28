@@ -18,7 +18,6 @@
  */
 
 const http = require('http');
-const url = require('url');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -27,12 +26,81 @@ const dgram = require('dgram');
 const PORT = 9005;
 const UDP_PORT = 9006;
 
+const cp = require('child_process');
+
 // Buffer de logs na memória indexado por IP da ESP
 const logsByIp = {};
 let logClients = [];
+let macToIp = {};
+
+// Registro de atividade recente por IP ou MAC para evitar quedas falsas de status
+const lastSeenByTarget = {};
+
+function markLastSeen(target) {
+  if (!target) return;
+  const normalized = target.trim().replace(/-/g, ':').toUpperCase();
+  lastSeenByTarget[normalized] = Date.now();
+  
+  // Associa também o IP/MAC correspondente se já estiver na tabela de mapeamento
+  if (/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/.test(normalized)) {
+    const ip = macToIp[normalized];
+    if (ip) lastSeenByTarget[ip] = Date.now();
+  } else {
+    for (const [mac, ip] of Object.entries(macToIp)) {
+      if (ip === normalized) {
+        lastSeenByTarget[mac] = Date.now();
+        break;
+      }
+    }
+  }
+}
+
+// Função para atualizar tabela ARP local e resolver MAC -> IP
+function updateArpTable() {
+  const isWindows = process.platform === 'win32';
+  const cmd = isWindows ? 'arp -a' : 'arp -an';
+  
+  cp.exec(cmd, (err, stdout) => {
+    if (err || !stdout) return;
+    
+    const lines = stdout.split('\n');
+    const newMacToIp = {};
+    
+    for (let line of lines) {
+      line = line.trim().toLowerCase();
+      const ipMatch = line.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/);
+      const macMatch = line.match(/([0-9a-f]{2}[:-][0-9a-f]{2}[:-][0-9a-f]{2}[:-][0-9a-f]{2}[:-][0-9a-f]{2}[:-][0-9a-f]{2})/);
+      
+      if (ipMatch && macMatch) {
+        const ip = ipMatch[1];
+        const mac = macMatch[1].replace(/-/g, ':').toUpperCase();
+        newMacToIp[mac] = ip;
+      }
+    }
+    
+    macToIp = { ...macToIp, ...newMacToIp };
+  });
+}
+
+// Atualiza a tabela ARP a cada 6 segundos
+setInterval(updateArpTable, 6000);
+updateArpTable();
 
 // Função utilitária para adicionar log
 function addLog(ip, message) {
+  // Mapeamento dinâmico se a mensagem reportar o MAC
+  const macMatch = message.match(/([0-9A-Fa-f]{2}[:-][0-9A-Fa-f]{2}[:-][0-9A-Fa-f]{2}[:-][0-9A-Fa-f]{2}[:-][0-9A-Fa-f]{2}[:-][0-9A-Fa-f]{2})/);
+  if (macMatch) {
+    const mac = macMatch[1].replace(/-/g, ':').toUpperCase();
+    if (macToIp[mac] !== ip) {
+      macToIp[mac] = ip;
+      console.log(`[PROXY] MAC ${mac} associado dinamicamente ao IP ${ip} via log UDP`);
+    }
+    markLastSeen(mac);
+  }
+
+  markLastSeen(ip);
+
   if (!logsByIp[ip]) {
     logsByIp[ip] = [];
   }
@@ -151,15 +219,18 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  const parsedUrl = url.parse(req.url, true);
+  // Substitui url.parse() pela API padrão WHATWG URL
+  const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const pathname = parsedUrl.pathname;
+  const searchParams = parsedUrl.searchParams;
 
-  if (parsedUrl.pathname === '/status') {
+  if (pathname === '/status') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ status: 'ok', message: 'Proxy local ativo e pronto' }));
     return;
   }
 
-  if (parsedUrl.pathname === '/shutdown') {
+  if (pathname === '/shutdown') {
     res.writeHead(200, { 
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
@@ -174,22 +245,157 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (parsedUrl.pathname === '/hardware-id') {
+  if (pathname === '/hardware-id') {
     const hwid = getPersistentHardwareId();
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ hardwareId: hwid }));
     return;
   }
 
-  // Endpoint HTTP para recuperar histórico de logs de um IP
-  if (parsedUrl.pathname === '/logs') {
-    const ip = parsedUrl.query.target;
+  // Endpoint HTTP para verificar conectividade de uma ESP32 (HEAD, logs ou ARP)
+  if (pathname === '/ping') {
+    let target = searchParams.get('target');
+    res.writeHead(200, { 
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Private-Network': 'true'
+    });
+    if (!target) {
+      res.end(JSON.stringify({ error: 'Parametro ?target= e obrigatorio' }));
+      return;
+    }
+    
+    // Resolve MAC se for o caso
+    if (/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/.test(target)) {
+      const normalizedMac = target.replace(/-/g, ':').toUpperCase();
+      // Se foi visto nos últimos 60s, considera online de forma direta e instantânea
+      if (lastSeenByTarget[normalizedMac] && (Date.now() - lastSeenByTarget[normalizedMac] < 60000)) {
+        res.end(JSON.stringify({ online: true, source: 'last-seen-mac' }));
+        return;
+      }
+      target = macToIp[normalizedMac] || target;
+    }
+
+    // Se for IP, confere se foi registrado ou visto recentemente
+    if (lastSeenByTarget[target] && (Date.now() - lastSeenByTarget[target] < 60000)) {
+      res.end(JSON.stringify({ online: true, source: 'last-seen-ip' }));
+      return;
+    }
+    
+    // 1. Verifica logs recentes (últimos 30 segundos)
+    const hasRecentLogs = logsByIp[target] && logsByIp[target].length > 0 && 
+      (Date.now() - new Date(logsByIp[target][logsByIp[target].length - 1].timestamp).getTime() < 30000);
+      
+    if (hasRecentLogs) {
+      res.end(JSON.stringify({ online: true, source: 'logs' }));
+      return;
+    }
+    
+    // 2. Tenta requisição HTTP rápida
+    let responded = false;
+    const sendResponse = (data) => {
+      if (responded) return;
+      responded = true;
+      res.end(JSON.stringify(data));
+    };
+
+    // Se ainda for um MAC address (não resolvido para IP), não faz requisição HTTP
+    if (/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/.test(target)) {
+      sendResponse({ online: false, source: 'unresolved-mac' });
+      return;
+    }
+
+    const espUrl = `http://${target}/`;
+    const clientReq = http.request(espUrl, { method: 'HEAD', timeout: 1000 }, (espRes) => {
+      sendResponse({ online: true, source: 'http' });
+      clientReq.destroy();
+    });
+    
+    clientReq.on('error', (err) => {
+      // 3. Se falhar, confere se deu ECONNREFUSED (aparelho respondeu mas rejeitou a porta, provando que está online)
+      // ou confere se está na tabela ARP
+      const isOnline = err.code === 'ECONNREFUSED' || Object.values(macToIp).includes(target);
+      sendResponse({ online: isOnline, source: isOnline ? 'http-refused' : 'arp' });
+      clientReq.destroy();
+    });
+    
+    clientReq.on('timeout', () => {
+      const isIpInArp = Object.values(macToIp).includes(target);
+      sendResponse({ online: isIpInArp, source: 'arp-timeout' });
+      clientReq.destroy();
+    });
+    
+    clientReq.end();
+    return;
+  }
+
+  // Endpoint HTTP para registrar IP dinâmico da ESP e atualizar tabela ARP para descobrir o MAC
+  if (pathname === '/register-ip') {
+    const ip = searchParams.get('ip');
+    res.writeHead(200, { 
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Private-Network': 'true'
+    });
+    res.end(JSON.stringify({ success: true }));
+    
+    if (ip && ip !== '127.0.0.1' && ip !== '::1') {
+      markLastSeen(ip);
+      const isWindows = process.platform === 'win32';
+      // Acorda a placa disparando um único pacote ping rápido para forçar o sistema operacional a preencher a tabela ARP física
+      const pingCmd = isWindows ? `ping -n 1 -w 300 ${ip}` : `ping -c 1 -W 1 ${ip}`;
+      
+      cp.exec(pingCmd, () => {
+        const cmd = isWindows ? `arp -a ${ip}` : `arp -an ${ip}`;
+        cp.exec(cmd, (err, stdout) => {
+          if (stdout) {
+            const macMatch = stdout.match(/([0-9a-f]{2}[:-][0-9a-f]{2}[:-][0-9a-f]{2}[:-][0-9a-f]{2}[:-][0-9a-f]{2}[:-][0-9a-f]{2})/i);
+            if (macMatch) {
+              const mac = macMatch[1].replace(/-/g, ':').toUpperCase();
+              if (macToIp[mac] !== ip) {
+                macToIp[mac] = ip;
+                console.log(`[PROXY] MAC ${mac} associado dinamicamente ao IP ${ip} via requisicao de registro (com acordar-ping)`);
+              }
+              markLastSeen(mac);
+            }
+          }
+        });
+      });
+    }
+    return;
+  }
+
+  // Endpoint HTTP para resolver MAC para IP usando ARP cache
+  if (pathname === '/resolve') {
+    const mac = searchParams.get('mac');
+    res.writeHead(200, { 
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Private-Network': 'true'
+    });
+    if (mac) {
+      const normalizedMac = mac.replace(/-/g, ':').toUpperCase();
+      const ip = macToIp[normalizedMac] || null;
+      res.end(JSON.stringify({ mac: normalizedMac, ip }));
+    } else {
+      res.end(JSON.stringify({ error: 'Parametro ?mac= e obrigatorio' }));
+    }
+    return;
+  }
+
+  // Endpoint HTTP para recuperar histórico de logs de um IP ou MAC
+  if (pathname === '/logs') {
+    let ip = searchParams.get('target');
     res.writeHead(200, { 
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Private-Network': 'true'
     });
     if (ip) {
+      // Resolve se for MAC
+      if (/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/.test(ip)) {
+        ip = macToIp[ip.replace(/-/g, ':').toUpperCase()] || ip;
+      }
       res.end(JSON.stringify(logsByIp[ip] || []));
     } else {
       res.end(JSON.stringify(logsByIp));
@@ -198,7 +404,7 @@ const server = http.createServer((req, res) => {
   }
 
   // Endpoint SSE para streaming de logs em tempo real
-  if (parsedUrl.pathname === '/logs/stream') {
+  if (pathname === '/logs/stream') {
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
@@ -217,7 +423,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  const targetIp = parsedUrl.query.target;
+  const targetIp = searchParams.get('target');
 
   if (!targetIp) {
     res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -228,9 +434,23 @@ const server = http.createServer((req, res) => {
   // Sanitiza o IP/Host de destino
   let cleanHost = targetIp.split('?')[0].replace(/\/stream\/?$/i, '').trim();
 
+  // Se o host for um MAC address, resolve dinamicamente
+  if (/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/.test(cleanHost)) {
+    const mac = cleanHost.replace(/-/g, ':').toUpperCase();
+    if (macToIp[mac]) {
+      console.log(`[PROXY] MAC ${mac} resolvido para IP ${macToIp[mac]}`);
+      cleanHost = macToIp[mac];
+    } else {
+      console.warn(`[PROXY] Falha ao resolver MAC ${mac} para IP (Tabela ARP pendente).`);
+      res.writeHead(502, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: `MAC ${mac} nao resolvido. Ligue a ESP32 para registrar na rede local.` }));
+      return;
+    }
+  }
+
   // Se a rota for /resolution, retransmite a chamada de alteração de resolução para a ESP32-CAM localmente
-  if (parsedUrl.pathname === '/resolution') {
-    const val = parsedUrl.query.val || 'vga';
+  if (pathname === '/resolution') {
+    const val = searchParams.get('val') || 'vga';
     const espUrl = `http://${cleanHost}/resolution?val=${val}`;
     console.log(`[PROXY] Alterando resolução local da ESP32-CAM para: ${espUrl}`);
     
@@ -245,13 +465,21 @@ const server = http.createServer((req, res) => {
     
     connector.on('error', (err) => {
       console.error(`[PROXY ERRO] Falha ao enviar resolução para ESP32-CAM em ${espUrl}:`, err.message);
-      res.writeHead(502, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Erro ao conectar à ESP32-CAM localmente' }));
+      if (!res.headersSent) {
+        res.writeHead(502, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Erro ao conectar à ESP32-CAM localmente' }));
+      } else {
+        res.end();
+      }
     });
     return;
   }
 
-  const espUrl = `http://${cleanHost}/stream`;
+  // Preserva parâmetros adicionais (como ?flash=on)
+  const espSearchParams = new URLSearchParams(searchParams);
+  espSearchParams.delete('target');
+  const queryString = espSearchParams.toString();
+  const espUrl = `http://${cleanHost}/stream` + (queryString ? `?${queryString}` : '');
 
   console.log(`[PROXY] Canalizando stream de: ${espUrl}`);
 
@@ -269,8 +497,12 @@ const server = http.createServer((req, res) => {
 
   connector.on('error', (err) => {
     console.error(`[PROXY ERRO] Falha de conexão com a ESP32-CAM em ${espUrl}:`, err.message);
-    res.writeHead(502, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Não foi possível conectar à ESP32-CAM. Verifique o IP e se o WiFi da placa está ativo.' }));
+    if (!res.headersSent) {
+      res.writeHead(502, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Não foi possível conectar à ESP32-CAM. Verifique o IP e se o WiFi da placa está ativo.' }));
+    } else {
+      res.end();
+    }
   });
 
   req.on('close', () => {

@@ -104,7 +104,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
   if (!isSuperAdminView) {
     return (
       <SidebarProvider defaultOpen={false}>
-        <SidebarInset className="flex flex-col min-w-0 overflow-hidden">
+        <SidebarInset className="flex flex-col min-w-0 overflow-hidden h-screen max-h-screen">
           {children}
         </SidebarInset>
       </SidebarProvider>
@@ -226,7 +226,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="flex flex-col min-w-0 overflow-hidden">
+      <SidebarInset className="flex flex-col min-w-0 overflow-hidden h-screen max-h-screen">
         {children}
       </SidebarInset>
     </SidebarProvider>

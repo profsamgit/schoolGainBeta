@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
-  User as UserIcon, ShieldCheck, Monitor, ShieldAlert, Settings2, Trash2, Cpu, Download, Sparkles
+  User as UserIcon, ShieldCheck, Monitor, ShieldAlert, Settings2, Trash2, Cpu, Download, Sparkles, Wifi, WifiOff, Activity
 } from 'lucide-react';
 import { 
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
@@ -51,7 +51,7 @@ export function InfraSection({
   const [terminalLocation, setTerminalLocation] = useState('');
   const [preferredCamera, setPreferredCamera] = useState('default');
   const [terminalScanningCameraDevice, setTerminalScanningCameraDevice] = useState('default');
-  const [terminalLoginMethod, setTerminalLoginMethod] = useState<'manual' | 'qr' | 'rfid' | 'all'>('all');
+  const [terminalLoginMethod, setTerminalLoginMethod] = useState<'manual' | 'qr' | 'rfid' | 'all' | 'manual_qr' | 'manual_rfid' | 'qr_rfid'>('all');
   const [terminalLoginCameraSource, setTerminalLoginCameraSource] = useState<'browser' | 'esp32' | 'esp32_https' | 'url'>('browser');
   const [terminalScanningCameraSource, setTerminalScanningCameraSource] = useState<'browser' | 'esp32' | 'esp32_https' | 'url'>('browser');
   const [terminalLoginCameraUrl, setTerminalLoginCameraUrl] = useState('');
@@ -62,9 +62,23 @@ export function InfraSection({
   const [terminalScanningCameraFlash, setTerminalScanningCameraFlash] = useState(true);
   const [terminalSchoolgainServer, setTerminalSchoolgainServer] = useState('172.16.0.118:3000');
   const [terminalHardwareToken, setTerminalHardwareToken] = useState('sg_hardware_secret_2026');
+  const [terminalDiscardEspIp, setTerminalDiscardEspIp] = useState('');
+  const [terminalDiscardEspSource, setTerminalDiscardEspSource] = useState<'esp32' | 'esp32_https'>('esp32');
+  const [terminalSonarDistance, setTerminalSonarDistance] = useState<number>(15);
+  const [terminalRfidReaderEnabled, setTerminalRfidReaderEnabled] = useState(true);
+  const [espsStatus, setEspsStatus] = useState<Record<string, 'online' | 'offline' | 'checking'>>({});
 
   const [proxyActive, setProxyActive] = useState<boolean | null>(null);
   const [proxyLoading, setProxyLoading] = useState(false);
+
+  const getIpFromUrl = (urlStr?: string) => {
+    if (!urlStr) return '';
+    const trimmed = urlStr.trim().replace(/^(https?:\/\/)?/, '').split('/')[0];
+    if (/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/.test(trimmed)) {
+      return trimmed;
+    }
+    return trimmed.split(':')[0];
+  };
 
   useEffect(() => {
     const checkProxy = async () => {
@@ -107,6 +121,168 @@ export function InfraSection({
     const interval = setInterval(checkProxy, 3000);
     return () => clearInterval(interval);
   }, []);
+
+  // Efeito para verificar status das ESPs do totem selecionado em tempo real
+  useEffect(() => {
+    if (!selectedTerminalId) return;
+    const selectedTerminal = filteredTerminalsForAdmin.find(t => t.id === selectedTerminalId);
+    if (!selectedTerminal) return;
+
+    const ipList: { id: string; ip: string }[] = [];
+
+    if (
+      (terminalLoginCameraSource === 'esp32' || terminalLoginCameraSource === 'esp32_https') &&
+      terminalLoginCameraUrl
+    ) {
+      const ip = getIpFromUrl(terminalLoginCameraUrl);
+      if (ip) ipList.push({ id: 'login', ip });
+    }
+
+    if (
+      (terminalScanningCameraSource === 'esp32' || terminalScanningCameraSource === 'esp32_https') &&
+      terminalScanningCameraUrl
+    ) {
+      const ip = getIpFromUrl(terminalScanningCameraUrl);
+      if (ip) ipList.push({ id: 'scanner', ip });
+    }
+
+    if (terminalDiscardEspIp) {
+      const ip = getIpFromUrl(terminalDiscardEspIp);
+      if (ip) ipList.push({ id: 'discard', ip });
+    }
+
+    if (ipList.length === 0) {
+      setEspsStatus({});
+      return;
+    }
+
+    setEspsStatus(prev => {
+      const newStatus = { ...prev };
+      ipList.forEach(item => {
+        if (!newStatus[item.id]) {
+          newStatus[item.id] = 'checking';
+        }
+      });
+      return newStatus;
+    });
+
+    let isSubscribed = true;
+
+    const checkAll = async () => {
+      for (const item of ipList) {
+        if (!isSubscribed) break;
+        
+        // 1. Regra especial para a ESP de Descarte:
+        // Se ela enviou dados para a API (que salvou no Firestore) nos últimos 45s, consideramos online
+        if (item.id === 'discard' && selectedTerminal?.lastBinUpdate) {
+          const lastUpdateMs = new Date(selectedTerminal.lastBinUpdate).getTime();
+          const isRecent = Date.now() - lastUpdateMs < 45000;
+          if (isRecent) {
+            if (isSubscribed) {
+              setEspsStatus(prev => ({ ...prev, [item.id]: 'online' }));
+            }
+            continue;
+          }
+        }
+
+        // 2. Tenta checar através da rota /ping do proxy local (porta 9005)
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 1500);
+          const res = await fetch(`http://localhost:9005/ping?target=${encodeURIComponent(item.ip)}`, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (res.ok) {
+            const data = await res.json();
+            if (isSubscribed) {
+              setEspsStatus(prev => ({ ...prev, [item.id]: data.online ? 'online' : 'offline' }));
+            }
+            continue;
+          }
+        } catch (e) {
+          // Proxy inativo
+        }
+
+        // 3. Fallback: Se for IP direto (não MAC) e o proxy estiver inativo, tenta conexão direta no navegador
+        const isMac = /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/.test(item.ip);
+        if (!isMac) {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 1200);
+            await fetch(`http://${item.ip}`, { mode: 'no-cors', signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (isSubscribed) {
+              setEspsStatus(prev => ({ ...prev, [item.id]: 'online' }));
+            }
+          } catch (e) {
+            if (isSubscribed) {
+              setEspsStatus(prev => ({ ...prev, [item.id]: 'offline' }));
+            }
+          }
+        } else {
+          // Se for MAC e o proxy estiver inativo, é impossível resolver
+          if (isSubscribed) {
+            setEspsStatus(prev => ({ ...prev, [item.id]: 'offline' }));
+          }
+        }
+      }
+    };
+
+    checkAll();
+    const interval = setInterval(checkAll, 10000);
+
+    return () => {
+      isSubscribed = false;
+      clearInterval(interval);
+    };
+  }, [
+    selectedTerminalId,
+    terminalLoginCameraSource,
+    terminalLoginCameraUrl,
+    terminalScanningCameraSource,
+    terminalScanningCameraUrl,
+    terminalDiscardEspIp,
+    filteredTerminalsForAdmin
+  ]);
+
+  // Automatiza a troca de fonte HTTP -> HTTPS Proxy quando um MAC Address é digitado
+  useEffect(() => {
+    const isMac = (val: string) => /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/.test(val.trim());
+
+    // Câmera de Login
+    if (terminalLoginCameraSource === 'esp32' && isMac(terminalLoginCameraUrl)) {
+      setTerminalLoginCameraSource('esp32_https');
+      toast({
+        title: "Proxy Ativado Automaticamente",
+        description: "MAC Address detectado na câmera de login. A fonte de vídeo foi alternada para HTTPS Proxy, pois o uso de MAC exige o Proxy Local.",
+      });
+    }
+
+    // Câmera do Scanner
+    if (terminalScanningCameraSource === 'esp32' && isMac(terminalScanningCameraUrl)) {
+      setTerminalScanningCameraSource('esp32_https');
+      toast({
+        title: "Proxy Ativado Automaticamente",
+        description: "MAC Address detectado na câmera de scanner. A fonte de vídeo foi alternada para HTTPS Proxy, pois o uso de MAC exige o Proxy Local.",
+      });
+    }
+
+    // ESP de Descarte
+    if (terminalDiscardEspSource === 'esp32' && isMac(terminalDiscardEspIp)) {
+      setTerminalDiscardEspSource('esp32_https');
+      toast({
+        title: "Proxy Ativado Automaticamente",
+        description: "MAC Address detectado no controlador de descarte. A fonte foi alternada para HTTPS Proxy, pois o uso de MAC exige o Proxy Local.",
+      });
+    }
+  }, [
+    terminalLoginCameraUrl, 
+    terminalLoginCameraSource, 
+    terminalScanningCameraUrl, 
+    terminalScanningCameraSource, 
+    terminalDiscardEspIp,
+    terminalDiscardEspSource,
+    toast
+  ]);
 
   const handleStartProxy = async () => {
     setProxyLoading(true);
@@ -180,6 +356,30 @@ export function InfraSection({
     });
   };
 
+  const handleDownloadFile = (fileType: 'espcam' | 'totem' | 'readme') => {
+    const link = document.createElement('a');
+    link.href = `/api/hardware/download?file=${fileType}`;
+    link.setAttribute('download', '');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    let description = "";
+    if (fileType === 'espcam') {
+      description = "O código espcam.ino foi baixado com sucesso.";
+    } else if (fileType === 'totem') {
+      description = "O código totem_controller.ino foi baixado com sucesso.";
+    } else if (fileType === 'readme') {
+      description = "O manual de hardware (README.md) foi baixado com sucesso.";
+    }
+
+    toast({
+      title: "Download Concluído",
+      description,
+      variant: "success"
+    });
+  };
+
   const sortedVideoDevices = useMemo(() => {
     return [...videoDevices].sort((a, b) => a.label.localeCompare(b.label));
   }, [videoDevices]);
@@ -200,7 +400,7 @@ export function InfraSection({
             </p>
             <ul className="text-[11px] text-slate-650 dark:text-slate-350 space-y-1.5 list-disc pl-4 mt-2 font-semibold">
               <li><strong className="text-slate-800 dark:text-white">Transmissão ESP32-CAM</strong>: Configure a origem de vídeo dos totens (Webcam local, ESP32 via IP, ou o Proxy HTTPS Seguro na porta 9005 para contornar restrições de segurança do navegador).</li>
-              <li><strong className="text-slate-800 dark:text-white">Métodos de Acesso</strong>: Configure quais formas de autenticação estão habilitadas para Alunos (RA e/ou QRCode) e Administradores (Senha, QRCode e/ou crachá RFID).</li>
+              <li><strong className="text-slate-800 dark:text-white">Métodos de Acesso</strong>: Configure quais formas de autenticação estão habilitadas para Alunos (RA, QRCode e/ou cartão RFID) e Administradores (Senha, QRCode e/ou crachá RFID).</li>
               <li><strong className="text-slate-800 dark:text-white">Gestão de Totens</strong>: Aprove terminais novos solicitando acesso, copie os IDs e chaves criptográficas para colar no código do Arduino, e configure resoluções ou taxas de quadros.</li>
             </ul>
           </div>
@@ -226,13 +426,33 @@ export function InfraSection({
           </div>
         </div>
         
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
-          <Button
-            onClick={handleDownloadScripts}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white dark:bg-indigo-500 dark:hover:bg-indigo-400 dark:text-slate-950 font-bold text-xs uppercase tracking-wider h-10 px-5 rounded-xl shadow-lg shadow-indigo-600/15 dark:shadow-indigo-500/10 transition-all duration-300 flex items-center gap-2"
-          >
-            <Download className="h-4 w-4" /> Baixar Configurações (Scripts)
-          </Button>
+        <div className="flex flex-col xl:flex-row items-stretch xl:items-center gap-3 w-full md:w-auto">
+          <div className="flex flex-wrap sm:flex-nowrap gap-2">
+            <Button
+              onClick={handleDownloadScripts}
+              className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/60 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 dark:text-indigo-400 dark:border-indigo-500/30 font-bold text-[10px] uppercase tracking-wider h-8 px-2.5 rounded-lg shadow-sm transition-all duration-300 flex items-center gap-1 shrink-0"
+            >
+              <Download className="h-3 w-3" /> Proxy
+            </Button>
+            <Button
+              onClick={() => handleDownloadFile('espcam')}
+              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/60 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30 font-bold text-[10px] uppercase tracking-wider h-8 px-2.5 rounded-lg shadow-sm transition-all duration-300 flex items-center gap-1 shrink-0"
+            >
+              <Download className="h-3 w-3" /> ESP-Cam
+            </Button>
+            <Button
+              onClick={() => handleDownloadFile('totem')}
+              className="bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200/60 dark:bg-teal-500/10 dark:hover:bg-teal-500/20 dark:text-teal-400 dark:border-teal-500/30 font-bold text-[10px] uppercase tracking-wider h-8 px-2.5 rounded-lg shadow-sm transition-all duration-300 flex items-center gap-1 shrink-0"
+            >
+              <Download className="h-3 w-3" /> Totem
+            </Button>
+            <Button
+              onClick={() => handleDownloadFile('readme')}
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/60 dark:bg-slate-800/40 dark:hover:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700/50 font-bold text-[10px] uppercase tracking-wider h-8 px-2.5 rounded-lg shadow-sm transition-all duration-300 flex items-center gap-1 shrink-0"
+            >
+              <Download className="h-3 w-3" /> Manual
+            </Button>
+          </div>
           <div className="px-3 py-2 bg-slate-100/60 dark:bg-slate-950 border border-slate-200/50 dark:border-white/5 rounded-xl text-center min-w-[130px]">
             <span className="text-[9px] font-black uppercase tracking-wider text-slate-555 block">Uso do Totem</span>
             <span className="text-[10px] font-mono text-indigo-650 dark:text-indigo-400 font-bold block mt-0.5">Executar Localmente</span>
@@ -240,164 +460,73 @@ export function InfraSection({
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="border border-slate-200/60 dark:border-indigo-500/20 shadow-2xl overflow-hidden bg-white/80 dark:bg-slate-900/40 rounded-[2rem] backdrop-blur-xl hover:border-indigo-500/10 dark:hover:border-indigo-500/20 transition-all duration-300 text-slate-800 dark:text-white">
-          <CardHeader className="border-b border-slate-200/60 dark:border-white/5 bg-indigo-50/50 dark:bg-indigo-950/30 px-6 py-5 pb-4">
-            <CardTitle className="flex items-center gap-2 uppercase tracking-tight font-black text-sm text-indigo-600 dark:text-indigo-400">
-              <UserIcon className="h-5 w-5 text-indigo-600 dark:text-indigo-400" /> Acesso do Aluno (Portal)
-            </CardTitle>
-            <CardDescription className="text-slate-500 dark:text-slate-400 text-xs">Configure como os alunos acessam o Portal Web.</CardDescription>
-          </CardHeader>
-          <CardContent className="p-6 space-y-4">
+      <Card className="border border-slate-200/60 dark:border-indigo-500/20 shadow-2xl overflow-hidden bg-white/80 dark:bg-slate-900/40 rounded-[2rem] backdrop-blur-xl hover:border-indigo-500/10 dark:hover:border-indigo-500/20 transition-all duration-300 text-slate-800 dark:text-white md:col-span-2">
+        <CardHeader className="border-b border-slate-200/60 dark:border-white/5 bg-indigo-50/50 dark:bg-indigo-950/30 px-6 py-5 pb-4">
+          <CardTitle className="flex items-center gap-2 uppercase tracking-tight font-black text-sm text-indigo-600 dark:text-indigo-400">
+            <ShieldCheck className="h-5 w-5 text-indigo-600 dark:text-indigo-400" /> Configurações de Acesso Geral (Web/Pessoal)
+          </CardTitle>
+          <CardDescription className="text-slate-500 dark:text-slate-400 text-xs">Configure as opções de acesso para computadores e celulares pessoais dos alunos e gestores.</CardDescription>
+        </CardHeader>
+        <CardContent className="p-6 space-y-6">
+          <div className="grid gap-6 md:grid-cols-3">
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Método de Login Ativo</Label>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Login do Aluno (Web/Pessoal)</Label>
               <Select 
                 value={systemSettings.studentLoginMethod || "all"} 
                 onValueChange={(v: any) => updateSystemSettings({...systemSettings, studentLoginMethod: v}, targetSchoolId)}
               >
                 <SelectTrigger className="bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold h-10"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white">
-                  <SelectItem value="all" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Tudo (RA e QR Code)</SelectItem>
+                  <SelectItem value="all" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Tudo Habilitado (RA, QR e RFID)</SelectItem>
                   <SelectItem value="manual" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Apenas Manual (RA)</SelectItem>
                   <SelectItem value="qr" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Apenas QR Code</SelectItem>
+                  <SelectItem value="rfid" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Apenas RFID (Cartão)</SelectItem>
+                  <SelectItem value="manual_qr" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Manual e QR Code</SelectItem>
+                  <SelectItem value="manual_rfid" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Manual e RFID</SelectItem>
+                  <SelectItem value="qr_rfid" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">QR Code e RFID</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-4 pt-4 border-t border-slate-200/60 dark:border-white/5">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Fonte da Câmera</Label>
-                <Select 
-                  value={systemSettings.studentCaptureSource || 'browser'} 
-                  onValueChange={(v: any) => updateSystemSettings({...systemSettings, studentCaptureSource: v}, targetSchoolId)}
-                >
-                  <SelectTrigger className="bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold h-9"><SelectValue /></SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white">
-                    <SelectItem value="browser" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Webcam do Sistema</SelectItem>
-                    <SelectItem value="esp32" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">ESP32-CAM HTTP (IP Local)</SelectItem>
-                    <SelectItem value="esp32_https" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">ESP32-CAM HTTPS Proxy</SelectItem>
-                    <SelectItem value="url" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Stream Externo (URL)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {systemSettings.studentCaptureSource === 'browser' ? (
-                <div className="space-y-2 animate-in fade-in duration-200">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Dispositivo de Captura</Label>
-                  <Select 
-                    key={`student-cam-${videoDevices.length}`}
-                    value={systemSettings.studentCaptureDevice || 'default'} 
-                    onValueChange={(v: any) => updateSystemSettings({...systemSettings, studentCaptureDevice: v}, targetSchoolId)}
-                  >
-                    <SelectTrigger className="bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold h-9"><SelectValue placeholder="Selecione a câmera" /></SelectTrigger>
-                    <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white">
-                      <SelectItem value="default" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Automático (Padrão do Sistema)</SelectItem>
-                      {sortedVideoDevices.map(device => (
-                        <SelectItem key={device.deviceId} value={device.deviceId} className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">
-                          {device.label || `Câmera ${device.deviceId.slice(0, 5)}`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ) : (
-                <div className="space-y-2 animate-in fade-in duration-200">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Endereço / URL do Stream</Label>
-                  <Input 
-                    placeholder={systemSettings.studentCaptureSource === 'esp32' || systemSettings.studentCaptureSource === 'esp32_https' ? "Ex: 192.168.1.50" : "http://server.com/stream"}
-                    value={systemSettings.studentCaptureUrl || ''}
-                    onChange={(e) => updateSystemSettings({...systemSettings, studentCaptureUrl: e.target.value}, targetSchoolId)}
-                    className="bg-white dark:bg-slate-950 border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold h-9 text-xs"
-                  />
-                </div>
-              )}
-            </div>
-            
-            <div className="p-3 bg-indigo-500/5 border border-indigo-500/20 rounded-xl text-[10px] text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wider">
-              Configuração aplicada ao login web do aluno.
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border border-slate-200/60 dark:border-indigo-500/20 shadow-2xl overflow-hidden bg-white/80 dark:bg-slate-900/40 rounded-[2rem] backdrop-blur-xl hover:border-indigo-500/10 dark:hover:border-indigo-500/20 transition-all duration-300 text-slate-800 dark:text-white">
-          <CardHeader className="border-b border-slate-200/60 dark:border-white/5 bg-indigo-50/50 dark:bg-indigo-950/30 px-6 py-5 pb-4">
-            <CardTitle className="flex items-center gap-2 uppercase tracking-tight font-black text-sm text-indigo-600 dark:text-indigo-400">
-              <ShieldCheck className="h-5 w-5 text-indigo-600 dark:text-indigo-400" /> Painel de Gestão (Admin)
-            </CardTitle>
-            <CardDescription className="text-slate-500 dark:text-slate-400 text-xs">Segurança e acesso para administradores e gestores.</CardDescription>
-          </CardHeader>
-          <CardContent className="p-6 space-y-4">
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Método de Autenticação</Label>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Login do Gestor (Web/Pessoal)</Label>
               <Select 
                 value={systemSettings.adminLoginMethod || "all"} 
                 onValueChange={(v: any) => updateSystemSettings({...systemSettings, adminLoginMethod: v}, targetSchoolId)}
               >
                 <SelectTrigger className="bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold h-10"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white">
-                  <SelectItem value="all" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Tudo (Senha, QR e RFID)</SelectItem>
+                  <SelectItem value="all" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Tudo Habilitado (Senha, QR e RFID)</SelectItem>
                   <SelectItem value="manual" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Apenas Senha</SelectItem>
-                  <SelectItem value="qr" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Apenas QR Code Master</SelectItem>
-                  <SelectItem value="rfid" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Apenas RFID (Crachá)</SelectItem>
+                  <SelectItem value="qr" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Apenas QR Code</SelectItem>
+                  <SelectItem value="rfid" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Apenas RFID (Cartão)</SelectItem>
+                  <SelectItem value="manual_qr" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Manual e QR Code</SelectItem>
+                  <SelectItem value="manual_rfid" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Manual e RFID</SelectItem>
+                  <SelectItem value="qr_rfid" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">QR Code e RFID</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-4 pt-4 border-t border-slate-200/60 dark:border-white/5">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Fonte da Câmera</Label>
-                <Select 
-                  value={systemSettings.adminCaptureSource || 'browser'} 
-                  onValueChange={(v: any) => updateSystemSettings({...systemSettings, adminCaptureSource: v}, targetSchoolId)}
-                >
-                  <SelectTrigger className="bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold h-9"><SelectValue /></SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white">
-                    <SelectItem value="browser" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Webcam do Sistema</SelectItem>
-                    <SelectItem value="esp32" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">ESP32-CAM HTTP (IP Local)</SelectItem>
-                    <SelectItem value="esp32_https" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">ESP32-CAM HTTPS Proxy</SelectItem>
-                    <SelectItem value="url" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Stream Externo (URL)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {systemSettings.adminCaptureSource === 'browser' ? (
-                <div className="space-y-2 animate-in fade-in duration-200">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Dispositivo de Captura</Label>
-                  <Select 
-                    key={`admin-cam-${videoDevices.length}`}
-                    value={systemSettings.adminCaptureDevice || 'default'} 
-                    onValueChange={(v: any) => updateSystemSettings({...systemSettings, adminCaptureDevice: v}, targetSchoolId)}
-                  >
-                    <SelectTrigger className="bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold h-9"><SelectValue placeholder="Selecione a câmera" /></SelectTrigger>
-                    <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white">
-                      <SelectItem value="default" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Automático (Padrão do Sistema)</SelectItem>
-                      {sortedVideoDevices.map(device => (
-                        <SelectItem key={device.deviceId} value={device.deviceId} className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">
-                          {device.label || `Câmera ${device.deviceId.slice(0, 5)}`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ) : (
-                <div className="space-y-2 animate-in fade-in duration-200">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Endereço / URL do Stream</Label>
-                  <Input 
-                    placeholder={systemSettings.adminCaptureSource === 'esp32' || systemSettings.adminCaptureSource === 'esp32_https' ? "Ex: 192.168.1.50" : "http://server.com/stream"}
-                    value={systemSettings.adminCaptureUrl || ''}
-                    onChange={(e) => updateSystemSettings({...systemSettings, adminCaptureUrl: e.target.value}, targetSchoolId)}
-                    className="bg-white dark:bg-slate-950 border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold h-9 text-xs"
-                  />
-                </div>
-              )}
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Status da Área do Aluno (Web)</Label>
+              <Select 
+                value={systemSettings.studentAreaMaintenance ? "maintenance" : "active"} 
+                onValueChange={(v: any) => updateSystemSettings({...systemSettings, studentAreaMaintenance: v === "maintenance"}, targetSchoolId)}
+              >
+                <SelectTrigger className="bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold h-10"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white">
+                  <SelectItem value="active" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">🟢 Ativo (Portal Liberado)</SelectItem>
+                  <SelectItem value="maintenance" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">⚠️ Em Manutenção (Bloquear Acesso)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            
-            <div className="p-3 bg-indigo-500/5 border border-indigo-500/20 rounded-xl text-[10px] text-indigo-650 dark:text-indigo-400 font-bold uppercase tracking-wider">
-              Recomendado: Híbrido para máxima redundância escolar.
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+          
+          <div className="p-3 bg-indigo-500/5 border border-indigo-500/20 rounded-xl text-[10px] text-indigo-650 dark:text-indigo-400 font-bold uppercase tracking-wider">
+            Aviso: Configurações aplicadas às conexões fora do modo totem. O modo totem físico opera sob configurações individuais e autônomas.
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="border border-slate-200/60 dark:border-indigo-500/20 shadow-2xl overflow-hidden bg-white/80 dark:bg-slate-900/40 rounded-[2rem] backdrop-blur-xl hover:border-indigo-500/10 dark:hover:border-indigo-500/20 transition-all duration-300 text-slate-800 dark:text-white">
           <CardHeader className="flex flex-row items-center justify-between border-b border-slate-200/60 dark:border-white/5 bg-indigo-50/50 dark:bg-indigo-950/30 px-6 py-5 pb-4">
@@ -437,65 +566,13 @@ export function InfraSection({
                              <Button size="sm" onClick={() => approveTerminal(terminal)} className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white dark:text-slate-950 border border-indigo-400/20 flex-1 h-9 uppercase text-[10px] font-black tracking-wider rounded-xl">Autorizar Acesso</Button>
                           </div>
                        </div>
-                    ))}
+                     ))}
                   </div>
                </div>
             )}
 
             {/* SELEÇÃO E NAVEGAÇÃO DE TOTENS CADASTRADOS */}
             <div className="space-y-4">
-              <div className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200/60 dark:border-white/5 rounded-2xl shadow-md space-y-3">
-                <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-                  <div className="space-y-1">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-555 dark:text-slate-400 ml-1">
-                      Estrutura de Seleção de Totens
-                    </Label>
-                    <p className="text-[9px] text-slate-500 dark:text-slate-500 font-medium">Use o menu abaixo para localizar e focar imediatamente nas configurações de qualquer totem cadastrado.</p>
-                  </div>
-                  
-                  <Select 
-                    value={selectedTerminalId || ""} 
-                    onValueChange={(id) => {
-                      setSelectedTerminalId(id);
-                      if (id) {
-                        const terminal = filteredTerminalsForAdmin.find(t => t.id === id);
-                        if (terminal) {
-                          setTerminalLocation(terminal.location);
-                          setPreferredCamera(terminal.settings?.preferredCamera || 'default');
-                          setTerminalScanningCameraDevice(terminal.settings?.scanningCameraDevice || 'default');
-                          setTerminalLoginMethod(terminal.settings?.loginMethod || 'all');
-                          setTerminalLoginCameraSource(terminal.settings?.loginCameraSource || 'browser');
-                          setTerminalScanningCameraSource(terminal.settings?.scanningCameraSource || 'browser');
-                          setTerminalLoginCameraUrl(terminal.settings?.loginCameraUrl || terminal.settings?.cameraUrl || '');
-                          setTerminalScanningCameraUrl(terminal.settings?.scanningCameraUrl || terminal.settings?.cameraUrl || '');
-                          setTerminalScannerFramerate(terminal.settings?.scannerFramerate || 'fluid');
-                          setTerminalLoginCameraFramerate(terminal.settings?.loginCameraFramerate || 'fluid');
-                          setTerminalLoginCameraFlash(terminal.settings?.loginCameraFlash ?? false);
-                          setTerminalScanningCameraFlash(terminal.settings?.scanningCameraFlash ?? true);
-                          setTerminalSchoolgainServer(terminal.settings?.schoolgainServer || '172.16.0.118:3000');
-                          setTerminalHardwareToken(terminal.settings?.hardwareToken || 'sg_hardware_secret_2026');
-                        }
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="w-full md:w-80 h-11 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold">
-                      <SelectValue placeholder="Escolha um totem para gerenciar..." />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white">
-                      {filteredTerminalsForAdmin.filter(t => t.status !== 'pending').length > 0 ? (
-                        filteredTerminalsForAdmin.filter(t => t.status !== 'pending').map(t => (
-                          <SelectItem key={t.id} value={t.id} className="font-bold text-slate-700 dark:text-slate-200 hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">
-                            📍 {t.location} (ID: {t.id.slice(0, 15)}...)
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <div className="p-2 text-center text-xs text-slate-500 italic">Nenhum totem cadastrado nesta unidade.</div>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
               {/* CARD DE DETALHES OU GRADE DE TOTENS */}
               {selectedTerminalId ? (
                 // VIEW 1: PAINEL DE CONTROLE DETALHADO DO TOTEM SELECIONADO
@@ -529,6 +606,28 @@ export function InfraSection({
                         </Button>
                       </div>
 
+                      {(() => {
+                        const isMacAddr = (val: string) => /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/.test(val.trim());
+                        const needsProxy = 
+                          (terminalLoginCameraSource === 'esp32_https' || isMacAddr(terminalLoginCameraUrl)) ||
+                          (terminalScanningCameraSource === 'esp32_https' || isMacAddr(terminalScanningCameraUrl)) ||
+                          isMacAddr(terminalDiscardEspIp);
+
+                        if (needsProxy && !proxyActive) {
+                          return (
+                            <div className="p-4 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-450 rounded-2xl flex flex-col gap-1.5 animate-in slide-in-from-top duration-300">
+                              <span className="text-xs font-black uppercase tracking-wider flex items-center gap-1.5">
+                                ⚠️ AVISO: Proxy Local Requerido
+                              </span>
+                              <p className="text-[10.5px] leading-relaxed font-semibold">
+                                Você configurou um ou mais dispositivos utilizando <strong>MAC Address</strong> ou <strong>HTTPS Proxy</strong>, porém o Proxy Local na porta 9005 está <strong>desativado</strong>. Para que o navegador consiga resolver os MAC Addresses ou conexões seguras, ative o proxy local clicando no botão de inicialização no topo da tela ou executando o script <code>Iniciar-Proxy-Local.bat</code>.
+                              </p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+
                       <div className="grid gap-6 md:grid-cols-2">
                         {/* BLOCO A: IDENTIFICAÇÃO E SEGURANÇA */}
                         <div className="space-y-4 p-5 bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/5 rounded-2xl shadow-md">
@@ -552,10 +651,13 @@ export function InfraSection({
                             <Select value={terminalLoginMethod || "all"} onValueChange={(v: any) => setTerminalLoginMethod(v)}>
                               <SelectTrigger className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold h-10"><SelectValue /></SelectTrigger>
                               <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white">
-                                <SelectItem value="all" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Tudo (Senha, QR e RFID)</SelectItem>
+                                <SelectItem value="all" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Tudo Habilitado (Senha, QR e RFID)</SelectItem>
                                 <SelectItem value="manual" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Apenas Senha</SelectItem>
                                 <SelectItem value="qr" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Apenas QR Code</SelectItem>
                                 <SelectItem value="rfid" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Apenas RFID (Cartão)</SelectItem>
+                                <SelectItem value="manual_qr" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Senha e QR Code</SelectItem>
+                                <SelectItem value="manual_rfid" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Senha e RFID</SelectItem>
+                                <SelectItem value="qr_rfid" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">QR Code e RFID</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -643,13 +745,16 @@ export function InfraSection({
                           {terminalLoginCameraSource !== 'browser' ? (
                             <div className="space-y-4">
                               <div className="space-y-2 animate-in fade-in duration-200">
-                                <Label className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-450 ml-1">Endereço da Câmera de Login</Label>
+                                <Label className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-450 ml-1">Endereço IP ou MAC da Câmera de Login</Label>
                                 <Input 
                                   value={terminalLoginCameraUrl} 
                                   onChange={(e) => setTerminalLoginCameraUrl(e.target.value)} 
-                                  placeholder={terminalLoginCameraSource === 'esp32' || terminalLoginCameraSource === 'esp32_https' ? "Ex: 192.168.1.5" : "Ex: http://ip:port/stream"}
+                                  placeholder={terminalLoginCameraSource === 'esp32' || terminalLoginCameraSource === 'esp32_https' ? "Ex: 192.168.1.5 ou AA:BB:CC:DD:EE:FF" : "Ex: http://ip:port/stream"}
                                   className="font-mono text-xs h-10 bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50"
                                 />
+                                <p className="text-[8.5px] leading-normal text-slate-500 dark:text-slate-450 mt-1">
+                                  💡 Suporta IP ou MAC Address. O MAC resolve automaticamente IPs dinâmicos (DHCP) através do Proxy Local.
+                                </p>
                               </div>
 
                               {(terminalLoginCameraSource === 'esp32' || terminalLoginCameraSource === 'esp32_https') && (
@@ -742,13 +847,16 @@ export function InfraSection({
                           ) : (
                             <div className="space-y-4">
                               <div className="space-y-2 animate-in fade-in duration-200">
-                                <Label className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-450 ml-1">Endereço da Câmera de Scanner</Label>
+                                <Label className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-450 ml-1">Endereço IP ou MAC da Câmera de Scanner</Label>
                                 <Input 
                                   value={terminalScanningCameraUrl} 
                                   onChange={(e) => setTerminalScanningCameraUrl(e.target.value)} 
-                                  placeholder={terminalScanningCameraSource === 'esp32' || terminalScanningCameraSource === 'esp32_https' ? "Ex: 192.168.1.6" : "Ex: http://ip:port/stream"}
+                                  placeholder={terminalScanningCameraSource === 'esp32' || terminalScanningCameraSource === 'esp32_https' ? "Ex: 192.168.1.6 ou AA:BB:CC:DD:EE:FF" : "Ex: http://ip:port/stream"}
                                   className="font-mono text-xs h-10 bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50"
                                 />
+                                <p className="text-[8.5px] leading-normal text-slate-500 dark:text-slate-455 mt-1">
+                                  💡 Suporta IP ou MAC Address. O MAC resolve automaticamente IPs dinâmicos (DHCP) através do Proxy Local.
+                                </p>
                               </div>
 
                               {(terminalScanningCameraSource === 'esp32' || terminalScanningCameraSource === 'esp32_https') && (
@@ -788,74 +896,157 @@ export function InfraSection({
                           )}
                         </div>
 
-                        {/* BLOCO E: STATUS DAS LIXEIRAS (ESP32 TELEMETRIA) */}
-                        <div className="space-y-4 p-5 bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/5 rounded-2xl shadow-md md:col-span-2">
+                        {/* BLOCO E: CONFIGURAÇÕES DA ESP32 DE DESCARTE */}
+                        <div className="space-y-4 p-5 bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/5 rounded-2xl shadow-md">
+                          <div className="flex items-center gap-2 pb-2 border-b border-slate-250 dark:border-white/5">
+                            <Cpu className="h-3.5 w-3.5 text-indigo-650 dark:text-indigo-400 animate-pulse" />
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-555 dark:text-slate-400">5. ESP32 de Descarte (Lixeiras / RFID / Sonar)</h4>
+                          </div>
+
+                           <div className="space-y-2">
+                            <Label className="text-[9px] font-black uppercase tracking-widest text-slate-550 dark:text-slate-400 ml-1">Fonte de Conexão (Descarte)</Label>
+                            <Select value={terminalDiscardEspSource || "esp32"} onValueChange={(v: any) => setTerminalDiscardEspSource(v)}>
+                              <SelectTrigger className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl h-10"><SelectValue /></SelectTrigger>
+                              <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white">
+                                <SelectItem value="esp32" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">ESP32 Direta (IP Local)</SelectItem>
+                                <SelectItem value="esp32_https" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">ESP32 HTTPS Proxy (MAC / HTTPS)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-455 ml-1">Endereço IP ou MAC da ESP de Descarte</Label>
+                            <Input 
+                              value={terminalDiscardEspIp} 
+                              onChange={(e) => setTerminalDiscardEspIp(e.target.value)} 
+                              placeholder="Ex: 192.168.1.100 ou AA:BB:CC:DD:EE:FF"
+                              className="font-mono text-xs h-10 bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50"
+                            />
+                            <p className="text-[8.5px] leading-normal text-slate-500 dark:text-slate-455 mt-1">
+                              💡 Suporta IP ou MAC Address. O MAC resolve automaticamente IPs dinâmicos (DHCP) através do Proxy Local.
+                            </p>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-455 ml-1">Distância do Sonar (cm)</Label>
+                              <Input 
+                                type="number"
+                                value={terminalSonarDistance} 
+                                onChange={(e) => setTerminalSonarDistance(Number(e.target.value))} 
+                                placeholder="Ex: 15"
+                                className="font-mono text-xs h-10 bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-455 ml-1">Leitor RFID Físico (ESP)</Label>
+                              <Select 
+                                value={terminalRfidReaderEnabled ? "enabled" : "disabled"} 
+                                onValueChange={(v) => setTerminalRfidReaderEnabled(v === "enabled")}
+                              >
+                                <SelectTrigger className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl h-10"><SelectValue /></SelectTrigger>
+                                <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white">
+                                  <SelectItem value="enabled" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Ativado (RFID na ESP)</SelectItem>
+                                  <SelectItem value="disabled" className="hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20">Desativado</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* BLOCO F: STATUS DOS DISPOSITIVOS E LIXEIRAS (ESP32 TELEMETRIA) */}
+                        <div className="space-y-6 p-5 bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/5 rounded-2xl shadow-md md:col-span-2">
                           <div className="flex items-center justify-between pb-2 border-b border-slate-250 dark:border-white/5">
                             <div className="flex items-center gap-2">
-                              <Trash2 className="h-4 w-4 text-rose-600 dark:text-rose-450" />
-                              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-555 dark:text-slate-400">5. Status das Lixeiras em Tempo Real</h4>
+                              <Cpu className="h-4 w-4 text-indigo-650 dark:text-indigo-400" />
+                              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-555 dark:text-slate-400">6. Status das ESP32 e Lixeiras em Tempo Real</h4>
                             </div>
                             {selectedTerminal?.lastBinUpdate && (
                               <span className="text-[9px] text-slate-500 font-mono">
-                                Última atualização: {new Date(selectedTerminal.lastBinUpdate).toLocaleTimeString('pt-BR')}
+                                Última telemetria: {new Date(selectedTerminal.lastBinUpdate).toLocaleTimeString('pt-BR')}
                               </span>
                             )}
                           </div>
 
-                          {selectedTerminal?.binLevels ? (
-                            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                              {(['plastico', 'papel', 'vidro', 'metal'] as const).map((material) => {
-                                const level = selectedTerminal.binLevels?.[material] ?? 0;
-                                const isFull = level >= 85;
-                                return (
-                                  <div 
-                                    key={material} 
-                                    className={`p-4 border rounded-xl flex flex-col justify-between gap-3 bg-slate-50/50 dark:bg-slate-900/20 ${
-                                      isFull 
-                                        ? 'border-rose-500/30 bg-rose-500/5 dark:border-rose-500/20 dark:bg-rose-950/20 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.05)]' 
-                                        : 'border-slate-100 dark:border-white/5'
-                                    }`}
-                                  >
-                                    <div className="flex justify-between items-center">
-                                      <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-350">
-                                        {material === 'plastico' ? 'Plástico' : material === 'papel' ? 'Papel' : material === 'vidro' ? 'Vidro' : 'Metal'}
-                                      </span>
-                                      <Badge 
-                                        variant="outline" 
-                                        className={`text-[9px] font-mono h-5 px-1.5 font-bold uppercase rounded-md ${
-                                          isFull 
-                                            ? 'bg-rose-500/10 text-rose-600 dark:text-rose-450 border-rose-500/20' 
-                                            : 'bg-indigo-500/5 text-indigo-650 dark:text-indigo-400 border-indigo-500/10'
-                                        }`}
-                                      >
-                                        {level}%
-                                      </Badge>
-                                    </div>
-                                    
-                                    <div className="w-full bg-slate-200 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
-                                      <div 
-                                        className={`h-full rounded-full transition-all duration-500 ${
-                                          isFull ? 'bg-gradient-to-r from-rose-500 to-red-650' : 'bg-gradient-to-r from-indigo-500 to-indigo-600'
-                                        }`}
-                                        style={{ width: `${level}%` }}
-                                      ></div>
-                                    </div>
+                          {/* STATUS DE CONEXÃO DE TODAS AS ESPS */}
+                          <div className="space-y-3">
+                            <h5 className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-455 ml-1">
+                              Status de Conexão das Placas ESP32
+                            </h5>
 
-                                    {isFull && (
-                                      <p className="text-[9px] font-black uppercase tracking-wide text-rose-600 dark:text-rose-450 animate-pulse flex items-center gap-1">
-                                        ⚠️ Lixeira Cheia!
-                                      </p>
-                                    )}
+                            {(() => {
+                              const activeEspsList = [];
+                               if (terminalLoginCameraSource === 'esp32' || terminalLoginCameraSource === 'esp32_https') {
+                                activeEspsList.push({
+                                  id: 'login',
+                                  name: '🔑 Câmera de Login',
+                                  ip: getIpFromUrl(terminalLoginCameraUrl),
+                                });
+                              }
+                              if (terminalScanningCameraSource === 'esp32' || terminalScanningCameraSource === 'esp32_https') {
+                                activeEspsList.push({
+                                  id: 'scanner',
+                                  name: '🔍 Câmera de Scanner',
+                                  ip: getIpFromUrl(terminalScanningCameraUrl),
+                                });
+                              }
+                              if (terminalDiscardEspIp) {
+                                activeEspsList.push({
+                                  id: 'discard',
+                                  name: '♻️ Controlador de Descarte',
+                                  ip: getIpFromUrl(terminalDiscardEspIp),
+                                });
+                              }
+
+                              if (activeEspsList.length === 0) {
+                                return (
+                                  <div className="p-4 text-center border border-dashed border-slate-200 dark:border-white/5 rounded-xl bg-slate-50/50 dark:bg-slate-900/10 text-[10px] text-slate-500 dark:text-slate-450 italic">
+                                    Nenhuma placa ESP32 configurada para este totem.
                                   </div>
                                 );
-                              })}
-                            </div>
-                          ) : (
-                            <div className="p-6 text-center border border-dashed border-slate-200 dark:border-white/5 rounded-2xl bg-slate-50/50 dark:bg-slate-900/10">
-                              <Cpu className="h-6 w-6 text-slate-400 dark:text-slate-500 mx-auto mb-2 animate-pulse" />
-                              <p className="text-[10px] text-slate-500 dark:text-slate-450 italic uppercase tracking-wider">Aguardando telemetria inicial da ESP32...</p>
-                            </div>
-                          )}
+                              }
+
+                              return (
+                                <div className="grid gap-3 sm:grid-cols-3">
+                                  {activeEspsList.map((esp) => {
+                                    const status = espsStatus[esp.id] || 'checking';
+                                    return (
+                                      <div 
+                                        key={esp.id} 
+                                        className="p-3 border border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-slate-900/20 rounded-xl flex flex-col justify-between gap-2"
+                                      >
+                                        <div className="space-y-1">
+                                          <span className="text-[10px] font-black uppercase tracking-tight text-slate-700 dark:text-slate-350 block line-clamp-1">
+                                            {esp.name}
+                                          </span>
+                                          <span className="font-mono text-[9px] text-slate-500 block">
+                                            IP: {esp.ip}
+                                          </span>
+                                        </div>
+                                        
+                                        <div className="flex items-center mt-1">
+                                          {status === 'online' ? (
+                                            <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-450 border border-emerald-500/20 font-black text-[8px] uppercase tracking-wider h-5 rounded-md px-1.5 flex gap-1 items-center">
+                                              <Wifi className="h-2.5 w-2.5" /> Online
+                                            </Badge>
+                                          ) : status === 'offline' ? (
+                                            <Badge className="bg-rose-500/10 text-rose-600 dark:text-rose-450 border border-rose-500/20 font-black text-[8px] uppercase tracking-wider h-5 rounded-md px-1.5 flex gap-1 items-center">
+                                              <WifiOff className="h-2.5 w-2.5" /> Offline
+                                            </Badge>
+                                          ) : (
+                                            <Badge className="bg-slate-100 text-slate-500 dark:bg-slate-950 dark:text-slate-455 border border-slate-200 dark:border-white/5 font-black text-[8px] uppercase tracking-wider h-5 rounded-md px-1.5 flex gap-1 items-center animate-pulse">
+                                              <Activity className="h-2.5 w-2.5 animate-spin" /> Testando...
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })()}
+                          </div>
                         </div>
                       </div>
 
@@ -901,7 +1092,11 @@ export function InfraSection({
                                   loginCameraFlash: terminalLoginCameraFlash,
                                   scanningCameraFlash: terminalScanningCameraFlash,
                                   schoolgainServer: terminalSchoolgainServer,
-                                  hardwareToken: terminalHardwareToken
+                                  hardwareToken: terminalHardwareToken,
+                                  discardEspIp: terminalDiscardEspIp,
+                                  discardEspSource: terminalDiscardEspSource,
+                                  sonarDistance: Number(terminalSonarDistance) || 15,
+                                  rfidReaderEnabled: terminalRfidReaderEnabled
                                 }
                               });
                               toast({ title: "Configurações Salvas", description: "O totem foi atualizado com sucesso." });
@@ -949,6 +1144,10 @@ export function InfraSection({
                               setTerminalScanningCameraFlash(terminal.settings?.scanningCameraFlash ?? true);
                               setTerminalSchoolgainServer(terminal.settings?.schoolgainServer || '172.16.0.118:3000');
                               setTerminalHardwareToken(terminal.settings?.hardwareToken || 'sg_hardware_secret_2026');
+                              setTerminalDiscardEspIp(terminal.settings?.discardEspIp || '');
+                              setTerminalDiscardEspSource(terminal.settings?.discardEspSource || 'esp32');
+                              setTerminalSonarDistance(terminal.settings?.sonarDistance || 15);
+                              setTerminalRfidReaderEnabled(terminal.settings?.rfidReaderEnabled ?? true);
                             }}
                           >
                             <div className="space-y-3">

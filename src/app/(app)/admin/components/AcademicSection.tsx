@@ -200,7 +200,9 @@ export function AcademicSection({
 }: AcademicSectionProps) {
   const [showInactive, setShowInactive] = useState(false);
   const router = useRouter();
-  const { systemSettings } = useEcosystem();
+  const { systemSettings, hardwareId, terminals } = useEcosystem();
+  const currentTerminal = terminals.find(t => t.hardwareId === hardwareId);
+  const isTotem = !!currentTerminal && currentTerminal.status === 'active';
 
   const sortedTurmas = useMemo(() => [...allTurmas].sort((a, b) => a.name.localeCompare(b.name)), [allTurmas]);
   const sortedCursos = useMemo(() => [...allCursos].sort((a, b) => a.name.localeCompare(b.name)), [allCursos]);
@@ -544,7 +546,7 @@ export function AcademicSection({
                                     userForm.setValue('ra', text.toUpperCase());
                                     setIsQRScannerOpen(false);
                                   }} 
-                                  deviceId={systemSettings.adminCaptureDevice}
+                                  deviceId={isTotem ? (currentTerminal?.settings?.scanningCameraDevice || currentTerminal?.settings?.preferredCamera || systemSettings.adminCaptureDevice || 'default') : (systemSettings.adminCaptureDevice || 'default')}
                                 />
                               </div>
                           </div>
@@ -970,7 +972,7 @@ export function AcademicSection({
  
                         <div className="mt-6 flex flex-col gap-3">
                           <div className="grid grid-cols-2 gap-3">
-                            <Button onClick={() => handleDownloadBadgeImage(badgeUser)} className="gap-2 shadow-lg bg-emerald-600 hover:bg-emerald-700 text-white border-none font-bold uppercase tracking-wider text-[10px] h-10 rounded-xl">
+                            <Button onClick={() => handleDownloadBadgeImage(badgeUser)} className="gap-2 shadow-lg bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 dark:text-emerald-400 dark:border dark:border-emerald-500/30 font-bold uppercase tracking-wider text-[10px] h-10 rounded-xl">
                               <ImageIcon className="h-4 w-4" />
                               Salvar Imagem
                             </Button>

@@ -19,7 +19,7 @@ import { EcosystemService } from '@/lib/ecosystem.service';
 const QRScanner = dynamic(() => import('@/components/ui/qr-scanner'), { ssr: false });
 
 export default function RegisterStudentPage() {
-  const { requestRegistration, allTurmas, allCursos, schools, setTargetSchoolId, systemSettings } = useEcosystem();
+  const { requestRegistration, allTurmas, allCursos, schools, setTargetSchoolId, systemSettings, hardwareId, terminals } = useEcosystem();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -35,6 +35,9 @@ export default function RegisterStudentPage() {
   const [isScanning, setIsScanning] = useState(false);
   const [isRFIDCapturing, setIsRFIDCapturing] = useState(false);
   const [showQRPreview, setShowQRPreview] = useState(false);
+
+  const currentTerminal = terminals.find(t => t.hardwareId === hardwareId);
+  const isTotem = !!currentTerminal && currentTerminal.status === 'active';
 
   const handleRADetected = (val: string) => {
     setFormData(prev => ({ ...prev, ra: val.toUpperCase() }));
@@ -295,7 +298,7 @@ export default function RegisterStudentPage() {
                   </Button>
                   <QRScanner 
                     onScan={handleRADetected} 
-                    deviceId={systemSettings.studentCaptureDevice}
+                    deviceId={isTotem ? (currentTerminal?.settings?.scanningCameraDevice || currentTerminal?.settings?.preferredCamera || systemSettings.studentCaptureDevice || 'default') : (systemSettings.studentCaptureDevice || 'default')}
                   />
                 </div>
               )}
