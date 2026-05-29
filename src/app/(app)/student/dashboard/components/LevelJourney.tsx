@@ -59,17 +59,17 @@ export function LevelJourney({ currentLevel, totalScore }: LevelJourneyProps) {
       </div>
 
       {/* TIMELINE VISUAL */}
-      <div className="relative max-w-4xl mx-auto">
-        {/* Linha de Base */}
-        <div className="absolute top-1/2 left-4 right-4 h-1 bg-slate-200 dark:bg-white/5 -translate-y-1/2 rounded-full overflow-hidden">
-            <div 
-                className="h-full bg-gradient-to-r from-emerald-500 to-indigo-500 transition-all duration-1000 ease-out"
-                style={{ width: `${(currentIndex / (LEVELS.length - 1)) * 100}%` }}
-            />
-        </div>
+      <div className="relative w-full">
+        {/* Níveis preenchendo toda a largura do elemento */}
+        <div className="relative flex justify-between items-center w-full pb-10 pt-2 px-4 md:px-8 select-none">
+          {/* Linha de Base (conectando perfeitamente do primeiro ao último ícone) */}
+          <div className="absolute top-[24px] md:top-[40px] left-8 right-8 md:left-16 md:right-16 h-0.5 md:h-1 bg-slate-200 dark:bg-white/5 -translate-y-1/2 rounded-full overflow-hidden pointer-events-none">
+              <div 
+                  className="h-full bg-gradient-to-r from-emerald-500 to-indigo-500 transition-all duration-1000 ease-out"
+                  style={{ width: `${(currentIndex / (LEVELS.length - 1)) * 100}%` }}
+              />
+          </div>
 
-        {/* Níveis */}
-        <div className="relative flex justify-center gap-4 md:gap-8 items-center w-full overflow-x-auto pb-10 pt-2 no-scrollbar">
           {LEVELS.map((level, index) => {
             const isReached = index <= currentIndex;
             const isCurrent = index === currentIndex;
@@ -83,30 +83,30 @@ export function LevelJourney({ currentLevel, totalScore }: LevelJourneyProps) {
               >
                 {/* Ícone */}
                 <div className={cn(
-                  "relative w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center transition-all duration-500 border-2",
+                  "relative w-8 h-8 md:w-16 md:h-16 rounded-lg md:rounded-2xl flex items-center justify-center transition-all duration-500 border md:border-2",
                   isReached 
-                    ? cn("bg-white dark:bg-slate-950 border-current shadow-md dark:shadow-[0_0_20px_rgba(255,255,255,0.05)] scale-110", level.color) 
+                    ? cn("bg-white dark:bg-slate-950 border-current shadow-sm md:shadow-md dark:shadow-[0_0_20px_rgba(255,255,255,0.05)] scale-110", level.color) 
                     : "bg-slate-100 dark:bg-slate-900/20 border-slate-200/60 dark:border-white/5 text-slate-400 scale-90 grayscale opacity-50"
                 )}>
                   {isCurrent && (
-                    <div className={cn("absolute inset-0 rounded-2xl animate-ping opacity-10", level.bg)} />
+                    <div className={cn("absolute inset-0 rounded-lg md:rounded-2xl animate-ping opacity-10", level.bg)} />
                   )}
-                  <Icon className={cn("w-6 h-6 md:w-8 md:h-8 transition-transform group-hover:scale-110", isReached ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.1)]" : "")} />
+                  <Icon className={cn("w-4 h-4 md:w-8 md:h-8 transition-transform group-hover:scale-110", isReached ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.1)]" : "")} />
                   
                   {/* Badge de Pontos */}
                   <div className={cn(
-                    "absolute -bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter transition-all duration-500 border",
+                    "absolute -bottom-8 md:-bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 md:px-2 py-0.5 rounded-full text-[7px] md:text-[9px] font-black uppercase tracking-tighter transition-all duration-500 border",
                     isReached 
                       ? "bg-slate-900 text-white dark:bg-white dark:text-slate-950 border-slate-900 dark:border-white" 
                       : "bg-slate-100 dark:bg-slate-950 text-slate-400 dark:text-slate-500 border-slate-200/60 dark:border-white/5"
                   )}>
-                    {level.minScore.toLocaleString()} pts
+                    {level.minScore.toLocaleString()}
                   </div>
                 </div>
 
                 {/* Nome do Nível */}
                 <span className={cn(
-                  "mt-14 text-[10px] font-black uppercase tracking-widest transition-all text-center",
+                  "mt-10 md:mt-14 text-[8px] md:text-[10px] font-black uppercase tracking-wider transition-all text-center",
                   isReached ? "text-slate-800 dark:text-white" : "text-slate-400 dark:text-slate-500"
                 )}>
                   {level.name}

@@ -39,6 +39,37 @@
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
 
+  --color-slate-55: hsl(var(--slate-55));
+  --color-slate-105: hsl(var(--slate-105));
+  --color-slate-150: hsl(var(--slate-150));
+  --color-slate-202: hsl(var(--slate-202));
+  --color-slate-250: hsl(var(--slate-250));
+  --color-slate-350: hsl(var(--slate-350));
+  --color-slate-405: hsl(var(--slate-405));
+  --color-slate-450: hsl(var(--slate-450));
+  --color-slate-455: hsl(var(--slate-455));
+  --color-slate-505: hsl(var(--slate-505));
+  --color-slate-550: hsl(var(--slate-550));
+  --color-slate-555: hsl(var(--slate-555));
+  --color-slate-605: hsl(var(--slate-605));
+  --color-slate-650: hsl(var(--slate-650));
+  --color-slate-655: hsl(var(--slate-655));
+  --color-slate-705: hsl(var(--slate-705));
+  --color-slate-805: hsl(var(--slate-805));
+  --color-slate-850: hsl(var(--slate-850));
+  --color-slate-955: hsl(var(--slate-955));
+
+  --color-emerald-250: hsl(var(--emerald-250));
+  --color-emerald-555: hsl(var(--emerald-555));
+  --color-emerald-605: hsl(var(--emerald-605));
+
+  --color-indigo-250: hsl(var(--indigo-250));
+  --color-indigo-555: hsl(var(--indigo-555));
+  --color-indigo-650: hsl(var(--indigo-650));
+
+  --color-rose-655: hsl(var(--rose-655));
+  --color-rose-455: hsl(var(--rose-455));
+
   --color-chart-plastico: hsl(var(--chart-plastico));
   --color-chart-papel: hsl(var(--chart-papel));
   --color-chart-metal: hsl(var(--chart-metal));
@@ -130,6 +161,38 @@
     --secondary-foreground: 222.2 47.4% 11.2%;
     --muted: 120 20% 92%;
     --muted-foreground: 215.4 16.3% 46.9%;
+    
+    --slate-55: 220 14.3% 95.9%;
+    --slate-105: 220 14.3% 92%;
+    --slate-150: 220 14.3% 88%;
+    --slate-202: 220 14.3% 82%;
+    --slate-250: 220 14.3% 78%;
+    --slate-350: 220 14.3% 68%;
+    --slate-405: 215 16% 57%;
+    --slate-450: 215 16% 53%;
+    --slate-455: 215 16% 50%;
+    --slate-505: 215 16% 45%;
+    --slate-550: 215 16% 43%;
+    --slate-555: 215 16% 40%;
+    --slate-605: 215 16% 35%;
+    --slate-650: 215 16% 32%;
+    --slate-655: 215 16% 30%;
+    --slate-705: 215 16% 25%;
+    --slate-805: 215 16% 18%;
+    --slate-850: 215 16% 13%;
+    --slate-955: 215 16% 5%;
+    
+    --emerald-250: 141 40% 85%;
+    --emerald-555: 141 72% 35%;
+    --emerald-605: 141 72% 30%;
+    
+    --indigo-250: 226 50% 85%;
+    --indigo-555: 226 70% 50%;
+    --indigo-650: 226 70% 35%;
+    
+    --rose-655: 346 80% 35%;
+    --rose-455: 346 80% 55%;
+
     --accent: 151 58% 55%; /* #4DCC8C */
     --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 84.2% 60.2%;
@@ -166,26 +229,47 @@
     --secondary-foreground: 210 40% 98%;
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
-    --accent: 151 58% 45%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 120 70% 45%;
-    --chart-plastico: 0 72% 56%;
-    --chart-papel: 212 82% 57%;
-    --chart-metal: 48 96% 63%;
-    --chart-organico: 30 42% 52%;
-    --chart-vidro: 120 70% 45%;
-    --sidebar-background: 222.2 84% 4.9%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 120 70% 45%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 217.2 32.6% 17.5%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217.2 32.6% 17.5%;
-    --sidebar-ring: 120 70% 45%;
+    
+    --slate-55: 217.2 32.6% 12%;
+    --slate-105: 217.2 32.6% 15%;
+    --slate-150: 217.2 32.6% 20%;
+    --slate-202: 215 20.2% 65.1%;
+    --slate-250: 215 20.2% 65.1%;
+    --slate-350: 215 20.2% 65.1%;
+    --slate-405: 215 20.2% 65.1%;
+    --slate-450: 215 20.2% 65.1%;
+    --slate-455: 215 20.2% 65.1%;
+    --slate-505: 215 20.2% 65.1%;
+    --slate-550: 215 20.2% 70%;
+    --slate-555: 215 20.2% 70%;
+    --slate-605: 215 20.2% 75%;
+    --slate-650: 215 20.2% 75%;
+    --slate-655: 215 20.2% 75%;
+    --slate-705: 215 20.2% 80%;
+    --slate-805: 215 20.2% 85%;
+    --slate-850: 215 20.2% 90%;
+    --slate-955: 217.2 32.6% 8%;
+    
+    --emerald-250: 141 40% 30%;
+    --emerald-555: 141 72% 70%;
+    --emerald-605: 141 72% 75%;
+    
+    --indigo-250: 226 50% 30%;
+    --indigo-555: 226 70% 75%;
+    --indigo-650: 226 70% 80%;
+    
+    --rose-655: 346 80% 75%;
+    --rose-455: 346 80% 75%;
+
+    /* Ajustar cores padrão de texto no tema escuro para garantir contraste e legibilidade */
+    --color-slate-500: hsl(215 20.2% 65.1%);
+    --color-slate-600: hsl(215.4 25% 72.4%);
+    --color-gray-500: hsl(220 8.9% 65.1%);
+    --color-gray-600: hsl(220 8.9% 75.1%);
+    --color-zinc-500: hsl(240 5.2% 64.9%);
+    --color-zinc-600: hsl(240 4.9% 74.3%);
+    --color-neutral-500: hsl(0 0% 63.9%);
+    --color-neutral-600: hsl(0 0% 74.1%);
   }
 }
 

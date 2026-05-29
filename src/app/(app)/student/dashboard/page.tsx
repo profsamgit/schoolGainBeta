@@ -212,6 +212,60 @@ export default function DashboardPage() {
   // Percentual para a barra de progresso
   const progressToNextLevel = Math.min(100, (globalScore / nextLevelScore) * 100);
 
+  // Missão Diária Dinâmica baseada no dia do mês e no estado do ecossistema
+  const currentMission = useMemo(() => {
+    // Se a vitalidade estiver baixa, a missão é sempre recuperar a vitalidade (emergência do ecossistema)
+    if (vitality < 70) {
+      return {
+        type: 'ecosystem_emergency',
+        title: 'Emergência Ecológica',
+        description: 'Seu ecossistema está fraco! Faça um Quiz sobre Reciclagem para restabelecer a saúde.',
+        link: '/student/quiz?topic=Reciclagem&autoStart=true&difficulty=medium&questions=5',
+        buttonText: 'Fazer Quiz de Emergência',
+        icon: AlertTriangle,
+        buttonClass: 'bg-amber-605 hover:bg-amber-700'
+      };
+    }
+
+    const day = new Date().getDate();
+    // Seleção determinística baseada no dia do mês para variar entre Educação, Quizzes e Ecossistema
+    const option = day % 3;
+
+    if (option === 0) {
+      return {
+        type: 'education',
+        title: 'Estudo Diário',
+        description: 'Amplie seus conhecimentos ecológicos! Leia um artigo sobre sustentabilidade na aba de educação.',
+        link: '/student/education',
+        buttonText: 'Ler Artigo Educativo',
+        icon: BookOpen,
+        buttonClass: 'bg-emerald-600 hover:bg-emerald-700'
+      };
+    } else if (option === 1) {
+      return {
+        type: 'quiz',
+        title: 'Desafio Mental',
+        description: 'Teste seus conhecimentos! Complete um Quiz temático para testar suas habilidades ambientais.',
+        link: '/student/quiz',
+        buttonText: 'Iniciar um Quiz',
+        icon: BrainCircuit,
+        buttonClass: 'bg-indigo-600 hover:bg-indigo-700'
+      };
+    } else {
+      return {
+        type: 'ecosystem',
+        title: 'Expansão Vital',
+        description: 'Fortaleça a sua biosfera! Adquira um novo bioma ou animal na Bioshop para somar multiplicadores.',
+        link: '/student/rewards',
+        buttonText: 'Ir para a Bioshop',
+        icon: Leaf,
+        buttonClass: 'bg-emerald-600 hover:bg-emerald-700'
+      };
+    }
+  }, [vitality]);
+
+  const MissionIcon = currentMission.icon;
+
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-8 max-w-7xl mx-auto relative z-10 text-slate-800 dark:text-white">
       <div className="grid gap-4 sm:gap-6 flex-grow">
@@ -373,63 +427,96 @@ export default function DashboardPage() {
         </Card>
 
         <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
-          
           {/* CARD DE MISSÃO DIÁRIA */}
           <Card className={cn(
-            "relative overflow-hidden transition-all duration-500 rounded-[2rem] border",
+            "relative overflow-hidden transition-all duration-500 rounded-[2rem] border flex flex-col justify-between h-full",
             isMissionDone 
               ? "opacity-65 bg-slate-105/50 dark:bg-slate-950/20 border-slate-200/60 dark:border-white/5" 
               : (vitality < 70 
                   ? "border-amber-350 dark:border-amber-500/30 bg-gradient-to-br from-amber-500/5 dark:from-amber-500/10 to-transparent shadow-[0_0_20px_rgba(245,158,11,0.05)] text-slate-850 dark:text-white" 
                   : "bg-white/80 dark:bg-slate-900/40 border-slate-200/60 dark:border-white/5 shadow-2xl backdrop-blur-xl text-slate-800 dark:text-white")
           )}>
-            <CardHeader>
+            <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
                 {isMissionDone ? (
                   <CheckCircle2 className="h-5 w-5 text-emerald-500 dark:text-emerald-400 animate-pulse" />
                 ) : (
-                  vitality < 70 ? <AlertTriangle className="h-5 w-5 text-amber-500 dark:text-amber-400" /> : <Target className="h-5 w-5 text-emerald-500 dark:text-emerald-400 animate-pulse" />
+                  <Target className="h-5 w-5 text-emerald-500 dark:text-emerald-400 animate-pulse" />
                 )}
-                <CardTitle className="text-slate-805 dark:text-white font-black uppercase tracking-tight text-lg">Missão Diária</CardTitle>
+                <CardTitle className="text-slate-805 dark:text-white font-black uppercase tracking-tight text-lg">Missões Diárias</CardTitle>
               </div>
               <CardDescription className="text-slate-550 dark:text-slate-400 text-xs">
                 {isMissionDone 
-                  ? "Parabéns! Missão cumprida por hoje." 
-                  : (vitality < 70 ? "Alerta! Seu ecossistema está fraco. Recupere vitalidade." : "Complete um desafio para ganhar Bio-Coins.")
+                  ? "Parabéns! Missões diárias cumpridas por hoje." 
+                  : "Complete os desafios para impulsionar seu progresso."
                 }
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              {!isMissionDone && (
-                <div className="space-y-4">
-                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                    {vitality < 70 
-                      ? "O rio está poluído! Faça um Quiz sobre Reciclagem para limpar o ambiente." 
-                      : "Aprenda sobre energia limpa para fortalecer sua base."
-                    }
-                  </p>
-                  <Button asChild className={cn("w-full gap-2 rounded-xl border-none shadow-lg text-white", vitality < 70 ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700")}>
-                    {vitality < 70 ? (
-                      <Link href="/student/quiz?topic=Reciclagem&autoStart=true&difficulty=medium&questions=5">
-                        Fazer Quiz de Emergência
-                        <BrainCircuit className="h-4 w-4" />
-                      </Link>
-                    ) : (
-                      <Link href="/student/education">
-                        Estudar e Ganhar Pontos
-                        <BookOpen className="h-4 w-4" />
-                      </Link>
-                    )}
-                  </Button>
+            <CardContent className="flex-grow flex flex-col justify-between gap-4 pb-6">
+              {/* Alerta de Vitalidade Baixa */}
+              {vitality < 70 && (
+                <div className="p-3 rounded-2xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-bold leading-relaxed uppercase tracking-wide">
+                  ⚠️ <strong>Emergência Ecológica:</strong> Seu ecossistema está fraco! Priorize realizar o Quiz de Reciclagem para recuperar a saúde dele.
                 </div>
               )}
-              {isMissionDone && (
-                <div className="flex flex-col items-center justify-center py-4 text-center">
-                  <div className="h-12 w-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mb-2 animate-bounce">
-                    <CheckCircle2 className="h-6 w-6 text-emerald-500 dark:text-emerald-450" />
+
+              <div className="flex-grow flex flex-col justify-between gap-4">
+                {/* 1. Missão de Educação */}
+                <div className="flex-1 flex flex-col justify-between p-4 rounded-2xl bg-slate-50/50 dark:bg-slate-950/20 border border-slate-200/60 dark:border-white/5 hover:border-emerald-500/20 hover:bg-emerald-500/[0.02] transition-all duration-300 min-h-[105px]">
+                  <div className="flex items-start gap-3.5">
+                    <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-250 dark:border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 shadow-sm">
+                      <BookOpen className="h-5 w-5" />
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-black uppercase tracking-wide text-slate-800 dark:text-slate-200">Estudo Diário</h4>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Amplie seus conhecimentos lendo artigos educativos sobre reciclagem e energia limpa.</p>
+                    </div>
                   </div>
-                  <p className="text-sm font-black uppercase tracking-tight text-emerald-600 dark:text-emerald-400">Missão Concluída</p>
-                  <p className="text-xs text-slate-550 dark:text-slate-400 mt-1">Sua recompensa foi creditada.</p>
+                  <Button asChild size="sm" className="w-full h-8 mt-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white border-none text-[9px] font-black uppercase tracking-widest px-3 transition-transform active:scale-95 shadow-md">
+                    <Link href="/student/education">Ler Artigo</Link>
+                  </Button>
+                </div>
+
+                {/* 2. Missão de Quiz */}
+                <div className="flex-1 flex flex-col justify-between p-4 rounded-2xl bg-slate-50/50 dark:bg-slate-950/20 border border-slate-200/60 dark:border-white/5 hover:border-indigo-500/20 hover:bg-indigo-500/[0.02] transition-all duration-300 min-h-[105px]">
+                  <div className="flex items-start gap-3.5">
+                    <div className="h-10 w-10 rounded-xl bg-indigo-500/10 border border-indigo-250 dark:border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 shadow-sm">
+                      <BrainCircuit className="h-5 w-5" />
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-black uppercase tracking-wide text-slate-800 dark:text-slate-200">Desafio Mental</h4>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Conclua um quiz ecológico na plataforma para acumular pontos de XP.</p>
+                    </div>
+                  </div>
+                  <Button asChild size="sm" className="w-full h-8 mt-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white border-none text-[9px] font-black uppercase tracking-widest px-3 transition-transform active:scale-95 shadow-md">
+                    <Link href="/student/quiz">Responder Quiz</Link>
+                  </Button>
+                </div>
+
+                {/* 3. Missão de Ecossistema */}
+                <div className="flex-1 flex flex-col justify-between p-4 rounded-2xl bg-slate-50/50 dark:bg-slate-950/20 border border-slate-200/60 dark:border-white/5 hover:border-emerald-500/20 hover:bg-emerald-500/[0.02] transition-all duration-300 min-h-[105px]">
+                  <div className="flex items-start gap-3.5">
+                    <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-250 dark:border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 shadow-sm">
+                      <Leaf className="h-5 w-5" />
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-black uppercase tracking-wide text-slate-800 dark:text-slate-200">Expansão Vital</h4>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Visite a Bioshop e adquira novos biomas ou animais para a sua biosfera virtual.</p>
+                    </div>
+                  </div>
+                  <Button asChild size="sm" className="w-full h-8 mt-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white border-none text-[9px] font-black uppercase tracking-widest px-3 transition-transform active:scale-95 shadow-md">
+                    <Link href="/student/rewards">Visitar Bioshop</Link>
+                  </Button>
+                </div>
+              </div>
+
+              {isMissionDone && (
+                <div className="mt-4 pt-3 border-t border-slate-250 dark:border-white/5 flex flex-col items-center justify-center text-center">
+                  <div className="h-10 w-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mb-1.5 animate-pulse">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-500 dark:text-emerald-450" />
+                  </div>
+                  <p className="text-xs font-black uppercase tracking-tight text-emerald-600 dark:text-emerald-400">Atividades Concluídas</p>
+                  <p className="text-[9px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">Você completou suas tarefas diárias!</p>
                 </div>
               )}
             </CardContent>
@@ -438,7 +525,7 @@ export default function DashboardPage() {
           {/* CARD DE RANKING RÁPIDO */}
           <Card className="border border-slate-200/60 dark:border-white/5 rounded-[2rem] bg-white/80 dark:bg-slate-900/40 shadow-2xl backdrop-blur-xl text-slate-800 dark:text-white">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-slate-800 dark:text-white font-black uppercase tracking-tight text-lg">Top 3 Alunos</CardTitle>
+              <CardTitle className="text-slate-800 dark:text-white font-black uppercase tracking-tight text-lg">Top 11 Alunos</CardTitle>
               <Button asChild size="sm" className="rounded-full text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-105 dark:hover:bg-white/5" variant="ghost">
                 <Link href="/student/leaderboard" className="gap-1 flex items-center">
                   Ver Ranking de XP
@@ -477,7 +564,7 @@ export default function DashboardPage() {
                       }))
                       .sort((a: any, b: any) => b.totalScore - a.totalScore);
                     
-                    return dynamicLeaderboard.slice(0, 3).map((user: any, index: number) => (
+                    return dynamicLeaderboard.slice(0, 11).map((user: any, index: number) => (
                       <TableRow key={user.id} className={cn(
                         "transition-colors border-slate-200/60 dark:border-white/5",
                         user.ra === currentUser?.ra 
@@ -540,7 +627,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="flex-grow min-w-0">
                     <div className="flex items-center justify-between flex-wrap gap-1">
-                      <p className="font-black text-slate-800 dark:text-slate-101 text-[11px] uppercase tracking-wider select-none">Descarte no Totem</p>
+                      <p className="font-black text-slate-800 dark:text-slate-100 text-[11px] uppercase tracking-wider select-none">Descarte no Totem</p>
                       <span className="bg-emerald-555/10 dark:bg-emerald-500/15 border border-emerald-250 dark:border-emerald-500/30 text-emerald-650 dark:text-emerald-400 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg shadow-sm select-none">Ativo</span>
                     </div>
                     <p className="text-slate-500 dark:text-slate-400 font-medium leading-relaxed mt-1 text-[11px]">
@@ -570,10 +657,10 @@ export default function DashboardPage() {
                   </div>
                   <div className="flex-grow min-w-0">
                     <div className="flex items-center justify-between flex-wrap gap-1">
-                      <p className="font-black text-slate-800 dark:text-slate-101 text-[11px] uppercase tracking-wider select-none">Itens da Bioshop</p>
+                      <p className="font-black text-slate-800 dark:text-slate-100 text-[11px] uppercase tracking-wider select-none">Itens da Bioshop</p>
                       <span className="bg-indigo-555/10 dark:bg-indigo-500/15 border border-indigo-250 dark:border-indigo-500/30 text-indigo-650 dark:text-indigo-400 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg shadow-sm select-none">+250 XP / item</span>
                     </div>
-                    <p className="text-slate-400 font-medium leading-relaxed mt-1 text-[11px]">
+                    <p className="text-slate-500 dark:text-slate-300 font-medium leading-relaxed mt-1 text-[11px]">
                       Cada bioma ou animal adquirido no seu ecossistema virtual adiciona um multiplicador de score fixo permanente.
                     </p>
                   </div>
@@ -586,10 +673,10 @@ export default function DashboardPage() {
                   </div>
                   <div className="flex-grow min-w-0">
                     <div className="flex items-center justify-between flex-wrap gap-1">
-                      <p className="font-black text-slate-800 dark:text-slate-101 text-[11px] uppercase tracking-wider select-none">Saúde da Biosfera</p>
+                      <p className="font-black text-slate-800 dark:text-slate-100 text-[11px] uppercase tracking-wider select-none">Saúde da Biosfera</p>
                       <span className="bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg shadow-sm select-none">Bônus Vital</span>
                     </div>
-                    <p className="text-slate-400 font-medium leading-relaxed mt-1 text-[11px]">
+                    <p className="text-slate-500 dark:text-slate-300 font-medium leading-relaxed mt-1 text-[11px]">
                       A porcentagem da saúde do ecossistema é convertida em um bônus linear que adiciona até <b className="text-rose-500 dark:text-rose-400 font-bold">+100 pontos</b> diretamente.
                     </p>
                   </div>
@@ -607,7 +694,7 @@ export default function DashboardPage() {
                   {/* Pontos Base */}
                   <div className="flex-1 min-w-[70px] bg-white dark:bg-slate-900/60 border border-slate-200/60 dark:border-white/5 rounded-xl p-2.5 flex flex-col items-center justify-center hover:bg-indigo-500/5 hover:border-indigo-500/20 transition-all group/base">
                     <span className="text-[8px] font-black text-indigo-605 dark:text-indigo-400 uppercase tracking-wider group-hover/base:scale-105 transition-transform select-none">Base XP</span>
-                    <span className="text-sm font-black text-slate-800 dark:text-slate-101 mt-0.5">{points}</span>
+                    <span className="text-sm font-black text-slate-800 dark:text-slate-100 mt-0.5">{points}</span>
                   </div>
 
                   {/* Operador + */}
@@ -618,7 +705,7 @@ export default function DashboardPage() {
                   {/* Upgrades */}
                   <div className="flex-1 min-w-[80px] bg-white dark:bg-slate-900/60 border border-slate-200/60 dark:border-white/5 rounded-xl p-2.5 flex flex-col items-center justify-center hover:bg-emerald-500/5 hover:border-emerald-500/20 transition-all group/upg">
                     <span className="text-[8px] font-black text-emerald-605 dark:text-emerald-400 uppercase tracking-wider group-hover/upg:scale-105 transition-transform select-none">Upgrades</span>
-                    <span className="text-sm font-black text-slate-800 dark:text-slate-101 mt-0.5">+{purchasedItems.length * 250}</span>
+                    <span className="text-sm font-black text-slate-800 dark:text-slate-100 mt-0.5">+{purchasedItems.length * 250}</span>
                     <span className="text-[7px] text-slate-500 dark:text-slate-405 font-medium select-none">({purchasedItems.length} × 250)</span>
                   </div>
 
@@ -630,7 +717,7 @@ export default function DashboardPage() {
                   {/* Vitalidade */}
                   <div className="flex-1 min-w-[70px] bg-white dark:bg-slate-900/60 border border-slate-200/60 dark:border-white/5 rounded-xl p-2.5 flex flex-col items-center justify-center hover:bg-rose-500/5 hover:border-rose-500/20 transition-all group/vit">
                     <span className="text-[8px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-wider group-hover/vit:scale-105 transition-transform select-none">Vitalidade</span>
-                    <span className="text-sm font-black text-slate-800 dark:text-slate-101 mt-0.5">+{vitality}</span>
+                    <span className="text-sm font-black text-slate-800 dark:text-slate-100 mt-0.5">+{vitality}</span>
                     <span className="text-[7px] text-rose-650/70 dark:text-rose-455/70 font-medium select-none">{vitality}% de bônus</span>
                   </div>
                 </div>
@@ -651,6 +738,7 @@ export default function DashboardPage() {
               </div>
             </CardFooter>
           </Card>
+        </div>
 
         {/* CARD DE HISTÓRICO DE DESCARTES */}
         <Card className="border border-slate-200/60 dark:border-white/5 rounded-[2rem] bg-white/80 dark:bg-slate-900/40 shadow-2xl backdrop-blur-xl overflow-hidden mt-2 text-slate-800 dark:text-white">
@@ -979,27 +1067,26 @@ export default function DashboardPage() {
             )}
           </CardContent>
         </Card>
-      </div>
-      </div>
 
-      {/* RODAPÉ INFORMATIVO */}
-      <footer className="mt-8 border border-slate-200/60 dark:border-white/5 py-6 bg-white/60 dark:bg-slate-950/40 rounded-t-[2rem] shadow-inner text-slate-800 dark:text-white">
-        <div className="container px-4 flex flex-col items-center text-center gap-3">
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-2">
-            <span className="text-xl">♻️</span>
-            Dica: Ganhe Bio-Coins descartando materiais recicláveis nos totens da escola.
-          </p>
-          <p className="text-[9px] text-slate-500 dark:text-slate-400 px-4 py-1.5 bg-slate-100 dark:bg-slate-950 border border-slate-200/60 dark:border-white/5 rounded-full uppercase tracking-widest font-black shadow-lg flex items-center justify-center">
-            Powered by SchoolGain Technology
-          </p>
-        </div>
-      </footer>
+        {/* RODAPÉ INFORMATIVO */}
+        <footer className="mt-8 border border-slate-200/60 dark:border-white/5 py-6 bg-white/60 dark:bg-slate-950/40 rounded-t-[2rem] shadow-inner text-slate-800 dark:text-white">
+          <div className="container px-4 flex flex-col items-center text-center gap-3">
+            <p className="text-xs text-slate-550 dark:text-slate-400 font-semibold flex items-center gap-2">
+              <span className="text-xl">♻️</span>
+              Dica: Ganhe Bio-Coins descartando materiais recicláveis nos totens da escola.
+            </p>
+            <p className="text-[9px] text-slate-500 dark:text-slate-400 px-4 py-1.5 bg-slate-100 dark:bg-slate-950 border border-slate-200/60 dark:border-white/5 rounded-full uppercase tracking-widest font-black shadow-lg flex items-center justify-center">
+              Powered by SchoolGain Technology
+            </p>
+          </div>
+        </footer>
 
-      <PhotoCaptureDialog 
-        isOpen={isCameraOpen} 
-        onClose={() => setIsCameraOpen(false)} 
-        onCapture={handlePhotoUpload} 
-      />
+        <PhotoCaptureDialog 
+          isOpen={isCameraOpen} 
+          onClose={() => setIsCameraOpen(false)} 
+          onCapture={handlePhotoUpload} 
+        />
+      </div>
     </div>
   );
 }

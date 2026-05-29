@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useEcosystem } from '@/contexts/EcosystemContext';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
-import { Eye, LayoutDashboard, Leaf, Trophy, BrainCircuit, Gift, Shield } from 'lucide-react';
+import { Eye, LayoutDashboard, Leaf, Trophy, BrainCircuit, Gift, Shield, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -140,6 +140,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       { href: '/student/dashboard', label: 'Início', icon: LayoutDashboard },
       { href: '/student/meu-ecossistema', label: 'Ecossistema', icon: Leaf },
       { href: '/student/leaderboard', label: 'Ranking', icon: Trophy },
+      { href: '/student/education', label: 'Educação', icon: BookOpen },
       { href: '/student/quiz', label: 'Quizzes', icon: BrainCircuit },
       { href: '/student/rewards', label: 'Bioshop', icon: Gift },
     ];
