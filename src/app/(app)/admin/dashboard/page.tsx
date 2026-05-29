@@ -462,7 +462,7 @@ export default function AdminDashboardPage() {
                             <div className="bg-white/80 dark:bg-slate-900/40 border border-slate-200/60 dark:border-white/10 shadow-2xl backdrop-blur-xl p-6 rounded-[2rem] text-slate-800 dark:text-white">
                                 <WasteChart />
                             </div>
-                            <Card className="border-none shadow-2xl bg-white/80 dark:bg-slate-900/40 border border-slate-200/60 dark:border-white/10 backdrop-blur-xl text-slate-850 dark:text-white rounded-[2rem]">
+                            <Card className="flex flex-col h-full border-none shadow-2xl bg-white/80 dark:bg-slate-900/40 border border-slate-200/60 dark:border-white/10 backdrop-blur-xl text-slate-850 dark:text-white rounded-[2rem]">
                                 <CardHeader className="p-6 flex flex-row items-center justify-between space-y-0">
                                     <div>
                                         <CardTitle className="text-lg font-black uppercase tracking-wider text-slate-800 dark:text-slate-100">Metas do Ciclo</CardTitle>
@@ -477,7 +477,7 @@ export default function AdminDashboardPage() {
                                         <Settings className="h-4 w-4" />
                                     </Button>
                                 </CardHeader>
-                                <CardContent className="px-6 pb-6 space-y-6">
+                                <CardContent className="px-6 pb-6 flex-1 flex flex-col justify-between gap-4">
                                     {/* 1. Meta de Coleta */}
                                     <div className="space-y-2">
                                         <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
@@ -540,6 +540,24 @@ export default function AdminDashboardPage() {
                                                 style={{ width: `${Math.min(100, (cycleArticlesRead / cycleGoalArticlesRead * 100))}%` }} 
                                             />
                                         </div>
+                                    </div>
+
+                                    {/* Média de Progresso Geral */}
+                                    <div className="pt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
+                                        <div>
+                                            <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 block">Progresso Geral do Ciclo</span>
+                                            <span className="text-lg font-black text-indigo-600 dark:text-indigo-400">
+                                                {((
+                                                    Math.min(100, (totalKg / cycleGoalWasteKg * 100)) + 
+                                                    Math.min(100, ((filteredStudents.length / cycleGoalTotalStudents * 100) / cycleGoalEngagementPercent * 100)) + 
+                                                    Math.min(100, (cycleQuizzesCompleted / cycleGoalQuizzesCompleted * 100)) + 
+                                                    Math.min(100, (cycleArticlesRead / cycleGoalArticlesRead * 100))
+                                                ) / 4).toFixed(1)}%
+                                            </span>
+                                        </div>
+                                        <span className="bg-indigo-50 dark:bg-indigo-500/10 text-indigo-650 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-500/30 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl">
+                                            Ciclo Ativo
+                                        </span>
                                     </div>
                                 </CardContent>
                             </Card>
