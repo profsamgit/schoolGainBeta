@@ -294,7 +294,12 @@ export class EcosystemService {
       studentCaptureDevice: '',
       adminCaptureDevice: '',
       studentCaptureUrl: '',
-      adminCaptureUrl: ''
+      adminCaptureUrl: '',
+      cycleGoalWasteKg: 1000,
+      cycleGoalEngagementPercent: 50,
+      cycleGoalTotalStudents: 200,
+      cycleGoalQuizzesCompleted: 50,
+      cycleGoalArticlesRead: 100
     },
     terminals: [],
     schools: [],
@@ -351,7 +356,12 @@ export class EcosystemService {
     studentCaptureDevice: '',
     adminCaptureDevice: '',
     studentCaptureUrl: '',
-    adminCaptureUrl: ''
+    adminCaptureUrl: '',
+    cycleGoalWasteKg: 1000,
+    cycleGoalEngagementPercent: 50,
+    cycleGoalTotalStudents: 200,
+    cycleGoalQuizzesCompleted: 50,
+    cycleGoalArticlesRead: 100
   });
   public pendingLoginSubject = new BehaviorSubject<{ ra: string, terminalId: string } | null>(null);
   public wasteEntriesSubject = new BehaviorSubject<WasteEntry[]>([]);
@@ -424,7 +434,12 @@ export class EcosystemService {
       studentCaptureDevice: '',
       adminCaptureDevice: '',
       studentCaptureUrl: '',
-      adminCaptureUrl: ''
+      adminCaptureUrl: '',
+      cycleGoalWasteKg: 1000,
+      cycleGoalEngagementPercent: 50,
+      cycleGoalTotalStudents: 200,
+      cycleGoalQuizzesCompleted: 50,
+      cycleGoalArticlesRead: 100
     });
     this.terminalsSubject.next(this.data.terminals || []);
     this.wasteEntriesSubject.next(this.data.wasteEntries || []);
@@ -1571,8 +1586,19 @@ export class EcosystemService {
     if (!this.data.systemSettings) {
       this.data.systemSettings = {
         studentLoginMethod: 'all',
-        adminLoginMethod: 'all'
+        adminLoginMethod: 'all',
+        cycleGoalWasteKg: 1000,
+        cycleGoalEngagementPercent: 50,
+        cycleGoalTotalStudents: 200,
+        cycleGoalQuizzesCompleted: 50,
+        cycleGoalArticlesRead: 100
       };
+    } else {
+      if (this.data.systemSettings.cycleGoalWasteKg === undefined) this.data.systemSettings.cycleGoalWasteKg = 1000;
+      if (this.data.systemSettings.cycleGoalEngagementPercent === undefined) this.data.systemSettings.cycleGoalEngagementPercent = 50;
+      if (this.data.systemSettings.cycleGoalTotalStudents === undefined) this.data.systemSettings.cycleGoalTotalStudents = 200;
+      if (this.data.systemSettings.cycleGoalQuizzesCompleted === undefined) this.data.systemSettings.cycleGoalQuizzesCompleted = 50;
+      if (this.data.systemSettings.cycleGoalArticlesRead === undefined) this.data.systemSettings.cycleGoalArticlesRead = 100;
     }
 
     this.saveToStorage();

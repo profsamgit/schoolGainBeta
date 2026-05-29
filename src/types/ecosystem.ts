@@ -316,7 +316,13 @@ export interface SystemSettings {
   studentCaptureUrl?: string;
   adminCaptureUrl?: string;
   studentAreaMaintenance?: boolean;
+  cycleGoalWasteKg?: number;
+  cycleGoalEngagementPercent?: number;
+  cycleGoalTotalStudents?: number;
+  cycleGoalQuizzesCompleted?: number;
+  cycleGoalArticlesRead?: number;
 }
+
 
 /**
  * Estrutura completa dos dados gerenciados pelo serviço.

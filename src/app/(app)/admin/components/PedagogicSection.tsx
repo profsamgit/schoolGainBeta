@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter 
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription 
 } from '@/components/ui/dialog';
 import {
   Form, FormControl, FormField, FormItem, FormLabel, FormMessage
@@ -49,6 +49,7 @@ interface PedagogicSectionProps {
   setNewTopic: (topic: string) => void;
   handleAddTopic: () => void;
   handleDeleteTopic: (topic: QuizTopic) => void;
+  handleEditTopic: (topic: QuizTopic, newName: string) => Promise<void>;
   isDeleteConfirmOpen: boolean;
   setIsDeleteConfirmOpen: (open: boolean) => void;
   selectedItem: any;
@@ -80,6 +81,7 @@ export function PedagogicSection({
   setNewTopic,
   handleAddTopic,
   handleDeleteTopic,
+  handleEditTopic,
   isDeleteConfirmOpen,
   setIsDeleteConfirmOpen,
   selectedItem,
@@ -96,6 +98,8 @@ export function PedagogicSection({
   const { currentUser } = useEcosystem();
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [editingTopic, setEditingTopic] = useState<QuizTopic | null>(null);
+  const [editTopicName, setEditTopicName] = useState('');
 
   const pedagogicHistory = useMemo(() => {
     return auditLogs.filter(log => log.action === 'ARTICLE_READ' || log.action === 'QUIZ_COMPLETED');
@@ -384,11 +388,16 @@ export function PedagogicSection({
           </div>
           <div className="flex flex-wrap gap-2 pt-2">
             {[...filteredQuizTopics].sort((a, b) => a.name.localeCompare(b.name)).map((topic, idx) => (
-              <Badge key={`${topic.id}-${idx}`} className="bg-indigo-50/50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold uppercase text-[9px] px-3 py-1.5 rounded-xl hover:border-indigo-500/30 transition-all flex items-center gap-1.5 shadow-sm">
+              <Badge key={`${topic.id}-${idx}`} className="bg-indigo-50/50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-650 dark:text-indigo-400 font-bold uppercase text-[9px] px-3 py-1.5 rounded-xl hover:border-indigo-500/30 transition-all flex items-center gap-2 shadow-sm">
                 {topic.name}
-                <Button size="icon" variant="ghost" className="h-4 w-4 p-0 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 rounded-full" onClick={() => handleDeleteTopic(topic)}>
-                  <Trash2 className="h-3 w-3" />
-                </Button>
+                <div className="flex items-center gap-1 ml-1 border-l border-indigo-250 dark:border-indigo-500/30 pl-1.5">
+                  <Button size="icon" variant="ghost" className="h-4 w-4 p-0 text-slate-400 dark:text-slate-500 hover:text-indigo-650 dark:hover:text-indigo-400 hover:bg-indigo-500/10 rounded-full" onClick={() => { setEditingTopic(topic); setEditTopicName(topic.name); }} title="Renomear Tópico">
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-4 w-4 p-0 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 rounded-full" onClick={() => handleDeleteTopic(topic)} title="Excluir Tópico">
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
               </Badge>
             ))}
           </div>
@@ -546,6 +555,48 @@ export function PedagogicSection({
           </div>
           <DialogFooter className="w-full pt-2">
             <Button type="button" onClick={() => setPreviewAvatar(null)} className="w-full h-11 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase text-[10px] tracking-widest rounded-xl">Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* DIÁLOGO PARA RENOMEAR TÓPICO AMBIENTAL */}
+      <Dialog open={!!editingTopic} onOpenChange={(open) => !open && setEditingTopic(null)}>
+        <DialogContent className="max-w-md bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-3xl p-6 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-black uppercase tracking-tight text-indigo-605 dark:text-indigo-400 flex items-center gap-2">
+              <Edit className="h-5 w-5" /> Renomear Tópico Ambiental
+            </DialogTitle>
+            <DialogDescription className="text-slate-500 dark:text-slate-400 text-xs">
+              Altere o nome do tópico para a unidade escolar.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Nome do Tópico</Label>
+              <Input
+                type="text"
+                value={editTopicName}
+                onChange={(e) => setEditTopicName(e.target.value)}
+                className="h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/5 rounded-xl font-bold text-slate-800 dark:text-white"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => setEditingTopic(null)} className="rounded-xl text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Cancelar
+            </Button>
+            <Button 
+              onClick={async () => {
+                if (editingTopic && editTopicName.trim()) {
+                  await handleEditTopic(editingTopic, editTopicName.trim());
+                  setEditingTopic(null);
+                }
+              }} 
+              className="bg-indigo-650 hover:bg-indigo-600 text-white rounded-xl text-xs font-bold uppercase tracking-wider px-6 h-11"
+              disabled={!editTopicName.trim()}
+            >
+              Salvar Alterações
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -23,10 +23,11 @@ import {
     UserPlus, 
     TrendingUp,
     Globe,
-    ShieldAlert
+    ShieldAlert,
+    Settings
 } from 'lucide-react';
 import type { User } from '@/types/ecosystem';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Select,
   SelectContent,
@@ -39,15 +40,31 @@ import { cn } from '@/lib/utils';
 import { useSidebar } from '@/components/ui/sidebar';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
 
 export default function AdminDashboardPage() {
     const router = useRouter();
+    const { toast } = useToast();
     const { 
         users, 
         currentUser, 
         wasteEntries, 
         terminals, 
-        registrationRequests 
+        registrationRequests,
+        systemSettings,
+        updateSystemSettings,
+        auditLogs
     } = useEcosystem();
 
     // Redireciona o usuário para /admin se ele precisar alterar a senha temporária
@@ -60,12 +77,75 @@ export default function AdminDashboardPage() {
     const isSuperAdmin = currentUser?.role === 'super_admin';
     const schoolId = currentUser?.schoolId;
 
+    // Métricas de meta de ciclo configuráveis
+    const cycleGoalWasteKg = systemSettings?.cycleGoalWasteKg ?? 1000;
+    const cycleGoalEngagementPercent = systemSettings?.cycleGoalEngagementPercent ?? 50;
+    const cycleGoalTotalStudents = systemSettings?.cycleGoalTotalStudents ?? 200;
+    const cycleGoalQuizzesCompleted = systemSettings?.cycleGoalQuizzesCompleted ?? 50;
+    const cycleGoalArticlesRead = systemSettings?.cycleGoalArticlesRead ?? 100;
+
+    const [isConfigOpen, setIsConfigOpen] = useState(false);
+    const [configWaste, setConfigWaste] = useState(cycleGoalWasteKg);
+    const [configEngagement, setConfigEngagement] = useState(cycleGoalEngagementPercent);
+    const [configTotalStudents, setConfigTotalStudents] = useState(cycleGoalTotalStudents);
+    const [configQuizzes, setConfigQuizzes] = useState(cycleGoalQuizzesCompleted);
+    const [configArticles, setConfigArticles] = useState(cycleGoalArticlesRead);
+
+    useEffect(() => {
+        if (isConfigOpen) {
+            setConfigWaste(systemSettings?.cycleGoalWasteKg ?? 1000);
+            setConfigEngagement(systemSettings?.cycleGoalEngagementPercent ?? 50);
+            setConfigTotalStudents(systemSettings?.cycleGoalTotalStudents ?? 200);
+            setConfigQuizzes(systemSettings?.cycleGoalQuizzesCompleted ?? 50);
+            setConfigArticles(systemSettings?.cycleGoalArticlesRead ?? 100);
+        }
+    }, [isConfigOpen, systemSettings]);
+
+    const handleSaveConfig = async () => {
+        try {
+            await updateSystemSettings({
+                ...systemSettings,
+                cycleGoalWasteKg: Number(configWaste),
+                cycleGoalEngagementPercent: Number(configEngagement),
+                cycleGoalTotalStudents: Number(configTotalStudents),
+                cycleGoalQuizzesCompleted: Number(configQuizzes),
+                cycleGoalArticlesRead: Number(configArticles)
+            }, schoolId);
+            setIsConfigOpen(false);
+            toast({
+                title: "Metas Atualizadas",
+                description: "As novas metas do ciclo foram salvas com sucesso para esta unidade.",
+            });
+        } catch (error) {
+            toast({
+                variant: "destructive",
+                title: "Erro ao Salvar",
+                description: "Não foi possível salvar as configurações.",
+            });
+        }
+    };
+
     // Filtros de Segurança e Escopo
     const filteredUsers = users.filter(u => isSuperAdmin ? true : u.schoolId === schoolId);
     const filteredStudents = filteredUsers.filter(u => u.role === 'student');
     const filteredWasteEntries = wasteEntries.filter(entry => isSuperAdmin ? true : entry.schoolId === schoolId);
     const filteredTerminals = terminals.filter(t => isSuperAdmin ? true : t.schoolId === schoolId);
     const pendingRequests = registrationRequests.filter(r => (isSuperAdmin ? true : r.schoolId === schoolId) && r.status === 'pending');
+
+    // Métricas Pedagógicas do Ciclo Atual
+    const cycleQuizzesCompleted = useMemo(() => {
+        return (auditLogs || []).filter(log => 
+            log.action === 'QUIZ_COMPLETED' && 
+            (isSuperAdmin ? true : log.unitId === schoolId)
+        ).length;
+    }, [auditLogs, isSuperAdmin, schoolId]);
+
+    const cycleArticlesRead = useMemo(() => {
+        return (auditLogs || []).filter(log => 
+            log.action === 'ARTICLE_READ' && 
+            (isSuperAdmin ? true : log.unitId === schoolId)
+        ).length;
+    }, [auditLogs, isSuperAdmin, schoolId]);
 
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [currentTime, setCurrentTime] = useState<Date | null>(null);
@@ -383,27 +463,82 @@ export default function AdminDashboardPage() {
                                 <WasteChart />
                             </div>
                             <Card className="border-none shadow-2xl bg-white/80 dark:bg-slate-900/40 border border-slate-200/60 dark:border-white/10 backdrop-blur-xl text-slate-850 dark:text-white rounded-[2rem]">
-                                <CardHeader className="p-6">
-                                    <CardTitle className="text-lg font-black uppercase tracking-wider text-slate-800 dark:text-slate-100">Metas do Ciclo</CardTitle>
-                                    <CardDescription className="text-slate-500 dark:text-slate-400">Objetivos de sustentabilidade da unidade.</CardDescription>
+                                <CardHeader className="p-6 flex flex-row items-center justify-between space-y-0">
+                                    <div>
+                                        <CardTitle className="text-lg font-black uppercase tracking-wider text-slate-800 dark:text-slate-100">Metas do Ciclo</CardTitle>
+                                        <CardDescription className="text-slate-500 dark:text-slate-400">Objetivos de sustentabilidade da unidade.</CardDescription>
+                                    </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-9 w-9 rounded-xl hover:bg-slate-200/50 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white"
+                                        onClick={() => setIsConfigOpen(true)}
+                                    >
+                                        <Settings className="h-4 w-4" />
+                                    </Button>
                                 </CardHeader>
                                 <CardContent className="px-6 pb-6 space-y-6">
+                                    {/* 1. Meta de Coleta */}
                                     <div className="space-y-2">
                                         <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                                            <span>Meta de Coleta (1000kg)</span>
-                                            <span className="text-emerald-600 dark:text-emerald-400">{(totalKg / 1000 * 100).toFixed(1)}%</span>
+                                            <span>Meta de Coleta ({cycleGoalWasteKg}kg)</span>
+                                            <span className="text-emerald-600 dark:text-emerald-400">
+                                                {totalKg.toFixed(1)} kg ({((totalKg / cycleGoalWasteKg) * 100).toFixed(1)}%)
+                                            </span>
                                         </div>
                                         <div className="h-3 w-full bg-slate-200 dark:bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-200 dark:border-white/5">
-                                            <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-1000" style={{ width: `${Math.min(100, (totalKg / 1000 * 100))}%` }} />
+                                            <div 
+                                                className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-1000" 
+                                                style={{ width: `${Math.min(100, (totalKg / cycleGoalWasteKg * 100))}%` }} 
+                                            />
                                         </div>
                                     </div>
+
+                                    {/* 2. Meta de Engajamento */}
                                     <div className="space-y-2">
                                         <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                                            <span>Engajamento Alunos (50%)</span>
-                                            <span className="text-blue-600 dark:text-blue-400">{(filteredStudents.length / 200 * 100).toFixed(1)}%</span>
+                                            <span>Engajamento Alunos ({cycleGoalEngagementPercent}%)</span>
+                                            <span className="text-blue-600 dark:text-blue-400">
+                                                {(filteredStudents.length / cycleGoalTotalStudents * 100).toFixed(1)}% ({filteredStudents.length}/{cycleGoalTotalStudents})
+                                            </span>
                                         </div>
                                         <div className="h-3 w-full bg-slate-200 dark:bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-200 dark:border-white/5">
-                                            <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-400 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)] transition-all duration-1000" style={{ width: `${Math.min(100, (filteredStudents.length / 200 * 100))}%` }} />
+                                            <div 
+                                                className="h-full bg-gradient-to-r from-blue-500 to-indigo-400 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)] transition-all duration-1000" 
+                                                style={{ width: `${Math.min(100, ((filteredStudents.length / cycleGoalTotalStudents * 100) / cycleGoalEngagementPercent * 100))}%` }} 
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* 3. Meta de Quizzes */}
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                                            <span>Quizzes Concluídos ({cycleGoalQuizzesCompleted})</span>
+                                            <span className="text-purple-600 dark:text-purple-400">
+                                                {cycleQuizzesCompleted} ({((cycleQuizzesCompleted / cycleGoalQuizzesCompleted) * 100).toFixed(1)}%)
+                                            </span>
+                                        </div>
+                                        <div className="h-3 w-full bg-slate-200 dark:bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-200 dark:border-white/5">
+                                            <div 
+                                                className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full shadow-[0_0_10px_rgba(168,85,247,0.5)] transition-all duration-1000" 
+                                                style={{ width: `${Math.min(100, (cycleQuizzesCompleted / cycleGoalQuizzesCompleted * 100))}%` }} 
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* 4. Meta de Artigos */}
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                                            <span>Artigos Lidos ({cycleGoalArticlesRead})</span>
+                                            <span className="text-amber-600 dark:text-amber-400">
+                                                {cycleArticlesRead} ({((cycleArticlesRead / cycleGoalArticlesRead) * 100).toFixed(1)}%)
+                                            </span>
+                                        </div>
+                                        <div className="h-3 w-full bg-slate-200 dark:bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-200 dark:border-white/5">
+                                            <div 
+                                                className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.5)] transition-all duration-1000" 
+                                                style={{ width: `${Math.min(100, (cycleArticlesRead / cycleGoalArticlesRead * 100))}%` }} 
+                                            />
                                         </div>
                                     </div>
                                 </CardContent>
@@ -416,6 +551,82 @@ export default function AdminDashboardPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Dialog de Configuração de Metas */}
+            <Dialog open={isConfigOpen} onOpenChange={setIsConfigOpen}>
+                <DialogContent className="max-w-md bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-3xl p-6 shadow-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-black uppercase tracking-tight text-indigo-650 dark:text-indigo-400 flex items-center gap-2">
+                            <Settings className="h-5 w-5" /> Configurar Metas do Ciclo
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-500 dark:text-slate-400 text-xs">
+                            Defina os objetivos ambientais e parâmetros para a unidade escolar.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Meta de Coleta (kg)</Label>
+                            <Input
+                                type="number"
+                                value={configWaste}
+                                onChange={(e) => setConfigWaste(Number(e.target.value))}
+                                className="h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/5 rounded-xl font-bold text-slate-800 dark:text-white"
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Meta de Engajamento (%)</Label>
+                                <Input
+                                    type="number"
+                                    value={configEngagement}
+                                    onChange={(e) => setConfigEngagement(Number(e.target.value))}
+                                    className="h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/5 rounded-xl font-bold text-slate-800 dark:text-white"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Total de Alunos</Label>
+                                <Input
+                                    type="number"
+                                    value={configTotalStudents}
+                                    onChange={(e) => setConfigTotalStudents(Number(e.target.value))}
+                                    className="h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/5 rounded-xl font-bold text-slate-800 dark:text-white"
+                                    placeholder="Estimativa de alunos"
+                                />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Meta de Quizzes</Label>
+                                <Input
+                                    type="number"
+                                    value={configQuizzes}
+                                    onChange={(e) => setConfigQuizzes(Number(e.target.value))}
+                                    className="h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/5 rounded-xl font-bold text-slate-800 dark:text-white"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Meta de Artigos Lidos</Label>
+                                <Input
+                                    type="number"
+                                    value={configArticles}
+                                    onChange={(e) => setConfigArticles(Number(e.target.value))}
+                                    className="h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/5 rounded-xl font-bold text-slate-800 dark:text-white"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter className="gap-2">
+                        <Button variant="ghost" onClick={() => setIsConfigOpen(false)} className="rounded-xl text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                            Cancelar
+                        </Button>
+                        <Button onClick={handleSaveConfig} className="bg-indigo-650 hover:bg-indigo-650 text-white rounded-xl text-xs font-bold uppercase tracking-wider px-6 h-11">
+                            Salvar Alterações
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
+
+

@@ -998,6 +998,20 @@ function AdminContent() {
                   toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao excluir tópico.' });
                 }
               }}
+              handleEditTopic={async (topic, newName) => {
+                const sid = targetSchoolId || currentUser?.schoolId;
+                if (!sid) {
+                  toast({ variant: 'destructive', title: 'Erro', description: 'Unidade não identificada.' });
+                  return;
+                }
+                const updatedTopics = quizTopics.map(t => t.id === topic.id ? { ...t, name: newName } : t);
+                const success = await updateQuizTopics(updatedTopics, sid);
+                if (success) {
+                  toast({ title: "Tópico Atualizado", description: "O tópico foi renomeado com sucesso na unidade." });
+                } else {
+                  toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao renomear tópico.' });
+                }
+              }}
               isDeleteConfirmOpen={isDeleteConfirmOpen} setIsDeleteConfirmOpen={setIsDeleteConfirmOpen} selectedItem={selectedItem} confirmDelete={confirmDelete}
               securityPassword={securityPassword} setSecurityPassword={setSecurityPassword}
               uploadUserAvatar={uploadUserAvatar}
