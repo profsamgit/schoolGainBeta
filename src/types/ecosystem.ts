@@ -10,12 +10,12 @@
  */
 
 export const USER_LEVELS = [
-  'Semente', 
-  'Broto', 
-  'Folha', 
-  'Árvore', 
-  'Floresta', 
-  'Guardião da Biosfera', 
+  'Semente',
+  'Broto',
+  'Folha',
+  'Árvore',
+  'Floresta',
+  'Guardião da Biosfera',
   'Guardião da Lenda'
 ] as const;
 
@@ -62,39 +62,39 @@ export type EducationArticle = {
 };
 
 export type Participant = {
-    id: string;
-    name: string;
-    role: string;
-    description: string;
-    avatar: string;
-    initials: string;
-    schoolId?: string;
-    isBetaTester?: boolean; // Identifica alunos beta-testers (exibidos na seção de agradecimento da página Sobre)
+  id: string;
+  name: string;
+  role: string;
+  description: string;
+  avatar: string;
+  initials: string;
+  schoolId?: string;
+  isBetaTester?: boolean; // Identifica alunos beta-testers (exibidos na seção de agradecimento da página Sobre)
 };
 
-export type AuditActionType = 
-  | 'LOGIN_SUCCESS' | 'LOGIN_FAIL' 
-  | 'CRUD_CREATE' | 'CRUD_UPDATE' | 'CRUD_DELETE' 
+export type AuditActionType =
+  | 'LOGIN_SUCCESS' | 'LOGIN_FAIL'
+  | 'CRUD_CREATE' | 'CRUD_UPDATE' | 'CRUD_DELETE'
   | 'SYSTEM_RESET' | 'POINTS_AWARDED' | 'ITEM_PURCHASED'
   | 'SECURITY_LOCKOUT' | 'CONFIG_CHANGE'
   | 'ARTICLE_READ' | 'QUIZ_COMPLETED' | 'REWARD_REDEEMED';
 
 export type AuditLogEntry = {
-    id: string;
-    action: AuditActionType | string;
-    category: 'AUTH' | 'DATA' | 'ECOSYSTEM' | 'SYSTEM';
-    timestamp: string;
-    actorId: string;   // ID Único (UUID) de quem realizou a ação
-    actorName: string;
-    unitId?: string;   // ID da escola ou 'MASTER'
-    details: string;   // Descrição humanizada da ação
-    metadata?: any;    // Dados técnicos (Ex: snapshot do objeto antes/depois)
-    targetEntity?: string; // Tabela afetada (users, schools, etc)
-    targetId?: string;     // ID do registro afetado
-    // Rastreabilidade Nominal
-    studentName?: string;
-    points?: number;
-    adminName?: string;
+  id: string;
+  action: AuditActionType | string;
+  category: 'AUTH' | 'DATA' | 'ECOSYSTEM' | 'SYSTEM';
+  timestamp: string;
+  actorId: string;   // ID Único (UUID) de quem realizou a ação
+  actorName: string;
+  unitId?: string;   // ID da escola ou 'MASTER'
+  details: string;   // Descrição humanizada da ação
+  metadata?: any;    // Dados técnicos (Ex: snapshot do objeto antes/depois)
+  targetEntity?: string; // Tabela afetada (users, schools, etc)
+  targetId?: string;     // ID do registro afetado
+  // Rastreabilidade Nominal
+  studentName?: string;
+  points?: number;
+  adminName?: string;
 };
 
 export const SCHOOL_SECTORS = [
@@ -174,36 +174,36 @@ export type School = {
 };
 
 export type CycleSnapshot = {
-    id: string;
-    endDate: string;
-    totalWasteKg: number;
-    totalPoints: number;
-    topStudents: Array<{ name: string; points: number; studentId: string }>;
-    wasteByType: Record<string, number>;
-    schoolId?: string;
+  id: string;
+  endDate: string;
+  totalWasteKg: number;
+  totalPoints: number;
+  topStudents: Array<{ name: string; points: number; studentId: string }>;
+  wasteByType: Record<string, number>;
+  schoolId?: string;
 };
 
 export interface EcosystemLegend {
-    id: string; // Formato: studentId-month-year
-    studentId: string;
-    studentName: string;
-    schoolId: string;
-    month: number;
-    year: number;
-    purchaseDate: string;
-    benefitActive: boolean;
+  id: string; // Formato: studentId-month-year
+  studentId: string;
+  studentName: string;
+  schoolId: string;
+  month: number;
+  year: number;
+  purchaseDate: string;
+  benefitActive: boolean;
 }
 
 export type WasteType = 'Plástico' | 'Papel' | 'Metal' | 'Orgânico' | 'Vidro' | 'Eletrônico' | 'Não reciclável';
 
 export type WasteEntry = {
-    id: string;
-    date: string;
-    collected: number; // em kg
-    type: WasteType;
-    studentId?: string; // ID imutável para rastreamento (Chave Principal)
-    schoolId?: string;
-    points?: number;
+  id: string;
+  date: string;
+  collected: number; // em kg
+  type: WasteType;
+  studentId?: string; // ID imutável para rastreamento (Chave Principal)
+  schoolId?: string;
+  points?: number;
 };
 
 export type Turma = {
@@ -238,6 +238,7 @@ export type QuizTopic = {
   id: string;
   name: string;
   schoolId: string;
+  coinsValue?: number; // Valor base de Bio-Coins que esse tópico concede
 };
 
 export type RegistrationRequest = {
@@ -256,11 +257,11 @@ export type RegistrationRequest = {
  * Tipos de itens que podem ser adquiridos no ecossistema.
  * Cada string corresponde a um elemento visual ou funcional no mundo virtual.
  */
-export type EcosystemItem = 
-  'filtro_ar' | 'limpar_rio' | 'reparar_grama' | 
-  'arvore_1' | 'arvore_2' | 'arvore_3' | 
+export type EcosystemItem =
+  'filtro_ar' | 'limpar_rio' | 'reparar_grama' |
+  'arvore_1' | 'arvore_2' | 'arvore_3' |
   'passaro_1' | 'passaro_2' | 'passaro_3' |
-  'peixe_1' | 'peixe_2' | 'peixe_3' | 
+  'peixe_1' | 'peixe_2' | 'peixe_3' |
   'cachorro' | 'gato' | 'borboletas' | 'borboletas_2' | 'borboletas_3' | 'borboletas_4' |
   'casa' | 'barco_1' | 'barco_2' | 'monstro_lago' | 'mae_human' | 'criancas' | 'placas_solares' | 'lixeiras';
 
@@ -283,6 +284,7 @@ export interface EcosystemUserState {
   curso?: string | null;            // Curso do aluno
   level: UserLevel;             // Título do aluno
   readArticles: string[];      // IDs dos artigos lidos
+  completedQuizzes?: string[]; // IDs dos tópicos de quiz concluídos
   dailyArticleReads?: Record<string, string[]>; // Artigos lidos por data (para limite de 3/dia)
   pointTransactions?: PointTransaction[]; // Histórico de transações de pontos
 }

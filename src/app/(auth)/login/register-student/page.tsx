@@ -388,7 +388,7 @@ export default function RegisterStudentPage() {
               
               {/* Escola */}
               <div className="space-y-1.5">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 flex items-center gap-2 ml-1">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-550 dark:text-slate-400 flex items-center gap-2 ml-1">
                   <SchoolIcon className="h-3 w-3 text-emerald-500" /> Sua Escola / Unidade
                 </Label>
                 <Select onValueChange={(val) => {
@@ -399,9 +399,12 @@ export default function RegisterStudentPage() {
                     <SelectValue placeholder="Selecione sua escola" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border border-slate-200/50 dark:border-slate-800/50 bg-white text-slate-900 dark:bg-white dark:text-slate-900 shadow-xl z-50">
-                    {schools.filter(s => s.status === 'active').map(s => (
-                      <SelectItem key={s.id} value={s.id} className="rounded-lg text-slate-800 dark:text-slate-800 focus:bg-slate-100 dark:focus:bg-slate-100 focus:text-slate-900 dark:focus:text-slate-900 cursor-pointer">{s.name}</SelectItem>
-                    ))}
+                    {schools
+                      .filter(s => s.status === 'active')
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map(s => (
+                        <SelectItem key={s.id} value={s.id} className="rounded-lg text-slate-800 dark:text-slate-800 focus:bg-slate-100 dark:focus:bg-slate-100 focus:text-slate-900 dark:focus:text-slate-900 cursor-pointer">{s.name}</SelectItem>
+                      ))}
                     {schools.length === 0 && <SelectItem value="school-default" className="rounded-lg text-slate-800 dark:text-slate-800 focus:bg-slate-100 dark:focus:bg-slate-100 focus:text-slate-900 dark:focus:text-slate-900 cursor-pointer">Unidade Padrão SchoolGain</SelectItem>}
                   </SelectContent>
                 </Select>
@@ -419,6 +422,7 @@ export default function RegisterStudentPage() {
                   <SelectContent className="rounded-xl border border-slate-200/50 dark:border-slate-800/50 bg-white text-slate-900 dark:bg-white dark:text-slate-900 shadow-xl z-50">
                     {allTurmas
                       .filter(t => t.status === 'active' && (!formData.schoolId || t.schoolId === formData.schoolId))
+                      .sort((a, b) => a.name.localeCompare(b.name))
                       .map(t => (
                         <SelectItem key={t.id} value={t.name} className="rounded-lg text-slate-800 dark:text-slate-800 focus:bg-slate-100 dark:focus:bg-slate-100 focus:text-slate-900 dark:focus:text-slate-900 cursor-pointer">{t.name}</SelectItem>
                       ))}
@@ -429,7 +433,7 @@ export default function RegisterStudentPage() {
 
               {/* Curso */}
               <div className="space-y-1.5">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 flex items-center gap-2 ml-1">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-555 dark:text-slate-400 flex items-center gap-2 ml-1">
                   <GraduationCap className="h-3 w-3 text-emerald-500" /> Curso Técnico
                 </Label>
                 <Select onValueChange={(val) => setFormData(prev => ({ ...prev, curso: val }))} required>
@@ -439,6 +443,7 @@ export default function RegisterStudentPage() {
                   <SelectContent className="rounded-xl border border-slate-200/50 dark:border-slate-800/50 bg-white text-slate-900 dark:bg-white dark:text-slate-900 shadow-xl z-50">
                     {allCursos
                       .filter(c => c.status === 'active' && (!formData.schoolId || c.schoolId === formData.schoolId))
+                      .sort((a, b) => a.name.localeCompare(b.name))
                       .map(c => (
                         <SelectItem key={c.id} value={c.name} className="rounded-lg text-slate-800 dark:text-slate-800 focus:bg-slate-100 dark:focus:bg-slate-100 focus:text-slate-900 dark:focus:text-slate-900 cursor-pointer">{c.name}</SelectItem>
                       ))}

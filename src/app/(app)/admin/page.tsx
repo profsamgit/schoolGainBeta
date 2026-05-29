@@ -227,6 +227,7 @@ function AdminContent() {
   const [passFormData, setPassFormData] = useState({ currentPass: '', newPass: '', confirmPass: '' });
   const [badgeUser, setBadgeUser] = useState<User | null>(null);
   const [newTopic, setNewTopic] = useState('');
+  const [newTopicCoins, setNewTopicCoins] = useState(10);
 
   // Search and Filters (Moved from page state but passed as props to maintain orchestration)
   const [userSearch, setUserSearch] = useState('');
@@ -296,6 +297,11 @@ function AdminContent() {
     if (!targetSchoolId) return baseUsers;
     return baseUsers.filter((u: User) => u.schoolId === targetSchoolId);
   }, [users, students, admins, staff, visitors, targetSchoolId, userRoleFilter]);
+
+  const usersFilteredBySchool = useMemo(() => {
+    if (!targetSchoolId) return users;
+    return users.filter((u: any) => u.schoolId === targetSchoolId);
+  }, [users, targetSchoolId]);
 
   const filteredTerminalsForAdmin = useMemo(() => {
     if (!targetSchoolId) return terminals;
@@ -971,7 +977,8 @@ function AdminContent() {
             <PedagogicSection
               articles={articles} quizTopics={filteredQuizTopics} viewMode={viewMode} itemType={itemType} isNew={isNew} isSubmitting={isSubmitting}
               articleForm={articleForm} onSubmit={onSubmit} handleEdit={handleEdit} handleDelete={handleDelete} handleNew={handleNew}
-              closeAllForms={closeAllForms} articleSearch={articleSearch} setArticleSearch={setArticleSearch} newTopic={newTopic} setNewTopic={setNewTopic}
+              closeAllForms={closeAllForms} articleSearch={articleSearch} setArticleSearch={setArticleSearch}
+              newTopic={newTopic} setNewTopic={setNewTopic} newTopicCoins={newTopicCoins} setNewTopicCoins={setNewTopicCoins}
               handleAddTopic={async () => {
                 if (newTopic) {
                   const sid = targetSchoolId || currentUser?.schoolId;
@@ -979,10 +986,19 @@ function AdminContent() {
                     toast({ variant: 'destructive', title: 'Erro', description: 'Unidade não identificada.' });
                     return;
                   }
+                  // Prevenção de duplicados
+                  const normalizedNewTopic = newTopic.trim().toLowerCase();
+                  const topicExists = quizTopics.some(t => t.name.trim().toLowerCase() === normalizedNewTopic);
+                  if (topicExists) {
+                    toast({ variant: 'destructive', title: 'Tópico Duplicado', description: 'Já existe um tópico com esse nome cadastrado.' });
+                    return;
+                  }
+                  
                   const newId = EcosystemService.generateStandardId('qz', sid);
-                  const success = await updateQuizTopics([...quizTopics, { id: newId, name: newTopic, schoolId: sid }], sid);
+                  const success = await updateQuizTopics([...quizTopics, { id: newId, name: newTopic.trim(), coinsValue: newTopicCoins, schoolId: sid }], sid);
                   if (success) {
                     setNewTopic('');
+                    setNewTopicCoins(10);
                     toast({ title: "Tópico Adicionado", description: "O novo tópico foi salvo na unidade." });
                   } else {
                     toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao salvar tópico.' });
@@ -998,18 +1014,18 @@ function AdminContent() {
                   toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao excluir tópico.' });
                 }
               }}
-              handleEditTopic={async (topic, newName) => {
+              handleEditTopic={async (topic, newName, newCoins) => {
                 const sid = targetSchoolId || currentUser?.schoolId;
                 if (!sid) {
                   toast({ variant: 'destructive', title: 'Erro', description: 'Unidade não identificada.' });
                   return;
                 }
-                const updatedTopics = quizTopics.map(t => t.id === topic.id ? { ...t, name: newName } : t);
+                const updatedTopics = quizTopics.map(t => t.id === topic.id ? { ...t, name: newName, coinsValue: newCoins } : t);
                 const success = await updateQuizTopics(updatedTopics, sid);
                 if (success) {
-                  toast({ title: "Tópico Atualizado", description: "O tópico foi renomeado com sucesso na unidade." });
+                  toast({ title: "Tópico Atualizado", description: "O tópico foi atualizado com sucesso na unidade." });
                 } else {
-                  toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao renomear tópico.' });
+                  toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao atualizar tópico.' });
                 }
               }}
               isDeleteConfirmOpen={isDeleteConfirmOpen} setIsDeleteConfirmOpen={setIsDeleteConfirmOpen} selectedItem={selectedItem} confirmDelete={confirmDelete}
@@ -1023,7 +1039,7 @@ function AdminContent() {
 
           <TabsContent value="economic">
             <EconomicSection
-              rewards={rewards} auditLogs={auditLogs} filteredUsersForAdmin={filteredUsersForAdmin}
+              rewards={rewards} auditLogs={auditLogs} filteredUsersForAdmin={usersFilteredBySchool}
               viewMode={viewMode} itemType={itemType} isNew={isNew} isSubmitting={isSubmitting} rewardForm={rewardForm}
               onSubmit={onSubmit} handleEdit={handleEdit} handleDelete={handleDelete} handleNew={handleNew} closeAllForms={closeAllForms}
               rewardSearch={rewardSearch} setRewardSearch={setRewardSearch}
@@ -1046,6 +1062,8 @@ function AdminContent() {
               setUploadingUserId={setUploadingUserId}
               allTurmas={allTurmas}
               allCursos={allCursos}
+              allCargos={allCargos}
+              allSetores={allSetores}
               userStates={userStates}
             />
           </TabsContent>

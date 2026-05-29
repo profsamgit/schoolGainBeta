@@ -26,7 +26,7 @@ import {
 import { 
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
 } from '@/components/ui/select';
-import { Reward, AuditLogEntry, Turma, Curso } from '@/types/ecosystem';
+import { Reward, AuditLogEntry, Turma, Curso, Cargo, SetorEscolar } from '@/types/ecosystem';
 
 interface EconomicSectionProps {
   rewards: Reward[];
@@ -64,6 +64,8 @@ interface EconomicSectionProps {
   setSecurityPassword: (val: string) => void;
   allTurmas?: Turma[];
   allCursos?: Curso[];
+  allCargos?: Cargo[];
+  allSetores?: SetorEscolar[];
   userStates: Record<string, any>;
 }
 
@@ -103,12 +105,20 @@ export function EconomicSection({
   setSecurityPassword,
   allTurmas = [],
   allCursos = [],
+  allCargos = [],
+  allSetores = [],
   userStates
 }: EconomicSectionProps) {
   const [grantStudentSearch, setGrantStudentSearch] = useState('');
   const [grantTurmaFilter, setGrantTurmaFilter] = useState('all');
   const [grantCursoFilter, setGrantCursoFilter] = useState('all');
   const [previewAvatar, setPreviewAvatar] = useState<string | null>(null);
+
+  // Estados adicionados para a modernização do reconhecimento de mérito (separando alunos de funcionários)
+  const [recipientType, setRecipientType] = useState<'student' | 'employee'>('student');
+  const [grantEmployeeSearch, setGrantEmployeeSearch] = useState('');
+  const [grantSetorFilter, setGrantSetorFilter] = useState('all');
+  const [grantCargoFilter, setGrantCargoFilter] = useState('all');
 
   const filteredRewards = useMemo(() => {
     return rewards
@@ -133,6 +143,25 @@ export function EconomicSection({
       })
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [filteredUsersForAdmin, grantStudentSearch, grantTurmaFilter, grantCursoFilter]);
+
+  const sortedEmployees = useMemo(() => {
+    return [...filteredUsersForAdmin]
+      .filter(u => {
+        // Exclui alunos e gestores (admin/super_admin) que não pontuam
+        if (u.role === 'student' || u.role === 'admin' || u.role === 'super_admin') return false;
+        
+        const matchesSearch = u.name.toLowerCase().includes(grantEmployeeSearch.toLowerCase()) ||
+                             (u.ra && u.ra.toLowerCase().includes(grantEmployeeSearch.toLowerCase())) ||
+                             (u.email && u.email.toLowerCase().includes(grantEmployeeSearch.toLowerCase()));
+        
+        // Filtro por Setor (salvo em u.turma para funcionários) e Cargo (salvo em u.position)
+        const matchesSetor = grantSetorFilter === 'all' || u.turma === grantSetorFilter;
+        const matchesCargo = grantCargoFilter === 'all' || u.position === grantCargoFilter;
+        
+        return matchesSearch && matchesSetor && matchesCargo;
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [filteredUsersForAdmin, grantEmployeeSearch, grantSetorFilter, grantCargoFilter]);
 
   const filteredAuditLogs = useMemo(() => {
     return auditLogs.filter(log => 
@@ -347,7 +376,7 @@ export function EconomicSection({
               <CardHeader className="pb-2 p-0">
                   <CardTitle className="text-[10px] uppercase font-black tracking-[0.2em] text-slate-500 dark:text-slate-400">Transações</CardTitle>
               </CardHeader>
-               <CardContent className="p-0 mt-3">
+              <CardContent className="p-0 mt-3">
                   <div className="flex items-baseline gap-2">
                       <span className="text-4xl font-black">{filteredAuditLogs.length}</span>
                       <span className="text-xs font-bold text-slate-500 dark:text-slate-400">REGISTROS</span>
@@ -356,122 +385,222 @@ export function EconomicSection({
           </Card>
       </div>
 
-               {/* RECONHECIMENTO DE MÉRITO */}
-          <Card className="border border-slate-200/60 dark:border-indigo-500/20 shadow-2xl overflow-hidden bg-white/80 dark:bg-slate-950/40 rounded-[2rem] backdrop-blur-xl hover:border-indigo-500/15 dark:hover:border-indigo-500/30 transition-all duration-300 text-slate-800 dark:text-white">
-            <CardHeader className="border-b border-slate-200/60 dark:border-white/5 bg-indigo-50/50 dark:bg-indigo-950/30 px-6 py-5">
-              <CardTitle className="flex items-center gap-2 uppercase tracking-tight text-indigo-650 dark:text-indigo-400 font-black text-sm"><Leaf className="h-5 w-5 text-indigo-600 dark:text-indigo-400" /> Reconhecimento de Mérito</CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-6 gap-6">
-                {/* Linha 1: Filtros e Seleção */}
-                <div className="md:col-span-2 space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-450 ml-1">1. Filtrar por Turma</Label>
-                  <Select value={grantTurmaFilter || ""} onValueChange={setGrantTurmaFilter}>
-                    <SelectTrigger className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold h-10"><SelectValue placeholder="Todas as Turmas" /></SelectTrigger>
-                    <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white">
-                      <SelectItem value="all" className="hover:bg-indigo-500/10">Todas as Turmas</SelectItem>
-                      {[...allTurmas].sort((a, b) => a.name.localeCompare(b.name)).map(t => (
-                        <SelectItem key={t.id} value={t.name} className="hover:bg-indigo-500/10">{t.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="md:col-span-2 space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-450 ml-1">2. Filtrar por Curso</Label>
-                  <Select value={grantCursoFilter || ""} onValueChange={setGrantCursoFilter}>
-                    <SelectTrigger className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold h-10"><SelectValue placeholder="Todos os Cursos" /></SelectTrigger>
-                    <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white">
-                      <SelectItem value="all" className="hover:bg-indigo-500/10">Todos os Cursos</SelectItem>
-                      {[...allCursos].sort((a, b) => a.name.localeCompare(b.name)).map(c => (
-                        <SelectItem key={c.id} value={c.name} className="hover:bg-indigo-500/10">{c.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="md:col-span-2 space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-450 ml-1">3. Identificar Aluno</Label>
-                  <Select onValueChange={setGrantRa} value={grantRa || ""}>
-                    <SelectTrigger className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold h-10">
-                      <SelectValue placeholder="Selecione o aluno..." />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white max-h-[300px]">
-                      <div className="p-2 sticky top-0 bg-white dark:bg-slate-950 z-10 border-b border-slate-200/60 dark:border-white/5 mb-1">
-                        <Input 
-                          placeholder="Pesquisar por nome..." 
-                          className="h-8 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 text-slate-850 dark:text-white" 
-                          value={grantStudentSearch}
-                          onChange={(e) => setGrantStudentSearch(e.target.value)}
-                        />
-                      </div>
-                      {sortedStudents.map(u => (
-                        <SelectItem key={u.id} value={u.ra || ''} className="hover:bg-indigo-500/10">
-                          <div className="flex flex-col text-left">
-                            <span className="font-bold text-xs uppercase">{u.name}</span>
-                            <span className="text-[9px] opacity-60">RA: {u.ra}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                      {sortedStudents.length === 0 && (
-                        <div className="p-4 text-center text-xs text-slate-500 italic">
-                          {grantTurmaFilter === 'all' && grantCursoFilter === 'all' && !grantStudentSearch 
-                            ? "Selecione uma turma ou curso para listar os alunos." 
-                            : "Nenhum aluno encontrado."}
-                        </div>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
+      {/* RECONHECIMENTO DE MÉRITO (MODERNIZADO: ALUNOS vs FUNCIONÁRIOS) */}
+      <Card className="border border-slate-200/60 dark:border-indigo-500/20 shadow-2xl overflow-hidden bg-white/80 dark:bg-slate-950/40 rounded-[2rem] backdrop-blur-xl hover:border-indigo-500/15 dark:hover:border-indigo-500/30 transition-all duration-300 text-slate-800 dark:text-white">
+        <CardHeader className="border-b border-slate-200/60 dark:border-white/5 bg-indigo-50/50 dark:bg-indigo-950/30 px-6 py-5">
+          <CardTitle className="flex items-center gap-2 uppercase tracking-tight text-indigo-650 dark:text-indigo-400 font-black text-sm"><Leaf className="h-5 w-5 text-indigo-600 dark:text-indigo-400 animate-pulse" /> Reconhecimento de Mérito</CardTitle>
+        </CardHeader>
+        <CardContent className="p-6 space-y-6">
+          {/* Controle Deslizante de Abas Moderno */}
+          <div className="flex bg-slate-100 dark:bg-slate-900/60 p-1 rounded-2xl border border-slate-200/50 dark:border-white/5 max-w-md mb-6 shadow-inner">
+            <button
+              type="button"
+              onClick={() => {
+                setRecipientType('student');
+                setGrantRa('');
+                setGrantStudentSearch('');
+              }}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl transition-all ${
+                recipientType === 'student'
+                  ? 'bg-white dark:bg-slate-950 text-indigo-650 dark:text-indigo-400 shadow-md border border-slate-200/20 dark:border-white/5'
+                  : 'text-slate-500 dark:text-slate-450 hover:text-slate-800 dark:hover:text-white'
+              }`}
+            >
+              Alunos
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setRecipientType('employee');
+                setGrantRa('');
+                setGrantEmployeeSearch('');
+              }}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl transition-all ${
+                recipientType === 'employee'
+                  ? 'bg-white dark:bg-slate-950 text-indigo-650 dark:text-indigo-400 shadow-md border border-slate-200/20 dark:border-white/5'
+                  : 'text-slate-500 dark:text-slate-455 hover:text-slate-800 dark:hover:text-white'
+              }`}
+            >
+              Funcionários / Colaboradores
+            </button>
+          </div>
 
-                {/* Linha 2: Ação e Atribuição */}
-                <div className="md:col-span-3 space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-450 ml-1">4. Descrição da Ação</Label>
-                  <Input 
-                    placeholder="Ex: Ajudou na horta, comportamento exemplar..." 
-                    value={grantAction} 
-                    onChange={(e) => setGrantAction(e.target.value)} 
-                    className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-850 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold h-10 shadow-sm" 
-                  />
-                </div>
-                <div className="md:col-span-1 space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-450 ml-1">5. PTS</Label>
-                  <Input 
-                    type="number" 
-                    value={grantPointsValue} 
-                    onChange={(e) => setGrantPointsValue(Number(e.target.value))} 
-                    className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold h-10 shadow-sm text-emerald-600 dark:text-emerald-400" 
-                  />
-                </div>
-                <div className="md:col-span-2 flex gap-2 items-end">
-                  <div className="flex-1 space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-450 ml-1">6. Sua Senha (Gestor)</Label>
-                    <input 
-                      type="text" 
-                      name="dummy-username-safeguard" 
-                      autoComplete="username" 
-                      className="sr-only" 
-                      tabIndex={-1} 
-                      aria-hidden="true" 
-                      readOnly 
-                      value="" 
-                    />
-                    <Input 
-                      type="password" 
-                      value={grantPassword} 
-                      onChange={(e) => setGrantPassword(e.target.value)} 
-                      placeholder="Autorizar" 
-                      className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold h-10 shadow-sm"
-                    />
-                  </div>
-                  <Button 
-                    className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white border border-indigo-400/20 font-black rounded-xl shadow-lg transition-transform hover:scale-105 h-10 w-12 flex items-center justify-center" 
-                    onClick={handleGrantSubmit}
-                  >
-                    <Plus className="h-5 w-5" />
-                  </Button>
-                </div>
+          {recipientType === 'student' ? (
+            /* FORMULÁRIO PARA ESTUDANTES */
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 animate-in fade-in duration-300">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-450 ml-1">1. Filtrar por Turma</Label>
+                <Select value={grantTurmaFilter || ""} onValueChange={setGrantTurmaFilter}>
+                  <SelectTrigger className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold h-10"><SelectValue placeholder="Todas as Turmas" /></SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white">
+                    <SelectItem value="all" className="hover:bg-indigo-500/10">Todas as Turmas</SelectItem>
+                    {[...allTurmas].sort((a, b) => a.name.localeCompare(b.name)).map(t => (
+                      <SelectItem key={t.id} value={t.name} className="hover:bg-indigo-500/10">{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </CardContent>
-          </Card>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-455 ml-1">2. Filtrar por Curso</Label>
+                <Select value={grantCursoFilter || ""} onValueChange={setGrantCursoFilter}>
+                  <SelectTrigger className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold h-10"><SelectValue placeholder="Todos os Cursos" /></SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white">
+                    <SelectItem value="all" className="hover:bg-indigo-500/10">Todos os Cursos</SelectItem>
+                    {[...allCursos].sort((a, b) => a.name.localeCompare(b.name)).map(c => (
+                      <SelectItem key={c.id} value={c.name} className="hover:bg-indigo-500/10">{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-455 ml-1">3. Selecionar Aluno</Label>
+                <Select onValueChange={setGrantRa} value={grantRa || ""}>
+                  <SelectTrigger className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold h-10">
+                    <SelectValue placeholder="Selecione o aluno..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white max-h-[300px]">
+                    <div className="p-2 sticky top-0 bg-white dark:bg-slate-950 z-10 border-b border-slate-200/60 dark:border-white/5 mb-1">
+                      <Input 
+                        placeholder="Pesquisar por nome ou RA..." 
+                        className="h-8 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 text-slate-850 dark:text-white" 
+                        value={grantStudentSearch}
+                        onChange={(e) => setGrantStudentSearch(e.target.value)}
+                      />
+                    </div>
+                    {sortedStudents.map(u => (
+                      <SelectItem key={u.id} value={u.ra || ''} className="hover:bg-indigo-500/10">
+                        <div className="flex flex-col text-left">
+                          <span className="font-bold text-xs uppercase text-slate-900 dark:text-slate-100">{u.name}</span>
+                          <span className="text-[9px] opacity-60 text-slate-500 dark:text-slate-400">RA: {u.ra} {u.turma ? `| ${u.turma}` : ''}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                    {sortedStudents.length === 0 && (
+                      <div className="p-4 text-center text-xs text-slate-500 italic">
+                        {grantTurmaFilter === 'all' && grantCursoFilter === 'all' && !grantStudentSearch 
+                          ? "Selecione uma turma ou curso, ou digite uma busca para listar os alunos." 
+                          : "Nenhum aluno encontrado."}
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          ) : (
+            /* FORMULÁRIO PARA FUNCIONÁRIOS */
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 animate-in fade-in duration-300">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-455 ml-1">1. Filtrar por Setor</Label>
+                <Select value={grantSetorFilter} onValueChange={setGrantSetorFilter}>
+                  <SelectTrigger className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold h-10"><SelectValue placeholder="Todos os Setores" /></SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white">
+                    <SelectItem value="all" className="hover:bg-indigo-500/10">Todos os Setores</SelectItem>
+                    {[...allSetores].sort((a, b) => a.name.localeCompare(b.name)).map(s => (
+                      <SelectItem key={s.id} value={s.name} className="hover:bg-indigo-500/10">{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-455 ml-1">2. Filtrar por Cargo</Label>
+                <Select value={grantCargoFilter} onValueChange={setGrantCargoFilter}>
+                  <SelectTrigger className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold h-10"><SelectValue placeholder="Todos os Cargos" /></SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white">
+                    <SelectItem value="all" className="hover:bg-indigo-500/10">Todos os Cargos</SelectItem>
+                    {[...allCargos].sort((a, b) => a.name.localeCompare(b.name)).map(c => (
+                      <SelectItem key={c.id} value={c.name} className="hover:bg-indigo-500/10">{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-455 ml-1">3. Selecionar Funcionário</Label>
+                <Select onValueChange={setGrantRa} value={grantRa || ""}>
+                  <SelectTrigger className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold h-10">
+                    <SelectValue placeholder="Selecione o funcionário..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white max-h-[300px]">
+                    <div className="p-2 sticky top-0 bg-white dark:bg-slate-950 z-10 border-b border-slate-200/60 dark:border-white/5 mb-1">
+                      <Input 
+                        placeholder="Pesquisar por nome ou RA..." 
+                        className="h-8 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 text-slate-850 dark:text-white" 
+                        value={grantEmployeeSearch}
+                        onChange={(e) => setGrantEmployeeSearch(e.target.value)}
+                      />
+                    </div>
+                    {sortedEmployees.map(u => (
+                      <SelectItem key={u.id} value={u.ra || ''} className="hover:bg-indigo-500/10">
+                        <div className="flex flex-col text-left">
+                          <span className="font-bold text-xs uppercase text-slate-900 dark:text-slate-100">{u.name}</span>
+                          <span className="text-[9px] opacity-60 text-slate-500 dark:text-slate-400">
+                            {u.position || 'Sem Cargo'} {u.turma ? `| ${u.turma}` : ''} | RA: {u.ra || 'N/A'}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                    {sortedEmployees.length === 0 && (
+                      <div className="p-4 text-center text-xs text-slate-500 italic">
+                        Nenhum funcionário encontrado.
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          {/* Informações da Ação, Pontos e Autorização */}
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-6 pt-4 border-t border-slate-200/60 dark:border-white/5">
+            <div className="md:col-span-3 space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-455 ml-1">Descrição do Reconhecimento / Ação</Label>
+              <Input 
+                placeholder="Ex: Auxiliou na organização, comportamento exemplar, contribuição no setor..." 
+                value={grantAction} 
+                onChange={(e) => setGrantAction(e.target.value)} 
+                className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-850 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold h-10 shadow-sm text-xs" 
+              />
+            </div>
+            <div className="md:col-span-1 space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-455 ml-1">Pontos (PTS)</Label>
+              <Input 
+                type="number" 
+                value={grantPointsValue} 
+                onChange={(e) => setGrantPointsValue(Number(e.target.value))} 
+                className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold h-10 shadow-sm text-emerald-600 dark:text-emerald-400" 
+              />
+            </div>
+            <div className="md:col-span-2 flex gap-2 items-end">
+              <div className="flex-1 space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-455 ml-1">Senha do Gestor</Label>
+                <input 
+                  type="text" 
+                  name="dummy-username-safeguard" 
+                  autoComplete="username" 
+                  className="sr-only" 
+                  tabIndex={-1} 
+                  aria-hidden="true" 
+                  readOnly 
+                  value="" 
+                />
+                <Input 
+                  type="password" 
+                  value={grantPassword} 
+                  onChange={(e) => setGrantPassword(e.target.value)} 
+                  placeholder="Autorizar" 
+                  className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold h-10 shadow-sm"
+                />
+              </div>
+              <Button 
+                className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white border border-indigo-400/20 font-black rounded-xl shadow-lg transition-transform hover:scale-105 h-10 w-12 flex items-center justify-center" 
+                onClick={handleGrantSubmit}
+                title="Conceder Reconhecimento"
+              >
+                <Plus className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
           <Card className="border border-slate-200/60 dark:border-indigo-500/20 shadow-2xl overflow-hidden bg-white/80 dark:bg-slate-900/40 rounded-[2rem] backdrop-blur-xl hover:border-indigo-500/20 dark:hover:border-indigo-500/30 transition-all duration-300 text-slate-800 dark:text-white">
             <CardHeader className="flex flex-row items-center justify-between border-b border-slate-200/60 dark:border-white/5 bg-indigo-50/50 dark:bg-indigo-950/30 px-6 py-5">

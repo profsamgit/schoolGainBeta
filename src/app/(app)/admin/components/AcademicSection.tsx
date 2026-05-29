@@ -411,6 +411,7 @@ export function AcademicSection({
 
   if (viewMode === 'form' && itemType === 'user') {
     const currentRole = userForm.watch('role');
+    const _avatar = userForm.watch('avatar');
     const roleLabel = currentRole === 'admin' || currentRole === 'super_admin' ? 'Gestor' : currentRole === 'staff' ? 'Funcionário' : currentRole === 'visitor' ? 'Visitante' : 'Aluno';
 
     return (
@@ -485,9 +486,12 @@ export function AcademicSection({
                             const file = e.target.files?.[0];
                             if (file) {
                               const reader = new FileReader();
-                              reader.onloadend = () => userForm.setValue('avatar', reader.result as string);
+                              reader.onloadend = () => {
+                                userForm.setValue('avatar', reader.result as string, { shouldValidate: true, shouldDirty: true });
+                              };
                               reader.readAsDataURL(file);
                             }
+                            e.target.value = '';
                           }}
                         />
                         <Button type="button" variant="outline" onClick={() => document.getElementById('avatar-upload')?.click()} className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 rounded-xl gap-2 font-bold text-[10px] uppercase tracking-wider h-10 px-4">

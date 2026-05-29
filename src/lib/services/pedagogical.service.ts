@@ -65,7 +65,18 @@ export class PedagogicalService {
     if (!student || !topic) return false;
 
     const userState = this.service.data.userStates[userId] || this.service.getDefaultState(student);
-    
+
+    // REGRA: Adiciona o tópico aos quizzes concluídos
+    if (!userState.completedQuizzes) {
+      userState.completedQuizzes = [];
+    }
+    if (!userState.completedQuizzes.includes(topicId)) {
+      userState.completedQuizzes.push(topicId);
+    }
+    this.service.data.userStates[userId] = userState;
+    this.service.syncStateWithUser(userId);
+    await setDoc(doc(db, "userStates", userId), userState, { merge: true });
+
     // REGRA: Ativação de Vitalidade
     // 1 quizz de 10 perguntas no médio para ativar a vitalidade 100
     if (!userState.vitalityActivated && difficulty === 'medium' && (numQuestions || 0) >= 10 && score >= 60) {

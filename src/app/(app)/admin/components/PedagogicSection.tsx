@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { cn } from '@/lib/utils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,7 +29,7 @@ import { useEcosystem } from '@/contexts/EcosystemContext';
 import { useToast } from '@/hooks/use-toast';
 import { generateNewAIArticle } from '@/app/(app)/student/education/actions';
 import { db } from '@/lib/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
 
 interface PedagogicSectionProps {
   articles: EducationArticle[];
@@ -47,9 +48,11 @@ interface PedagogicSectionProps {
   setArticleSearch: (search: string) => void;
   newTopic: string;
   setNewTopic: (topic: string) => void;
+  newTopicCoins: number;
+  setNewTopicCoins: (val: number) => void;
   handleAddTopic: () => void;
   handleDeleteTopic: (topic: QuizTopic) => void;
-  handleEditTopic: (topic: QuizTopic, newName: string) => Promise<void>;
+  handleEditTopic: (topic: QuizTopic, newName: string, newCoins: number) => Promise<void>;
   isDeleteConfirmOpen: boolean;
   setIsDeleteConfirmOpen: (open: boolean) => void;
   selectedItem: any;
@@ -79,6 +82,8 @@ export function PedagogicSection({
   setArticleSearch,
   newTopic,
   setNewTopic,
+  newTopicCoins,
+  setNewTopicCoins,
   handleAddTopic,
   handleDeleteTopic,
   handleEditTopic,
@@ -100,6 +105,48 @@ export function PedagogicSection({
   const [isGenerating, setIsGenerating] = useState(false);
   const [editingTopic, setEditingTopic] = useState<QuizTopic | null>(null);
   const [editTopicName, setEditTopicName] = useState('');
+  const [editTopicCoins, setEditTopicCoins] = useState(10);
+  const [quizzes, setQuizzes] = useState<any[]>([]);
+  const [loadingQuizzes, setLoadingQuizzes] = useState(true);
+  const [quizSearch, setQuizSearch] = useState('');
+
+  const fetchQuizzes = async () => {
+    try {
+      const qSnap = await getDocs(collection(db, "quizzes"));
+      const list: any[] = [];
+      qSnap.forEach(docSnap => {
+        list.push({ id: docSnap.id, ...docSnap.data() });
+      });
+      list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      setQuizzes(list);
+    } catch (err) {
+      console.error("Error fetching quizzes for admin:", err);
+    } finally {
+      setLoadingQuizzes(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchQuizzes();
+  }, []);
+
+  const handleDeleteQuiz = async (quizId: string) => {
+    try {
+      await deleteDoc(doc(db, "quizzes", quizId));
+      toast({ title: "Quiz Removido", description: "O quiz foi excluído com sucesso da biblioteca." });
+      setQuizzes(prev => prev.filter(q => q.id !== quizId));
+    } catch (err) {
+      console.error("Error deleting quiz:", err);
+      toast({ variant: "destructive", title: "Erro", description: "Falha ao excluir quiz." });
+    }
+  };
+
+  const filteredQuizzes = useMemo(() => {
+    return quizzes.filter(q => 
+      (q.quizTitle || '').toLowerCase().includes(quizSearch.toLowerCase()) ||
+      (q.topic || '').toLowerCase().includes(quizSearch.toLowerCase())
+    );
+  }, [quizzes, quizSearch]);
 
   const pedagogicHistory = useMemo(() => {
     return auditLogs.filter(log => log.action === 'ARTICLE_READ' || log.action === 'QUIZ_COMPLETED');
@@ -382,24 +429,31 @@ export function PedagogicSection({
           <CardDescription className="text-slate-500 dark:text-slate-400 text-xs mt-1">Temas que a IA utilizará como base para criar Quizzes e Artigos automaticamente para os alunos.</CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-4">
-          <div className="flex gap-2">
-            <Input placeholder="Novo tópico (ex: Reciclagem, Consumo Consciente, Biodiversidade, Energias Renováveis, Desmatamento)" value={newTopic} onChange={(e) => setNewTopic(e.target.value)} className="h-12 bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold" />
+          <div className="flex gap-2 items-center">
+            <Input placeholder="Novo tópico (ex: Reciclagem, Consumo Consciente, Biodiversidade, Energias Renováveis, Desmatamento)" value={newTopic} onChange={(e) => setNewTopic(e.target.value)} className="flex-grow h-12 bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold" />
+            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950/40 border border-slate-200 dark:border-white/10 h-12 px-3 rounded-xl">
+              <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400">Coins:</span>
+              <Input type="number" min={1} max={100} value={newTopicCoins} onChange={(e) => setNewTopicCoins(Number(e.target.value))} className="w-16 h-8 bg-white dark:bg-slate-955 border border-slate-250 dark:border-white/10 text-slate-800 dark:text-white rounded-lg focus:border-indigo-500/50 font-black text-center p-0" />
+            </div>
             <Button onClick={handleAddTopic} className="h-12 w-12 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white border border-indigo-400/20 font-black rounded-xl shadow-lg transition-transform hover:scale-105"><Plus className="h-4 w-4" /></Button>
           </div>
           <div className="flex flex-wrap gap-2 pt-2">
-            {[...filteredQuizTopics].sort((a, b) => a.name.localeCompare(b.name)).map((topic, idx) => (
-              <Badge key={`${topic.id}-${idx}`} className="bg-indigo-50/50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-650 dark:text-indigo-400 font-bold uppercase text-[9px] px-3 py-1.5 rounded-xl hover:border-indigo-500/30 transition-all flex items-center gap-2 shadow-sm">
-                {topic.name}
-                <div className="flex items-center gap-1 ml-1 border-l border-indigo-250 dark:border-indigo-500/30 pl-1.5">
-                  <Button size="icon" variant="ghost" className="h-4 w-4 p-0 text-slate-400 dark:text-slate-500 hover:text-indigo-650 dark:hover:text-indigo-400 hover:bg-indigo-500/10 rounded-full" onClick={() => { setEditingTopic(topic); setEditTopicName(topic.name); }} title="Renomear Tópico">
-                    <Edit className="h-3 w-3" />
-                  </Button>
-                  <Button size="icon" variant="ghost" className="h-4 w-4 p-0 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 rounded-full" onClick={() => handleDeleteTopic(topic)} title="Excluir Tópico">
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              </Badge>
-            ))}
+            {[...filteredQuizTopics].sort((a, b) => a.name.localeCompare(b.name)).map((topic, idx) => {
+              const baseCoins = topic.coinsValue !== undefined ? topic.coinsValue : 10;
+              return (
+                <Badge key={`${topic.id}-${idx}`} className="bg-indigo-50/50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-650 dark:text-indigo-400 font-bold uppercase text-[9px] px-3 py-1.5 rounded-xl hover:border-indigo-500/30 transition-all flex items-center gap-2 shadow-sm">
+                  {topic.name} <span className="bg-indigo-500/25 dark:bg-indigo-550/30 text-indigo-705 dark:text-indigo-300 px-1.5 py-0.5 rounded font-black">₵{baseCoins}</span>
+                  <div className="flex items-center gap-1 ml-1 border-l border-indigo-250 dark:border-indigo-500/30 pl-1.5">
+                    <Button size="icon" variant="ghost" className="h-4 w-4 p-0 text-slate-400 dark:text-slate-500 hover:text-indigo-650 dark:hover:text-indigo-400 hover:bg-indigo-500/10 rounded-full" onClick={() => { setEditingTopic(topic); setEditTopicName(topic.name); setEditTopicCoins(topic.coinsValue !== undefined ? topic.coinsValue : 10); }} title="Editar Tópico">
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-4 w-4 p-0 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 rounded-full" onClick={() => handleDeleteTopic(topic)} title="Excluir Tópico">
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </Badge>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
@@ -490,6 +544,76 @@ export function PedagogicSection({
         </CardContent>
       </Card>
 
+      {/* BIBLIOTECA DE QUIZZES GERADOS (Gestão de Quizzes) */}
+      <Card className="border border-slate-200/60 dark:border-white/10 shadow-2xl overflow-hidden bg-white/80 dark:bg-slate-900/40 rounded-[2rem] backdrop-blur-xl hover:border-indigo-500/10 transition-all duration-300 text-slate-800 dark:text-white">
+        <CardHeader className="border-b border-slate-200/60 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20 px-6 py-5">
+          <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">Biblioteca de Quizzes</CardTitle>
+          <CardDescription className="text-slate-500 dark:text-slate-400 text-xs mt-1">Quizzes gerados automaticamente via IA ou cadastrados pela comunidade.</CardDescription>
+        </CardHeader>
+        <CardContent className="p-6 space-y-6">
+          <div className="p-4 bg-slate-50/50 dark:bg-slate-950 border border-slate-200/60 dark:border-white/5 rounded-2xl shadow-md">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5 block ml-1">Pesquisar Quiz</Label>
+            <Input placeholder="Buscar por título ou tópico..." value={quizSearch} onChange={(e) => setQuizSearch(e.target.value)} className="h-12 bg-white dark:bg-slate-955 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold" />
+          </div>
+
+          <div className="rounded-2xl border border-slate-200/60 dark:border-white/10 bg-white/40 dark:bg-slate-950/50 overflow-hidden shadow-2xl">
+            <Table>
+              <TableHeader className="bg-slate-100/80 dark:bg-slate-950 border-b border-slate-200/60 dark:border-white/10">
+                <TableRow>
+                  <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-500 dark:text-slate-400 px-6 h-12">Título / Tópico</TableHead>
+                  <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-500 dark:text-slate-400 h-12">Dificuldade</TableHead>
+                  <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-500 dark:text-slate-400 h-12">Questões</TableHead>
+                  <TableHead className="text-right px-6 font-black uppercase text-[10px] tracking-widest text-slate-500 dark:text-slate-400 h-12">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loadingQuizzes ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-12">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto text-indigo-500" />
+                    </TableCell>
+                  </TableRow>
+                ) : filteredQuizzes.length > 0 ? filteredQuizzes.map((quiz) => (
+                  <TableRow key={quiz.id} className="hover:bg-indigo-50/40 dark:hover:bg-indigo-500/5 border-b border-slate-200/60 dark:border-white/5 transition-colors group">
+                    <TableCell className="font-bold text-sm text-slate-700 dark:text-slate-200 px-6 py-4">
+                      <div>{quiz.quizTitle || 'Quiz sem Título'}</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mt-0.5">Tópico: <span className="text-indigo-500">{quiz.topic}</span></div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={cn(
+                        "uppercase text-[8px] font-black tracking-widest px-2.5 py-1 rounded-xl border",
+                        quiz.difficulty === 'easy' ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" :
+                        quiz.difficulty === 'medium' ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20" :
+                        "bg-rose-500/10 text-rose-600 dark:text-rose-455 border-rose-500/20"
+                      )}>
+                        {quiz.difficulty === 'easy' ? 'Fácil' : quiz.difficulty === 'medium' ? 'Médio' : 'Difícil'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-xs font-bold text-slate-600 dark:text-slate-350">
+                      {quiz.numberOfQuestions} Questões
+                    </TableCell>
+                    <TableCell className="text-right px-6 py-4">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-full"><MoreHorizontal className="h-4 w-4" /></Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl shadow-2xl p-1 min-w-[120px]">
+                          <DropdownMenuItem onClick={() => handleDeleteQuiz(quiz.id)} className="text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 cursor-pointer font-bold text-xs uppercase tracking-wider py-2.5 rounded-lg"><Trash2 className="mr-2 h-4 w-4" />Excluir</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                )) : (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-12 text-slate-450 uppercase text-[10px] font-black tracking-widest italic">Nenhum quiz encontrado.</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* HISTÓRICO PEDAGÓGICO DE LEITURAS E QUIZZES */}
       <Card className="border border-slate-200/60 dark:border-white/10 shadow-2xl overflow-hidden bg-white/80 dark:bg-slate-900/40 rounded-[2rem] backdrop-blur-xl hover:border-indigo-500/10 transition-all duration-300 text-slate-800 dark:text-white">
         <CardHeader className="flex flex-row items-center justify-between border-b border-slate-200/60 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20 px-6 py-5">
@@ -564,10 +688,10 @@ export function PedagogicSection({
         <DialogContent className="max-w-md bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-3xl p-6 shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-lg font-black uppercase tracking-tight text-indigo-605 dark:text-indigo-400 flex items-center gap-2">
-              <Edit className="h-5 w-5" /> Renomear Tópico Ambiental
+              <Edit className="h-5 w-5" /> Editar Tópico Ambiental
             </DialogTitle>
             <DialogDescription className="text-slate-500 dark:text-slate-400 text-xs">
-              Altere o nome do tópico para a unidade escolar.
+              Altere o nome e o valor em moedas (Coins) do tópico.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -577,7 +701,18 @@ export function PedagogicSection({
                 type="text"
                 value={editTopicName}
                 onChange={(e) => setEditTopicName(e.target.value)}
-                className="h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/5 rounded-xl font-bold text-slate-800 dark:text-white"
+                className="h-11 bg-slate-50 dark:bg-slate-905 border border-slate-200 dark:border-white/5 rounded-xl font-bold text-slate-800 dark:text-white"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Valor de Moedas Base (Coins)</Label>
+              <Input
+                type="number"
+                min={1}
+                max={100}
+                value={editTopicCoins}
+                onChange={(e) => setEditTopicCoins(Number(e.target.value))}
+                className="h-11 bg-slate-50 dark:bg-slate-905 border border-slate-200 dark:border-white/5 rounded-xl font-bold text-slate-800 dark:text-white"
               />
             </div>
           </div>
@@ -588,12 +723,12 @@ export function PedagogicSection({
             <Button 
               onClick={async () => {
                 if (editingTopic && editTopicName.trim()) {
-                  await handleEditTopic(editingTopic, editTopicName.trim());
+                  await handleEditTopic(editingTopic, editTopicName.trim(), editTopicCoins);
                   setEditingTopic(null);
                 }
               }} 
               className="bg-indigo-650 hover:bg-indigo-600 text-white rounded-xl text-xs font-bold uppercase tracking-wider px-6 h-11"
-              disabled={!editTopicName.trim()}
+              disabled={!editTopicName.trim() || editTopicCoins <= 0}
             >
               Salvar Alterações
             </Button>

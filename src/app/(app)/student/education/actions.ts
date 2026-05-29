@@ -47,6 +47,15 @@ export async function generateNewAIArticle(schoolId: string): Promise<EducationA
 
     const result = await generateArticle({ topic: selectedTopic });
 
+    // Verifica se já existe um artigo com o mesmo título gerado
+    const articlesRef = collection(db, "articles");
+    const qTitle = query(articlesRef, where("schoolId", "==", schoolId), where("title", "==", result.title.trim()));
+    const titleSnapshot = await getDocs(qTitle);
+    if (!titleSnapshot.empty) {
+      console.log(`[AI-ARTICLE-CACHE] Artigo "${result.title}" já cadastrado. Reutilizando.`);
+      return titleSnapshot.docs[0].data() as EducationArticle;
+    }
+
     const id = `ai-art-${Math.random().toString(36).substring(2, 11)}-${Date.now()}`;
     const slug = result.title
       .toLowerCase()

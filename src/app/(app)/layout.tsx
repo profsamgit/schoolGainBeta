@@ -18,6 +18,29 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const schoolId = searchParams.get('schoolId');
 
   const { toast } = useToast();
+  const pathname = usePathname();
+
+  const bottomMenuItems = useMemo(() => {
+    if (pathname.startsWith('/super-admin')) {
+      return [
+        { href: '/super-admin', label: 'Central', icon: Shield },
+      ];
+    }
+    if (pathname.startsWith('/admin')) {
+      return [
+        { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { href: '/admin', label: 'Gestão', icon: Shield },
+      ];
+    }
+    return [
+      { href: '/student/dashboard', label: 'Início', icon: LayoutDashboard },
+      { href: '/student/meu-ecossistema', label: 'Ecossistema', icon: Leaf },
+      { href: '/student/leaderboard', label: 'Ranking', icon: Trophy },
+      { href: '/student/education', label: 'Educação', icon: BookOpen },
+      { href: '/student/quiz', label: 'Quizzes', icon: BrainCircuit },
+      { href: '/student/rewards', label: 'Bioshop', icon: Gift },
+    ];
+  }, [pathname]);
 
   // Monitoramento de Conexão e Sessão
   useEffect(() => {
@@ -114,7 +137,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const pathname = usePathname();
   const previewId = searchParams.get('preview');
 
   const getLink = (href: string) => {
@@ -123,28 +145,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
     return href;
   };
-
-  const bottomMenuItems = useMemo(() => {
-    if (pathname.startsWith('/super-admin')) {
-      return [
-        { href: '/super-admin', label: 'Central', icon: Shield },
-      ];
-    }
-    if (pathname.startsWith('/admin')) {
-      return [
-        { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { href: '/admin', label: 'Gestão', icon: Shield },
-      ];
-    }
-    return [
-      { href: '/student/dashboard', label: 'Início', icon: LayoutDashboard },
-      { href: '/student/meu-ecossistema', label: 'Ecossistema', icon: Leaf },
-      { href: '/student/leaderboard', label: 'Ranking', icon: Trophy },
-      { href: '/student/education', label: 'Educação', icon: BookOpen },
-      { href: '/student/quiz', label: 'Quizzes', icon: BrainCircuit },
-      { href: '/student/rewards', label: 'Bioshop', icon: Gift },
-    ];
-  }, [pathname]);
 
   /**
    * isAdminView: Controle de Tema de Layout

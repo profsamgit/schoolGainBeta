@@ -189,46 +189,51 @@ export default function EducationPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {schoolArticles.map((article) => (
-            <Card
-              key={article.id}
-              className="group flex flex-col overflow-hidden border border-slate-200/60 dark:border-white/5 shadow-2xl hover:border-emerald-500/20 dark:hover:border-emerald-500/20 hover:shadow-[0_0_30px_rgba(16,185,129,0.05)] transition-all duration-500 rounded-[2rem] bg-white/80 dark:bg-slate-900/40 text-slate-800 dark:text-white backdrop-blur-xl"
-            >
-              <Link href={`/student/education/${article.slug}`} className="block relative h-52 w-full overflow-hidden">
-                <Image
-                  src={article.image || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=800&auto=format&fit=crop'}
-                  alt={article.title}
-                  fill
-                  unoptimized={!article.image}
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  className="object-cover transition-transform duration-700 group-hover:scale-105"
-                  data-ai-hint={article.imageHint}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent"></div>
-                <div className="absolute bottom-4 left-4">
-                   <div className="h-1 w-10 bg-emerald-500 dark:bg-emerald-400 rounded-full mb-2 animate-pulse"></div>
-                   <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400">Pedagógico</span>
-                </div>
-              </Link>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-black text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors leading-snug uppercase tracking-tight line-clamp-2">
-                  {article.title}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex-grow pt-0">
-                <CardDescription className="text-slate-600 dark:text-slate-400 font-medium text-xs line-clamp-3 leading-relaxed">
-                  {article.summary}
-                </CardDescription>
-              </CardContent>
-              <CardFooter className="pt-4 border-t border-slate-200/60 dark:border-white/5 bg-slate-50/40 dark:bg-slate-950/40">
-                <Button asChild variant="ghost" className="w-full justify-between font-black uppercase text-[9px] tracking-widest text-emerald-600 dark:text-emerald-400 hover:text-white hover:bg-emerald-600 dark:hover:bg-emerald-500 hover:border-emerald-600 dark:hover:border-emerald-500 border border-slate-200 dark:border-white/5 rounded-2xl h-11 px-5 transition-all duration-300 group/btn">
-                  <Link href={`/student/education/${article.slug}`}>
-                    Explorar Conteúdo <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
-                  </Link>
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
+          {schoolArticles.map((article) => {
+            const hasAlreadyRead = state?.readArticles?.includes(article.id);
+            return (
+              <Card
+                key={article.id}
+                className="group flex flex-col overflow-hidden border border-slate-200/60 dark:border-white/5 shadow-2xl hover:border-emerald-500/20 dark:hover:border-emerald-500/20 hover:shadow-[0_0_30px_rgba(16,185,129,0.05)] transition-all duration-500 rounded-[2rem] bg-white/80 dark:bg-slate-900/40 text-slate-800 dark:text-white backdrop-blur-xl"
+              >
+                <Link href={`/student/education/${article.slug}`} className="block relative h-52 w-full overflow-hidden">
+                  <Image
+                    src={article.image || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=800&auto=format&fit=crop'}
+                    alt={article.title}
+                    fill
+                    unoptimized={!article.image}
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                    data-ai-hint={article.imageHint}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent"></div>
+                  <div className="absolute bottom-4 left-4">
+                     <div className="h-1 w-10 bg-emerald-500 dark:bg-emerald-400 rounded-full mb-2 animate-pulse"></div>
+                     <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400">
+                       {hasAlreadyRead ? '✓ Lido - Apenas Leitura' : 'Pedagógico'}
+                     </span>
+                  </div>
+                </Link>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg font-black text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors leading-snug uppercase tracking-tight line-clamp-2">
+                    {article.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex-grow pt-0">
+                  <CardDescription className="text-slate-650 dark:text-slate-400 font-medium text-xs line-clamp-3 leading-relaxed">
+                    {article.summary}
+                  </CardDescription>
+                </CardContent>
+                <CardFooter className="pt-4 border-t border-slate-200/60 dark:border-white/5 bg-slate-50/40 dark:bg-slate-955/40">
+                  <Button asChild variant="ghost" className="w-full justify-between font-black uppercase text-[9px] tracking-widest text-emerald-600 dark:text-emerald-400 hover:text-white hover:bg-emerald-600 dark:hover:bg-emerald-500 hover:border-emerald-600 dark:hover:border-emerald-500 border border-slate-200 dark:border-white/5 rounded-2xl h-11 px-5 transition-all duration-300 group/btn">
+                    <Link href={`/student/education/${article.slug}`}>
+                      {hasAlreadyRead ? 'Revisar Artigo' : 'Explorar Conteúdo'} <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+                    </Link>
+                  </Button>
+                </CardFooter>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>

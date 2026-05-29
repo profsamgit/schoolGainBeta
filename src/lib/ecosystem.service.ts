@@ -1170,6 +1170,33 @@ export class EcosystemService {
         if (userIndex !== -1) {
           const user = { ...this.data.users[userIndex], avatar: downloadURL };
           this.data.users[userIndex] = user;
+          
+          let colName = 'students';
+          let subject: any = this.studentsSubject;
+          
+          if (user.role === 'admin') {
+            colName = 'admins';
+            subject = this.adminsSubject;
+          } else if (user.role === 'staff') {
+            colName = 'staff';
+            subject = this.staffSubject;
+          } else if (user.role === 'super_admin') {
+            colName = 'super_admins';
+            subject = this.superAdminsSubject;
+          } else if (user.role === 'visitor') {
+            colName = 'visitors';
+            subject = this.visitorsSubject;
+          }
+
+          const roleList = this.usersByRole[colName];
+          if (roleList) {
+            const roleIndex = roleList.findIndex(u => u.id === id);
+            if (roleIndex !== -1) {
+              roleList[roleIndex] = user;
+              subject.next([...roleList]);
+            }
+          }
+
           await setDoc(doc(db, this.getUserCollection(user.role), user.id), this.sanitizeUserForFirestore(user));
           this.usersSubject.next([...this.data.users]);
           console.log("[STORAGE] Avatar do usuário atualizado no Firestore!");

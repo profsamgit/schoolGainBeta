@@ -14,6 +14,7 @@ const GenerateQuizInputSchema = z.object({
   topic: z.string().describe('The environmental topic for the quiz.'),
   difficulty: z.enum(['easy', 'medium', 'hard']).default('medium').describe('The difficulty level of the quiz.'),
   numberOfQuestions: z.number().int().min(1).max(10).default(5).describe('The number of questions in the quiz.'),
+  existingQuestions: z.array(z.string()).optional().describe('List of question texts that already exist and should NOT be generated again.'),
 });
 export type GenerateQuizInput = z.infer<typeof GenerateQuizInputSchema>;
 
@@ -48,7 +49,15 @@ Generate a multiple-choice quiz on the topic of "{{topic}}".
 The quiz should have {{numberOfQuestions}} questions and be of "{{difficulty}}" difficulty.
 Each question must have at least two and no more than five answer options.
 The correct answer must be one of the provided options.
-Also, include a brief explanation for the correct answer if possible.`,
+Also, include a brief explanation for the correct answer if possible.
+
+{{#if existingQuestions}}
+CRITICAL REQUIREMENT: Do NOT generate any questions similar to or matching the following existing questions:
+{{#each existingQuestions}}
+- "{{this}}"
+{{/each}}
+You must write completely new, unique questions that do not repeat the topics or formulations above.
+{{/if}}`,
 });
 
 const generateQuizFlow = ai.defineFlow(
