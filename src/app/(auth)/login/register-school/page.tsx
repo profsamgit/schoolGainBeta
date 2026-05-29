@@ -35,7 +35,7 @@ export default function RegisterSchoolPage() {
         setIsSuccess(true);
         toast({ title: "Solicitação Enviada", description: "Entraremos em contato em breve!" });
       } else {
-        toast({ title: "Erro", description: "Dados insuficientes para o cadastro.", variant: "destructive" });
+        toast({ title: "Erro de Cadastro", description: "Não foi possível registrar o interesse. Verifique se o e-mail do gestor já está em uso ou se faltam dados.", variant: "destructive" });
       }
     } catch (error) {
       toast({ title: "Erro", description: "Não foi possível enviar a solicitação.", variant: "destructive" });

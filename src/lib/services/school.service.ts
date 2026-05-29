@@ -23,6 +23,11 @@ export class SchoolService {
     const cleanCity = schoolData.city.toUpperCase().trim();
     const cleanState = schoolData.state.toUpperCase().trim();
 
+    // Validação de E-mail de Gestor Único
+    if (this.service.data.schools.some((s: School) => s.managerEmail?.toLowerCase().trim() === emailLower)) {
+      return false;
+    }
+
     // Validação de E-mail Único na Mesma Escola
     const tempSchoolId = EcosystemService.generateStandardId('school', undefined, { name: cleanName, city: cleanCity });
     if (this.service.data.users.some((u: User) => u.email?.toLowerCase().trim() === emailLower && u.schoolId === tempSchoolId)) {
@@ -77,6 +82,11 @@ export class SchoolService {
     const cleanName = schoolData.name.toUpperCase().trim();
     const cleanCity = schoolData.city.toUpperCase().trim();
     const cleanState = schoolData.state.toUpperCase().trim();
+
+    // Validação de E-mail de Gestor Único
+    if (this.service.data.schools.some((s: School) => s.managerEmail?.toLowerCase().trim() === emailLower)) {
+      return false;
+    }
 
     const tempSchoolId = EcosystemService.generateStandardId('school', undefined, { name: cleanName, city: cleanCity });
     if (this.service.data.users.some((u: User) => u.email?.toLowerCase().trim() === emailLower && u.schoolId === tempSchoolId)) {
@@ -232,10 +242,15 @@ export class SchoolService {
     const currentUser = this.service.data.users.find((u: User) => u.id === this.service.data.currentUserId || u.ra === this.service.currentUserRa);
     if (currentUser?.role !== 'super_admin') return { success: false, error: 'Não autorizado' };
 
-    // Verificação de Senha do Super Admin
-    if (!password) return { success: false, error: 'Confirmação de senha necessária.' };
-    const isPasswordValid = await this.service.verifyPassword(password);
-    if (!isPasswordValid) return { success: false, error: 'Senha incorreta. Ação cancelada.' };
+    const school = this.service.data.schools.find((s: School) => s.id === id);
+    const isPending = school?.status === 'pending';
+
+    // Verificação de Senha do Super Admin (apenas para escolas não pendentes)
+    if (!isPending) {
+      if (!password) return { success: false, error: 'Confirmação de senha necessária.' };
+      const isPasswordValid = await this.service.verifyPassword(password);
+      if (!isPasswordValid) return { success: false, error: 'Senha incorreta. Ação cancelada.' };
+    }
 
     // Regra de Negócio: Primeiro remove os gestores, depois a unidade
     const hasManagers = this.service.data.users.some((u: User) => u.schoolId === id && u.role === 'admin');

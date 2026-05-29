@@ -127,5 +127,10 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    match /registrationRequests/{requestId} {
+      allow create: if true; // Alunos não autenticados podem solicitar cadastro
+      allow read, update, delete: if isAdmin(); // Apenas administradores podem ler e recusar/deletar
+    }
   }
 }

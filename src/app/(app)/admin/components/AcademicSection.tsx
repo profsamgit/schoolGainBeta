@@ -232,8 +232,8 @@ export function AcademicSection({
   };
 
   const filteredUsers = useMemo(() => {
-    // Para visitantes, não exigimos filtro de turma para mostrar a lista
-    if (userRoleFilter !== 'visitor' && !userTurmaFilter && !userSearch) return [];
+    // Para visitantes e gestores (admin), não exigimos filtro de turma/setor para mostrar a lista por padrão
+    if (userRoleFilter !== 'visitor' && userRoleFilter !== 'admin' && !userTurmaFilter && !userSearch) return [];
 
     return filteredUsersForAdmin
       .filter(u => {
@@ -247,7 +247,7 @@ export function AcademicSection({
         // Para visitantes, matchesTurma é sempre true (ignora filtro)
         const matchesTurma = userRoleFilter === 'visitor' 
           ? true 
-          : (userTurmaFilter ? (u.turma === userTurmaFilter || u.position === userTurmaFilter) : true);
+          : ((userTurmaFilter && userTurmaFilter !== 'all') ? (u.turma === userTurmaFilter || u.position === userTurmaFilter) : true);
 
         const matchesStatus = showInactive ? true : u.status !== 'inactive';
         
@@ -546,7 +546,7 @@ export function AcademicSection({
                                     userForm.setValue('ra', text.toUpperCase());
                                     setIsQRScannerOpen(false);
                                   }} 
-                                  deviceId={isTotem ? (currentTerminal?.settings?.scanningCameraDevice || currentTerminal?.settings?.preferredCamera || systemSettings.adminCaptureDevice || 'default') : (systemSettings.adminCaptureDevice || 'default')}
+                                  deviceId={isTotem ? (currentTerminal?.settings?.scanningCameraDevice || systemSettings.adminCaptureDevice || 'default') : (systemSettings.adminCaptureDevice || 'default')}
                                 />
                               </div>
                           </div>
@@ -755,15 +755,18 @@ export function AcademicSection({
                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-550 dark:text-slate-400 ml-1">
                   {userRoleFilter === 'admin' || userRoleFilter === 'staff' ? 'Filtrar por Setor' : 'Filtrar por Turma'}
                 </Label>
-                <Select value={userTurmaFilter || ""} onValueChange={setUserTurmaFilter}>
+                <Select value={userTurmaFilter || "all"} onValueChange={setUserTurmaFilter}>
                   <SelectTrigger className="h-12 bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white rounded-xl focus:border-indigo-500/50 font-bold">
                     <SelectValue placeholder={userRoleFilter === 'admin' || userRoleFilter === 'staff' ? "Todos os Setores" : "Todas as Turmas"} />
                   </SelectTrigger>
                     <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white">
                       {userRoleFilter === 'admin' || userRoleFilter === 'staff' ? (
-                        sortedSetores.filter(s => s.status === 'active').map((s, idx) => (
-                          <SelectItem key={s.id || `filter-s-${idx}`} value={s.name} className="hover:bg-indigo-50 dark:hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-white">{s.name}</SelectItem>
-                        ))
+                        <>
+                          <SelectItem value="all" className="hover:bg-indigo-50 dark:hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-white font-bold">Mostrar todos</SelectItem>
+                          {sortedSetores.filter(s => s.status === 'active').map((s, idx) => (
+                            <SelectItem key={s.id || `filter-s-${idx}`} value={s.name} className="hover:bg-indigo-50 dark:hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-white">{s.name}</SelectItem>
+                          ))}
+                        </>
                       ) : (
                         sortedTurmas.filter(t => t.status === 'active').map((t, idx) => (
                           <SelectItem key={t.id || `filter-t-${idx}`} value={t.name} className="hover:bg-indigo-50 dark:hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-white">{t.name}</SelectItem>

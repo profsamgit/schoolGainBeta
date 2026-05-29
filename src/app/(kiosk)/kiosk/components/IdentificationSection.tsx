@@ -170,19 +170,27 @@ export function IdentificationSection({
   useEffect(() => {
     if (!streamUrlWithRetry || streamError || activeTab !== 'qr') return;
 
-    // Timer de 3 segundos. Se a imagem do stream não disparar onLoad nesse período,
-    // assumimos que a placa está inacessível ou o socket travou.
+    // Como streams MJPEG contínuos podem não disparar o evento onLoad tradicional,
+    // forçamos imageLoaded para true após 1 segundo se o elemento da imagem existir.
+    const forceLoadTimer = setTimeout(() => {
+      if (streamImgRef.current) {
+        setImageLoaded(true);
+      }
+    }, 1000);
+
     const timer = setTimeout(() => {
       setImageLoaded((current) => {
         if (!current) {
-          // Timeout atingido na câmera
           setStreamError(true);
         }
         return current;
       });
     }, 3500);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(forceLoadTimer);
+      clearTimeout(timer);
+    };
   }, [streamUrlWithRetry, streamError, activeTab]);
 
   useEffect(() => {
@@ -193,7 +201,7 @@ export function IdentificationSection({
     let intervalId: any = null;
 
     // Criamos um elemento de scanner invisível no DOM
-    const scannerElementId = 'hidden-qr-scanner-login';
+    const scannerElementId = 'hidden-qr-scanner-kiosk-login';
     let hiddenContainer = document.getElementById(scannerElementId);
     if (!hiddenContainer) {
       hiddenContainer = document.createElement('div');
@@ -237,7 +245,7 @@ export function IdentificationSection({
       // Filtros Gráficos e Suavização: Maximiza contraste para facilitar leitura de QR
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
-      ctx.filter = 'contrast(1.20) brightness(0.95)';
+      ctx.filter = 'grayscale(1) contrast(1.4) brightness(0.95)';
       ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
       ctx.filter = 'none';
 
@@ -269,15 +277,6 @@ export function IdentificationSection({
       isMounted = false;
       if (intervalId) clearInterval(intervalId);
 
-      // FORÇA A LIBERAÇÃO FÍSICA E IMEDIATA DO SOCKET DA ESP32 ANTES DE DESMONTAR!
-      try {
-        const img = document.querySelector('img[alt="Login ESP32 Camera Stream"]') as HTMLImageElement | null;
-        if (img) {
-          img.src = "";
-          img.removeAttribute('src');
-        }
-      } catch (e) {}
-
       if (html5QrCode) {
         try {
           html5QrCode.clear();
@@ -287,7 +286,7 @@ export function IdentificationSection({
         hiddenContainer.parentNode.removeChild(hiddenContainer);
       }
     };
-  }, [activeLoginCameraSource, activeLoginUrl, activeTab, onIdentify]);
+  }, [activeLoginCameraSource, streamUrlWithRetry, activeTab, onIdentify]);
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center bg-slate-100 dark:bg-[#070913] text-slate-800 dark:text-slate-100 overflow-hidden font-sans selection:bg-emerald-500/30 selection:text-emerald-400">

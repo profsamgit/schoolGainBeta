@@ -100,16 +100,26 @@ export default function RegisterStudentPage() {
   useEffect(() => {
     if (!isRFIDCapturing) return;
 
-    // Filter active terminals for the selected school
-    const activeSchoolTerminals = terminals.filter(
-      t => t.schoolId === formData.schoolId && t.status === 'active'
-    );
+    // Determina quais terminais consultar:
+    // 1. Se estiver no Totem físico local, consulta especificamente o terminal local.
+    // 2. Se a escola estiver selecionada, consulta os terminais dessa escola.
+    // 3. Caso contrário, faz o polling de todos os terminais ativos como fallback para detectar aproximações.
+    let targetTerminals = [];
+    if (isTotem && currentTerminal) {
+      targetTerminals = [currentTerminal];
+    } else if (formData.schoolId) {
+      targetTerminals = terminals.filter(
+        t => t.schoolId === formData.schoolId && t.status === 'active'
+      );
+    } else {
+      targetTerminals = terminals.filter(t => t.status === 'active');
+    }
 
-    if (activeSchoolTerminals.length === 0) return;
+    if (targetTerminals.length === 0) return;
 
     const pollRFID = async () => {
       try {
-        for (const terminal of activeSchoolTerminals) {
+        for (const terminal of targetTerminals) {
           const tId = terminal.hardwareId || terminal.id;
           const res = await fetch(`/api/hardware/input?terminalId=${tId}`);
           if (res.ok) {
@@ -127,7 +137,7 @@ export default function RegisterStudentPage() {
 
     const interval = setInterval(pollRFID, 2000);
     return () => clearInterval(interval);
-  }, [isRFIDCapturing, formData.schoolId, terminals]);
+  }, [isRFIDCapturing, formData.schoolId, terminals, isTotem, currentTerminal]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -331,7 +341,7 @@ export default function RegisterStudentPage() {
                   </Button>
                   <QRScanner 
                     onScan={handleRADetected} 
-                    deviceId={isTotem ? (currentTerminal?.settings?.scanningCameraDevice || currentTerminal?.settings?.preferredCamera || systemSettings.studentCaptureDevice || 'default') : (systemSettings.studentCaptureDevice || 'default')}
+                    deviceId={isTotem ? (currentTerminal?.settings?.scanningCameraDevice || systemSettings.studentCaptureDevice || 'default') : (systemSettings.studentCaptureDevice || 'default')}
                   />
                 </div>
               )}

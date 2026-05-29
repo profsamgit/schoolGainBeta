@@ -62,6 +62,7 @@ export default function AdminDashboardPage() {
 
     // Filtros de Segurança e Escopo
     const filteredUsers = users.filter(u => isSuperAdmin ? true : u.schoolId === schoolId);
+    const filteredStudents = filteredUsers.filter(u => u.role === 'student');
     const filteredWasteEntries = wasteEntries.filter(entry => isSuperAdmin ? true : entry.schoolId === schoolId);
     const filteredTerminals = terminals.filter(t => isSuperAdmin ? true : t.schoolId === schoolId);
     const pendingRequests = registrationRequests.filter(r => (isSuperAdmin ? true : r.schoolId === schoolId) && r.status === 'pending');
@@ -169,7 +170,7 @@ export default function AdminDashboardPage() {
                                     <Users className="h-4 w-4" />
                                 </div>
                             </div>
-                            <div className="text-3xl font-black tracking-tighter text-slate-900 dark:text-white">{filteredUsers.length}</div>
+                            <div className="text-3xl font-black tracking-tighter text-slate-900 dark:text-white">{filteredStudents.length}</div>
                             <div className="mt-4 h-1.5 w-full bg-slate-200 dark:bg-slate-950 rounded-full overflow-hidden">
                                 <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 w-[75%] rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
                             </div>
@@ -399,10 +400,10 @@ export default function AdminDashboardPage() {
                                     <div className="space-y-2">
                                         <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
                                             <span>Engajamento Alunos (50%)</span>
-                                            <span className="text-blue-600 dark:text-blue-400">{(filteredUsers.length / 200 * 100).toFixed(1)}%</span>
+                                            <span className="text-blue-600 dark:text-blue-400">{(filteredStudents.length / 200 * 100).toFixed(1)}%</span>
                                         </div>
                                         <div className="h-3 w-full bg-slate-200 dark:bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-200 dark:border-white/5">
-                                            <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-400 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)] transition-all duration-1000" style={{ width: `${Math.min(100, (filteredUsers.length / 200 * 100))}%` }} />
+                                            <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-400 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)] transition-all duration-1000" style={{ width: `${Math.min(100, (filteredStudents.length / 200 * 100))}%` }} />
                                         </div>
                                     </div>
                                 </CardContent>

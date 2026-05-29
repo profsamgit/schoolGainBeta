@@ -122,12 +122,12 @@ export type Terminal = {
   lastSeen?: string;
   schoolId?: string; // Escola onde o terminal está fisicamente
   settings?: {
-    preferredCamera?: string;
+    preferredCamera?: string; // @deprecated
     scanningCameraDevice?: string;
     loginMethod?: 'manual' | 'qr' | 'rfid' | 'all' | 'manual_qr' | 'manual_rfid' | 'qr_rfid';
     loginCameraSource?: 'browser' | 'esp32' | 'esp32_https' | 'url';
     scanningCameraSource?: 'browser' | 'esp32' | 'esp32_https' | 'url';
-    cameraUrl?: string;
+    cameraUrl?: string; // @deprecated
     loginCameraUrl?: string;
     scanningCameraUrl?: string;
     scannerFramerate?: 'fluid' | 'balanced' | 'high_res';

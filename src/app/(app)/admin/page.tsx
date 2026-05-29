@@ -517,6 +517,33 @@ function AdminContent() {
     }
   };
 
+  const handleRejectRegistration = async (id: string): Promise<boolean> => {
+    try {
+      const success = await rejectRegistration(id);
+      if (success) {
+        toast({
+          title: "Solicitação Recusada",
+          description: "A solicitação de cadastro foi removida com sucesso.",
+        });
+        return true;
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Erro ao Recusar",
+          description: "Não foi possível recusar a solicitação no momento.",
+        });
+        return false;
+      }
+    } catch (e) {
+      toast({
+        variant: "destructive",
+        title: "Erro Crítico",
+        description: "Falha de rede ou no banco de dados ao recusar a solicitação.",
+      });
+      return false;
+    }
+  };
+
   const onSubmit = async (values: any) => {
     if (isSubmitting) return;
 
@@ -934,7 +961,7 @@ function AdminContent() {
               setSecurityPassword={setSecurityPassword}
               registrationRequests={registrationRequests}
               approveRegistration={(item) => handleApproveRequest(item, 'student')}
-              rejectRegistration={rejectRegistration}
+              rejectRegistration={handleRejectRegistration}
               updateUserStatus={updateUserStatus}
               userStates={userStates}
             />

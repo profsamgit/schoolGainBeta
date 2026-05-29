@@ -128,9 +128,11 @@ export function SchoolSection({
                   <Badge className={`text-[9px] font-black uppercase tracking-widest h-6 px-2.5 rounded-lg border ${
                     school.status === 'active' 
                       ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.05)]' 
+                      : school.status === 'pending'
+                      ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.05)]'
                       : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
                   }`}>
-                    {school.status === 'active' ? 'Ativa' : school.status === 'suspended' ? 'Suspensa' : 'Inativa'}
+                    {school.status === 'active' ? 'Ativa' : school.status === 'suspended' ? 'Suspensa' : school.status === 'pending' ? 'Pendente' : 'Inativa'}
                   </Badge>
                   <div className="flex items-center gap-2 mt-1">
                     <Label className="text-[9px] font-bold uppercase text-slate-500 scale-[0.9] origin-right tracking-widest">Acesso</Label>
@@ -191,10 +193,25 @@ export function SchoolSection({
               variant="ghost" 
               size="icon" 
               className="h-10 w-10 text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl"
-              onClick={() => {
-                setSchoolToDelete(school);
-                setDeletePassword('');
-                setIsDeleteDialogOpen(true);
+              onClick={async () => {
+                if (school.status === 'pending') {
+                  if (window.confirm(`Deseja realmente recusar e excluir a solicitação de cadastro da escola ${school.name}?`)) {
+                    const result = await deleteSchool(school.id);
+                    if (result.success) {
+                      toast({ title: "Solicitação Recusada", description: "A solicitação de cadastro foi removida com sucesso." });
+                    } else {
+                      toast({ 
+                        title: "Falha ao Recusar", 
+                        description: result.error, 
+                        variant: "destructive" 
+                      });
+                    }
+                  }
+                } else {
+                  setSchoolToDelete(school);
+                  setDeletePassword('');
+                  setIsDeleteDialogOpen(true);
+                }
               }}
             >
               <Trash2 className="h-4 w-4" />

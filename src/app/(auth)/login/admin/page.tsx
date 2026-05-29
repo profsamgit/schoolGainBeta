@@ -66,17 +66,19 @@ export default function AdminLoginPage() {
     ? (currentTerminal?.settings?.loginCameraSource || systemSettings.adminCaptureSource || 'browser')
     : (systemSettings.adminCaptureSource || 'browser');
   const activeLoginCameraUrl = isTotem
-    ? (currentTerminal?.settings?.loginCameraUrl || currentTerminal?.settings?.cameraUrl || systemSettings.adminCaptureUrl || '')
+    ? (currentTerminal?.settings?.loginCameraUrl || systemSettings.adminCaptureUrl || '')
     : (systemSettings.adminCaptureUrl || '');
 
   const getCameraUrl = (src: string, url: string) => {
     if (!url) return '';
-    if (src === 'esp32') {
-      return url.startsWith('http') ? url : `http://${url}/stream`;
-    }
-    if (src === 'esp32_https') {
+    if (src === 'esp32' || src === 'esp32_https') {
       let cleanUrl = url.split('?')[0].replace(/\/stream\/?$/i, '').replace(/^https?:\/\//i, '').trim();
-      return `http://localhost:9005/stream?target=${cleanUrl}`;
+      let base = `http://localhost:9005/stream?target=${cleanUrl}`;
+      const flashEnabled = currentTerminal?.settings?.loginCameraFlash === true;
+      if (flashEnabled) {
+        base = `${base}&flash=on`;
+      }
+      return base;
     }
     return url;
   };
@@ -244,6 +246,14 @@ export default function AdminLoginPage() {
   useEffect(() => {
     if (!streamUrlWithRetry || streamError || activeTab !== 'qr') return;
 
+    // Como streams MJPEG contínuos podem não disparar o evento onLoad tradicional,
+    // forçamos imageLoaded para true após 1 segundo se o elemento da imagem existir.
+    const forceLoadTimer = setTimeout(() => {
+      if (streamImgRef.current) {
+        setImageLoaded(true);
+      }
+    }, 1000);
+
     const timer = setTimeout(() => {
       setImageLoaded((current) => {
         if (!current) {
@@ -253,7 +263,10 @@ export default function AdminLoginPage() {
       });
     }, 3500);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(forceLoadTimer);
+      clearTimeout(timer);
+    };
   }, [streamUrlWithRetry, streamError, activeTab]);
 
   useEffect(() => {
@@ -301,7 +314,7 @@ export default function AdminLoginPage() {
 
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
-      ctx.filter = 'contrast(1.20) brightness(0.95)';
+      ctx.filter = 'grayscale(1) contrast(1.4) brightness(0.95)';
       ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
       ctx.filter = 'none';
 
@@ -329,14 +342,6 @@ export default function AdminLoginPage() {
     return () => {
       isMounted = false;
       if (intervalId) clearInterval(intervalId);
-
-      try {
-        const img = document.querySelector('img[alt="Login ESP32 Camera Stream"]') as HTMLImageElement | null;
-        if (img) {
-          img.src = "";
-          img.removeAttribute('src');
-        }
-      } catch (e) {}
 
       if (html5QrCode) {
         try {
@@ -548,7 +553,7 @@ export default function AdminLoginPage() {
                       <QRScanner 
                         key={scannerKey}
                         onScan={handleHybridLogin} 
-                        deviceId={isTotem ? (currentTerminal?.settings?.scanningCameraDevice || currentTerminal?.settings?.preferredCamera || systemSettings.adminCaptureDevice || 'default') : (systemSettings.adminCaptureDevice || 'default')}
+                        deviceId={isTotem ? (currentTerminal?.settings?.scanningCameraDevice || systemSettings.adminCaptureDevice || 'default') : (systemSettings.adminCaptureDevice || 'default')}
                       />
                     </div>
                     <p className="text-[10px] text-center text-indigo-400 font-black uppercase tracking-[0.18em] bg-indigo-500/10 py-3 rounded-xl border border-indigo-500/20 shadow-sm">

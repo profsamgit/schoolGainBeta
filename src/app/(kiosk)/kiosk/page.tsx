@@ -211,13 +211,13 @@ export default function KioskPage() {
 
   const activeLoginUrl = (isIdle || activeTab !== 'qr') ? '' : getCameraUrl(
     currentTerminal?.settings?.loginCameraSource || systemSettings.studentCaptureSource || 'browser',
-    currentTerminal?.settings?.loginCameraUrl || currentTerminal?.settings?.cameraUrl || systemSettings.studentCaptureUrl || '',
+    currentTerminal?.settings?.loginCameraUrl || systemSettings.studentCaptureUrl || '',
     'login'
   );
 
   const activeScanningUrl = isIdle ? '' : getCameraUrl(
     currentTerminal?.settings?.scanningCameraSource || systemSettings.studentCaptureSource || 'browser', 
-    currentTerminal?.settings?.scanningCameraUrl || currentTerminal?.settings?.cameraUrl || systemSettings.studentCaptureUrl || '',
+    currentTerminal?.settings?.scanningCameraUrl || systemSettings.studentCaptureUrl || '',
     'scan'
   );
 
@@ -394,7 +394,7 @@ export default function KioskPage() {
 
     const interval = setInterval(pollHardware, 2000);
     return () => clearInterval(interval);
-  }, [step, activeTab, systemSettings.terminalId, users, getLockoutStatus, activeLoginCameraSource, handleLogin]);
+  }, [step, activeTab, currentTerminal?.id, hardwareId, users, getLockoutStatus, activeLoginCameraSource, handleLogin]);
 
   useEffect(() => {
     if (activeTab !== 'rfid') return;
@@ -443,7 +443,7 @@ export default function KioskPage() {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         try {
           const videoConstraints: any = { width: { ideal: 1280 }, height: { ideal: 720 } };
-          const scanningCameraDevice = currentTerminal?.settings?.scanningCameraDevice || currentTerminal?.settings?.preferredCamera || systemSettings.studentCaptureDevice;
+          const scanningCameraDevice = currentTerminal?.settings?.scanningCameraDevice || systemSettings.studentCaptureDevice;
           if (scanningCameraDevice && scanningCameraDevice !== 'default') {
             videoConstraints.deviceId = { exact: scanningCameraDevice };
           } else {
@@ -470,7 +470,7 @@ export default function KioskPage() {
     }
     getCameraPermission();
     return () => { isCancelled = true; stopCamera(); };
-  }, [step, identificationResult, activeScanningCameraSource, toast, currentTerminal?.settings?.preferredCamera, currentTerminal?.settings?.scanningCameraDevice, isIdle]);
+  }, [step, identificationResult, activeScanningCameraSource, toast, currentTerminal?.settings?.scanningCameraDevice, isIdle]);
 
   const handleKeyboardInput = (key: string) => { setStudentRa((prev) => (prev + key).toUpperCase()); raInputRef.current?.focus(); };
   const handleKeyboardBackspace = () => { setStudentRa((prev) => prev.slice(0, -1)); raInputRef.current?.focus(); };
@@ -789,7 +789,7 @@ export default function KioskPage() {
         setShowKeyboard={setShowKeyboard} handleKeyboardInput={handleKeyboardInput}
         handleKeyboardBackspace={handleKeyboardBackspace} activeLoginCameraSource={activeLoginCameraSource}
         activeLoginUrl={activeLoginUrl}
-        scannerKey={scannerKey} loginCameraDeviceId={currentTerminal?.settings?.scanningCameraDevice || currentTerminal?.settings?.preferredCamera || systemSettings.studentCaptureDevice || 'default'}
+        scannerKey={scannerKey} loginCameraDeviceId={currentTerminal?.settings?.scanningCameraDevice || systemSettings.studentCaptureDevice || 'default'}
         onIdentify={handleLogin}
         isProcessing={isLoading}
       />

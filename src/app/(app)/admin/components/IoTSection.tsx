@@ -84,8 +84,8 @@ export function IoTSection({ terminals = [] }: IoTSectionProps) {
 
     terminals.forEach((t) => {
       // 1. ESP da Câmera de Login (Qualquer fonte que possua URL)
-      if (t.settings?.loginCameraUrl || t.settings?.cameraUrl) {
-        const url = t.settings?.loginCameraUrl || t.settings?.cameraUrl;
+      if (t.settings?.loginCameraUrl) {
+        const url = t.settings?.loginCameraUrl;
         const ip = getIpFromUrl(url);
         if (ip) {
           esps.push({
@@ -102,8 +102,8 @@ export function IoTSection({ terminals = [] }: IoTSectionProps) {
       }
 
       // 2. ESP da Câmera do Scanner (Qualquer fonte que possua URL)
-      if (t.settings?.scanningCameraUrl || t.settings?.cameraUrl) {
-        const url = t.settings?.scanningCameraUrl || t.settings?.cameraUrl;
+      if (t.settings?.scanningCameraUrl) {
+        const url = t.settings?.scanningCameraUrl;
         const ip = getIpFromUrl(url);
         if (ip) {
           esps.push({

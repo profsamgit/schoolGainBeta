@@ -36,12 +36,18 @@ export default function AdminSettingsPage() {
   const { systemSettings, updateSystemSettings, currentUser } = useEcosystem();
   const { toast } = useToast();
   
-  // Estado local para o formulário
-  const [settings, setSettings] = useState(systemSettings || {
-    loginMethod: 'all',
-    cameraSource: 'browser',
-    terminalId: 'TERM-01'
-  });
+  // Estado local para o formulário alinhado com SystemSettings
+  const [settings, setSettings] = useState(() => ({
+    studentLoginMethod: systemSettings?.studentLoginMethod || 'all',
+    adminLoginMethod: systemSettings?.adminLoginMethod || 'all',
+    studentCaptureSource: systemSettings?.studentCaptureSource || 'browser',
+    adminCaptureSource: systemSettings?.adminCaptureSource || 'browser',
+    studentCaptureDevice: systemSettings?.studentCaptureDevice || '',
+    adminCaptureDevice: systemSettings?.adminCaptureDevice || '',
+    studentCaptureUrl: systemSettings?.studentCaptureUrl || '',
+    adminCaptureUrl: systemSettings?.adminCaptureUrl || '',
+    studentAreaMaintenance: systemSettings?.studentAreaMaintenance || false,
+  }));
 
   if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'super_admin')) {
     return (
@@ -62,7 +68,7 @@ export default function AdminSettingsPage() {
     updateSystemSettings(settings);
     toast({
       title: "Configurações Salvas",
-      description: "As preferências de hardware foram atualizadas com sucesso.",
+      description: "As preferências globais e de hardware foram atualizadas com sucesso.",
     });
   };
 
@@ -79,46 +85,66 @@ export default function AdminSettingsPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-primary" />
-              <CardTitle>Identificação do Aluno</CardTitle>
+              <CardTitle>Métodos de Identificação</CardTitle>
             </div>
             <CardDescription>
-              Defina como os alunos poderão acessar este terminal.
+              Defina como os usuários e gestores acessam o ecossistema.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Método de Login</Label>
+              <Label>Método de Login do Aluno</Label>
               <Select 
-                value={settings.loginMethod || "all"} 
-                onValueChange={(v: any) => setSettings({...settings, loginMethod: v})}
+                value={settings.studentLoginMethod || "all"} 
+                onValueChange={(v: any) => setSettings({...settings, studentLoginMethod: v})}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o método" />
+                  <SelectValue placeholder="Selecione o método para alunos" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos (Manual, QR, RFID)</SelectItem>
                   <SelectItem value="manual">Apenas RA Manual</SelectItem>
                   <SelectItem value="qr">Apenas QR Code</SelectItem>
                   <SelectItem value="rfid">Apenas RFID</SelectItem>
+                  <SelectItem value="manual_qr">RA Manual + QR Code</SelectItem>
+                  <SelectItem value="manual_rfid">RA Manual + RFID</SelectItem>
+                  <SelectItem value="qr_rfid">QR Code + RFID</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label>ID do Terminal (Nome na Rede)</Label>
-              <div className="flex gap-2">
-                <Input 
-                  value={settings.terminalId}
-                  onChange={(e) => setSettings({...settings, terminalId: e.target.value})}
-                  placeholder="Ex: TERM-BIBLIOTECA"
-                />
-                <Button variant="outline" size="icon" title="Gerar novo ID">
-                  <RefreshCcw className="h-4 w-4" />
-                </Button>
-              </div>
-              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">
-                O hardware (ESP32) deve usar este ID para enviar dados.
-              </p>
+              <Label>Método de Login do Administrador</Label>
+              <Select 
+                value={settings.adminLoginMethod || "all"} 
+                onValueChange={(v: any) => setSettings({...settings, adminLoginMethod: v})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o método para admins" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos (Manual, QR, RFID)</SelectItem>
+                  <SelectItem value="manual">Apenas Login Manual</SelectItem>
+                  <SelectItem value="qr">Apenas QR Code</SelectItem>
+                  <SelectItem value="rfid">Apenas RFID</SelectItem>
+                  <SelectItem value="manual_qr">Login Manual + QR Code</SelectItem>
+                  <SelectItem value="manual_rfid">Login Manual + RFID</SelectItem>
+                  <SelectItem value="qr_rfid">QR Code + RFID</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center space-x-2 pt-2">
+              <input 
+                id="maintenance-mode"
+                type="checkbox"
+                checked={settings.studentAreaMaintenance}
+                onChange={(e) => setSettings({...settings, studentAreaMaintenance: e.target.checked})}
+                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <Label htmlFor="maintenance-mode" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Ativar Modo Manutenção na Área do Aluno
+              </Label>
             </div>
           </CardContent>
           <CardFooter>
@@ -133,23 +159,23 @@ export default function AdminSettingsPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Configurações de Hardware (Câmera) */}
+        {/* Configurações de Hardware (Câmera do Aluno) */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
               <Camera className="h-5 w-5 text-primary" />
-              <CardTitle>Hardware de Visão</CardTitle>
+              <CardTitle>Hardware de Visão (Alunos)</CardTitle>
             </div>
             <CardDescription>
-              Configure a origem da captura de imagem para QR-Code.
+              Configure o comportamento de captura de imagem para os alunos.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Fonte da Câmera</Label>
+              <Label>Fonte da Câmera (Aluno)</Label>
               <Select 
-                value={settings.cameraSource || "browser"} 
-                onValueChange={(v: any) => setSettings({...settings, cameraSource: v})}
+                value={settings.studentCaptureSource || "browser"} 
+                onValueChange={(v: any) => setSettings({...settings, studentCaptureSource: v})}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione a fonte" />
@@ -174,13 +200,88 @@ export default function AdminSettingsPage() {
               </Select>
             </div>
 
-            {(settings.cameraSource === 'esp32' || settings.cameraSource === 'esp32_https') && (
-              <div className="p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-lg">
-                <p className="text-sm text-amber-800 dark:text-amber-400">
-                  <strong>Nota:</strong> Para usar o ESP32-CAM, certifique-se de que ele está enviando o texto do RA para a rota <code>/api/hardware/input</code> com o Terminal ID correto.
-                </p>
+            {(settings.studentCaptureSource === 'esp32' || settings.studentCaptureSource === 'esp32_https') && (
+              <div className="space-y-2 animate-in fade-in duration-200">
+                <Label>Endereço IP / URL da ESP32 (Aluno)</Label>
+                <Input 
+                  value={settings.studentCaptureUrl}
+                  onChange={(e) => setSettings({...settings, studentCaptureUrl: e.target.value})}
+                  placeholder="Ex: 192.168.1.50"
+                />
               </div>
             )}
+
+            <div className="space-y-2">
+              <Label>ID do Dispositivo de Captura (Padrão)</Label>
+              <Input 
+                value={settings.studentCaptureDevice}
+                onChange={(e) => setSettings({...settings, studentCaptureDevice: e.target.value})}
+                placeholder="Ex: default ou device-id"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Configurações de Hardware (Câmera do Admin) */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Camera className="h-5 w-5 text-primary" />
+              <CardTitle>Hardware de Visão (Gestores)</CardTitle>
+            </div>
+            <CardDescription>
+              Configure o comportamento de captura de imagem para os gestores.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Fonte da Câmera (Admin)</Label>
+              <Select 
+                value={settings.adminCaptureSource || "browser"} 
+                onValueChange={(v: any) => setSettings({...settings, adminCaptureSource: v})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a fonte" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="browser">
+                    <div className="flex items-center gap-2">
+                      <Smartphone className="h-4 w-4" /> Webcam do Computador
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="esp32">
+                    <div className="flex items-center gap-2">
+                      <Cpu className="h-4 w-4" /> ESP32-CAM HTTP (IP Local)
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="esp32_https">
+                    <div className="flex items-center gap-2">
+                      <Cpu className="h-4 w-4" /> ESP32-CAM HTTPS Proxy
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {(settings.adminCaptureSource === 'esp32' || settings.adminCaptureSource === 'esp32_https') && (
+              <div className="space-y-2 animate-in fade-in duration-200">
+                <Label>Endereço IP / URL da ESP32 (Admin)</Label>
+                <Input 
+                  value={settings.adminCaptureUrl}
+                  onChange={(e) => setSettings({...settings, adminCaptureUrl: e.target.value})}
+                  placeholder="Ex: 192.168.1.51"
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>ID do Dispositivo de Captura (Padrão)</Label>
+              <Input 
+                value={settings.adminCaptureDevice}
+                onChange={(e) => setSettings({...settings, adminCaptureDevice: e.target.value})}
+                placeholder="Ex: default ou device-id"
+              />
+            </div>
           </CardContent>
         </Card>
       </div>
