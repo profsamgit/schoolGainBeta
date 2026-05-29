@@ -42,6 +42,7 @@ import { useEcosystem } from '@/contexts/EcosystemContext';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 
+// Esquemático do formulário de configuração do quiz (validação com Zod)
 const formSchema = z.object({
   topic: z.string().min(1, 'Por favor, selecione um tópico.'),
   difficulty: z.enum(['easy', 'medium', 'hard']),
@@ -52,12 +53,14 @@ type QuizFormValues = z.infer<typeof formSchema>;
 type Question = GenerateQuizOutput['questions'][0];
 
 export function QuizClient() {
+  // Estados locais para controlar os dados do quiz gerado, loading, erros e biblioteca de quizzes
   const [quizData, setQuizData] = useState<GenerateQuizOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [availableQuizzes, setAvailableQuizzes] = useState<any[]>([]);
   const [loadingQuizzes, setLoadingQuizzes] = useState(true);
 
+  // Efeito para carregar a biblioteca escolar de quizzes salvos no Firestore
   useEffect(() => {
     async function fetchQuizzes() {
       try {
@@ -66,6 +69,7 @@ export function QuizClient() {
         querySnapshot.forEach((docSnap) => {
           list.push({ id: docSnap.id, ...docSnap.data() });
         });
+        // Ordena por data de criação de forma decrescente
         list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
         setAvailableQuizzes(list);
       } catch (err) {
@@ -77,6 +81,7 @@ export function QuizClient() {
     fetchQuizzes();
   }, [quizData]);
 
+  // Handler para iniciar um quiz já existente da biblioteca da escola
   const handleStartExistingQuiz = (quiz: any) => {
     form.setValue('topic', quiz.topic);
     form.setValue('difficulty', quiz.difficulty);
@@ -88,14 +93,67 @@ export function QuizClient() {
     resetQuizState();
   };
 
+  // Estados locais para monitorar o progresso das perguntas e respostas selecionadas pelo aluno
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
   const [showResults, setShowResults] = useState(false);
 
+  // Ganchos úteis (Toasts, Roteamento e Contexto do Ecossistema de Aprendizado)
   const { toast } = useToast();
   const router = useRouter();
   const { completeDailyMission, allQuizTopics: rawTopics, currentUser, recordQuizCompletion, userStates = {} } = useEcosystem();
   
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (quizData && !showResults) {
+        e.preventDefault();
+        e.returnValue = 'Seu progresso no quiz será perdido.';
+        return 'Seu progresso no quiz será perdido.';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [quizData, showResults]);
+
+  // Mecanismo Anti-Cola: impede cópia/recorte e reinicia o quiz em caso de mudança de aba ou janela
+  useEffect(() => {
+    const handleCopy = (e: ClipboardEvent) => {
+      if (quizData && !showResults) {
+        e.preventDefault();
+        toast({
+          title: "Cópia não permitida!",
+          description: "Não é permitido copiar o conteúdo das perguntas do quiz.",
+          variant: "destructive"
+        });
+      }
+    };
+
+    const handleVisibilityOrBlur = () => {
+      if (quizData && !showResults) {
+        setQuizData(null);
+        resetQuizState();
+        toast({
+          title: "Quiz Cancelado!",
+          description: "Detectamos que você saiu da página ou mudou de guia. O quiz foi cancelado por segurança.",
+          variant: "destructive"
+        });
+      }
+    };
+
+    document.addEventListener('copy', handleCopy);
+    document.addEventListener('cut', handleCopy);
+    document.addEventListener('visibilitychange', handleVisibilityOrBlur);
+    window.addEventListener('blur', handleVisibilityOrBlur);
+
+    return () => {
+      document.removeEventListener('copy', handleCopy);
+      document.removeEventListener('cut', handleCopy);
+      document.removeEventListener('visibilitychange', handleVisibilityOrBlur);
+      window.removeEventListener('blur', handleVisibilityOrBlur);
+    };
+  }, [quizData, showResults, toast]);
+
+  // Recupera o estado (moedas, histórico de tarefas) do aluno atual logado no ecossistema
   const studentState = useMemo(() => {
     if (currentUser?.id && userStates[currentUser.id]) {
       return userStates[currentUser.id];
@@ -103,8 +161,10 @@ export function QuizClient() {
     return null;
   }, [currentUser, userStates]);
 
+  // Obtém a data de hoje formatada no fuso de São Paulo para validação diária
   const today = useMemo(() => new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }), []);
 
+  // Verifica se o aluno já concluiu missões diárias de quiz em cada dificuldade hoje
   const completedToday = useMemo(() => {
     const dates = studentState?.lastQuizDates || {};
     return {
@@ -113,6 +173,8 @@ export function QuizClient() {
       hard: dates.hard === today,
     };
   }, [studentState, today]);
+
+  // Filtra os tópicos de quiz associados à escola do aluno ou de escopo global
   const allQuizTopics = useMemo(() => {
     return rawTopics
       .filter(t => 
@@ -124,6 +186,7 @@ export function QuizClient() {
   }, [rawTopics, currentUser?.schoolId]);
   const searchParams = useSearchParams();
 
+  // Configuração inicial do react-hook-form para o gerador de quiz
   const form = useForm<QuizFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -138,12 +201,13 @@ export function QuizClient() {
     return allQuizTopics.find(t => t.name === selectedTopicName);
   }, [allQuizTopics, selectedTopicName]);
 
+  // Retorna se o aluno já realizou o quiz do tópico selecionado alguma vez (fica em modo treino/apenas leitura se true)
   const hasAlreadyCompleted = useMemo(() => {
     if (!selectedTopic || !studentState) return false;
     return studentState.completedQuizzes?.includes(selectedTopic.id) || false;
   }, [selectedTopic, studentState]);
 
-  // Auto-start quiz if requested via URL
+  // Início automático do quiz se solicitado via parâmetros da URL (autoStart)
   useEffect(() => {
     const autoStart = searchParams.get('autoStart') === 'true';
     if (autoStart && !quizData && !isLoading) {
@@ -151,6 +215,7 @@ export function QuizClient() {
     }
   }, [searchParams, quizData, isLoading, form]);
 
+  // Handler assíncrono acionado no submit do formulário para gerar o quiz via IA
   async function onSubmit(values: QuizFormValues) {
     setIsLoading(true);
     setError(null);
@@ -167,6 +232,7 @@ export function QuizClient() {
     }
   }
 
+  // Registra a resposta escolhida pelo aluno no índice da pergunta atual
   function handleAnswerSelect(answer: string) {
     const newAnswers = [...selectedAnswers];
     newAnswers[currentQuestionIndex] = answer;
@@ -193,8 +259,16 @@ export function QuizClient() {
       if (diff === 'medium') basePoints = 45;
       else if (diff === 'hard') basePoints = 60;
       
-      // Penalidade: -2 pontos por erro
-      const points = Math.max(0, basePoints - (errors * 2));
+      // Ajuste pelo número de perguntas selecionadas: 3 perguntas diminui 5 coins, 10 perguntas aumenta 5 coins
+      if (total === 3) {
+        basePoints -= 5;
+      } else if (total === 10) {
+        basePoints += 5;
+      }
+      
+      // A penalidade por erro é proporcional: o valor base do quiz é dividido pela quantidade total de questões.
+      // Portanto, o ganho final é baseado na proporção de acertos (acertos / total) sobre o valor base. Se errar todas, ganha 0.
+      const points = Math.max(0, Math.round((basePoints / total) * score));
       
       if (hasAlreadyCompleted) {
         toast({
@@ -229,6 +303,7 @@ export function QuizClient() {
     }
   }
   
+  // Calcula o total de acertos comparando as respostas selecionadas com as corretas
   function calculateScore() {
     if (!quizData) return 0;
     return quizData.questions.reduce((score, question, index) => {
@@ -236,6 +311,7 @@ export function QuizClient() {
     }, 0);
   }
 
+  // Redefine as variáveis de estado locais para reiniciar a estrutura do quiz
   function resetQuizState() {
     setCurrentQuestionIndex(0);
     setSelectedAnswers([]);
@@ -256,7 +332,7 @@ export function QuizClient() {
   if (quizData && !showResults) {
     const question = quizData.questions[currentQuestionIndex];
     return (
-      <Card className="w-full max-w-2xl mx-auto border border-slate-200 dark:border-white/5 shadow-2xl bg-white dark:bg-slate-900/40 text-slate-950 dark:text-white backdrop-blur-xl rounded-[2rem] overflow-hidden animate-in fade-in zoom-in-95 duration-500">
+      <Card className="w-full max-w-2xl mx-auto border border-slate-200 dark:border-white/5 shadow-2xl bg-white dark:bg-slate-900/40 text-slate-950 dark:text-white backdrop-blur-xl rounded-[2rem] overflow-hidden animate-in fade-in zoom-in-95 duration-500 select-none">
         <CardHeader className="border-b border-slate-100 dark:border-white/5 p-6 md:p-8">
           <CardTitle className="text-xl font-black text-slate-950 dark:text-white uppercase tracking-tight leading-snug">{quizData.quizTitle}</CardTitle>
           <CardDescription className="text-slate-500 dark:text-slate-450 font-black text-[9px] mt-1.5 flex justify-between items-center uppercase tracking-wider">

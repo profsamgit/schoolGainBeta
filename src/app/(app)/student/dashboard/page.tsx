@@ -1144,7 +1144,12 @@ export default function DashboardPage() {
                 </h2>
                 
                 <p className="text-slate-600 dark:text-slate-300 font-medium">
-                  Seu ecossistema ficou inativo por <span className="text-red-600 font-bold">{depreciationEvent.inactiveDays} dias</span> e sofreu as consequências da fase <span className="uppercase font-extrabold text-red-600 dark:text-red-500">{depreciationEvent.phase}</span>.
+                  Seu ecossistema ficou inativo por <span className="text-red-600 font-bold">{depreciationEvent.inactiveDays} dias</span> e sofreu as consequências da fase <span className="uppercase font-extrabold text-red-600 dark:text-red-500">
+                    {depreciationEvent.phase === 'alert' ? 'Alerta' : 
+                     depreciationEvent.phase === 'decline' ? 'Declínio' : 
+                     depreciationEvent.phase === 'collapse' ? 'Colapso' : 
+                     depreciationEvent.phase === 'extinction' ? 'Extinção' : depreciationEvent.phase}
+                  </span>.
                 </p>
               </div>
 

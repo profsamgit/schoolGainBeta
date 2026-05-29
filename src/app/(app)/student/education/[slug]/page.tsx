@@ -37,7 +37,7 @@ export default function EducationArticlePage({
 
   const hasAlreadyRead = currentUser && userStates[currentUser.id]?.readArticles?.includes(article?.id || '');
 
-  // Parse text into clean content blocks
+  // Divide o texto do artigo em blocos/parágrafos limpos de conteúdo
   const blocks = useMemo(() => {
     if (!article) return [];
     return article.content.split('\n\n')
@@ -45,22 +45,22 @@ export default function EducationArticlePage({
       .filter(p => p.length > 0);
   }, [article]);
 
-  // Keep track of maximum paragraph index reached/read by the user
+  // Mantém rastreado o índice máximo de parágrafo alcançado/lido pelo aluno
   useEffect(() => {
     if (currentBlockIndex > maxUnlockedIndex) {
       setMaxUnlockedIndex(currentBlockIndex);
     }
   }, [currentBlockIndex, maxUnlockedIndex]);
 
-  // Calculate dynamic reading time for the current block based on word count
+  // Calcula o tempo dinâmico de leitura para o bloco atual com base no número de palavras
   const getReadingTimeForBlock = (text: string) => {
     const cleanText = text.replace(/[#\-]/g, '').trim();
     const wordCount = cleanText.split(/\s+/).filter(Boolean).length;
-    // Base time of 3s + 0.3s per word (avg 180wpm with breathing room). Clamp between 3s and 12s.
+    // Tempo base de 3s + 0.3s por palavra (média de 180 palavras por minuto com margem de segurança). Limita entre 3s e 12s.
     return Math.max(3, Math.min(12, Math.ceil(3 + wordCount * 0.3)));
   };
 
-  // Set timer when block changes
+  // Define o temporizador regressivo ao mudar de bloco
   useEffect(() => {
     if (hasAlreadyRead || currentBlockIndex < maxUnlockedIndex) {
       setTimeLeft(0);
@@ -74,7 +74,7 @@ export default function EducationArticlePage({
     }
   }, [currentBlockIndex, blocks, hasAlreadyRead, maxUnlockedIndex]);
 
-  // Countdown timer logic
+  // Lógica de contagem regressiva do temporizador
   useEffect(() => {
     if (timeLeft <= 0) return;
     const timer = setInterval(() => {
@@ -88,6 +88,63 @@ export default function EducationArticlePage({
     }, 1000);
     return () => clearInterval(timer);
   }, [timeLeft]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!hasAlreadyRead && currentBlockIndex > 0) {
+        e.preventDefault();
+        e.returnValue = 'Seu progresso será perdido.';
+        return 'Seu progresso será perdido.';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasAlreadyRead, currentBlockIndex]);
+
+  // Mecanismo Anti-Cola: impede cópia/recorte de texto e reinicia a leitura caso o aluno saia da aba ou perca o foco da janela
+  useEffect(() => {
+    const handleCopy = (e: ClipboardEvent) => {
+      if (!hasAlreadyRead && currentBlockIndex > 0) {
+        e.preventDefault();
+        toast({
+          title: "Cópia não permitida!",
+          description: "Não é permitido copiar o conteúdo do artigo durante o estudo.",
+          variant: "destructive"
+        });
+      }
+    };
+
+    const handleVisibilityOrBlur = () => {
+      if (!hasAlreadyRead && currentBlockIndex > 0) {
+        setCurrentBlockIndex(0);
+        toast({
+          title: "Leitura Reiniciada!",
+          description: "Detectamos que você saiu da página ou mudou de guia. A leitura foi reiniciada do início por segurança.",
+          variant: "destructive"
+        });
+      }
+    };
+
+    document.addEventListener('copy', handleCopy);
+    document.addEventListener('cut', handleCopy);
+    document.addEventListener('visibilitychange', handleVisibilityOrBlur);
+    window.addEventListener('blur', handleVisibilityOrBlur);
+
+    return () => {
+      document.removeEventListener('copy', handleCopy);
+      document.removeEventListener('cut', handleCopy);
+      document.removeEventListener('visibilitychange', handleVisibilityOrBlur);
+      window.removeEventListener('blur', handleVisibilityOrBlur);
+    };
+  }, [hasAlreadyRead, currentBlockIndex, toast]);
+
+  const handleBack = () => {
+    if (!hasAlreadyRead && currentBlockIndex > 0) {
+      const confirmExit = window.confirm("Deseja mesmo sair? Seu progresso de leitura será perdido.");
+      if (!confirmExit) return;
+    }
+    router.push('/student/education');
+  };
 
   if (isInitializing || !currentUser) {
     return (
@@ -164,7 +221,7 @@ export default function EducationArticlePage({
       <div className="flex items-center justify-between mb-6">
         <Button 
           variant="ghost" 
-          onClick={() => router.back()} 
+          onClick={handleBack} 
           className="rounded-xl font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/5 transition-colors"
         >
           <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
@@ -186,7 +243,10 @@ export default function EducationArticlePage({
       </div>
 
       {/* Container de Leitura Interativa */}
-      <div className="relative overflow-hidden rounded-[2.5rem] border border-slate-200/80 dark:border-white/5 bg-white/90 dark:bg-slate-900/40 backdrop-blur-xl p-8 sm:p-12 text-slate-800 dark:text-white shadow-2xl dark:shadow-[0_25px_60px_rgba(0,0,0,0.5)] mb-8 transition-all duration-500 min-h-[300px] flex flex-col justify-between">
+      <div className={cn(
+        "relative overflow-hidden rounded-[2.5rem] border border-slate-200/80 dark:border-white/5 bg-white/90 dark:bg-slate-900/40 backdrop-blur-xl p-8 sm:p-12 text-slate-800 dark:text-white shadow-2xl dark:shadow-[0_25px_60px_rgba(0,0,0,0.5)] mb-8 transition-all duration-500 min-h-[300px] flex flex-col justify-between",
+        !hasAlreadyRead && "select-none"
+      )}>
         <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/5 blur-[100px] rounded-full pointer-events-none" />
         
         {/* Parágrafo de Conteúdo Ativo */}
@@ -218,7 +278,7 @@ export default function EducationArticlePage({
           </Button>
 
           {isLastBlock ? (
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col sm:flex-row items-center gap-3">
               {/* Botão de Resgatar Recompensa no Último Parágrafo */}
               <Button 
                 size="lg"
@@ -231,7 +291,7 @@ export default function EducationArticlePage({
                     if (success) {
                       toast({
                         title: "Leitura Concluída!",
-                        description: "Você conquistou 20 Bio-Coins. Continue assim!",
+                        description: "Você conquistou 30 Bio-Coins. Continue assim!",
                       });
                     }
                   } catch (err) {
@@ -259,6 +319,15 @@ export default function EducationArticlePage({
                   <><Sparkles className="mr-2 h-4 w-4 animate-pulse" /> Coletar Recompensa</>
                 )}
               </Button>
+
+              {hasAlreadyRead && (
+                <Button
+                  onClick={() => router.push('/student/education')}
+                  className="h-14 px-8 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all duration-300 shadow-xl bg-slate-605 hover:bg-slate-700 text-white dark:bg-slate-800 dark:hover:bg-slate-700 shadow-slate-500/5 hover:scale-105 active:scale-95"
+                >
+                  Fechar Artigo
+                </Button>
+              )}
             </div>
           ) : (
             <Button
