@@ -126,14 +126,11 @@ O descarte nos totens coletores (Kiosks) foi multiplicado por **10x** para premi
 
 ### 2. Atividades Pedagógicas
 - **Leitura de Artigos:** Concede **30 Bio-Coins** por artigo finalizado (tempo de leitura dinâmico por palavra, com trava de segurança anti-cola). Limite de 90 moedas/dia.
-- **Quizzes Dinâmicos:** Concede moedas com base na dificuldade selecionada:
-  - **Fácil:** 30 Bio-Coins (base)
-  - **Médio:** 45 Bio-Coins (base)
-  - **Difícil:** 60 Bio-Coins (base)
-- **Ajuste de Volume do Quiz:**
-  - Escolher **3 perguntas** reduz o valor do prêmio base em **-5 moedas**.
-  - Escolher **10 perguntas** aumenta o valor do prêmio base em **+5 moedas**.
-- **Penalidade Proporcional do Quiz:** A recompensa final do quiz é diretamente proporcional à porcentagem de acertos (`basePoints * (acertos / total)`). Errar todas as questões zera totalmente os ganhos.
+- **Quizzes Dinâmicos:** A recompensa total do quiz é a soma de três fatores:
+  - **Valor Base por Nível (Dificuldade):** Fácil (30), Médio (45), Difícil (60 Bio-Coins).
+  - **Valor por Tópico (Adicional):** Adiciona o valor customizado associado ao tópico do quiz (geralmente +10 Bio-Coins).
+  - **Ajuste por Volume de Perguntas:** Escolher **3 perguntas** reduz o valor do prêmio final em **-5 moedas**; escolher **10 perguntas** aumenta o valor em **+5 moedas**.
+- **Penalidade Proporcional do Quiz:** A recompensa final obtida pelo aluno é diretamente proporcional à porcentagem de acertos (`totalReward * (acertos / total)`). Se errar todas as questões do quiz, ele perde tudo e ganha 0.
 
 ---
 

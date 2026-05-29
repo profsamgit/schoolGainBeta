@@ -197,6 +197,7 @@ export function QuizClient() {
   });
 
   const selectedTopicName = form.watch('topic');
+  const selectedNumQuestions = form.watch('numberOfQuestions');
   const selectedTopic = useMemo(() => {
     return allQuizTopics.find(t => t.name === selectedTopicName);
   }, [allQuizTopics, selectedTopicName]);
@@ -252,23 +253,28 @@ export function QuizClient() {
       
       const score = calculateScore();
       const total = quizData!.questions.length;
-      const errors = total - score;
       
-      // Manual de Pontuação v2 — Valores fixos por dificuldade
+      // Valor base por nível (dificuldade)
       let basePoints = 30; // Fácil
       if (diff === 'medium') basePoints = 45;
       else if (diff === 'hard') basePoints = 60;
       
+      // Valor adicional por tópico
+      const topicValue = topic?.coinsValue !== undefined ? topic.coinsValue : 10;
+      
+      // Somatório base
+      let totalReward = basePoints + topicValue;
+      
       // Ajuste pelo número de perguntas selecionadas: 3 perguntas diminui 5 coins, 10 perguntas aumenta 5 coins
       if (total === 3) {
-        basePoints -= 5;
+        totalReward -= 5;
       } else if (total === 10) {
-        basePoints += 5;
+        totalReward += 5;
       }
       
-      // A penalidade por erro é proporcional: o valor base do quiz é dividido pela quantidade total de questões.
+      // A penalidade por erro é proporcional: o valor base final do quiz é dividido pela quantidade total de questões.
       // Portanto, o ganho final é baseado na proporção de acertos (acertos / total) sobre o valor base. Se errar todas, ganha 0.
-      const points = Math.max(0, Math.round((basePoints / total) * score));
+      const points = Math.max(0, Math.round((totalReward / total) * score));
       
       if (hasAlreadyCompleted) {
         toast({
@@ -464,13 +470,24 @@ export function QuizClient() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {[
-                    { key: 'easy', label: 'Fácil', offset: 0 },
-                    { key: 'medium', label: 'Médio', offset: 10 },
-                    { key: 'hard', label: 'Difícil', offset: 20 },
+                    { key: 'easy', label: 'Fácil', base: 30 },
+                    { key: 'medium', label: 'Médio', base: 45 },
+                    { key: 'hard', label: 'Difícil', base: 60 },
                   ].map((diffItem) => {
                     const isCompleted = completedToday[diffItem.key as 'easy' | 'medium' | 'hard'];
-                    const currentBaseValue = selectedTopic?.coinsValue !== undefined ? selectedTopic.coinsValue : 10;
-                    const calculatedPoints = currentBaseValue + diffItem.offset;
+                    let calculatedPoints = diffItem.base;
+                    
+                    // Adiciona o valor por tópico
+                    const topicValue = selectedTopic?.coinsValue !== undefined ? selectedTopic.coinsValue : 10;
+                    calculatedPoints += topicValue;
+                    
+                    // Ajusta dinamicamente a recompensa exibida dependendo do número de questões selecionadas
+                    if (selectedNumQuestions === 3) {
+                      calculatedPoints -= 5;
+                    } else if (selectedNumQuestions === 10) {
+                      calculatedPoints += 5;
+                    }
+                    
                     return (
                       <div 
                         key={diffItem.key}
