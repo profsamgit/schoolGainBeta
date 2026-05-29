@@ -111,6 +111,51 @@ O `EcosystemService` centraliza a lógica do sistema e gerencia a sincronizaçã
 
 ---
 
+## ♻️ Sistema de Pontuação e Rebalanceamento Econômico (v2)
+
+Para incentivar o engajamento físico e pedagógico do aluno, o sistema de pontos (XP) e Bio-Coins foi rebalanceado:
+
+### 1. Descarte Físico de Resíduos (Peso Primário)
+O descarte nos totens coletores (Kiosks) foi multiplicado por **10x** para premiar fortemente a ação ecológica prática:
+- **Plástico:** 100 Bio-Coins
+- **Papel:** 80 Bio-Coins
+- **Vidro:** 120 Bio-Coins
+- **Metal:** 150 Bio-Coins
+- **Orgânico:** 40 Bio-Coins
+- **Eletrônico:** 250 Bio-Coins
+
+### 2. Atividades Pedagógicas
+- **Leitura de Artigos:** Concede **30 Bio-Coins** por artigo finalizado (tempo de leitura dinâmico por palavra, com trava de segurança anti-cola). Limite de 90 moedas/dia.
+- **Quizzes Dinâmicos:** Concede moedas com base na dificuldade selecionada:
+  - **Fácil:** 30 Bio-Coins (base)
+  - **Médio:** 45 Bio-Coins (base)
+  - **Difícil:** 60 Bio-Coins (base)
+- **Ajuste de Volume do Quiz:**
+  - Escolher **3 perguntas** reduz o valor do prêmio base em **-5 moedas**.
+  - Escolher **10 perguntas** aumenta o valor do prêmio base em **+5 moedas**.
+- **Penalidade Proporcional do Quiz:** A recompensa final do quiz é diretamente proporcional à porcentagem de acertos (`basePoints * (acertos / total)`). Errar todas as questões zera totalmente os ganhos.
+
+---
+
+## 📉 Motor de Depreciação do Ecossistema
+
+Para manter os alunos ativos, inatividades a partir de 7 dias consecutivos acionam perdas progressivas e remoções de itens do ecossistema virtual no momento do login.
+
+### Fases do Decaimento Progressivo
+| Período de Inatividade | Fase | Consequências e Impacto |
+|---|---|---|
+| **7 a 13 dias** | **Alerta (Amarela)** | A vitalidade do ecossistema cai **-15%** por dia de atraso acumulado. |
+| **14 a 20 dias** | **Declínio (Laranja)** | Vitalidade forçada em **0%**, perda de **-30% de Bio-Coins** e **-20% de XP (Pontos)**. |
+| **21 a 27 dias** | **Colapso (Vermelha)** | Vitalidade em **0%**, perda de **-40% de Bio-Coins** e **-30% de XP** restantes. **Toda a fauna** virtual (peixes, aves, Nessie, barco, etc.) é removida. |
+| **28 dias ou mais** | **Extinção (Preta)** | Vitalidade em **0%**, perda de **-50% de Bio-Coins** e **-50% de XP** finais. **Toda a flora e base** (árvores, grama, filtros) são removidas. |
+
+### Regras de Negócio e Proteções
+- **Guardião da Lenda:** Alunos que compraram o Nessie (`monstro_lago`) nos últimos 30 dias ganham imunidade total contra depreciação.
+- **Registro em Auditoria:** Cada evento de depreciação é executado apenas uma vez por ciclo de inatividade e registrado em `depreciationLog`.
+- **Aviso no Login:** Um modal interativo no dashboard do aluno avisa o impacto sofrido na primeira entrada pós-depreciação. Banners amarelos de alerta preventivos surgem no ecossistema após 5 dias de inatividade.
+
+---
+
 ## Segurança
 
 - **Isolamento de dados:** Cada escola parceira possui seus próprios dados e configurações isolados pelo `schoolId`.
