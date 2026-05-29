@@ -35,6 +35,8 @@ O **SchoolGain** é um sistema de engajamento escolar voltado para a sustentabil
 - **Modo de Economia Inteligente (Standby Ativo):** O Totem Kiosk monitora 60 segundos de inatividade e entra em repouso automaticamente. O estado interrompe a webcam local e fecha síncronamente os sockets das câmeras de vídeo externas (ESP32-CAM) via limpeza de `src` na desmontagem e em eventos globais de histórico/popstate, apagando os LEDs Flash físicos automaticamente. Acorda instantaneamente ao toque.
 - **Permissão de Câmera Proativa:** O Kiosk e o portal solicitam permissão de mídia ao carregar a página. Isso faz com que os navegadores desbloqueiem e exponham os `deviceIds` persistentes antes que o código busque um ID específico, resolvendo falhas de conexão de primeira inicialização.
 - **Resolução Nativa e Desempenho (OV2640 & OV3660):** Mapeamos a câmera de login (OV2640) para utilizar resoluções nativas otimizadas em hardware (VGA de 30 FPS no modo fluido em vez de CIF processado via software), equiparando a velocidade da OV2640 com a OV3660 do scanner.
+- **Rebalanceamento Econômico & Novo Manual de Pontuação (v2):** Valores de pontos para descartes de materiais multiplicados por **10x** para priorizar ações físicas no totem (ex: Metal=150, Plástico=100 Bio-Coins). Aumentamos as moedas de leitura de artigos para **30** e unificamos a pontuação de quizzes em valores fixos por dificuldade (**30/45/60** Bio-Coins).
+- **Motor de Depreciação Ecológica Progressiva:** Implementado decaimento automático no login de alunos inativos a partir de 7 dias sem qualquer interação (compras, descartes, artigos ou quizzes). Dividido em 4 fases: *Alerta* (decaimento diário de vitalidade), *Declínio* (-30% moedas, -20% XP), *Colapso* (-40% moedas, -30% XP e remoção de toda a fauna virtual) e *Extinção* (-50% moedas, -50% XP e perda de flora e bases). Conta com imunidade de 30 dias para os guardiões do Nessie.
 - **Acessibilidade do Ecossistema Virtual em Smartphones:** Implementamos tela cheia virtual via CSS no "Meu Ecossistema" para contornar limitações da Fullscreen API do iOS Safari. Adicionamos suporte ao `env(safe-area-inset-bottom)` com folga de `4rem` para flutuar acima dos gestos do sistema e incluímos um botão de emergência superior (`Minimize`) contra bloqueios de interface.
 - **Compatibilidade Next.js 16 / React 19:** Atualizamos as páginas dinâmicas para suportar `params` como Promises assíncronas, utilizando o hook `use` do React 19 para desembrulhá-los com segurança e corrigir erros na abertura de artigos educativos.
 
@@ -105,6 +107,7 @@ O `EcosystemService` centraliza a lógica do sistema e gerencia a sincronizaçã
 - `PointsService` — Controle de pontos e XP
 - `WasteService` — Registro de descartes de resíduos
 - `PedagogicalService` — Quizzes, turmas e artigos educativos
+- `DepreciationService` — Regras de depreciação ecológica progressiva por inatividade
 
 ---
 

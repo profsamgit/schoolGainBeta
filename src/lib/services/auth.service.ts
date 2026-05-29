@@ -374,6 +374,14 @@ export class AuthService {
       this.service.currentUserRaSubject.next(ra);
       this.service.currentUserIdSubject.next(user.id);
       this.service.syncStateWithUser(user.id);
+
+      const loginState = this.service.data.userStates[user.id];
+      if (loginState) {
+        loginState.lastActivityDate = new Date().toISOString();
+        setDoc(doc(db, "userStates", user.id), loginState, { merge: true }).catch((err: any) => {
+          console.error("[AUTH] Erro ao atualizar lastActivityDate no login:", err);
+        });
+      }
       
       // Se for gestor, iniciamos a sincronização em massa da unidade
       if ((user.role === 'admin' || user.role === 'super_admin') && user.schoolId) {

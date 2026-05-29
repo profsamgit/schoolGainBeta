@@ -77,7 +77,8 @@ export type AuditActionType =
   | 'CRUD_CREATE' | 'CRUD_UPDATE' | 'CRUD_DELETE'
   | 'SYSTEM_RESET' | 'POINTS_AWARDED' | 'ITEM_PURCHASED'
   | 'SECURITY_LOCKOUT' | 'CONFIG_CHANGE'
-  | 'ARTICLE_READ' | 'QUIZ_COMPLETED' | 'REWARD_REDEEMED';
+  | 'ARTICLE_READ' | 'QUIZ_COMPLETED' | 'REWARD_REDEEMED'
+  | 'DEPRECIATION_APPLIED';
 
 export type AuditLogEntry = {
   id: string;
@@ -265,6 +266,18 @@ export type EcosystemItem =
   'cachorro' | 'gato' | 'borboletas' | 'borboletas_2' | 'borboletas_3' | 'borboletas_4' |
   'casa' | 'barco_1' | 'barco_2' | 'monstro_lago' | 'mae_human' | 'criancas' | 'placas_solares' | 'lixeiras';
 
+export type DepreciationPhase = 'alert' | 'decline' | 'collapse' | 'extinction';
+
+export type DepreciationEvent = {
+  date: string;
+  phase: DepreciationPhase;
+  inactiveDays: number;
+  pointsLost: number;
+  coinsLost: number;
+  vitalityLost: number;
+  itemsRemoved: EcosystemItem[];
+};
+
 /**
  * Interface que define o estado individual de cada usuário.
  * Armazena saldo atual, vitalidade do seu ecossistema e itens comprados.
@@ -287,6 +300,8 @@ export interface EcosystemUserState {
   completedQuizzes?: string[]; // IDs dos tópicos de quiz concluídos
   dailyArticleReads?: Record<string, string[]>; // Artigos lidos por data (para limite de 3/dia)
   pointTransactions?: PointTransaction[]; // Histórico de transações de pontos
+  lastActivityDate?: string;
+  depreciationLog?: DepreciationEvent[];
 }
 
 export type PointTransaction = {

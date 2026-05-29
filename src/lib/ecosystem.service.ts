@@ -53,6 +53,7 @@ import { PointsService } from './services/points.service';
 import { WasteService } from './services/waste.service';
 import { PedagogicalService } from './services/pedagogical.service';
 import { RegistrationService } from './services/registration.service';
+import { DepreciationService } from './services/depreciation.service';
 
 const STORAGE_BASE = 'schoolgain_eco';
 const STORAGE_KEY = 'schoolgain_ecosystem_data';
@@ -71,6 +72,7 @@ export class EcosystemService {
   private wasteService = new WasteService(this);
   private pedagogicalService = new PedagogicalService(this);
   private registrationService = new RegistrationService(this);
+  private depreciationService = new DepreciationService(this);
 
   /**
    * Converte uma string de texto puro em um hash SHA-256 para armazenamento seguro.
@@ -909,6 +911,12 @@ export class EcosystemService {
 
     this.pointsService.recalculatePointsValidity(user?.id || userId);
 
+    // Depreciação automática (apenas para alunos)
+    const targetUser = this.data.users.find(u => u.id === userId);
+    if (targetUser?.role === 'student') {
+      this.depreciationService.checkAndApplyDepreciation(userId);
+    }
+
     if (user?.id === this.data.currentUserId || user?.ra === this.data.currentUserRa) {
       this.balanceSubject.next(userState.balance);
       this.pointsSubject.next(userState.points);
@@ -1325,8 +1333,17 @@ export class EcosystemService {
       curso: user?.curso || null,
       lastMissionDate: null,
       readArticles: [],
-      dailyArticleReads: {}
+      dailyArticleReads: {},
+      lastActivityDate: new Date().toISOString(),
+      depreciationLog: []
     };
+  }
+
+  /**
+   * Excecuta a verificação de depreciação manualmente/automaticamente para um aluno
+   */
+  public checkDepreciation(userId: string) {
+    return this.depreciationService.checkAndApplyDepreciation(userId);
   }
 
 

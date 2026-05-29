@@ -188,12 +188,10 @@ export function QuizClient() {
       const total = quizData!.questions.length;
       const errors = total - score;
       
-      // Base points based on topic's custom coinsValue or difficulty standard
-      const baseTopicValue = topic?.coinsValue !== undefined ? topic.coinsValue : 10;
-      let basePoints = baseTopicValue;
-      if (diff === 'easy') basePoints = baseTopicValue;
-      else if (diff === 'medium') basePoints = baseTopicValue + 10;
-      else if (diff === 'hard') basePoints = baseTopicValue + 20;
+      // Manual de Pontuação v2 — Valores fixos por dificuldade
+      let basePoints = 30; // Fácil
+      if (diff === 'medium') basePoints = 45;
+      else if (diff === 'hard') basePoints = 60;
       
       // Penalidade: -2 pontos por erro
       const points = Math.max(0, basePoints - (errors * 2));

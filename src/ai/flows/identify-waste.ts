@@ -69,12 +69,12 @@ const prompt = ai.definePrompt({
   7.  **Justifique:** Forneça uma breve justificativa em português para a sua classificação geral.
 
   **Tabela de Pontos:**
-  - Plástico: 10
-  - Papel: 8
-  - Vidro: 12
-  - Metal: 15
-  - Orgânico: 5
-  - Eletrônico: 20
+  - Plástico: 100
+  - Papel: 80
+  - Vidro: 120
+  - Metal: 150
+  - Orgânico: 40
+  - Eletrônico: 250
   - Não reciclável: 0
 
   **Peso Estimado:** Estime o peso real do objeto identificado em KG. Seja realista (ex: Garrafa PET vazia ~0.02kg, Lata alumínio ~0.015kg, Papel A4 ~0.005kg).

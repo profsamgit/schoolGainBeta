@@ -96,6 +96,10 @@ export class PointsService {
     state.vitalityActivated = state.vitalityActivated ?? false;
     state.itemsCount = state.purchasedItems.length;
 
+    if (lifetimePointsGain > 0) {
+      state.lastActivityDate = new Date().toISOString();
+    }
+
     const score = EcosystemService.calculateTotalScore(state.points, state.vitality, state.itemsCount);
     state.level = this.calculateLevel(score, state.purchasedItems);
     state.id = user.id;

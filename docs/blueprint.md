@@ -24,9 +24,9 @@ Este documento descreve as funcionalidades principais e o guia de estilo do **Sc
 ### 4. Quizzes Educativos e Gamificados
 - **Descrição:** Avaliações interativas sobre temas ambientais estruturados de acordo com as diretrizes da BNCC.
 - **Detalhamento:**
-  - Permite ganhar pontos ao responder quizzes temáticos (ex: reciclagem, consumo de água).
-  - **Limites Diários:** Limitação de ganho de pontos a um quiz de cada dificuldade (Fácil, Médio, Difícil) por dia.
-  - **Penalidades:** Cada erro subtrai 2 pontos da recompensa acumulável para promover o estudo consciente.
+  - **Recompensa Fixa:** Concede recompensas de Bio-Coins fixas baseadas na dificuldade selecionada: Fácil (**30**), Médio (**45**) e Difícil (**60**).
+  - **Limites Diários:** Limitação de ganho de pontos a um quiz de cada dificuldade por dia (teto de 135 pts/dia).
+  - **Penalidades:** Cada erro subtrai 2 pontos da recompensa final do quiz para promover o estudo consciente.
 
 ### 5. Catálogo de Recompensas e Loja Virtual
 - **Descrição:** Uma loja digital (Bio-Loja) onde os alunos trocam suas Bio-Coins acumuladas por itens de restauração para o seu bioma ou por recompensas reais fornecidas pela instituição de ensino.
@@ -38,6 +38,15 @@ Este documento descreve as funcionalidades principais e o guia de estilo do **Sc
 
 ### 7. Hall das Lendas
 - **Descrição:** Mural de destaque mensal no painel de líderes que exibe os alunos de elite que conseguiram obter a criatura mitológica do lago (Nessie) durante o ciclo ativo.
+
+### 8. Motor de Depreciação do Ecossistema
+- **Descrição:** Mecanismo automático de perda progressiva e decaimento ecológico ativado no login para alunos que ficam mais de 7 dias inativos na plataforma.
+- **Detalhamento:**
+  - **🟡 Alerta (7–13 dias):** Perda acumulada de -15% de vitalidade por dia inativo.
+  - **🟠 Declínio (14–20 dias):** Vitalidade forçada para 0%, -30% do saldo de moedas, e -20% dos pontos (XP).
+  - **🔴 Colapso (21–27 dias):** Vitalidade em 0%, -40% das moedas restantes, -30% dos pontos restantes, e remoção automática de toda a Fauna do ecossistema.
+  - **⚫ Extinção (28+ dias):** Vitalidade em 0%, -50% das moedas finais, -50% dos pontos finais, e remoção da Flora e base ecológica.
+  - **Proteção:** Alunos com a Nessie comprada nos últimos 30 dias ganham imunidade total temporária à depreciação.
 
 ---
 

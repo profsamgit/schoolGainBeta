@@ -1,6 +1,7 @@
 import { db } from '../firebase';
 import { doc, setDoc, deleteDoc } from 'firebase/firestore';
 import type { User, EcosystemItem, Reward, EducationArticle, QuizTopic } from '@/types/ecosystem';
+import { ARTICLE_POINTS } from '../constants';
 
 export class PedagogicalService {
   constructor(private service: any) {}
@@ -31,10 +32,11 @@ export class PedagogicalService {
       return false;
     }
 
-    // Concede 20 pontos por leitura
-    const points = 20;
+    // Concede 30 pontos por leitura (Manual de Pontuação v2)
+    const points = ARTICLE_POINTS;
     state.readArticles.push(articleId);
     state.dailyArticleReads[today].push(articleId);
+    state.lastActivityDate = new Date().toISOString();
     this.service.data.userStates[userId] = state;
     
     this.service.syncUserPoints(userId, points, points, `Leitura de Artigo: ${article.title}`);
@@ -73,6 +75,7 @@ export class PedagogicalService {
     if (!userState.completedQuizzes.includes(topicId)) {
       userState.completedQuizzes.push(topicId);
     }
+    userState.lastActivityDate = new Date().toISOString();
     this.service.data.userStates[userId] = userState;
     this.service.syncStateWithUser(userId);
     await setDoc(doc(db, "userStates", userId), userState, { merge: true });
@@ -310,6 +313,7 @@ export class PedagogicalService {
     // Registrar compra localmente
     const newItems = [...state.purchasedItems, item];
     state.purchasedItems = newItems;
+    state.lastActivityDate = new Date().toISOString();
     this.service.data.userStates[targetUser.id] = state;
 
     if (targetUser.id === this.service.data.currentUserId || targetUser.ra === this.service.currentUserRa) {

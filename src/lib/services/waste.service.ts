@@ -44,6 +44,9 @@ export class WasteService {
 
     this.service.addPoints(points, cleanRa, `Coleta de ${type} (${weightKg.toFixed(3)} kg)`);
 
+    const state = this.service.data.userStates[student.id];
+    if (state) state.lastActivityDate = new Date().toISOString();
+
     this.service.data.wasteEntries = [...(this.service.data.wasteEntries || []), newEntry];
     this.service.wasteEntriesSubject.next([...this.service.data.wasteEntries]);
 

@@ -16,7 +16,7 @@ import {
   Users,
   Minimize
 } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { EcosystemItem } from '@/types/ecosystem';
 import { EcosystemViewer } from '@/components/ecosystem/EcosystemViewer';
 import { cn } from '@/lib/utils';
@@ -36,7 +36,9 @@ export default function MeuEcossistemaPage() {
     buyUpgrade,
     refundUpgrade,
     healVitality,
-    isNessieAvailable
+    isNessieAvailable,
+    userStates,
+    currentUserId
   } = useEcosystem();
 
   const { toast } = useToast();
@@ -49,6 +51,18 @@ export default function MeuEcossistemaPage() {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [forceTime, setForceTime] = useState<'real' | 'day' | 'night'>('real');
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const studentState = currentUserId && userStates ? userStates[currentUserId] : null;
+  const lastActivityDate = studentState?.lastActivityDate;
+
+  const isInactiveAlert = useMemo(() => {
+    if (!lastActivityDate) return false;
+    const lastActivity = new Date(lastActivityDate).getTime();
+    const now = new Date().getTime();
+    const diffTime = now - lastActivity;
+    const diffDays = diffTime / (1000 * 60 * 60 * 24);
+    return diffDays >= 5;
+  }, [lastActivityDate]);
 
   useEffect(() => {
     const handleFsChange = () => {
@@ -253,6 +267,16 @@ export default function MeuEcossistemaPage() {
             handleHealAction={handleHealAction} 
             setShowVitalityWarning={setShowVitalityWarning} 
           />
+      )}
+
+      {isInactiveAlert && (
+        <div className="absolute top-4 left-4 right-4 z-40 bg-amber-500/95 text-white backdrop-blur-md px-6 py-3 rounded-2xl flex items-center gap-3 shadow-lg border border-amber-400/30 animate-in slide-in-from-top-4 duration-300">
+          <span className="text-xl">⚠️</span>
+          <div className="flex flex-col">
+            <span className="font-extrabold uppercase text-[10px] tracking-wider">Atenção</span>
+            <span className="text-[11px] font-bold opacity-90">Seu ecossistema está enfraquecendo! Interaja para evitar a depreciação.</span>
+          </div>
+        </div>
       )}
 
       <EcossistemaShop 

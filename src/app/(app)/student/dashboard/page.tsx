@@ -162,6 +162,25 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [depreciationEvent, setDepreciationEvent] = useState<any>(null);
+  const [showDepreciationModal, setShowDepreciationModal] = useState(false);
+
+  useEffect(() => {
+    if (studentState && Array.isArray(studentState.depreciationLog) && studentState.depreciationLog.length > 0) {
+      const now = new Date().getTime();
+      const recentEvent = studentState.depreciationLog.find((event: any) => {
+        const eventTime = new Date(event.date).getTime();
+        return (now - eventTime) < (24 * 60 * 60 * 1000);
+      });
+      if (recentEvent) {
+        const sessionKey = `depreciation_acknowledged_${recentEvent.date}`;
+        if (!sessionStorage.getItem(sessionKey)) {
+          setDepreciationEvent(recentEvent);
+          setShowDepreciationModal(true);
+        }
+      }
+    }
+  }, [studentState]);
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement> | File) => {
     const file = e instanceof File ? e : e.target.files?.[0];
@@ -633,18 +652,30 @@ export default function DashboardPage() {
                     <p className="text-slate-500 dark:text-slate-400 font-medium leading-relaxed mt-1 text-[11px]">
                       Ganhe pontos por cada resíduo descartado no totem coletor:
                     </p>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 mt-2">
-                      <span className="bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 px-2 py-1 rounded-lg text-[9px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-center gap-1 hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
-                        <span className="text-[10px] select-none">⚙️</span> Metal: <span className="text-emerald-600 dark:text-emerald-400 font-black">+15</span>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <span className="bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 px-2.5 py-1.5 rounded-xl text-[9px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between gap-1 hover:border-slate-300 dark:hover:border-slate-700 transition-colors shadow-sm">
+                        <span className="flex items-center gap-1"><span className="text-[11px] select-none">⚙️</span> Metal</span>
+                        <span className="text-emerald-605 dark:text-emerald-400 font-black">+{POINTS_MAPPING['Metal']}</span>
                       </span>
-                      <span className="bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 px-2 py-1 rounded-lg text-[9px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-center gap-1 hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
-                        <span className="text-[10px] select-none">💎</span> Vidro: <span className="text-emerald-600 dark:text-emerald-400 font-black">+12</span>
+                      <span className="bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 px-2.5 py-1.5 rounded-xl text-[9px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between gap-1 hover:border-slate-300 dark:hover:border-slate-700 transition-colors shadow-sm">
+                        <span className="flex items-center gap-1"><span className="text-[11px] select-none">💎</span> Vidro</span>
+                        <span className="text-emerald-605 dark:text-emerald-400 font-black">+{POINTS_MAPPING['Vidro']}</span>
                       </span>
-                      <span className="bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 px-2 py-1 rounded-lg text-[9px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-center gap-1 hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
-                        <span className="text-[10px] select-none">🥤</span> Plástico: <span className="text-emerald-600 dark:text-emerald-400 font-black">+10</span>
+                      <span className="bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 px-2.5 py-1.5 rounded-xl text-[9px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between gap-1 hover:border-slate-300 dark:hover:border-slate-700 transition-colors shadow-sm">
+                        <span className="flex items-center gap-1"><span className="text-[11px] select-none">🥤</span> Plástico</span>
+                        <span className="text-emerald-605 dark:text-emerald-400 font-black">+{POINTS_MAPPING['Plástico']}</span>
                       </span>
-                      <span className="bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 px-2 py-1 rounded-lg text-[9px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-center gap-1 hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
-                        <span className="text-[10px] select-none">📦</span> Papel: <span className="text-emerald-600 dark:text-emerald-400 font-black">+8</span>
+                      <span className="bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 px-2.5 py-1.5 rounded-xl text-[9px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between gap-1 hover:border-slate-300 dark:hover:border-slate-700 transition-colors shadow-sm">
+                        <span className="flex items-center gap-1"><span className="text-[11px] select-none">📦</span> Papel</span>
+                        <span className="text-emerald-605 dark:text-emerald-400 font-black">+{POINTS_MAPPING['Papel']}</span>
+                      </span>
+                      <span className="bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 px-2.5 py-1.5 rounded-xl text-[9px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between gap-1 hover:border-slate-300 dark:hover:border-slate-700 transition-colors shadow-sm">
+                        <span className="flex items-center gap-1"><span className="text-[11px] select-none">🍌</span> Orgânico</span>
+                        <span className="text-emerald-605 dark:text-emerald-400 font-black">+{POINTS_MAPPING['Orgânico']}</span>
+                      </span>
+                      <span className="bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 px-2.5 py-1.5 rounded-xl text-[9px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between gap-1 hover:border-slate-300 dark:hover:border-slate-700 transition-colors shadow-sm">
+                        <span className="flex items-center gap-1"><span className="text-[11px] select-none">💻</span> Eletrônico</span>
+                        <span className="text-emerald-605 dark:text-emerald-400 font-black">+{POINTS_MAPPING['Eletrônico']}</span>
                       </span>
                     </div>
                   </div>
@@ -1086,6 +1117,85 @@ export default function DashboardPage() {
           onClose={() => setIsCameraOpen(false)} 
           onCapture={handlePhotoUpload} 
         />
+
+        {showDepreciationModal && depreciationEvent && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] max-w-lg w-full p-6 sm:p-8 shadow-2xl space-y-6 relative overflow-hidden animate-in zoom-in-95 duration-200 text-slate-900 dark:text-white">
+              <div className="absolute top-0 right-0 p-4">
+                <button 
+                  onClick={() => {
+                    const sessionKey = `depreciation_acknowledged_${depreciationEvent.date}`;
+                    sessionStorage.setItem(sessionKey, 'true');
+                    setShowDepreciationModal(false);
+                  }} 
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-2xl font-bold"
+                >
+                  &times;
+                </button>
+              </div>
+              
+              <div className="flex flex-col items-center text-center space-y-4">
+                <div className="p-4 bg-red-100 dark:bg-red-950/50 rounded-full animate-bounce">
+                  <AlertTriangle className="h-12 w-12 text-red-600 dark:text-red-500" />
+                </div>
+                
+                <h2 className="text-2xl font-black uppercase tracking-tight text-red-750 dark:text-red-500">
+                  Alerta de Depreciação!
+                </h2>
+                
+                <p className="text-slate-600 dark:text-slate-300 font-medium">
+                  Seu ecossistema ficou inativo por <span className="text-red-600 font-bold">{depreciationEvent.inactiveDays} dias</span> e sofreu as consequências da fase <span className="uppercase font-extrabold text-red-600 dark:text-red-500">{depreciationEvent.phase}</span>.
+                </p>
+              </div>
+
+              <div className="border-t border-b border-slate-100 dark:border-slate-800 py-4 space-y-3">
+                <h3 className="font-bold text-sm uppercase tracking-wider text-slate-500 dark:text-slate-400">Impacto no Ecossistema</h3>
+                
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-slate-50 dark:bg-slate-950/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <span className="block text-[10px] font-semibold text-slate-550">Pontos Perdidos</span>
+                    <span className="text-base font-black text-red-600">-{depreciationEvent.pointsLost}</span>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-950/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <span className="block text-[10px] font-semibold text-slate-555">Coins Perdidos</span>
+                    <span className="text-base font-black text-red-600">-{depreciationEvent.coinsLost}</span>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-950/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <span className="block text-[10px] font-semibold text-slate-555">Vitalidade</span>
+                    <span className="text-base font-black text-red-600">-{depreciationEvent.vitalityLost}%</span>
+                  </div>
+                </div>
+
+                {depreciationEvent.itemsRemoved && depreciationEvent.itemsRemoved.length > 0 && (
+                  <div className="mt-4 p-3 bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 rounded-2xl">
+                    <span className="block text-xs font-bold text-red-750 dark:text-red-400 uppercase tracking-wider mb-2">Itens Removidos:</span>
+                    <div className="flex flex-wrap gap-1.5 justify-center">
+                      {depreciationEvent.itemsRemoved.map((item: string) => (
+                        <span key={item} className="px-2 py-0.5 bg-red-100 dark:bg-red-950 text-red-750 dark:text-red-300 rounded-lg text-[10px] font-bold uppercase tracking-tight">
+                          {item.replace(/_/g, ' ')}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col space-y-2 text-center pt-2">
+                <span className="text-xs text-slate-500">🌱 O ecossistema precisa de você! Retorne às atividades para recuperá-lo.</span>
+                <Button 
+                  onClick={() => {
+                    const sessionKey = `depreciation_acknowledged_${depreciationEvent.date}`;
+                    sessionStorage.setItem(sessionKey, 'true');
+                    setShowDepreciationModal(false);
+                  }} 
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-12 rounded-xl"
+                >
+                  Entendi, vou recuperar!
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

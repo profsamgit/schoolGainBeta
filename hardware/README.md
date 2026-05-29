@@ -119,3 +119,12 @@ Se você esquecer a senha do portal ou precisar limpar as configurações fisica
 *   **Reconhecimento Online/Offline**:
     *   A câmera está online se responder na porta `80` ou estiver recente nos logs.
     *   O controlador de descarte (que não roda servidor de stream) é identificado como online pelo proxy local se enviar telemetria à porta `9006` (UDP) ou se responder à porta local com `ECONNREFUSED` (provando que o chip está ligado e pingável na rede física).
+
+---
+
+## ⚙️ 6. Melhorias de Firmware e Integração de Telemetria (Maio 2026)
+
+*   **Calibração Dinâmica de Sonares:** Os limites de distância (cheia/vazia em centímetros) configurados na interface web local são salvos nas preferências do NVS e enviados nos pacotes de telemetria (`binDistances`). Isso elimina parametrizações estáticas de tamanho de lixeiras no código-fonte.
+*   **Modo de Economia Inteligente (Standby):** O Totem Kiosk envia comandos de controle que desligam a webcam e apagam os LEDs de flash físico (`GPIO 4`) após 60 segundos de inatividade no terminal para prolongar a vida útil do hardware.
+*   **Fluxo Otimizado para OV2640 & OV3660:** Resolução e FPS são adaptados automaticamente no nível do hardware (VGA de 30 FPS nativos no modo fluido de login em vez de conversões em tempo de execução via software).
+*   **Identificação Resiliente por MAC (Fallbacks de Rotas):** A telemetria do endpoint do servidor `/api/hardware/bin-status` resolve o terminal associado consultando o endereço físico (MAC) no Firestore quando as referências diretas de IDs lógicos falharem, garantindo tolerância a resets.
