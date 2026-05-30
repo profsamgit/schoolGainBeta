@@ -209,13 +209,13 @@ export default function KioskPage() {
     return url;
   };
 
-  const activeLoginUrl = (isIdle || activeTab !== 'qr') ? '' : getCameraUrl(
+  const activeLoginUrl = (isIdle || activeTab !== 'qr' || step !== 'identification') ? '' : getCameraUrl(
     currentTerminal?.settings?.loginCameraSource || systemSettings.studentCaptureSource || 'browser',
     currentTerminal?.settings?.loginCameraUrl || systemSettings.studentCaptureUrl || '',
     'login'
   );
 
-  const activeScanningUrl = isIdle ? '' : getCameraUrl(
+  const activeScanningUrl = (isIdle || step !== 'scanning') ? '' : getCameraUrl(
     currentTerminal?.settings?.scanningCameraSource || systemSettings.studentCaptureSource || 'browser', 
     currentTerminal?.settings?.scanningCameraUrl || systemSettings.studentCaptureUrl || '',
     'scan'
@@ -659,7 +659,7 @@ export default function KioskPage() {
         setSuccessMessage('Agradecemos pela visita! Este engajamento inspira esta instituição.');
     } else {
         toast({ title: 'Registro bem-sucedido!', description: `${identifiedStudent?.name} ganhou ${actualPoints} pontos.` });
-        setStep('identification'); setStudentRa(''); setIdentifiedStudent(null); setIdentificationResult(null);
+        setStep('identification'); setStudentRa(''); setIdentifiedStudent(null); setIdentificationResult(null); setActiveTab('manual');
     }
     setIdentificationResult(null);
     setCapturedPhotoUri(null); // Reseta foto
@@ -677,6 +677,7 @@ export default function KioskPage() {
     }
     setStudentRa(''); setIdentifiedStudent(null); setStep('identification'); setIdentificationResult(null); setShowKeyboard(false); setSuccessMessage(null);
     setCapturedPhotoUri(null); // Reseta foto
+    setActiveTab('manual');
   };
 
   if (isMobileDevice) {

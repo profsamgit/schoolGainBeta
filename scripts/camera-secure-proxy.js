@@ -483,6 +483,8 @@ const server = http.createServer((req, res) => {
 
   console.log(`[PROXY] Canalizando stream de: ${espUrl}`);
 
+  let clientAborted = false;
+
   const connector = http.get(espUrl, (espRes) => {
     // Copia os cabeçalhos de imagem/video da ESP32-CAM original (como multipart/x-mixed-replace)
     res.writeHead(espRes.statusCode, {
@@ -496,6 +498,11 @@ const server = http.createServer((req, res) => {
   });
 
   connector.on('error', (err) => {
+    // Se o cliente abortou ou a requisição já fechou, silencia a queda/reset que é esperada
+    if (clientAborted || req.destroyed || err.code === 'ECONNRESET') {
+      console.log(`[PROXY] Stream finalizado com sucesso para ${cleanHost}`);
+      return;
+    }
     console.error(`[PROXY ERRO] Falha de conexão com a ESP32-CAM em ${espUrl}:`, err.message);
     if (!res.headersSent) {
       res.writeHead(502, { 'Content-Type': 'application/json' });
@@ -506,6 +513,7 @@ const server = http.createServer((req, res) => {
   });
 
   req.on('close', () => {
+    clientAborted = true;
     connector.destroy();
   });
 });
