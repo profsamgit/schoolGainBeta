@@ -636,7 +636,7 @@ export function QuizClient() {
             <BrainCircuit className="h-5 w-5 text-emerald-500" />
             Biblioteca de Quizzes Ativos
           </h2>
-          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-1">
+          <p className="text-[10px] text-slate-550 dark:text-slate-400 font-bold uppercase tracking-widest mt-1">
             Escolha e refaça quizzes que já foram gerados pela comunidade escolar
           </p>
         </div>
@@ -647,15 +647,27 @@ export function QuizClient() {
           </div>
         ) : availableQuizzes.length === 0 ? (
           <div className="text-center py-12 border border-dashed border-slate-200 dark:border-white/10 rounded-[2rem] bg-white/40 dark:bg-slate-900/10">
-            <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Nenhum quiz na biblioteca ainda. Gere o primeiro acima!</p>
+            <p className="text-xs text-slate-550 font-bold uppercase tracking-widest">Nenhum quiz na biblioteca ainda. Gere o primeiro acima!</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {availableQuizzes.map((quiz) => {
               const topicObj = allQuizTopics.find(t => t.name.toLowerCase() === quiz.topic?.toLowerCase());
               const isCompleted = topicObj && studentState?.completedQuizzes?.includes(topicObj.id);
-              const baseCoins = topicObj?.coinsValue !== undefined ? topicObj.coinsValue : 10;
-              const rewardValue = baseCoins + (quiz.difficulty === 'easy' ? 0 : quiz.difficulty === 'medium' ? 10 : 20);
+              
+              // Calcula a recompensa correta baseada no nível, tópico e quantidade de questões do quiz ativo
+              let basePoints = 30; // Fácil
+              if (quiz.difficulty === 'medium') basePoints = 45;
+              else if (quiz.difficulty === 'hard') basePoints = 60;
+              
+              const topicValue = topicObj?.coinsValue !== undefined ? topicObj.coinsValue : 10;
+              let rewardValue = basePoints + topicValue;
+              
+              if (quiz.numberOfQuestions === 3) {
+                rewardValue -= 5;
+              } else if (quiz.numberOfQuestions === 10) {
+                rewardValue += 5;
+              }
 
               return (
                 <Card key={quiz.id} className="flex flex-col justify-between overflow-hidden border border-slate-200/60 dark:border-white/5 shadow-xl hover:shadow-2xl transition-all duration-300 rounded-[2rem] bg-white/80 dark:bg-slate-900/40 text-slate-800 dark:text-white backdrop-blur-xl hover:border-emerald-500/25">
@@ -676,7 +688,7 @@ export function QuizClient() {
                     <CardTitle className="text-xs font-black text-slate-900 dark:text-white mt-3 line-clamp-2 uppercase tracking-tight leading-snug">
                       {quiz.quizTitle || `Quiz de ${quiz.topic}`}
                     </CardTitle>
-                    <CardDescription className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1.5 flex items-center gap-1">
+                    <CardDescription className="text-[9px] font-bold text-slate-550 dark:text-slate-400 uppercase tracking-wider mt-1.5 flex items-center gap-1">
                       Tópico: <span className="text-emerald-600 dark:text-emerald-400 font-black">{quiz.topic}</span>
                     </CardDescription>
                   </CardHeader>
@@ -688,7 +700,7 @@ export function QuizClient() {
                       </span>
                     </div>
                   </CardContent>
-                  <CardFooter className="pt-3 border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20 p-4">
+                  <CardFooter className="pt-3 border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-slate-955/20 p-4">
                     <Button onClick={() => handleStartExistingQuiz(quiz)} variant="ghost" className="w-full justify-between font-black uppercase text-[9px] tracking-widest text-emerald-600 dark:text-emerald-400 hover:text-white hover:bg-emerald-650 dark:hover:bg-emerald-500 border border-slate-200 dark:border-white/5 rounded-xl h-10 px-4 transition-all duration-300 group">
                       {isCompleted ? 'Rever Quiz' : 'Iniciar Quiz'} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </Button>
